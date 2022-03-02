@@ -1,7 +1,8 @@
 build
+.cache
 .vscode
 *.ll
 *.bc
 *.o
-*s
+*.s
 *.out
