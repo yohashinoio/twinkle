@@ -35,14 +35,21 @@ assert 36 "4*(8+1)+0"
 assert 38 "48 + -10"
 assert 58 "+48 + 10"
 assert 58 "10 - -48"
+assert 58 "+10 - -48"
 assert 48 "+(-(48 * -(1 + 0)))"
 # The reason why "1 +" is written at the beginning is
 # to prevent the return value from being a boolean(i1 in llvm ir) type.
 assert  1 "1 + (48 == 10)"
+assert  1 "1+(48==10)"
 assert  2 "1 + (48 != 10)"
+assert  2 "1+(48!=10)"
 assert  1 "1 + (48 < 10)"
+assert  1 "1+(48<10)"
 assert  2 "1 + (48 > 10)"
+assert  2 "1+(48>10)"
 assert  2 "1 + (48 <= 48)"
+assert  2 "1+(48<=48)"
 assert  2 "1 + (10 >= 10)"
+assert  2 "1+(10>=10)"
 
 echo OK
