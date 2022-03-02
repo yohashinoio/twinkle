@@ -153,19 +153,61 @@ code_generator::code_generator(const std::filesystem::path& filepath,
 {
 }
 
-auto code_generator::print() const -> void
+auto code_generator::llvm_ir_print() const -> void
 {
   module->print(llvm::outs(), nullptr);
 }
 
-auto code_generator::write_bitcode_to_file(
-  const std::filesystem::path& out) const -> void
+auto code_generator::write_to_file(const std::filesystem::path& out) const
+  -> void
 {
-  std::error_code      ec;
-  llvm::raw_fd_ostream os{out.string(), ec};
+  const auto target_triple = llvm::sys::getDefaultTargetTriple();
 
-  llvm::WriteBitcodeToFile(*module, os);
-  os.close();
+  // target triple error string.
+  std::string target_triple_es;
+  auto        target
+    = llvm::TargetRegistry::lookupTarget(target_triple, target_triple_es);
+
+  if (!target) {
+    throw std::runtime_error{format_error_message_without_filename(
+      format("Failed to lookup target %s: %s", target_triple, target_triple_es),
+      true)};
+  }
+
+  llvm::TargetOptions opt;
+  auto*               the_target_machine
+    = target->createTargetMachine(target_triple,
+                                  "generic",
+                                  "",
+                                  opt,
+                                  llvm::Optional<llvm::Reloc::Model>());
+
+  module->setTargetTriple(target_triple);
+  module->setDataLayout(the_target_machine->createDataLayout());
+
+  std::error_code      ostream_ec;
+  llvm::raw_fd_ostream os{out.string(),
+                          ostream_ec,
+                          llvm::sys::fs::OpenFlags::OF_None};
+
+  if (ostream_ec) {
+    throw std::runtime_error{format_error_message(
+      filepath.string(),
+      format("Could not open file: %s", ostream_ec.message()))};
+  }
+
+  llvm::legacy::PassManager pass;
+  if (the_target_machine->addPassesToEmitFile(pass,
+                                              os,
+                                              nullptr,
+                                              llvm::CGFT_ObjectFile)) {
+    throw std::runtime_error{
+      format_error_message(filepath.string(),
+                           "TargetMachine can't emit a file of this types")};
+  }
+
+  pass.run(*module);
+  os.flush();
 }
 
 auto code_generator::codegen() -> void

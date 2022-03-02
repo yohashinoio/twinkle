@@ -39,14 +39,18 @@ target_include_directories(
   ${LLVM_INCLUDE_DIRS}
 )
 
-llvm_map_components_to_libnames(llvm_libs core support bitwriter)
+execute_process(COMMAND llvm-config --libs all
+                OUTPUT_VARIABLE CONFIG_OUTPUT)
+string(REGEX REPLACE "[ \t]*[\r\n]+[ \t]*" ";" CONFIG_OUTPUT ${CONFIG_OUTPUT})
+
 
 target_link_libraries(
   mikoc
   PRIVATE
+  ${LLVM_LIBS}
   Threads::Threads
   ${Boost_LIBRARIES}
-  ${llvm_libs}
+  ${CONFIG_OUTPUT}
 )
 
 target_compile_options(

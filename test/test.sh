@@ -9,7 +9,8 @@ assert() {
   input="$2"
 
   ../build/mikoc "$input"
-  lli a.bc
+  clang a.o
+  ./a.out
   actual="$?"
 
   if [ "$actual" = "$expected" ]; then

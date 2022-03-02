@@ -21,9 +21,9 @@ namespace miko::codegen
 struct code_generator {
   code_generator(const std::filesystem::path& filepath, ast::program&& ast);
 
-  auto print() const -> void;
+  auto llvm_ir_print() const -> void;
 
-  auto write_bitcode_to_file(const std::filesystem::path& out) const -> void;
+  auto write_to_file(const std::filesystem::path& out) const -> void;
 
   auto codegen() -> void;
 

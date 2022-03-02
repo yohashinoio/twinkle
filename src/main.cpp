@@ -11,6 +11,12 @@
 
 int main(const int argc, const char* const* const argv)
 try {
+  llvm::InitializeAllTargetInfos();
+  llvm::InitializeAllTargets();
+  llvm::InitializeAllTargetMCs();
+  llvm::InitializeAllAsmParsers();
+  llvm::InitializeAllAsmPrinters();
+
   namespace program_options = boost::program_options;
 
   program_options::options_description opt{"Usage"};
@@ -48,13 +54,13 @@ try {
   generator.codegen();
 
   if (opt_map.count("irprint"))
-    generator.print();
+    generator.llvm_ir_print();
 
   if (opt_map.count("out")) {
-    generator.write_bitcode_to_file(opt_map["out"].as<std::string>());
+    generator.write_to_file(opt_map["out"].as<std::string>());
   }
   else
-    generator.write_bitcode_to_file("a.bc");
+    generator.write_to_file("a.o");
 }
 catch (const std::exception& err) {
   std::cerr << err.what() << std::endl;
