@@ -97,7 +97,11 @@ auto setup_program_options(boost::program_options::options_description& opt)
 
 auto display_version() -> void
 {
-  std::cout << MIKO_VERSION << std::endl;
+  const auto major = MIKO_VERSION / 100000;
+  const auto minor = MIKO_VERSION / 100 % 1000;
+  const auto patch = MIKO_VERSION % 100;
+
+  std::cout << major << '.' << minor << '.' << patch << '\n';
 }
 
 } // namespace miko

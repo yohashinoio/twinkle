@@ -21,7 +21,7 @@ namespace miko
 #define COLOR_WHITE   "\x1b[97m"
 #define COLOR_RED     "\x1b[91m"
 
-constexpr const char* MIKO_VERSION = "1.0.0";
+constexpr unsigned int MIKO_VERSION = 100000;
 
 auto display_version() -> void;
 

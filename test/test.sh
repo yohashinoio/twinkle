@@ -9,7 +9,7 @@ assert() {
   input="$2"
 
   ../build/mikoc "$input"
-  clang a.o
+  cc a.o # assemble
   ./a.out
   actual="$?"
 

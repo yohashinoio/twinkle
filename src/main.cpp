@@ -54,13 +54,13 @@ try {
   generator.codegen();
 
   if (opt_map.count("irprint"))
-    generator.llvm_ir_print();
+    generator.stdout_llvm_ir();
 
   if (opt_map.count("out")) {
-    generator.write_to_file(opt_map["out"].as<std::string>());
+    generator.write_object_code_to_file(opt_map["out"].as<std::string>());
   }
   else
-    generator.write_to_file("a.o");
+    generator.write_object_code_to_file("a.o");
 }
 catch (const std::exception& err) {
   std::cerr << err.what() << std::endl;

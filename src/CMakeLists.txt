@@ -15,7 +15,7 @@ find_package(Threads REQUIRED)
 find_package(Boost REQUIRED COMPONENTS program_options) # 1.71.0 in development
 message(STATUS "Using .cmake in: ${Boost_DIR}")
 
-find_package(LLVM REQUIRED CONFIG) # 13.0.1 in development
+find_package(LLVM REQUIRED CONFIG) # 14.0.0 in development
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using .cmake in: ${LLVM_DIR}")
 

@@ -153,12 +153,12 @@ code_generator::code_generator(const std::filesystem::path& filepath,
 {
 }
 
-auto code_generator::llvm_ir_print() const -> void
+auto code_generator::stdout_llvm_ir() const -> void
 {
   module->print(llvm::outs(), nullptr);
 }
 
-auto code_generator::write_to_file(const std::filesystem::path& out) const
+auto code_generator::write_object_code_to_file(const std::filesystem::path& out) const
   -> void
 {
   const auto target_triple = llvm::sys::getDefaultTargetTriple();
