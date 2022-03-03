@@ -19,8 +19,7 @@ namespace x3 = boost::spirit::x3;
 namespace miko::ast
 {
 
-struct nil {
-};
+struct nil {};
 
 struct unaryop;
 struct binop;
@@ -39,6 +38,12 @@ struct unaryop : x3::position_tagged {
     , rhs{rhs}
   {
   }
+
+  unaryop()
+    : op{}
+    , rhs{}
+  {
+  }
 };
 
 struct binop : x3::position_tagged {
@@ -52,9 +57,68 @@ struct binop : x3::position_tagged {
     , rhs{rhs}
   {
   }
+
+  binop()
+    : lhs{}
+    , op{}
+    , rhs{}
+  {
+  }
 };
 
-using program = operand;
+using statement = boost::variant<nil, operand>;
+
+struct return_statement {
+  operand rhs;
+
+  explicit return_statement(const operand& rhs)
+    : rhs{rhs}
+  {
+  }
+
+  return_statement()
+    : rhs{}
+  {
+  }
+};
+
+struct function_decl;
+struct function_def;
+
+using toplevel = boost::variant<nil, function_decl, function_def>;
+
+struct function_decl : x3::position_tagged {
+  std::string name;
+
+  explicit function_decl(const std::string& name)
+    : name{name}
+  {
+  }
+
+  function_decl()
+    : name{}
+  {
+  }
+};
+
+struct function_def : x3::position_tagged {
+  function_decl decl;
+  operand       body;
+
+  function_def(const function_decl& decl, const operand& body)
+    : decl{decl}
+    , body{body}
+  {
+  }
+
+  function_def()
+    : decl{}
+    , body{}
+  {
+  }
+};
+
+using program = std::vector<toplevel>;
 
 } // namespace miko::ast
 

@@ -26,9 +26,10 @@ struct with_error_handling {
     ++total_errors;
 
     auto&& error_handler = x3::get<x3::error_handler_tag>(context).get();
-    error_handler(x.where(),
-                  format_error_message_without_filename("expected: " + x.which()
-                                                        + " here:"));
+    error_handler(
+      x.where(),
+      format_error_message_without_filename(
+        "expected: " + boost::core::demangle(x.which().c_str()) + " here:"));
     return x3::error_handler_result::fail;
   }
 
@@ -57,6 +58,16 @@ const auto assign_binop_to_val = [](auto&& ctx) -> void {
                  fusion::at_c<1>(x3::_attr(ctx)) /* right hand side */};
 };
 
+const auto assign_function_decl_to_val = [](auto&& ctx) -> void {
+  x3::_val(ctx) = ast::function_decl{x3::_attr(ctx)};
+};
+
+const auto assign_function_def_to_val = [](auto&& ctx) -> void {
+  x3::_val(ctx)
+    = ast::function_def{fusion::at_c<0>(x3::_attr(ctx)) /* function decl */,
+                        fusion::at_c<1>(x3::_attr(ctx)) /* body */};
+};
+
 const auto char_to_string = [](auto&& ctx) -> void {
   x3::_val(ctx) = std::string{x3::_attr(ctx)};
 };
@@ -66,20 +77,25 @@ const auto char_to_string = [](auto&& ctx) -> void {
 namespace peg
 {
 
-const x3::rule<struct expression_tag, ast::operand> expression{"expression"};
-const x3::rule<struct equality_tag, ast::operand>   equality{"equality"};
-const x3::rule<struct relational_tag, ast::operand> relational{"relational"};
-const x3::rule<struct add_tag, ast::operand>        add{"add"};
-const x3::rule<struct mul_tag, ast::operand>        mul{"mul"};
-const x3::rule<struct unary_tag, ast::operand>      unary{"unary"};
-const x3::rule<struct primary_tag, ast::operand>    primary{"primary"};
-const x3::rule<struct parser_tag, ast::operand>     parser{"parser"};
+// common rules
+const auto identifier = x3::rule<struct identifier, std::string>{"identifier"}
+= x3::raw[x3::lexeme[(x3::alpha | x3::lit('_'))
+                     >> *(x3::alnum | x3::lit('_'))]];
 
 const auto data_type = x3::rule<struct data_type, std::string>{"data type"}
 = x3::string("i32");
 
 const auto integer = x3::rule<struct integer, int>{"integral number"}
 = x3::int_;
+
+// expreesion rules
+const x3::rule<struct equality_tag, ast::operand>   equality{"equality"};
+const x3::rule<struct relational_tag, ast::operand> relational{"relational"};
+const x3::rule<struct add_tag, ast::operand>        add{"add"};
+const x3::rule<struct mul_tag, ast::operand>        mul{"mul"};
+const x3::rule<struct unary_tag, ast::operand>      unary{"unary"};
+const x3::rule<struct primary_tag, ast::operand>    primary{"primary"};
+const x3::rule<struct expression_tag, ast::operand> expression{"expression"};
 
 const auto unary_operator
   = x3::rule<struct unary_operator, std::string>{"unary operator"}
@@ -102,8 +118,6 @@ const auto multitive_operator
   = x3::rule<struct multitive_operator, std::string>{"multitive operator"}
 = x3::char_("*/")[action::char_to_string];
 
-const auto expression_def = equality;
-
 const auto equality_def
   = relational[action::assign_attr_to_val]
     >> *(equality_operator > relational)[action::assign_binop_to_val];
@@ -122,44 +136,70 @@ const auto mul_def
 const auto unary_def = (unary_operator > primary)[action::assign_unaryop_to_val]
                        | primary[action::assign_attr_to_val];
 
-const auto primary_def
-  = (x3::lit('(') > expression > x3::lit(')'))[action::assign_attr_to_val]
-    | x3::expect[integer][action::assign_attr_to_val];
+const auto primary_def = (x3::lit('(') > expression > x3::lit(')')) | integer;
 
-const auto parser_def
-  = x3::skip(x3::space)[x3::eoi /*Empty program*/ | (expression > x3::eoi)];
+const auto expression_def = equality;
 
-BOOST_SPIRIT_DEFINE(expression,
-                    equality,
-                    relational,
-                    add,
-                    mul,
-                    unary,
-                    primary,
-                    parser)
+// TODO: statement rules
+// statement rules
+// const auto statement
+//   = x3::rule<struct statement_tag, ast::statement>{"statement"}
+// = (expression | (x3::lit("ret") > expression)) > x3::lit(';'));
 
-struct expression_tag : with_error_handling {
-};
-struct equality_tag : with_error_handling {
-};
-struct relational_tag : with_error_handling {
-};
-struct add_tag : with_error_handling {
-};
-struct mul_tag : with_error_handling {
-};
-struct unary_tag : with_error_handling {
-};
-struct primary_tag : with_error_handling {
-};
-struct parser_tag : with_error_handling {
-};
+// const auto compound_statement
+//   = x3::rule<struct compound_statement_tag,
+//              std::vector<ast::statement>>{"statement"}
+// = x3::lit('{') > *statement > x3::lit('}');
+
+// function rules
+const auto function_proto = x3::rule<struct function_proto_tag,
+                                     ast::function_decl>{"function prototype"}
+= identifier[action::assign_function_decl_to_val] > x3::lit('(') > x3::lit(')');
+
+const auto function_decl = x3::rule<struct function_decl_tag,
+                                    ast::function_decl>{"function declaration"}
+= x3::lit("extern") > function_proto > x3::lit(';');
+
+const auto function_defi
+  = x3::rule<struct function_defi_tag, ast::function_def>{"function definition"}
+= x3::lit("fn") > function_proto > x3::lit('{') > -expression > x3::lit('}');
+
+// top level rule
+const auto toplevel = x3::rule<struct toplevel_tag, ast::toplevel>{"toplevel"}
+= function_decl | function_defi;
+
+// parser rule
+const auto parser = x3::rule<struct parser_tag, ast::program>{"parser"}
+= x3::skip(x3::space)
+  [x3::eoi /*Empty program*/ | (x3::expect[toplevel] >> *toplevel > x3::eoi)];
+
+BOOST_SPIRIT_DEFINE(expression, equality, relational, add, mul, unary, primary)
+
+// expression tags definition
+struct expression_tag : with_error_handling {};
+struct equality_tag : with_error_handling {};
+struct relational_tag : with_error_handling {};
+struct add_tag : with_error_handling {};
+struct mul_tag : with_error_handling {};
+struct unary_tag : with_error_handling {};
+struct primary_tag : with_error_handling {};
+
+// function tags definition
+struct function_proto_tag : with_error_handling {};
+struct function_decl_tag : with_error_handling {};
+struct function_defi_tag : with_error_handling {};
+
+// top level tag definition
+struct toplevel_tag : with_error_handling {};
+
+// parser tag definition
+struct parser_tag : with_error_handling {};
 
 } // namespace peg
 
-parser::parser(std::string&& input, const std::filesystem::path& path)
+parser::parser(std::string&& input, const std::filesystem::path& source)
   : input{std::move(input)}
-  , path{path}
+  , source{source}
 {
 }
 
@@ -173,7 +213,7 @@ auto parser::parse() -> ast::program
   x3::error_handler<iterator_type> error_handler{first,
                                                  last,
                                                  std::cerr,
-                                                 path.string()};
+                                                 source.string()};
   const auto                       parser
     = x3::with<x3::error_handler_tag>(std::ref(error_handler))[peg::parser];
 

@@ -43,14 +43,14 @@ try {
   }
 
   // const std::filesystem::path path = argv[1];
-  const std::filesystem::path source_file_path = "top";
+  const std::filesystem::path source = "top";
 
   // auto source = miko::load_file_to_string(source_file_path);
-  auto source = argv[argc - 1];
+  auto program = argv[argc - 1];
 
-  miko::parse::parser parser{std::move(source), source_file_path};
+  miko::parse::parser parser{std::move(program), source};
 
-  miko::codegen::code_generator generator{source_file_path, parser.parse()};
+  miko::codegen::code_generator generator{source, parser.parse()};
   generator.codegen();
 
   if (opt_map.count("irprint"))

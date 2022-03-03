@@ -19,20 +19,21 @@ namespace miko::codegen
 {
 
 struct code_generator {
-  code_generator(const std::filesystem::path& filepath, ast::program&& ast);
+  code_generator(const std::filesystem::path& source, ast::program&& ast);
 
   auto stdout_llvm_ir() const -> void;
 
-  auto write_object_code_to_file(const std::filesystem::path& out) const -> void;
+  auto write_object_code_to_file(const std::filesystem::path& out) const
+    -> void;
 
   auto codegen() -> void;
 
 private:
   llvm::LLVMContext             context;
   llvm::IRBuilder<>             builder;
-  std::unique_ptr<llvm::Module> module;
+  std::shared_ptr<llvm::Module> module;
 
-  const std::filesystem::path& filepath;
+  const std::filesystem::path& source;
 
   ast::program ast;
 };

@@ -19,11 +19,23 @@ BOOST_FUSION_ADAPT_STRUCT(
   (std::string, op)
   (ast::operand, rhs)
 )
+
 BOOST_FUSION_ADAPT_STRUCT(
   ast::binop,
   (ast::operand, lhs)
   (std::string, op)
   (ast::operand, rhs)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+  ast::function_decl,
+  (std::string, name)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+  ast::function_def,
+	(ast::function_decl, decl)
+  (ast::operand, body)
 )
 // clang-format on
 

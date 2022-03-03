@@ -19,13 +19,13 @@ namespace miko::parse
 {
 
 struct parser {
-  explicit parser(std::string&& input, const std::filesystem::path& path);
+  explicit parser(std::string&& input, const std::filesystem::path& source);
 
   [[nodiscard]] auto parse() -> ast::program;
 
 private:
   std::string                  input;
-  const std::filesystem::path& path;
+  const std::filesystem::path& source;
 };
 
 } // namespace miko::parse
