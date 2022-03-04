@@ -24,16 +24,16 @@ struct nil {};
 struct unaryop;
 struct binop;
 
-using operand = boost::variant<nil,
-                               int,
-                               boost::recursive_wrapper<unaryop>,
-                               boost::recursive_wrapper<binop>>;
+using expression = boost::variant<nil,
+                                  int,
+                                  boost::recursive_wrapper<unaryop>,
+                                  boost::recursive_wrapper<binop>>;
 
 struct unaryop : x3::position_tagged {
   std::string op;
-  operand     rhs;
+  expression  rhs;
 
-  unaryop(const std::string& op, const operand& rhs)
+  unaryop(const std::string& op, const expression& rhs)
     : op{op}
     , rhs{rhs}
   {
@@ -47,11 +47,11 @@ struct unaryop : x3::position_tagged {
 };
 
 struct binop : x3::position_tagged {
-  operand     lhs;
+  expression  lhs;
   std::string op;
-  operand     rhs;
+  expression  rhs;
 
-  binop(const operand& lhs, const std::string& op, const operand& rhs)
+  binop(const expression& lhs, const std::string& op, const expression& rhs)
     : lhs{lhs}
     , op{op}
     , rhs{rhs}
@@ -66,12 +66,15 @@ struct binop : x3::position_tagged {
   }
 };
 
-using statement = boost::variant<nil, operand>;
+struct return_statement;
+
+using statement          = boost::variant<nil, expression, return_statement>;
+using compound_statement = std::vector<statement>;
 
 struct return_statement {
-  operand rhs;
+  expression rhs;
 
-  explicit return_statement(const operand& rhs)
+  explicit return_statement(const expression& rhs)
     : rhs{rhs}
   {
   }
@@ -102,10 +105,10 @@ struct function_decl : x3::position_tagged {
 };
 
 struct function_def : x3::position_tagged {
-  function_decl decl;
-  operand       body;
+  function_decl      decl;
+  compound_statement body;
 
-  function_def(const function_decl& decl, const operand& body)
+  function_def(const function_decl& decl, const compound_statement& body)
     : decl{decl}
     , body{body}
   {

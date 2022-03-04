@@ -11,13 +11,13 @@
 
 int main(const int argc, const char* const* const argv)
 try {
+  namespace program_options = boost::program_options;
+
   llvm::InitializeAllTargetInfos();
   llvm::InitializeAllTargets();
   llvm::InitializeAllTargetMCs();
   llvm::InitializeAllAsmParsers();
   llvm::InitializeAllAsmPrinters();
-
-  namespace program_options = boost::program_options;
 
   program_options::options_description opt{"Usage"};
 
@@ -63,6 +63,6 @@ try {
     generator.write_object_code_to_file("a.o");
 }
 catch (const std::exception& err) {
-  std::cerr << err.what() << std::endl;
+  std::cerr << err.what();
   std::exit(EXIT_FAILURE);
 }

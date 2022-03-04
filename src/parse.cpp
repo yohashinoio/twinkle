@@ -26,10 +26,9 @@ struct with_error_handling {
     ++total_errors;
 
     auto&& error_handler = x3::get<x3::error_handler_tag>(context).get();
-    error_handler(
-      x.where(),
-      format_error_message_without_filename(
-        "expected: " + boost::core::demangle(x.which().c_str()) + " here:"));
+    error_handler(x.where(),
+                  format_error_message_without_filename("expected: " + x.which()
+                                                        + " here:"));
     return x3::error_handler_result::fail;
   }
 
@@ -89,13 +88,14 @@ const auto integer = x3::rule<struct integer, int>{"integral number"}
 = x3::int_;
 
 // expreesion rules
-const x3::rule<struct equality_tag, ast::operand>   equality{"equality"};
-const x3::rule<struct relational_tag, ast::operand> relational{"relational"};
-const x3::rule<struct add_tag, ast::operand>        add{"add"};
-const x3::rule<struct mul_tag, ast::operand>        mul{"mul"};
-const x3::rule<struct unary_tag, ast::operand>      unary{"unary"};
-const x3::rule<struct primary_tag, ast::operand>    primary{"primary"};
-const x3::rule<struct expression_tag, ast::operand> expression{"expression"};
+const x3::rule<struct equality_tag, ast::expression>   equality{"equality"};
+const x3::rule<struct relational_tag, ast::expression> relational{"relational"};
+const x3::rule<struct addition_tag, ast::expression>   addition{"addition"};
+const x3::rule<struct multiplication_tag, ast::expression> multiplication{
+  "multiplication"};
+const x3::rule<struct unary_tag, ast::expression>      unary{"unary"};
+const x3::rule<struct primary_tag, ast::expression>    primary{"primary"};
+const x3::rule<struct expression_tag, ast::expression> expression{"expression"};
 
 const auto unary_operator
   = x3::rule<struct unary_operator, std::string>{"unary operator"}
@@ -123,13 +123,14 @@ const auto equality_def
     >> *(equality_operator > relational)[action::assign_binop_to_val];
 
 const auto relational_def
-  = add[action::assign_attr_to_val]
-    >> *(relational_operator > add)[action::assign_binop_to_val];
+  = addition[action::assign_attr_to_val]
+    >> *(relational_operator > addition)[action::assign_binop_to_val];
 
-const auto add_def = mul[action::assign_attr_to_val]
-                     >> *(additive_operator > mul)[action::assign_binop_to_val];
+const auto addition_def
+  = multiplication[action::assign_attr_to_val]
+    >> *(additive_operator > multiplication)[action::assign_binop_to_val];
 
-const auto mul_def
+const auto multiplication_def
   = unary[action::assign_attr_to_val]
     >> *(multitive_operator > unary)[action::assign_binop_to_val];
 
@@ -140,16 +141,25 @@ const auto primary_def = (x3::lit('(') > expression > x3::lit(')')) | integer;
 
 const auto expression_def = equality;
 
-// TODO: statement rules
 // statement rules
-// const auto statement
-//   = x3::rule<struct statement_tag, ast::statement>{"statement"}
-// = (expression | (x3::lit("ret") > expression)) > x3::lit(';'));
+const auto return_statement
+  = x3::rule<struct return_statement_tag,
+             ast::return_statement>{"return statement"}
+= x3::lit("ret") > expression > x3::lit(';');
 
-// const auto compound_statement
-//   = x3::rule<struct compound_statement_tag,
-//              std::vector<ast::statement>>{"statement"}
-// = x3::lit('{') > *statement > x3::lit('}');
+const auto expression_statement
+  = x3::rule<struct expression_statement_tag,
+             ast::expression>{"expression statement"}
+= expression > x3::lit(';');
+
+const auto statement
+  = x3::rule<struct statement_tag, ast::statement>{"statement"}
+= expression_statement | return_statement;
+
+const auto compound_statement
+  = x3::rule<struct compound_statement_tag,
+             ast::compound_statement>{"compound statement"}
+= x3::lit('{') > *statement > x3::lit('}');
 
 // function rules
 const auto function_proto = x3::rule<struct function_proto_tag,
@@ -162,10 +172,10 @@ const auto function_decl = x3::rule<struct function_decl_tag,
 
 const auto function_defi
   = x3::rule<struct function_defi_tag, ast::function_def>{"function definition"}
-= x3::lit("fn") > function_proto > x3::lit('{') > -expression > x3::lit('}');
+= x3::lit("fn") > function_proto > compound_statement;
 
 // top level rule
-const auto toplevel = x3::rule<struct toplevel_tag, ast::toplevel>{"toplevel"}
+const auto toplevel = x3::rule<struct toplevel_tag, ast::toplevel>{"top level"}
 = function_decl | function_defi;
 
 // parser rule
@@ -173,16 +183,28 @@ const auto parser = x3::rule<struct parser_tag, ast::program>{"parser"}
 = x3::skip(x3::space)
   [x3::eoi /*Empty program*/ | (x3::expect[toplevel] >> *toplevel > x3::eoi)];
 
-BOOST_SPIRIT_DEFINE(expression, equality, relational, add, mul, unary, primary)
+BOOST_SPIRIT_DEFINE(expression,
+                    equality,
+                    relational,
+                    addition,
+                    multiplication,
+                    unary,
+                    primary)
 
 // expression tags definition
 struct expression_tag : with_error_handling {};
 struct equality_tag : with_error_handling {};
 struct relational_tag : with_error_handling {};
-struct add_tag : with_error_handling {};
-struct mul_tag : with_error_handling {};
+struct addition_tag : with_error_handling {};
+struct multiplication_tag : with_error_handling {};
 struct unary_tag : with_error_handling {};
 struct primary_tag : with_error_handling {};
+
+// statement
+struct return_statement_tag : with_error_handling {};
+struct expression_statement_tag : with_error_handling {};
+struct statement_tag : with_error_handling {};
+struct compound_statement_tag : with_error_handling {};
 
 // function tags definition
 struct function_proto_tag : with_error_handling {};
@@ -222,7 +244,7 @@ auto parser::parse() -> ast::program
 
   if (!success || first != last) {
     throw std::runtime_error{format(COLOR_WHITE
-                                    "\n%zu errors generated." COLOR_DEFAULT,
+                                    "\n%zu errors generated.\n" COLOR_DEFAULT,
                                     with_error_handling::total_errors)};
   }
 

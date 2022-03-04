@@ -24,22 +24,22 @@ namespace miko
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
   if (isatty(fileno(stdout))) {
     if (fatal) {
-      return format("%s: " COLOR_RED "Fatal error: " COLOR_WHITE
+      return format("%s: " COLOR_RED "fatal error: " COLOR_WHITE
                     "%s" COLOR_DEFAULT,
                     filename.data(),
                     message.data());
     }
     else {
-      return format("%s: " COLOR_RED "Error: " COLOR_WHITE "%s" COLOR_DEFAULT,
+      return format("%s: " COLOR_RED "error: " COLOR_WHITE "%s" COLOR_DEFAULT,
                     filename.data(),
                     message.data());
     }
   }
 #endif
   if (fatal)
-    return format("%s: Fatal error: %s", filename.data(), message.data());
+    return format("%s: fatal error: %s", filename.data(), message.data());
 
-  return format("%s: Error: %s", filename.data(), message.data());
+  return format("%s: error: %s", filename.data(), message.data());
 }
 
 // Formatting and coloring.
@@ -50,23 +50,30 @@ format_error_message_without_filename(const std::string_view message,
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
   if (isatty(fileno(stdout))) {
     if (fatal)
-      return format(COLOR_RED "Fatal error: " COLOR_WHITE "%s" COLOR_DEFAULT,
+      return format(COLOR_RED "fatal error: " COLOR_WHITE "%s" COLOR_DEFAULT,
                     message.data());
     else
-      return format(COLOR_RED "Error: " COLOR_WHITE "%s" COLOR_DEFAULT,
+      return format(COLOR_RED "error: " COLOR_WHITE "%s" COLOR_DEFAULT,
                     message.data());
   }
 #endif
   if (fatal)
-    return format("Fatal error: %s", message.data());
+    return format("fatal error: %s", message.data());
 
-  return format("Error: %s", message.data());
+  return format("error: %s", message.data());
 }
 
 // Load a file to std::string.
 [[nodiscard]] auto load_file_to_string(const std::filesystem::path& path)
   -> std::string
 {
+  if (!std::filesystem::exists(path)) {
+    throw std::runtime_error{format_error_message(
+      path.string(),
+      format("%s: No such file or directory.\n", path.string()),
+      true)};
+  }
+
   if (auto file = std::ifstream{path}) {
     std::stringstream ss;
     ss << file.rdbuf();
@@ -76,8 +83,7 @@ format_error_message_without_filename(const std::string_view message,
 
   throw std::runtime_error{format_error_message(
     path.string(),
-    format("%s: No such file or directory.", path.string()),
-    true)};
+    format("Could not open file: %s\n", path.filename().string()))};
 }
 
 auto setup_program_options(boost::program_options::options_description& opt)

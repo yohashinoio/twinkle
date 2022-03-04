@@ -12,9 +12,9 @@ namespace miko::codegen
 {
 
 // It seems that the member function has to be const.
-struct operand_visitor : public boost::static_visitor<llvm::Value*> {
-  operand_visitor(llvm::IRBuilder<>&           builder,
-                  const std::filesystem::path& source)
+struct expression_visitor : public boost::static_visitor<llvm::Value*> {
+  expression_visitor(llvm::IRBuilder<>&           builder,
+                     const std::filesystem::path& source)
     : builder{builder}
     , source{source}
   {
@@ -51,13 +51,13 @@ struct operand_visitor : public boost::static_visitor<llvm::Value*> {
     auto lhs = boost::apply_visitor(*this, node.lhs);
     auto rhs = boost::apply_visitor(*this, node.rhs);
 
-    // add
+    // addition
     if (node.op == "+")
       return apply_add_op(lhs, rhs);
     if (node.op == "-")
       return apply_sub_op(lhs, rhs);
 
-    // mul
+    // multiplication
     if (node.op == "*")
       return apply_mul_op(lhs, rhs);
     if (node.op == "/")
@@ -139,6 +139,38 @@ private:
   }
 };
 
+struct statement_visitor : public boost::static_visitor<void> {
+  statement_visitor(llvm::IRBuilder<>&           builder,
+                    const std::filesystem::path& source)
+    : builder{builder}
+    , source{source}
+  {
+  }
+
+  auto operator()(ast::nil) const
+  {
+    BOOST_ASSERT(0);
+  }
+
+  auto operator()(const ast::expression& node) const
+  {
+    boost::apply_visitor(expression_visitor{builder, source}, node);
+  }
+
+  auto operator()(const ast::return_statement& node) const
+  {
+    auto* retval
+      = boost::apply_visitor(expression_visitor{builder, source}, node.rhs);
+
+    builder.CreateRet(retval);
+  }
+
+private:
+  llvm::IRBuilder<>& builder;
+
+  const std::filesystem::path& source;
+};
+
 struct toplevel_visitor : public boost::static_visitor<llvm::Function*> {
   toplevel_visitor(llvm::LLVMContext&            context,
                    llvm::IRBuilder<>&            builder,
@@ -178,38 +210,25 @@ struct toplevel_visitor : public boost::static_visitor<llvm::Function*> {
     if (!func) {
       throw std::runtime_error{format_error_message(
         source.string(),
-        format("Failed to build function %s", node.decl.name),
+        format("Failed to build function %s\n", node.decl.name),
         true)};
     }
 
     auto* basic_block = llvm::BasicBlock::Create(context, "entry", func);
     builder.SetInsertPoint(basic_block);
 
-    if (auto* retval
-        = boost::apply_visitor(operand_visitor{builder, source}, node.body)) {
-      builder.CreateRet(retval);
+    for (auto&& statement : node.body)
+      boost::apply_visitor(statement_visitor{builder, source}, statement);
 
-      llvm::verifyFunction(*func);
+    std::string              em;
+    llvm::raw_string_ostream os{em};
+    if (llvm::verifyFunction(*func, &os)) {
+      func->eraseFromParent();
 
-      return func;
+      throw std::runtime_error{format_error_message(source.string(), os.str())};
     }
 
-    // If body of main function is empty, it automatically returns 0.
-    if (node.decl.name == "main") {
-      builder.CreateRet(llvm::ConstantInt::get(builder.getInt32Ty(), 0));
-
-      llvm::verifyFunction(*func);
-
-      return func;
-    }
-
-    func->eraseFromParent();
-
-    throw std::runtime_error{format_error_message(
-      source.string(),
-      format("Failed to generate code for function %s body", node.decl.name))};
-
-    return nullptr;
+    return func;
   }
 
 private:
@@ -246,7 +265,9 @@ auto code_generator::write_object_code_to_file(
 
   if (!target) {
     throw std::runtime_error{format_error_message_without_filename(
-      format("Failed to lookup target %s: %s", target_triple, target_triple_es),
+      format("Failed to lookup target %s: %s\n",
+             target_triple,
+             target_triple_es),
       true)};
   }
 
@@ -265,11 +286,10 @@ auto code_generator::write_object_code_to_file(
   llvm::raw_fd_ostream os{out.string(),
                           ostream_ec,
                           llvm::sys::fs::OpenFlags::OF_None};
-
   if (ostream_ec) {
     throw std::runtime_error{format_error_message(
       source.string(),
-      format("Could not open file: %s", ostream_ec.message()))};
+      format("Could not open file: %s\n", ostream_ec.message()))};
   }
 
   llvm::legacy::PassManager pass;
@@ -279,7 +299,7 @@ auto code_generator::write_object_code_to_file(
                                               llvm::CGFT_ObjectFile)) {
     throw std::runtime_error{
       format_error_message(source.string(),
-                           "TargetMachine can't emit a file of this types")};
+                           "TargetMachine can't emit a file of this types\n")};
   }
 
   pass.run(*module);
@@ -288,9 +308,8 @@ auto code_generator::write_object_code_to_file(
 
 auto code_generator::codegen() -> void
 {
-  for (auto&& r : ast) {
+  for (auto&& r : ast)
     boost::apply_visitor(toplevel_visitor{context, builder, module, source}, r);
-  }
 }
 
 } // namespace miko::codegen

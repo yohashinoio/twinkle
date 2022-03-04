@@ -12,8 +12,8 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
+#include <boost/assert.hpp>
 #include <type_traits>
-#include <string>
 #include <memory>
 
 // Converting std::string type to const char* type.
@@ -46,7 +46,7 @@ template <typename... Args>
 
   if (str_len < 0) {
     // std::snprintf failed.
-    throw std::runtime_error("snprintf failed.");
+    BOOST_ASSERT(0);
   }
 
   // null termination
