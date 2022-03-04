@@ -63,6 +63,6 @@ try {
     generator.write_object_code_to_file("a.o");
 }
 catch (const std::exception& err) {
-  std::cerr << err.what();
+  std::cerr << err.what() << "compilation terminated." << std::endl;
   std::exit(EXIT_FAILURE);
 }

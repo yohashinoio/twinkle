@@ -210,7 +210,7 @@ struct toplevel_visitor : public boost::static_visitor<llvm::Function*> {
     if (!func) {
       throw std::runtime_error{format_error_message(
         source.string(),
-        format("Failed to build function %s\n", node.decl.name),
+        format("Failed to create function %s\n", node.decl.name),
         true)};
     }
 
@@ -264,11 +264,12 @@ auto code_generator::write_object_code_to_file(
     = llvm::TargetRegistry::lookupTarget(target_triple, target_triple_es);
 
   if (!target) {
-    throw std::runtime_error{format_error_message_without_filename(
-      format("Failed to lookup target %s: %s\n",
-             target_triple,
-             target_triple_es),
-      true)};
+    throw std::runtime_error{
+      format_error_message("mikoc",
+                           format("Failed to lookup target %s: %s\n",
+                                  target_triple,
+                                  target_triple_es),
+                           true)};
   }
 
   llvm::TargetOptions opt;
@@ -288,8 +289,8 @@ auto code_generator::write_object_code_to_file(
                           llvm::sys::fs::OpenFlags::OF_None};
   if (ostream_ec) {
     throw std::runtime_error{format_error_message(
-      source.string(),
-      format("Could not open file: %s\n", ostream_ec.message()))};
+      "mikoc",
+      format("%s: %s\n", out.string(), ostream_ec.message()))};
   }
 
   llvm::legacy::PassManager pass;
@@ -298,8 +299,9 @@ auto code_generator::write_object_code_to_file(
                                               nullptr,
                                               llvm::CGFT_ObjectFile)) {
     throw std::runtime_error{
-      format_error_message(source.string(),
-                           "TargetMachine can't emit a file of this types\n")};
+      format_error_message("mikoc",
+                           "TargetMachine can't emit a file of this types\n",
+                           true)};
   }
 
   pass.run(*module);

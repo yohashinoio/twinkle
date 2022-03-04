@@ -18,17 +18,17 @@ namespace miko::parse
 
 struct with_error_handling {
   template <typename Iterator, typename Context>
-  x3::error_handler_result on_error(Iterator,
-                                    Iterator,
+  x3::error_handler_result on_error([[maybe_unused]] Iterator&       first,
+                                    [[maybe_unused]] const Iterator& last,
                                     const x3::expectation_failure<Iterator>& x,
                                     Context const& context) const
   {
     ++total_errors;
 
     auto&& error_handler = x3::get<x3::error_handler_tag>(context).get();
-    error_handler(x.where(),
-                  format_error_message_without_filename("expected: " + x.which()
-                                                        + " here:"));
+    error_handler(
+      x.where(),
+      format_error_message_without_filename("expected: " + x.which()));
     return x3::error_handler_result::fail;
   }
 
@@ -243,9 +243,8 @@ auto parser::parse() -> ast::program
   const auto   success = x3::parse(first, last, parser, result);
 
   if (!success || first != last) {
-    throw std::runtime_error{format(COLOR_WHITE
-                                    "\n%zu errors generated.\n" COLOR_DEFAULT,
-                                    with_error_handling::total_errors)};
+    throw std::runtime_error{
+      format("%zu errors generated.\n", with_error_handling::total_errors)};
   }
 
   return result;

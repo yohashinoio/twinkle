@@ -24,13 +24,12 @@ namespace miko
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
   if (isatty(fileno(stdout))) {
     if (fatal) {
-      return format("%s: " COLOR_RED "fatal error: " COLOR_WHITE
-                    "%s" COLOR_DEFAULT,
+      return format("%s: " COLOR_RED "fatal error: " COLOR_DEFAULT "%s",
                     filename.data(),
                     message.data());
     }
     else {
-      return format("%s: " COLOR_RED "error: " COLOR_WHITE "%s" COLOR_DEFAULT,
+      return format("%s: " COLOR_RED "error: " COLOR_DEFAULT "%s",
                     filename.data(),
                     message.data());
     }
@@ -50,11 +49,10 @@ format_error_message_without_filename(const std::string_view message,
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
   if (isatty(fileno(stdout))) {
     if (fatal)
-      return format(COLOR_RED "fatal error: " COLOR_WHITE "%s" COLOR_DEFAULT,
+      return format(COLOR_RED "fatal error: " COLOR_DEFAULT "%s",
                     message.data());
     else
-      return format(COLOR_RED "error: " COLOR_WHITE "%s" COLOR_DEFAULT,
-                    message.data());
+      return format(COLOR_RED "error: " COLOR_DEFAULT "%s", message.data());
   }
 #endif
   if (fatal)
@@ -69,9 +67,8 @@ format_error_message_without_filename(const std::string_view message,
 {
   if (!std::filesystem::exists(path)) {
     throw std::runtime_error{format_error_message(
-      path.string(),
-      format("%s: No such file or directory.\n", path.string()),
-      true)};
+      "mikoc",
+      format("%s: No such file or directory\n", path.string()))};
   }
 
   if (auto file = std::ifstream{path}) {
@@ -81,9 +78,9 @@ format_error_message_without_filename(const std::string_view message,
     return ss.str();
   }
 
-  throw std::runtime_error{format_error_message(
-    path.string(),
-    format("Could not open file: %s\n", path.filename().string()))};
+  throw std::runtime_error{
+    format_error_message("mikoc",
+                         format("%s: Could not open file\n", path.string()))};
 }
 
 auto setup_program_options(boost::program_options::options_description& opt)
