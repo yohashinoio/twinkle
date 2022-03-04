@@ -26,12 +26,16 @@ struct binop;
 struct variable;
 struct function_call;
 
-using expression = boost::variant<nil,
-                                  int,
-                                  boost::recursive_wrapper<unaryop>,
-                                  boost::recursive_wrapper<binop>,
-                                  boost::recursive_wrapper<variable>,
-                                  boost::recursive_wrapper<function_call>>;
+using expression
+  = boost::variant<nil,
+                   int,
+                   boost::recursive_wrapper<unaryop>,
+                   boost::recursive_wrapper<binop>,
+                   boost::recursive_wrapper<variable> /* I don't know why, but
+                                                         it has to be wrapped in
+                                                         recursive_wrapper. */
+                   ,
+                   boost::recursive_wrapper<function_call>>;
 
 struct unaryop : x3::position_tagged {
   std::string op;
