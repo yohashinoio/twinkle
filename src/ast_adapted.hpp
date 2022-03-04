@@ -28,6 +28,16 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
+  ast::variable,
+  (std::string, name)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+  ast::function_call,
+  (std::string, callee)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
   ast::return_statement,
   (ast::expression, rhs)
 )

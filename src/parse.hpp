@@ -19,7 +19,9 @@ namespace miko::parse
 {
 
 struct parser {
-  explicit parser(std::string&& input, const std::filesystem::path& source);
+  parser(const std::string& input, const std::filesystem::path& source);
+
+  parser(std::string&& input, const std::filesystem::path& source);
 
   [[nodiscard]] auto parse() -> ast::program;
 

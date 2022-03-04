@@ -8,7 +8,7 @@ assert() {
   expected="$1"
   input="$2"
 
-  ../build/mikoc "$input"
+  ../build/mikoc --input="$input"
   cc a.o
   ./a.out
   actual="$?"

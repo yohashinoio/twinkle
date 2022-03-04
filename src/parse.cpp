@@ -57,6 +57,14 @@ const auto assign_binop_to_val = [](auto&& ctx) -> void {
                  fusion::at_c<1>(x3::_attr(ctx)) /* right hand side */};
 };
 
+const auto assign_variable_to_val = [](auto&& ctx) {
+  x3::_val(ctx) = ast::variable{x3::_attr(ctx) /* name */};
+};
+
+const auto assign_function_call_to_val = [](auto&& ctx) {
+  x3::_val(ctx) = ast::function_call{x3::_attr(ctx) /* callee */};
+};
+
 const auto assign_function_decl_to_val = [](auto&& ctx) -> void {
   x3::_val(ctx) = ast::function_decl{x3::_attr(ctx)};
 };
@@ -137,7 +145,11 @@ const auto multiplication_def
 const auto unary_def = (unary_operator > primary)[action::assign_unaryop_to_val]
                        | primary[action::assign_attr_to_val];
 
-const auto primary_def = (x3::lit('(') > expression > x3::lit(')')) | integer;
+const auto primary_def
+  = (x3::lit('(') > expression > x3::lit(')'))[action::assign_attr_to_val]
+    | integer[action::assign_attr_to_val]
+    | (identifier >> x3::lit("()"))[action::assign_function_call_to_val]
+    | identifier[action::assign_variable_to_val];
 
 const auto expression_def = equality;
 
@@ -154,7 +166,9 @@ const auto expression_statement
 
 const auto statement
   = x3::rule<struct statement_tag, ast::statement>{"statement"}
-= expression_statement | return_statement;
+= return_statement /* If return_statement does not have a higher priority than
+                      expression_statement, "ret" will match the identifier.*/
+  | expression_statement;
 
 const auto compound_statement
   = x3::rule<struct compound_statement_tag,
@@ -218,6 +232,12 @@ struct toplevel_tag : with_error_handling {};
 struct parser_tag : with_error_handling {};
 
 } // namespace peg
+
+parser::parser(const std::string& input, const std::filesystem::path& source)
+  : input{input}
+  , source{source}
+{
+}
 
 parser::parser(std::string&& input, const std::filesystem::path& source)
   : input{std::move(input)}

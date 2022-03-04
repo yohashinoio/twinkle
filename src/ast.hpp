@@ -23,11 +23,15 @@ struct nil {};
 
 struct unaryop;
 struct binop;
+struct variable;
+struct function_call;
 
 using expression = boost::variant<nil,
                                   int,
                                   boost::recursive_wrapper<unaryop>,
-                                  boost::recursive_wrapper<binop>>;
+                                  boost::recursive_wrapper<binop>,
+                                  boost::recursive_wrapper<variable>,
+                                  boost::recursive_wrapper<function_call>>;
 
 struct unaryop : x3::position_tagged {
   std::string op;
@@ -62,6 +66,35 @@ struct binop : x3::position_tagged {
     : lhs{}
     , op{}
     , rhs{}
+  {
+  }
+};
+
+struct variable : x3::position_tagged {
+  std::string name;
+
+  explicit variable(const std::string& name)
+    : name{name}
+  {
+  }
+
+  variable()
+    : name{}
+  {
+  }
+};
+
+struct function_call : x3::position_tagged {
+  std::string callee;
+  // TODO: arguments
+
+  explicit function_call(const std::string& callee)
+    : callee{callee}
+  {
+  }
+
+  function_call()
+    : callee{}
   {
   }
 };

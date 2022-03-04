@@ -17,6 +17,8 @@
 namespace miko
 {
 
+namespace program_options = boost::program_options;
+
 #define COLOR_DEFAULT "\x1b[0m"
 #define COLOR_RED     "\x1b[91m"
 
@@ -38,8 +40,16 @@ format_error_message_without_filename(const std::string_view message,
 [[nodiscard]] auto load_file_to_string(const std::filesystem::path& path)
   -> std::string;
 
-auto setup_program_options(boost::program_options::options_description& opt)
-  -> void;
+auto create_options_description() -> program_options::options_description;
+
+auto get_variable_map(const program_options::options_description& desc,
+                      const int                                   argc,
+                      const char* const* const                    argv)
+  -> program_options::variables_map;
+
+// If no input files are passed, std::runtime_error is thrown.
+auto get_input_files(const program_options::variables_map& vm)
+  -> std::vector<std::string>;
 
 } // namespace miko
 

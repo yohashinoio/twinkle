@@ -84,6 +84,18 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
       "Unsupported binary operators may have been converted to ASTs.");
   }
 
+  auto operator()(ast::variable) const -> llvm::Value*
+  {
+    // TODO:
+    BOOST_ASSERT(0);
+  }
+
+  auto operator()(ast::function_call) const -> llvm::Value*
+  {
+    // TODO:
+    BOOST_ASSERT(0);
+  }
+
 private:
   llvm::IRBuilder<>& builder;
 

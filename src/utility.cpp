@@ -83,19 +83,51 @@ format_error_message_without_filename(const std::string_view message,
                          format("%s: Could not open file\n", path.string()))};
 }
 
-auto setup_program_options(boost::program_options::options_description& opt)
-  -> void
+auto create_options_description() -> program_options::options_description
 {
-  namespace program_options = boost::program_options;
+  program_options::options_description desc{"Options"};
 
   // clang-format off
- opt.add_options()
+  desc.add_options()
     ("help,h", "Display this information.")
-    ("version,v", "Display compiler version information.")
+    ("version,v", "Display compiler version.")
+    ("input", program_options::value<std::string>(), "Input instead of files.")
     ("irprint", "Display LLVM IR.")
-    ("out,o", program_options::value<std::string>(), "Specify output file name.")
+    ("output,o", program_options::value<std::string>(), "Output file name.")
+    ("input-file", program_options::value<std::vector<std::string> >(), "Input file.")
     ;
   // clang-format on
+
+  return desc;
+}
+
+auto get_variable_map(const program_options::options_description& desc,
+                      const int                                   argc,
+                      const char* const* const                    argv)
+  -> program_options::variables_map
+{
+  program_options::positional_options_description p;
+
+  p.add("input-file", -1);
+
+  program_options::variables_map vm;
+  program_options::store(program_options::command_line_parser(argc, argv)
+                           .options(desc)
+                           .positional(p)
+                           .run(),
+                         vm);
+  program_options::notify(vm);
+
+  return vm;
+}
+
+auto get_input_files(const program_options::variables_map& vm)
+  -> std::vector<std::string>
+{
+  if (vm.count("input-file"))
+    return vm["input-file"].as<std::vector<std::string>>();
+  else
+    throw miko::format_error_message("mikoc", "no input files\n", true);
 }
 
 auto display_version() -> void
