@@ -1,7 +1,7 @@
 //
 //  pch.cpp (Pre compiled header)
 //
-//  Copyright (c) 2022 The Miko Authors. All rights reserved.
+//  Copyright (c) 2022 The Miko Authors.
 //  MIT License
 //
 

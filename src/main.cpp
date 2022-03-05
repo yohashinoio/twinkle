@@ -1,7 +1,7 @@
 //
 //  main.cpp
 //
-//  Copyright (c) 2022 The Miko Authors. All rights reserved.
+//  Copyright (c) 2022 The Miko Authors.
 //  MIT License
 //
 
