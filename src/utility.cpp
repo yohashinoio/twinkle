@@ -92,8 +92,7 @@ auto create_options_description() -> program_options::options_description
     ("help,h", "Display this information.")
     ("version,v", "Display compiler version.")
     ("input", program_options::value<std::string>(), "Input instead of files.")
-    ("irprint", "Display LLVM IR.")
-    ("output,o", program_options::value<std::string>(), "Output file name.")
+    ("llvmir", "Output LLVM IR instead of Object code.")
     ("input-file", program_options::value<std::vector<std::string> >(), "Input file.")
     ;
   // clang-format on

@@ -260,9 +260,21 @@ code_generator::code_generator(const std::filesystem::path& source,
 {
 }
 
-auto code_generator::stdout_llvm_ir() const -> void
+auto code_generator::write_llvm_ir_to_file(
+  const std::filesystem::path& out) const -> void
 {
-  module->print(llvm::outs(), nullptr);
+  std::error_code      ostream_ec;
+  llvm::raw_fd_ostream os{out.string(),
+                          ostream_ec,
+                          llvm::sys::fs::OpenFlags::OF_None};
+
+  if (ostream_ec) {
+    throw std::runtime_error{format_error_message(
+      "mikoc",
+      format("%s: %s\n", out.string(), ostream_ec.message()))};
+  }
+
+  module->print(os, nullptr);
 }
 
 auto code_generator::write_object_code_to_file(

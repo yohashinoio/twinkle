@@ -21,7 +21,7 @@ namespace miko::codegen
 struct code_generator {
   code_generator(const std::filesystem::path& source, ast::program&& ast);
 
-  auto stdout_llvm_ir() const -> void;
+  auto write_llvm_ir_to_file(const std::filesystem::path& out) const -> void;
 
   auto write_object_code_to_file(const std::filesystem::path& out) const
     -> void;

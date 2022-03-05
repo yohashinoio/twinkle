@@ -29,16 +29,14 @@ bool is_back_newline(const char* str) noexcept
   }
 }
 
-void output(miko::codegen::code_generator&        generator,
-            const program_options::variables_map& vm,
-            const std::filesystem::path&          path = "a.o")
+void output_to_file(miko::codegen::code_generator& generator,
+                    const std::filesystem::path&   path,
+                    const bool                     output_llvmir)
 {
-  if (vm.count("irprint"))
-    generator.stdout_llvm_ir();
-  if (vm.count("output"))
-    generator.write_object_code_to_file(vm["output"].as<std::string>());
+  if (output_llvmir)
+    generator.write_llvm_ir_to_file(path.stem().string() + ".ll");
   else
-    generator.write_object_code_to_file(path);
+    generator.write_object_code_to_file(path.stem().string() + ".o");
 }
 
 int main(const int argc, const char* const* const argv)
@@ -73,12 +71,11 @@ try {
     miko::codegen::code_generator generator{file_path, parser.parse()};
     generator.codegen();
 
-    output(generator, vm);
+    output_to_file(generator, file_path, vm.count("llvmir"));
   }
   else {
     auto file_paths = miko::get_input_files(vm);
 
-    // TODO: multi thread
     for (auto&& file_path : file_paths) {
       miko::parse::parser parser{miko::load_file_to_string(file_path),
                                  file_path};
@@ -86,9 +83,7 @@ try {
       miko::codegen::code_generator generator{file_path, parser.parse()};
       generator.codegen();
 
-      output(generator,
-             vm,
-             std::filesystem::path{file_path}.stem().string() + ".o");
+      output_to_file(generator, file_path, vm.count("llvmir"));
     }
   }
 }
