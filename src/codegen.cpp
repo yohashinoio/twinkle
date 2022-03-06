@@ -259,13 +259,15 @@ private:
 };
 
 struct toplevel_visitor : public boost::static_visitor<llvm::Function*> {
-  toplevel_visitor(llvm::LLVMContext&            context,
-                   llvm::IRBuilder<>&            builder,
-                   std::shared_ptr<llvm::Module> module,
-                   const std::filesystem::path&  source)
+  toplevel_visitor(llvm::LLVMContext&                 context,
+                   llvm::IRBuilder<>&                 builder,
+                   std::shared_ptr<llvm::Module>      module,
+                   llvm::legacy::FunctionPassManager& fpm,
+                   const std::filesystem::path&       source)
     : context{context}
     , builder{builder}
     , module{module}
+    , fpm{fpm}
     , source{source}
   {
   }
@@ -319,6 +321,8 @@ struct toplevel_visitor : public boost::static_visitor<llvm::Function*> {
       throw std::runtime_error{format_error_message(source.string(), os.str())};
     }
 
+    fpm.run(*func);
+
     return func;
   }
 
@@ -327,6 +331,8 @@ private:
   llvm::IRBuilder<>&            builder;
   std::shared_ptr<llvm::Module> module;
 
+  llvm::legacy::FunctionPassManager& fpm;
+
   const std::filesystem::path& source;
 };
 
@@ -334,9 +340,21 @@ code_generator::code_generator(const ast::program&          ast,
                                const std::filesystem::path& source)
   : builder{context}
   , module{std::make_shared<llvm::Module>(source.filename().string(), context)}
+  , fpm{module.get()}
   , source{source}
   , ast{ast}
 {
+  // Do simple "peephole" optimizations and bit-twiddling optzns.
+  fpm.add(llvm::createInstructionCombiningPass());
+  // Reassociate expressions.
+  fpm.add(llvm::createReassociatePass());
+  // Eliminate Common SubExpressions.
+  fpm.add(llvm::createGVNPass());
+  // Simplify the control flow graph (deleting unreachable blocks, etc).
+  fpm.add(llvm::createCFGSimplificationPass());
+
+  fpm.doInitialization();
+
   codegen();
 }
 
@@ -395,8 +413,8 @@ void code_generator::write_object_code_to_file(
       format("%s: %s\n", out.string(), ostream_ec.message()))};
   }
 
-  llvm::legacy::PassManager pass;
-  if (the_target_machine->addPassesToEmitFile(pass,
+  llvm::legacy::PassManager pm;
+  if (the_target_machine->addPassesToEmitFile(pm,
                                               os,
                                               nullptr,
                                               llvm::CGFT_ObjectFile)) {
@@ -406,15 +424,16 @@ void code_generator::write_object_code_to_file(
                            true)};
   }
 
-  pass.run(*module);
+  pm.run(*module);
   os.flush();
 }
 
 void code_generator::codegen()
 {
   for (auto&& node : ast)
-    boost::apply_visitor(toplevel_visitor{context, builder, module, source},
-                         node);
+    boost::apply_visitor(
+      toplevel_visitor{context, builder, module, fpm, source},
+      node);
 }
 
 } // namespace miko::codegen

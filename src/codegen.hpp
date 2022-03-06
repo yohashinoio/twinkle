@@ -32,6 +32,8 @@ private:
   llvm::IRBuilder<>             builder;
   std::shared_ptr<llvm::Module> module;
 
+  llvm::legacy::FunctionPassManager fpm;
+
   const std::filesystem::path& source;
 
   const ast::program& ast;
