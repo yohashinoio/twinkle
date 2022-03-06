@@ -66,10 +66,10 @@ try {
   if (vm.count("input")) {
     std::string_view file_path = "input";
 
-    miko::parse::parser parser{vm["input"].as<std::string>(), file_path};
+    const std::string&  input = vm["input"].as<std::string>();
+    miko::parse::parser parser{input.cbegin(), input.cend(), file_path};
 
-    miko::codegen::code_generator generator{file_path, parser.parse()};
-    generator.codegen();
+    miko::codegen::code_generator generator{parser.get_ast(), file_path};
 
     output_to_file(generator, file_path, vm.count("llvmir"));
   }
@@ -77,11 +77,11 @@ try {
     auto file_paths = miko::get_input_files(vm);
 
     for (auto&& file_path : file_paths) {
-      miko::parse::parser parser{miko::load_file_to_string(file_path),
-                                 file_path};
+      const std::string input = miko::load_file_to_string(file_path);
 
-      miko::codegen::code_generator generator{file_path, parser.parse()};
-      generator.codegen();
+      miko::parse::parser parser{input.cbegin(), input.cend(), file_path};
+
+      miko::codegen::code_generator generator{parser.get_ast(), file_path};
 
       output_to_file(generator, file_path, vm.count("llvmir"));
     }

@@ -19,7 +19,7 @@ namespace miko::codegen
 {
 
 struct code_generator {
-  code_generator(const std::filesystem::path& source, ast::program&& ast);
+  code_generator(const ast::program& ast, const std::filesystem::path& source);
 
   auto write_llvm_ir_to_file(const std::filesystem::path& out) const -> void;
 
@@ -35,7 +35,7 @@ private:
 
   const std::filesystem::path& source;
 
-  ast::program ast;
+  const ast::program& ast;
 };
 
 } // namespace miko::codegen

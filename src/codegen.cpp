@@ -13,9 +13,11 @@ namespace miko::codegen
 
 // It seems that the member function has to be const.
 struct expression_visitor : public boost::static_visitor<llvm::Value*> {
-  expression_visitor(llvm::IRBuilder<>&           builder,
-                     const std::filesystem::path& source)
+  expression_visitor(llvm::IRBuilder<>&            builder,
+                     std::shared_ptr<llvm::Module> module,
+                     const std::filesystem::path&  source)
     : builder{builder}
+    , module{module}
     , source{source}
   {
   }
@@ -90,14 +92,37 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     BOOST_ASSERT(0);
   }
 
-  auto operator()(ast::function_call) const -> llvm::Value*
+  auto operator()(const ast::function_call& node) const -> llvm::Value*
   {
-    // TODO:
-    BOOST_ASSERT(0);
+    auto* callee_f = module->getFunction(node.callee);
+    if (!callee_f) {
+      throw std::runtime_error{format_error_message(
+        source.string(),
+        format("Unknown function %s referenced", node.callee))};
+    }
+
+    // if (callee_f->arg_size() == args.size()) {
+    //   throw std::runtime_error{
+    //     format_error_message(source.string(),
+    //                          format("Incorrect arguments passed"))};
+    // }
+
+    // std::vector<llvm::Value*> args_v;
+    // for (std::size_t i = 0, size = args.sizse(); i != size; ++i) {
+    //   args_v.push_back(this->operator()(args[i]));
+    //   if (!args_v.back()) {
+    //     throw std::runtime_error{
+    //       format_error_message(source.string(), format("Invalid
+    //       expression"))};
+    //   }
+    // }
+
+    return builder.CreateCall(callee_f);
   }
 
 private:
-  llvm::IRBuilder<>& builder;
+  llvm::IRBuilder<>&            builder;
+  std::shared_ptr<llvm::Module> module;
 
   const std::filesystem::path& source;
 
@@ -152,9 +177,11 @@ private:
 };
 
 struct statement_visitor : public boost::static_visitor<void> {
-  statement_visitor(llvm::IRBuilder<>&           builder,
-                    const std::filesystem::path& source)
+  statement_visitor(llvm::IRBuilder<>&            builder,
+                    std::shared_ptr<llvm::Module> module,
+                    const std::filesystem::path&  source)
     : builder{builder}
+    , module{module}
     , source{source}
   {
   }
@@ -166,19 +193,21 @@ struct statement_visitor : public boost::static_visitor<void> {
 
   auto operator()(const ast::expression& node) const
   {
-    boost::apply_visitor(expression_visitor{builder, source}, node);
+    boost::apply_visitor(expression_visitor{builder, module, source}, node);
   }
 
   auto operator()(const ast::return_statement& node) const
   {
     auto* retval
-      = boost::apply_visitor(expression_visitor{builder, source}, node.rhs);
+      = boost::apply_visitor(expression_visitor{builder, module, source},
+                             node.rhs);
 
     builder.CreateRet(retval);
   }
 
 private:
-  llvm::IRBuilder<>& builder;
+  llvm::IRBuilder<>&            builder;
+  std::shared_ptr<llvm::Module> module;
 
   const std::filesystem::path& source;
 };
@@ -222,7 +251,7 @@ struct toplevel_visitor : public boost::static_visitor<llvm::Function*> {
     if (!func) {
       throw std::runtime_error{format_error_message(
         source.string(),
-        format("Failed to create function %s\n", node.decl.name),
+        format("Failed to create function %s", node.decl.name),
         true)};
     }
 
@@ -230,7 +259,8 @@ struct toplevel_visitor : public boost::static_visitor<llvm::Function*> {
     builder.SetInsertPoint(basic_block);
 
     for (auto&& statement : node.body)
-      boost::apply_visitor(statement_visitor{builder, source}, statement);
+      boost::apply_visitor(statement_visitor{builder, module, source},
+                           statement);
 
     std::string              em;
     llvm::raw_string_ostream os{em};
@@ -251,13 +281,14 @@ private:
   const std::filesystem::path& source;
 };
 
-code_generator::code_generator(const std::filesystem::path& source,
-                               ast::program&&               ast)
+code_generator::code_generator(const ast::program&          ast,
+                               const std::filesystem::path& source)
   : builder{context}
   , module{std::make_shared<llvm::Module>(source.filename().string(), context)}
   , source{source}
-  , ast{std::move(ast)}
+  , ast{ast}
 {
+  codegen();
 }
 
 auto code_generator::write_llvm_ir_to_file(
@@ -271,7 +302,7 @@ auto code_generator::write_llvm_ir_to_file(
   if (ostream_ec) {
     throw std::runtime_error{format_error_message(
       "mikoc",
-      format("%s: %s\n", out.string(), ostream_ec.message()))};
+      format("%s: %s", out.string(), ostream_ec.message()))};
   }
 
   module->print(os, nullptr);
@@ -288,12 +319,10 @@ auto code_generator::write_object_code_to_file(
     = llvm::TargetRegistry::lookupTarget(target_triple, target_triple_es);
 
   if (!target) {
-    throw std::runtime_error{
-      format_error_message("mikoc",
-                           format("Failed to lookup target %s: %s\n",
-                                  target_triple,
-                                  target_triple_es),
-                           true)};
+    throw std::runtime_error{format_error_message(
+      "mikoc",
+      format("Failed to lookup target %s: %s", target_triple, target_triple_es),
+      true)};
   }
 
   llvm::TargetOptions opt;
@@ -324,7 +353,7 @@ auto code_generator::write_object_code_to_file(
                                               llvm::CGFT_ObjectFile)) {
     throw std::runtime_error{
       format_error_message("mikoc",
-                           "TargetMachine can't emit a file of this types\n",
+                           "TargetMachine can't emit a file of this types",
                            true)};
   }
 

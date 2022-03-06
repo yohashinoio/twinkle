@@ -13,7 +13,10 @@
 namespace x3     = boost::spirit::x3;
 namespace fusion = boost::fusion;
 
-namespace miko::parse
+namespace miko
+{
+
+namespace parse
 {
 
 struct with_error_handling {
@@ -33,6 +36,19 @@ struct with_error_handling {
   }
 
   static std::size_t total_errors;
+};
+
+struct position_cache_tag;
+struct annotate_position {
+  template <typename T, typename Iterator, typename Context>
+  inline void on_success(const Iterator& first,
+                         const Iterator& last,
+                         T&              ast,
+                         const Context&  context)
+  {
+    auto& position_cache = x3::get<position_cache_tag>(context);
+    position_cache.annotate(ast, first, last);
+  }
 };
 
 std::size_t with_error_handling::total_errors = 0;
@@ -84,6 +100,16 @@ const auto char_to_string = [](auto&& ctx) -> void {
 namespace peg
 {
 
+// expreesion rules
+const x3::rule<struct equality_tag, ast::expression>   equality{"equality"};
+const x3::rule<struct relational_tag, ast::expression> relational{"relational"};
+const x3::rule<struct addition_tag, ast::expression>   addition{"addition"};
+const x3::rule<struct multiplication_tag, ast::expression> multiplication{
+  "multiplication"};
+const x3::rule<struct unary_tag, ast::expression>      unary{"unary"};
+const x3::rule<struct primary_tag, ast::expression>    primary{"primary"};
+const x3::rule<struct expression_tag, ast::expression> expression{"expression"};
+
 // common rules
 const auto identifier = x3::rule<struct identifier, std::string>{"identifier"}
 = x3::raw[x3::lexeme[(x3::alpha | x3::lit('_'))
@@ -94,16 +120,6 @@ const auto data_type = x3::rule<struct data_type, std::string>{"data type"}
 
 const auto integer = x3::rule<struct integer, int>{"integral number"}
 = x3::int_;
-
-// expreesion rules
-const x3::rule<struct equality_tag, ast::expression>   equality{"equality"};
-const x3::rule<struct relational_tag, ast::expression> relational{"relational"};
-const x3::rule<struct addition_tag, ast::expression>   addition{"addition"};
-const x3::rule<struct multiplication_tag, ast::expression> multiplication{
-  "multiplication"};
-const x3::rule<struct unary_tag, ast::expression>      unary{"unary"};
-const x3::rule<struct primary_tag, ast::expression>    primary{"primary"};
-const x3::rule<struct expression_tag, ast::expression> expression{"expression"};
 
 const auto unary_operator
   = x3::rule<struct unary_operator, std::string>{"unary operator"}
@@ -194,8 +210,7 @@ const auto toplevel = x3::rule<struct toplevel_tag, ast::toplevel>{"top level"}
 
 // parser rule
 const auto parser = x3::rule<struct parser_tag, ast::program>{"parser"}
-= x3::skip(x3::space)
-  [x3::eoi /*Empty program*/ | (x3::expect[toplevel] >> *toplevel > x3::eoi)];
+= x3::eoi /*Empty program*/ | (x3::expect[toplevel] >> *toplevel > x3::eoi);
 
 BOOST_SPIRIT_DEFINE(expression,
                     equality,
@@ -206,68 +221,103 @@ BOOST_SPIRIT_DEFINE(expression,
                     primary)
 
 // expression tags definition
-struct expression_tag : with_error_handling {};
-struct equality_tag : with_error_handling {};
-struct relational_tag : with_error_handling {};
-struct addition_tag : with_error_handling {};
-struct multiplication_tag : with_error_handling {};
-struct unary_tag : with_error_handling {};
-struct primary_tag : with_error_handling {};
+struct expression_tag
+  : with_error_handling
+  , annotate_position {};
+struct equality_tag
+  : with_error_handling
+  , annotate_position {};
+struct relational_tag
+  : with_error_handling
+  , annotate_position {};
+struct addition_tag
+  : with_error_handling
+  , annotate_position {};
+struct multiplication_tag
+  : with_error_handling
+  , annotate_position {};
+struct unary_tag
+  : with_error_handling
+  , annotate_position {};
+struct primary_tag
+  : with_error_handling
+  , annotate_position {};
 
 // statement
-struct return_statement_tag : with_error_handling {};
-struct expression_statement_tag : with_error_handling {};
-struct statement_tag : with_error_handling {};
-struct compound_statement_tag : with_error_handling {};
+struct return_statement_tag
+  : with_error_handling
+  , annotate_position {};
+struct expression_statement_tag
+  : with_error_handling
+  , annotate_position {};
+struct statement_tag
+  : with_error_handling
+  , annotate_position {};
+struct compound_statement_tag
+  : with_error_handling
+  , annotate_position {};
 
 // function tags definition
-struct function_proto_tag : with_error_handling {};
-struct function_decl_tag : with_error_handling {};
-struct function_defi_tag : with_error_handling {};
+struct function_proto_tag
+  : with_error_handling
+  , annotate_position {};
+struct function_decl_tag
+  : with_error_handling
+  , annotate_position {};
+struct function_defi_tag
+  : with_error_handling
+  , annotate_position {};
 
 // top level tag definition
-struct toplevel_tag : with_error_handling {};
+struct toplevel_tag
+  : with_error_handling
+  , annotate_position {};
 
 // parser tag definition
-struct parser_tag : with_error_handling {};
+struct parser_tag
+  : with_error_handling
+  , annotate_position {};
 
 } // namespace peg
 
-parser::parser(const std::string& input, const std::filesystem::path& source)
-  : input{input}
+parser::parser(iterator_type                first,
+               const iterator_type          last,
+               const std::filesystem::path& source)
+  : first{first}
+  , last{last}
+  , positions{first, last}
   , source{source}
 {
+  parse();
 }
 
-parser::parser(std::string&& input, const std::filesystem::path& source)
-  : input{std::move(input)}
-  , source{source}
+[[nodiscard]] const ast::program& parser::get_ast() const noexcept
 {
+  return ast;
 }
 
-auto parser::parse() -> ast::program
+[[nodiscard]] const position_cache& parser::get_positions() const noexcept
 {
-  using iterator_type = std::string::const_iterator;
+  return positions;
+}
 
-  iterator_type       first = input.cbegin();
-  const iterator_type last  = input.cend();
-
+void parser::parse()
+{
   x3::error_handler<iterator_type> error_handler{first,
                                                  last,
                                                  std::cerr,
                                                  source.string()};
-  const auto                       parser
-    = x3::with<x3::error_handler_tag>(std::ref(error_handler))[peg::parser];
 
-  ast::program result;
-  const auto   success = x3::parse(first, last, parser, result);
+  const auto parser = x3::with<x3::error_handler_tag>(std::ref(
+    error_handler))[x3::with<position_cache_tag>(positions)[peg::parser]];
+
+  const auto success = x3::phrase_parse(first, last, parser, x3::space, ast);
 
   if (!success || first != last) {
     throw std::runtime_error{
       format("%zu errors generated.\n", with_error_handling::total_errors)};
   }
-
-  return result;
 }
 
-} // namespace miko::parse
+} // namespace parse
+} // namespace miko
