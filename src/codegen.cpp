@@ -11,13 +11,44 @@
 namespace miko::codegen
 {
 
+struct symbol_table {
+  llvm::AllocaInst* operator[](const std::string& name) const noexcept
+  try {
+    return named_values.at(name);
+  }
+  catch (const std::out_of_range&) {
+    return nullptr;
+  }
+
+  void insert(const std::string& name, llvm::AllocaInst* value)
+  {
+    named_values.insert({name, value});
+  }
+
+private:
+  std::unordered_map<std::string, llvm::AllocaInst*> named_values;
+};
+
+// Create an alloca instruction in the entry block of
+// the function.  This is used for mutable variables etc.
+llvm::AllocaInst* create_entry_block_alloca(llvm::Function*    func,
+                                            llvm::LLVMContext& context,
+                                            const std::string& var_name)
+{
+  llvm::IRBuilder<> tmp(&func->getEntryBlock(), func->getEntryBlock().begin());
+
+  return tmp.CreateAlloca(llvm::Type::getInt32Ty(context), nullptr, var_name);
+}
+
 // It seems that the member function has to be const.
 struct expression_visitor : public boost::static_visitor<llvm::Value*> {
   expression_visitor(llvm::IRBuilder<>&            builder,
                      std::shared_ptr<llvm::Module> module,
+                     symbol_table&                 named_values,
                      const std::filesystem::path&  source)
     : builder{builder}
     , module{module}
+    , named_values{named_values}
     , source{source}
   {
   }
@@ -86,10 +117,18 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
       "Unsupported binary operators may have been converted to ASTs.");
   }
 
-  llvm::Value* operator()(ast::variable) const
+  llvm::Value* operator()(const ast::variable& node) const
   {
-    // TODO:
-    BOOST_ASSERT(0);
+    auto* ainst = named_values[node.name];
+    if (!ainst) {
+      throw std::runtime_error{format_error_message(
+        source.string(),
+        format("Unknown variable '%s' referenced", node.name))};
+    }
+
+    return builder.CreateLoad(ainst->getAllocatedType(),
+                              ainst,
+                              node.name.c_str());
   }
 
   llvm::Value* operator()(const ast::function_call& node) const
@@ -99,7 +138,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     if (!callee_f) {
       throw std::runtime_error{format_error_message(
         source.string(),
-        format("Unknown function %s referenced", node.callee))};
+        format("Unknown function '%s' referenced", node.callee))};
     }
 
     // if (callee_f->arg_size() == args.size()) {
@@ -124,6 +163,8 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
 private:
   llvm::IRBuilder<>&            builder;
   std::shared_ptr<llvm::Module> module;
+
+  symbol_table& named_values;
 
   const std::filesystem::path& source;
 
@@ -178,9 +219,11 @@ private:
 struct statement_visitor : public boost::static_visitor<void> {
   statement_visitor(llvm::IRBuilder<>&            builder,
                     std::shared_ptr<llvm::Module> module,
+                    symbol_table&                 named_values,
                     const std::filesystem::path&  source)
     : builder{builder}
     , module{module}
+    , named_values{named_values}
     , source{source}
   {
   }
@@ -192,14 +235,16 @@ struct statement_visitor : public boost::static_visitor<void> {
 
   void operator()(const ast::expression& node) const
   {
-    boost::apply_visitor(expression_visitor{builder, module, source}, node);
+    boost::apply_visitor(
+      expression_visitor{builder, module, named_values, source},
+      node);
   }
 
   void operator()(const ast::return_statement& node) const
   {
-    auto* retval
-      = boost::apply_visitor(expression_visitor{builder, module, source},
-                             node.rhs);
+    auto* retval = boost::apply_visitor(
+      expression_visitor{builder, module, named_values, source},
+      node.rhs);
 
     builder.CreateRet(retval);
   }
@@ -207,6 +252,8 @@ struct statement_visitor : public boost::static_visitor<void> {
 private:
   llvm::IRBuilder<>&            builder;
   std::shared_ptr<llvm::Module> module;
+
+  symbol_table& named_values;
 
   const std::filesystem::path& source;
 };
@@ -242,6 +289,8 @@ struct toplevel_visitor : public boost::static_visitor<llvm::Function*> {
 
   llvm::Function* operator()(const ast::function_def& node) const
   {
+    symbol_table named_values;
+
     auto* func = module->getFunction(node.decl.name);
 
     if (!func)
@@ -258,8 +307,9 @@ struct toplevel_visitor : public boost::static_visitor<llvm::Function*> {
     builder.SetInsertPoint(basic_block);
 
     for (auto&& statement : node.body)
-      boost::apply_visitor(statement_visitor{builder, module, source},
-                           statement);
+      boost::apply_visitor(
+        statement_visitor{builder, module, named_values, source},
+        statement);
 
     std::string              em;
     llvm::raw_string_ostream os{em};
