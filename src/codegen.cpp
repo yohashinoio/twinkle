@@ -22,17 +22,17 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
   {
   }
 
-  auto operator()(ast::nil) const -> llvm::Value*
+  llvm::Value* operator()(ast::nil) const
   {
     BOOST_ASSERT(0);
   }
 
-  auto operator()(const int value) const -> llvm::Value*
+  llvm::Value* operator()(const int value) const
   {
     return llvm::ConstantInt::get(builder.getInt32Ty(), value);
   }
 
-  auto operator()(const ast::unaryop& node) const -> llvm::Value*
+  llvm::Value* operator()(const ast::unaryop& node) const
   {
     auto rhs = boost::apply_visitor(*this, node.rhs);
 
@@ -48,7 +48,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
       "Unsupported unary operators may have been converted to ASTs.");
   }
 
-  auto operator()(const ast::binop& node) const -> llvm::Value*
+  llvm::Value* operator()(const ast::binop& node) const
   {
     auto lhs = boost::apply_visitor(*this, node.lhs);
     auto rhs = boost::apply_visitor(*this, node.rhs);
@@ -86,15 +86,16 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
       "Unsupported binary operators may have been converted to ASTs.");
   }
 
-  auto operator()(ast::variable) const -> llvm::Value*
+  llvm::Value* operator()(ast::variable) const
   {
     // TODO:
     BOOST_ASSERT(0);
   }
 
-  auto operator()(const ast::function_call& node) const -> llvm::Value*
+  llvm::Value* operator()(const ast::function_call& node) const
   {
     auto* callee_f = module->getFunction(node.callee);
+
     if (!callee_f) {
       throw std::runtime_error{format_error_message(
         source.string(),
@@ -126,51 +127,49 @@ private:
 
   const std::filesystem::path& source;
 
-  auto apply_add_op(llvm::Value* lhs, llvm::Value* rhs) const -> llvm::Value*
+  llvm::Value* apply_add_op(llvm::Value* lhs, llvm::Value* rhs) const
   {
     return builder.CreateAdd(lhs, rhs);
   }
-  auto apply_sub_op(llvm::Value* lhs, llvm::Value* rhs) const -> llvm::Value*
+  llvm::Value* apply_sub_op(llvm::Value* lhs, llvm::Value* rhs) const
   {
     return builder.CreateSub(lhs, rhs);
   }
-  auto apply_mul_op(llvm::Value* lhs, llvm::Value* rhs) const -> llvm::Value*
+  llvm::Value* apply_mul_op(llvm::Value* lhs, llvm::Value* rhs) const
   {
     return builder.CreateMul(lhs, rhs);
   }
-  auto apply_div_op(llvm::Value* lhs, llvm::Value* rhs) const -> llvm::Value*
+  llvm::Value* apply_div_op(llvm::Value* lhs, llvm::Value* rhs) const
   {
     return builder.CreateSDiv(lhs, rhs);
   }
 
-  auto apply_equal(llvm::Value* lhs, llvm::Value* rhs) const -> llvm::Value*
+  llvm::Value* apply_equal(llvm::Value* lhs, llvm::Value* rhs) const
   {
     return builder.CreateICmp(llvm::ICmpInst::ICMP_EQ, lhs, rhs);
   }
-  auto apply_not_equal(llvm::Value* lhs, llvm::Value* rhs) const -> llvm::Value*
+  llvm::Value* apply_not_equal(llvm::Value* lhs, llvm::Value* rhs) const
   {
     return builder.CreateICmp(llvm::ICmpInst::ICMP_NE, lhs, rhs);
   }
 
   // Less than
-  auto apply_signed_lt(llvm::Value* lhs, llvm::Value* rhs) const -> llvm::Value*
+  llvm::Value* apply_signed_lt(llvm::Value* lhs, llvm::Value* rhs) const
   {
     return builder.CreateICmp(llvm::ICmpInst::ICMP_SLT, lhs, rhs);
   }
   // Greater than
-  auto apply_signed_gt(llvm::Value* lhs, llvm::Value* rhs) const -> llvm::Value*
+  llvm::Value* apply_signed_gt(llvm::Value* lhs, llvm::Value* rhs) const
   {
     return builder.CreateICmp(llvm::ICmpInst::ICMP_SGT, lhs, rhs);
   }
   // Less than or equal to
-  auto apply_signed_lte(llvm::Value* lhs, llvm::Value* rhs) const
-    -> llvm::Value*
+  llvm::Value* apply_signed_lte(llvm::Value* lhs, llvm::Value* rhs) const
   {
     return builder.CreateICmp(llvm::ICmpInst::ICMP_SLE, lhs, rhs);
   }
   // Greater than or equal to
-  auto apply_signed_gte(llvm::Value* lhs, llvm::Value* rhs) const
-    -> llvm::Value*
+  llvm::Value* apply_signed_gte(llvm::Value* lhs, llvm::Value* rhs) const
   {
     return builder.CreateICmp(llvm::ICmpInst::ICMP_SGE, lhs, rhs);
   }
@@ -186,17 +185,17 @@ struct statement_visitor : public boost::static_visitor<void> {
   {
   }
 
-  auto operator()(ast::nil) const
+  void operator()(ast::nil) const
   {
     BOOST_ASSERT(0);
   }
 
-  auto operator()(const ast::expression& node) const
+  void operator()(const ast::expression& node) const
   {
     boost::apply_visitor(expression_visitor{builder, module, source}, node);
   }
 
-  auto operator()(const ast::return_statement& node) const
+  void operator()(const ast::return_statement& node) const
   {
     auto* retval
       = boost::apply_visitor(expression_visitor{builder, module, source},
@@ -224,12 +223,12 @@ struct toplevel_visitor : public boost::static_visitor<llvm::Function*> {
   {
   }
 
-  auto operator()(ast::nil) const -> llvm::Function*
+  llvm::Function* operator()(ast::nil) const
   {
     BOOST_ASSERT(0);
   }
 
-  auto operator()(const ast::function_decl& node) const -> llvm::Function*
+  llvm::Function* operator()(const ast::function_decl& node) const
   {
     auto* func_type = llvm::FunctionType::get(builder.getInt32Ty(), false);
 
@@ -241,7 +240,7 @@ struct toplevel_visitor : public boost::static_visitor<llvm::Function*> {
     return func;
   }
 
-  auto operator()(const ast::function_def& node) const -> llvm::Function*
+  llvm::Function* operator()(const ast::function_def& node) const
   {
     auto* func = module->getFunction(node.decl.name);
 
@@ -291,8 +290,8 @@ code_generator::code_generator(const ast::program&          ast,
   codegen();
 }
 
-auto code_generator::write_llvm_ir_to_file(
-  const std::filesystem::path& out) const -> void
+void code_generator::write_llvm_ir_to_file(
+  const std::filesystem::path& out) const
 {
   std::error_code      ostream_ec;
   llvm::raw_fd_ostream os{out.string(),
@@ -308,8 +307,8 @@ auto code_generator::write_llvm_ir_to_file(
   module->print(os, nullptr);
 }
 
-auto code_generator::write_object_code_to_file(
-  const std::filesystem::path& out) const -> void
+void code_generator::write_object_code_to_file(
+  const std::filesystem::path& out) const
 {
   const auto target_triple = llvm::sys::getDefaultTargetTriple();
 
@@ -361,10 +360,11 @@ auto code_generator::write_object_code_to_file(
   os.flush();
 }
 
-auto code_generator::codegen() -> void
+void code_generator::codegen()
 {
-  for (auto&& r : ast)
-    boost::apply_visitor(toplevel_visitor{context, builder, module, source}, r);
+  for (auto&& node : ast)
+    boost::apply_visitor(toplevel_visitor{context, builder, module, source},
+                         node);
 }
 
 } // namespace miko::codegen

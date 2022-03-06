@@ -17,9 +17,9 @@ namespace miko
 {
 
 // Formatting and coloring.
-[[nodiscard]] auto format_error_message(const std::string_view filename,
-                                        const std::string_view message,
-                                        const bool fatal) -> std::string
+[[nodiscard]] std::string format_error_message(const std::string_view filename,
+                                               const std::string_view message,
+                                               const bool             fatal)
 {
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
   if (isatty(fileno(stdout))) {
@@ -42,9 +42,9 @@ namespace miko
 }
 
 // Formatting and coloring.
-[[nodiscard]] auto
+[[nodiscard]] std::string
 format_error_message_without_filename(const std::string_view message,
-                                      const bool fatal) -> std::string
+                                      const bool             fatal)
 {
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
   if (isatty(fileno(stdout))) {
@@ -62,8 +62,7 @@ format_error_message_without_filename(const std::string_view message,
 }
 
 // Load a file to std::string.
-[[nodiscard]] auto load_file_to_string(const std::filesystem::path& path)
-  -> std::string
+[[nodiscard]] std::string load_file_to_string(const std::filesystem::path& path)
 {
   if (!std::filesystem::exists(path)) {
     throw std::runtime_error{format_error_message(
@@ -83,7 +82,7 @@ format_error_message_without_filename(const std::string_view message,
                          format("%s: Could not open file", path.string()))};
 }
 
-auto create_options_description() -> program_options::options_description
+program_options::options_description create_options_description()
 {
   program_options::options_description desc{"Options"};
 

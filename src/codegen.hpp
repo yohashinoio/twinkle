@@ -21,12 +21,11 @@ namespace miko::codegen
 struct code_generator {
   code_generator(const ast::program& ast, const std::filesystem::path& source);
 
-  auto write_llvm_ir_to_file(const std::filesystem::path& out) const -> void;
+  void write_llvm_ir_to_file(const std::filesystem::path& out) const;
 
-  auto write_object_code_to_file(const std::filesystem::path& out) const
-    -> void;
+  void write_object_code_to_file(const std::filesystem::path& out) const;
 
-  auto codegen() -> void;
+  void codegen();
 
 private:
   llvm::LLVMContext             context;

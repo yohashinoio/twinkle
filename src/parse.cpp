@@ -82,7 +82,7 @@ const auto assign_function_call_to_val = [](auto&& ctx) {
 };
 
 const auto assign_function_decl_to_val = [](auto&& ctx) -> void {
-  x3::_val(ctx) = ast::function_decl{x3::_attr(ctx)};
+  x3::_val(ctx) = ast::function_decl{x3::_attr(ctx) /* name */};
 };
 
 const auto assign_function_def_to_val = [](auto&& ctx) -> void {

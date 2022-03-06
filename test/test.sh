@@ -50,9 +50,7 @@ assert  2 "fn main() {ret 1 + (48 <= 48);}"
 assert  2 "fn main() {ret 1+(48<=48);}"
 assert  2 "fn main() {ret 1 + (10 >= 10);}"
 assert  2 "fn main() {ret 1+(10>=10);}"
-assert 48 "fn main() {
-  1+(48>10);
-  ret +(-(48 * -(1 + 0)));
-}"
+assert 48 "fn main() { 1+(48>10); ret +(-(48 * -(1 + 0))); }"
+assert 25 "fn g() { ret (10 + 20 - 5) * 2; } fn f() { ret g() - 25; } fn main() { ret f(); }"
 
 echo OK

@@ -24,7 +24,7 @@ namespace program_options = boost::program_options;
 
 constexpr unsigned int MIKO_VERSION = 100000;
 
-auto display_version() -> void;
+void display_version();
 
 // Formatting and coloring.
 [[nodiscard]] std::string format_error_message(const std::string_view filename,
@@ -47,8 +47,8 @@ get_variable_map(const program_options::options_description& desc,
                  const char* const* const                    argv);
 
 // If no input files are passed, std::runtime_error is thrown.
-auto get_input_files(const program_options::variables_map& vm)
-  -> std::vector<std::string>;
+std::vector<std::string>
+get_input_files(const program_options::variables_map& vm);
 
 } // namespace miko
 
