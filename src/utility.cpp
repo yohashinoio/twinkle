@@ -68,7 +68,7 @@ format_error_message_without_filename(const std::string_view message,
   if (!std::filesystem::exists(path)) {
     throw std::runtime_error{format_error_message(
       "mikoc",
-      format("%s: No such file or directory\n", path.string()))};
+      format("%s: No such file or directory", path.string()))};
   }
 
   if (auto file = std::ifstream{path}) {
@@ -80,7 +80,7 @@ format_error_message_without_filename(const std::string_view message,
 
   throw std::runtime_error{
     format_error_message("mikoc",
-                         format("%s: Could not open file\n", path.string()))};
+                         format("%s: Could not open file", path.string()))};
 }
 
 auto create_options_description() -> program_options::options_description
@@ -100,10 +100,10 @@ auto create_options_description() -> program_options::options_description
   return desc;
 }
 
-auto get_variable_map(const program_options::options_description& desc,
-                      const int                                   argc,
-                      const char* const* const                    argv)
-  -> program_options::variables_map
+program_options::variables_map
+get_variable_map(const program_options::options_description& desc,
+                 const int                                   argc,
+                 const char* const* const                    argv)
 {
   program_options::positional_options_description p;
 
@@ -120,16 +120,18 @@ auto get_variable_map(const program_options::options_description& desc,
   return vm;
 }
 
-auto get_input_files(const program_options::variables_map& vm)
-  -> std::vector<std::string>
+std::vector<std::string>
+get_input_files(const program_options::variables_map& vm)
 {
   if (vm.count("input-file"))
     return vm["input-file"].as<std::vector<std::string>>();
-  else
-    throw miko::format_error_message("mikoc", "no input files\n", true);
+  else {
+    throw std::runtime_error{
+      miko::format_error_message("mikoc", "no input files", true)};
+  }
 }
 
-auto display_version() -> void
+void display_version()
 {
   const auto major = MIKO_VERSION / 100000;
   const auto minor = MIKO_VERSION / 100 % 1000;

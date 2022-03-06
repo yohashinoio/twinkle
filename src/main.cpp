@@ -33,10 +33,14 @@ void output_to_file(miko::codegen::code_generator& generator,
                     const std::filesystem::path&   path,
                     const bool                     output_llvmir)
 {
-  if (output_llvmir)
+  if (output_llvmir) {
+    // test.xxx -> test.ll
     generator.write_llvm_ir_to_file(path.stem().string() + ".ll");
-  else
+  }
+  else {
+    // test.xxx -> test.o
     generator.write_object_code_to_file(path.stem().string() + ".o");
+  }
 }
 
 int main(const int argc, const char* const* const argv)
@@ -54,7 +58,7 @@ try {
     output_help(std::cerr, *argv, desc);
     std::exit(EXIT_SUCCESS);
   }
-  else if (vm.count("version")) {
+  if (vm.count("version")) {
     miko::display_version();
     std::exit(EXIT_SUCCESS);
   }
@@ -67,8 +71,10 @@ try {
     std::string_view file_path = "input";
 
     const std::string&  input = vm["input"].as<std::string>();
+    // Parsing is performed as soon as the constructor is called.
     miko::parse::parser parser{input.cbegin(), input.cend(), file_path};
 
+    // Code generation occurs as soon as the constructor is called.
     miko::codegen::code_generator generator{parser.get_ast(), file_path};
 
     output_to_file(generator, file_path, vm.count("llvmir"));
@@ -79,8 +85,10 @@ try {
     for (auto&& file_path : file_paths) {
       const std::string input = miko::load_file_to_string(file_path);
 
+      // Parsing is performed as soon as the constructor is called.
       miko::parse::parser parser{input.cbegin(), input.cend(), file_path};
 
+      // Code generation occurs as soon as the constructor is called.
       miko::codegen::code_generator generator{parser.get_ast(), file_path};
 
       output_to_file(generator, file_path, vm.count("llvmir"));
