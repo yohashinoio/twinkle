@@ -125,7 +125,7 @@ struct return_statement {
 struct function_decl;
 struct function_def;
 
-using toplevel = boost::variant<nil, function_decl, function_def>;
+using top = boost::variant<nil, function_decl, function_def>;
 
 struct function_decl : x3::position_tagged {
   std::string name;
@@ -158,7 +158,7 @@ struct function_def : x3::position_tagged {
   }
 };
 
-using program = std::vector<toplevel>;
+using program = std::vector<top>;
 
 } // namespace miko::ast
 

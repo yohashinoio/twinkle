@@ -258,12 +258,12 @@ private:
   const std::filesystem::path& source;
 };
 
-struct toplevel_visitor : public boost::static_visitor<llvm::Function*> {
-  toplevel_visitor(llvm::LLVMContext&                 context,
-                   llvm::IRBuilder<>&                 builder,
-                   std::shared_ptr<llvm::Module>      module,
-                   llvm::legacy::FunctionPassManager& fpm,
-                   const std::filesystem::path&       source)
+struct top_visitor : public boost::static_visitor<llvm::Function*> {
+  top_visitor(llvm::LLVMContext&                 context,
+              llvm::IRBuilder<>&                 builder,
+              std::shared_ptr<llvm::Module>      module,
+              llvm::legacy::FunctionPassManager& fpm,
+              const std::filesystem::path&       source)
     : context{context}
     , builder{builder}
     , module{module}
@@ -431,9 +431,8 @@ void code_generator::write_object_code_to_file(
 void code_generator::codegen()
 {
   for (auto&& node : ast)
-    boost::apply_visitor(
-      toplevel_visitor{context, builder, module, fpm, source},
-      node);
+    boost::apply_visitor(top_visitor{context, builder, module, fpm, source},
+                         node);
 }
 
 } // namespace miko::codegen

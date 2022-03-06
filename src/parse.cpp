@@ -205,12 +205,12 @@ const auto function_defi
 = x3::lit("fn") > function_proto > compound_statement;
 
 // top level rule
-const auto toplevel = x3::rule<struct toplevel_tag, ast::toplevel>{"top level"}
+const auto top = x3::rule<struct top_tag, ast::top>{"top level"}
 = function_decl | function_defi;
 
 // parser rule
 const auto parser = x3::rule<struct parser_tag, ast::program>{"parser"}
-= x3::eoi /*Empty program*/ | (x3::expect[toplevel] >> *toplevel > x3::eoi);
+= x3::eoi /*Empty program*/ | (x3::expect[top] >> *top > x3::eoi);
 
 BOOST_SPIRIT_DEFINE(expression,
                     equality,
@@ -269,7 +269,7 @@ struct function_defi_tag
   , annotate_position {};
 
 // top level tag definition
-struct toplevel_tag
+struct top_tag
   : with_error_handling
   , annotate_position {};
 
