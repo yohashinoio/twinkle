@@ -9,7 +9,7 @@ assert() {
   input="$2"
 
   ../build/mikoc --input="$input"
-  cc a.o
+  cc input.o
   ./a.out
   actual="$?"
 
