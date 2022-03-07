@@ -48,6 +48,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   ast::variable_def,
   (std::string, name)
+  (std::optional<ast::expression>, initializer)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

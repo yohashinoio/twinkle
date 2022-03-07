@@ -66,6 +66,6 @@ assert  58 "extern putchar(ch); func main() {
 
 assert 58 "func main() { let a; ret a + 58; }"
 assert 58 "func main() { let a; a = 48 + 10; ret a * 2 / 2; }"
-
+assert 58 "func main() { let a = 4810; a = a / 2 / 5; ret a * 10 - 4810 + 58; }"
 
 echo OK

@@ -179,7 +179,7 @@ const auto primary_def
 const auto variable_def_statement
   = x3::rule<struct variable_def_statement_tag,
              ast::variable_def>{"variable definition"}
-= x3::lit("let") > identifier > x3::lit(';'); // TODO: initialization
+= x3::lit("let") > identifier >> -(x3::lit('=') > expression) > x3::lit(';');
 
 const auto return_statement
   = x3::rule<struct return_statement_tag,

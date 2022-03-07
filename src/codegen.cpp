@@ -239,7 +239,7 @@ struct statement_visitor : public boost::static_visitor<void> {
     if (!retval) {
       throw std::runtime_error{
         format_error_message(source.string(),
-                             "failure to generate return value.")};
+                             "failure to generate return value")};
     }
 
     builder.CreateRet(retval);
@@ -250,7 +250,24 @@ struct statement_visitor : public boost::static_visitor<void> {
     auto* func = builder.GetInsertBlock()->getParent();
 
     auto* ainst = create_entry_block_alloca(func, context, node.name);
-    builder.CreateStore(llvm::ConstantInt::get(builder.getInt32Ty(), 0), ainst);
+
+    if (node.initializer) {
+      auto* initializer = boost::apply_visitor(
+        expression_visitor{module, builder, named_values, source},
+        *node.initializer);
+
+      if (!initializer) {
+        throw std::runtime_error{format_error_message(
+          source.string(),
+          format("initialization of variable %s failed", node.name))};
+      }
+
+      builder.CreateStore(initializer, ainst);
+    }
+    else {
+      builder.CreateStore(llvm::ConstantInt::get(builder.getInt32Ty(), 0),
+                          ainst);
+    }
 
     named_values.insert(node.name, ainst);
   }

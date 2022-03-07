@@ -122,15 +122,19 @@ using statement
 using compound_statement = std::vector<statement>;
 
 struct variable_def {
-  std::string name;
+  std::string               name;
+  std::optional<expression> initializer;
 
-  explicit variable_def(const std::string& name)
+  explicit variable_def(const std::string&               name,
+                        const std::optional<expression>& initializer)
     : name{name}
+    , initializer{initializer}
   {
   }
 
   variable_def()
     : name{}
+    , initializer{}
   {
   }
 };
