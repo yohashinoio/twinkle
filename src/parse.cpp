@@ -91,18 +91,9 @@ const auto char_to_string = [](auto&& ctx) -> void {
 namespace peg
 {
 
-// expreesion rules
-const x3::rule<struct assignment_tag, ast::expression> assignment{"assignment"};
-const x3::rule<struct equality_tag, ast::expression>   equality{"equality"};
-const x3::rule<struct relational_tag, ast::expression> relational{"relational"};
-const x3::rule<struct addition_tag, ast::expression>   addition{"addition"};
-const x3::rule<struct multiplication_tag, ast::expression> multiplication{
-  "multiplication"};
-const x3::rule<struct unary_tag, ast::expression>      unary{"unary"};
-const x3::rule<struct primary_tag, ast::expression>    primary{"primary"};
-const x3::rule<struct expression_tag, ast::expression> expression{"expression"};
-
-// common rules
+//////////////////
+// common rules //
+//////////////////
 const auto identifier = x3::rule<struct identifier, std::string>{"identifier"}
 = x3::raw[x3::lexeme[(x3::alpha | x3::lit('_'))
                      >> *(x3::alnum | x3::lit('_'))]];
@@ -113,10 +104,18 @@ const auto data_type = x3::rule<struct data_type, std::string>{"data type"}
 const auto integer = x3::rule<struct integer, int>{"integral number"}
 = x3::int_;
 
-const auto argument_list
-  = x3::rule<struct argument_list_tag,
-             std::vector<ast::expression>>{"argument list"}
-= -(expression >> *(x3::lit(',') > expression));
+//////////////////////
+// expreesion rules //
+//////////////////////
+const x3::rule<struct assignment_tag, ast::expression> assignment{"assignment"};
+const x3::rule<struct equality_tag, ast::expression>   equality{"equality"};
+const x3::rule<struct relational_tag, ast::expression> relational{"relational"};
+const x3::rule<struct addition_tag, ast::expression>   addition{"addition"};
+const x3::rule<struct multiplication_tag, ast::expression> multiplication{
+  "multiplication"};
+const x3::rule<struct unary_tag, ast::expression>      unary{"unary"};
+const x3::rule<struct primary_tag, ast::expression>    primary{"primary"};
+const x3::rule<struct expression_tag, ast::expression> expression{"expression"};
 
 const auto assignment_operator
   = x3::rule<struct assignment_operator, std::string>{"assignment operator"}
@@ -142,6 +141,11 @@ const auto multitive_operator
 const auto unary_operator
   = x3::rule<struct unary_operator, std::string>{"unary operator"}
 = x3::char_("+-")[action::char_to_string];
+
+const auto argument_list
+  = x3::rule<struct argument_list_tag,
+             std::vector<ast::expression>>{"argument list"}
+= -(expression >> *(x3::lit(',') > expression));
 
 const auto expression_def = assignment;
 
@@ -175,7 +179,9 @@ const auto primary_def
        > x3::lit(")"))[action::assign_function_call_to_val]
     | identifier[action::assign_variable_to_val];
 
-// statement rules
+/////////////////////
+// statement rules //
+/////////////////////
 const auto variable_def_statement
   = x3::rule<struct variable_def_statement_tag,
              ast::variable_def>{"variable definition"}
@@ -205,7 +211,9 @@ const auto compound_statement
              ast::compound_statement>{"compound statement"}
 = x3::lit('{') > *statement > x3::lit('}');
 
-// function rules
+////////////////////
+// function rules //
+////////////////////
 const auto parameter_list = x3::rule<struct parameter_list_tag,
                                      std::vector<std::string>>{"parameter list"}
 = -(identifier >> *(x3::lit(',') > identifier));
@@ -222,13 +230,11 @@ const auto function_defi
   = x3::rule<struct function_defi_tag, ast::function_def>{"function definition"}
 = x3::lit("func") > function_proto > compound_statement;
 
-// top rule
-const auto top = x3::rule<struct top_tag, ast::top>{"Function, extern, etc"}
-= function_decl | function_defi;
-
-// parser rule
-const auto parser = x3::rule<struct parser_tag, ast::program>{"parser"}
-= x3::eoi /*Empty program*/ | (x3::expect[top] >> *top > x3::eoi);
+/////////////////
+// parser rule //
+/////////////////
+const auto program = x3::rule<struct program_tag, ast::program>{"program"}
+= *(function_decl | function_defi) > x3::eoi;
 
 BOOST_SPIRIT_DEFINE(assignment,
                     expression,
@@ -239,7 +245,9 @@ BOOST_SPIRIT_DEFINE(assignment,
                     unary,
                     primary)
 
-// expression tags definition
+/////////////////////
+// expression tags //
+/////////////////////
 struct argument_list_tag
   : with_error_handling
   , annotate_position {};
@@ -268,7 +276,9 @@ struct primary_tag
   : with_error_handling
   , annotate_position {};
 
-// statement
+////////////////////
+// statement tags //
+////////////////////
 struct variable_def_statement
   : with_error_handling
   , annotate_position {};
@@ -285,7 +295,9 @@ struct compound_statement_tag
   : with_error_handling
   , annotate_position {};
 
-// function tags definition
+///////////////////
+// function tags //
+///////////////////
 struct parameter_list_tag
   : with_error_handling
   , annotate_position {};
@@ -299,13 +311,10 @@ struct function_defi_tag
   : with_error_handling
   , annotate_position {};
 
-// top tag definition
-struct top_tag
-  : with_error_handling
-  , annotate_position {};
-
-// parser tag definition
-struct parser_tag
+/////////////////
+// program tag //
+/////////////////
+struct program_tag
   : with_error_handling
   , annotate_position {};
 
@@ -340,7 +349,7 @@ void parser::parse()
                                                        source.string()};
 
   const auto parser = x3::with<x3::error_handler_tag>(std::ref(
-    error_handler))[x3::with<position_cache_tag>(positions)[peg::parser]];
+    error_handler))[x3::with<position_cache_tag>(positions)[peg::program]];
 
   const auto success = x3::phrase_parse(first, last, parser, x3::space, ast);
 

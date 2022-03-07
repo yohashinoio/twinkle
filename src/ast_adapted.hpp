@@ -56,6 +56,9 @@ BOOST_FUSION_ADAPT_STRUCT(
   (ast::expression, rhs)
 )
 
+/////////////
+// program //
+/////////////
 BOOST_FUSION_ADAPT_STRUCT(
   ast::function_decl,
   (std::string, name)

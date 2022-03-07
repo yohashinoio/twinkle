@@ -41,7 +41,6 @@ using expression
                    ,
                    boost::recursive_wrapper<function_call>>;
 
-// TODO: namespace expr
 struct unaryop : x3::position_tagged {
   std::string op;
   expression  rhs;
@@ -153,10 +152,13 @@ struct return_statement {
   }
 };
 
+/////////////
+// program //
+/////////////
 struct function_decl;
 struct function_def;
 
-using top = boost::variant<nil, function_decl, function_def>;
+using program = std::vector<boost::variant<nil, function_decl, function_def>>;
 
 struct function_decl : x3::position_tagged {
   std::string              name;
@@ -192,11 +194,6 @@ struct function_def : x3::position_tagged {
   {
   }
 };
-
-/////////////
-// program //
-/////////////
-using program = std::vector<top>;
 
 } // namespace miko::ast
 

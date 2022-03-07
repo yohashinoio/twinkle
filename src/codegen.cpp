@@ -7,7 +7,6 @@
 
 #include "codegen.hpp"
 #include "utility.hpp"
-#include <boost/spirit/include/support_line_pos_iterator.hpp>
 
 namespace miko::codegen
 {
@@ -282,12 +281,12 @@ private:
   const std::filesystem::path& source;
 };
 
-struct top_visitor : public boost::static_visitor<llvm::Function*> {
-  top_visitor(llvm::LLVMContext&                 context,
-              std::shared_ptr<llvm::Module>      module,
-              llvm::IRBuilder<>&                 builder,
-              llvm::legacy::FunctionPassManager& fpm,
-              const std::filesystem::path&       source)
+struct program_visitor : public boost::static_visitor<llvm::Function*> {
+  program_visitor(llvm::LLVMContext&                 context,
+                  std::shared_ptr<llvm::Module>      module,
+                  llvm::IRBuilder<>&                 builder,
+                  llvm::legacy::FunctionPassManager& fpm,
+                  const std::filesystem::path&       source)
     : context{context}
     , module{module}
     , builder{builder}
@@ -491,7 +490,7 @@ void code_generator::write_object_code_to_file(
 void code_generator::codegen()
 {
   for (auto&& node : ast) {
-    boost::apply_visitor(top_visitor{context, module, builder, fpm, source},
+    boost::apply_visitor(program_visitor{context, module, builder, fpm, source},
                          node);
   }
 }
