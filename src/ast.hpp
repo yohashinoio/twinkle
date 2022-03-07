@@ -89,16 +89,19 @@ struct variable : x3::position_tagged {
 };
 
 struct function_call : x3::position_tagged {
-  std::string callee;
-  // TODO: arguments
+  std::string             callee;
+  std::vector<expression> args;
 
-  explicit function_call(const std::string& callee)
+  explicit function_call(const std::string&             callee,
+                         const std::vector<expression>& args)
     : callee{callee}
+    , args{args}
   {
   }
 
   function_call()
     : callee{}
+    , args{args}
   {
   }
 };
@@ -128,15 +131,19 @@ struct function_def;
 using top = boost::variant<nil, function_decl, function_def>;
 
 struct function_decl : x3::position_tagged {
-  std::string name;
+  std::string              name;
+  std::vector<std::string> args;
 
-  explicit function_decl(const std::string& name)
+  explicit function_decl(const std::string&              name,
+                         const std::vector<std::string>& args)
     : name{name}
+    , args{args}
   {
   }
 
   function_decl()
     : name{}
+    , args{}
   {
   }
 };

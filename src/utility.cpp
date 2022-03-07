@@ -92,7 +92,7 @@ program_options::options_description create_options_description()
     ("version,v", "Display compiler version.")
     ("input", program_options::value<std::string>(), "Input instead of files.")
     ("llvmir", "Output LLVM IR instead of Object code.")
-    ("mem2reg", program_options::value<bool>()->default_value(true), "Whether mem2reg is applied.")
+    ("opt", program_options::value<bool>()->default_value(true), "Disables all optimizations.")
     ("input-file", program_options::value<std::vector<std::string>>(), "Input file.")
     ;
   // clang-format on

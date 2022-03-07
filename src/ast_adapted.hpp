@@ -35,6 +35,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   ast::function_call,
   (std::string, callee)
+  (std::vector<ast::expression>, args)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -45,6 +46,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   ast::function_decl,
   (std::string, name)
+  (std::vector<std::string>, args)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

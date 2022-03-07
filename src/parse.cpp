@@ -37,6 +37,8 @@ struct with_error_handling {
   static std::size_t total_errors;
 };
 
+std::size_t with_error_handling::total_errors = 0;
+
 struct position_cache_tag;
 struct annotate_position {
   template <typename T, typename Iterator, typename Context>
@@ -49,8 +51,6 @@ struct annotate_position {
     position_cache.annotate(ast, first, last);
   }
 };
-
-std::size_t with_error_handling::total_errors = 0;
 
 namespace action
 {
@@ -77,17 +77,9 @@ const auto assign_variable_to_val = [](auto&& ctx) {
 };
 
 const auto assign_function_call_to_val = [](auto&& ctx) {
-  x3::_val(ctx) = ast::function_call{x3::_attr(ctx) /* callee */};
-};
-
-const auto assign_function_decl_to_val = [](auto&& ctx) -> void {
-  x3::_val(ctx) = ast::function_decl{x3::_attr(ctx) /* name */};
-};
-
-const auto assign_function_def_to_val = [](auto&& ctx) -> void {
   x3::_val(ctx)
-    = ast::function_def{fusion::at_c<0>(x3::_attr(ctx)) /* function decl */,
-                        fusion::at_c<1>(x3::_attr(ctx)) /* body */};
+    = ast::function_call{fusion::at_c<0>(x3::_attr(ctx)) /* callee */,
+                         fusion::at_c<1>(x3::_attr(ctx)) /* arguments */};
 };
 
 const auto char_to_string = [](auto&& ctx) -> void {
@@ -141,6 +133,11 @@ const auto multitive_operator
   = x3::rule<struct multitive_operator, std::string>{"multitive operator"}
 = x3::char_("*/")[action::char_to_string];
 
+const auto argument_list
+  = x3::rule<struct argument_list_tag,
+             std::vector<ast::expression>>{"argument list"}
+= -(expression >> *(x3::lit(',') > expression));
+
 const auto equality_def
   = relational[action::assign_attr_to_val]
     >> *(equality_operator > relational)[action::assign_binop_to_val];
@@ -163,7 +160,8 @@ const auto unary_def = (unary_operator > primary)[action::assign_unaryop_to_val]
 const auto primary_def
   = (x3::lit('(') > expression > x3::lit(')'))[action::assign_attr_to_val]
     | integer[action::assign_attr_to_val]
-    | (identifier >> x3::lit("()"))[action::assign_function_call_to_val]
+    | (identifier >> x3::lit("(") > argument_list
+       > x3::lit(")"))[action::assign_function_call_to_val]
     | identifier[action::assign_variable_to_val];
 
 const auto expression_def = equality;
@@ -191,9 +189,13 @@ const auto compound_statement
 = x3::lit('{') > *statement > x3::lit('}');
 
 // function rules
+const auto parameter_list = x3::rule<struct parameter_list_tag,
+                                     std::vector<std::string>>{"parameter list"}
+= -(identifier >> *(x3::lit(',') > identifier));
+
 const auto function_proto = x3::rule<struct function_proto_tag,
                                      ast::function_decl>{"function prototype"}
-= identifier[action::assign_function_decl_to_val] > x3::lit('(') > x3::lit(')');
+= identifier > x3::lit('(') > parameter_list > x3::lit(')');
 
 const auto function_decl = x3::rule<struct function_decl_tag,
                                     ast::function_decl>{"function declaration"}
@@ -220,6 +222,9 @@ BOOST_SPIRIT_DEFINE(expression,
                     primary)
 
 // expression tags definition
+struct argument_list_tag
+  : with_error_handling
+  , annotate_position {};
 struct expression_tag
   : with_error_handling
   , annotate_position {};
@@ -257,6 +262,9 @@ struct compound_statement_tag
   , annotate_position {};
 
 // function tags definition
+struct parameter_list_tag
+  : with_error_handling
+  , annotate_position {};
 struct function_proto_tag
   : with_error_handling
   , annotate_position {};
@@ -279,8 +287,8 @@ struct parser_tag
 
 } // namespace peg
 
-parser::parser(input_iterator_type                first,
-               const input_iterator_type          last,
+parser::parser(input_iterator_type          first,
+               const input_iterator_type    last,
                const std::filesystem::path& source)
   : first{first}
   , last{last}
@@ -303,9 +311,9 @@ parser::parser(input_iterator_type                first,
 void parser::parse()
 {
   x3::error_handler<input_iterator_type> error_handler{first,
-                                                 last,
-                                                 std::cerr,
-                                                 source.string()};
+                                                       last,
+                                                       std::cerr,
+                                                       source.string()};
 
   const auto parser = x3::with<x3::error_handler_tag>(std::ref(
     error_handler))[x3::with<position_cache_tag>(positions)[peg::parser]];

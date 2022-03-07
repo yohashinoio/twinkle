@@ -142,23 +142,21 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
         format("Unknown function '%s' referenced", node.callee))};
     }
 
-    // if (callee_f->arg_size() == args.size()) {
-    //   throw std::runtime_error{
-    //     format_error_message(source.string(),
-    //                          format("Incorrect arguments passed"))};
-    // }
+    if (callee_f->arg_size() != node.args.size()) {
+      throw std::runtime_error{
+        format_error_message(source.string(),
+                             format("Incorrect arguments passed"))};
+    }
 
-    // std::vector<llvm::Value*> args_v;
-    // for (std::size_t i = 0, size = args.sizse(); i != size; ++i) {
-    //   args_v.push_back(this->operator()(args[i]));
-    //   if (!args_v.back()) {
-    //     throw std::runtime_error{
-    //       format_error_message(source.string(), format("Invalid
-    //       expression"))};
-    //   }
-    // }
+    std::vector<llvm::Value*> args_value;
+    for (std::size_t i = 0, size = node.args.size(); i != size; ++i) {
+      args_value.push_back(boost::apply_visitor(*this, node.args[i]));
 
-    return builder.CreateCall(callee_f);
+      if (!args_value.back())
+        return nullptr;
+    }
+
+    return builder.CreateCall(callee_f, args_value);
   }
 
 private:
@@ -236,9 +234,13 @@ struct statement_visitor : public boost::static_visitor<void> {
 
   void operator()(const ast::expression& node) const
   {
-    boost::apply_visitor(
-      expression_visitor{module, builder, named_values, source},
-      node);
+    if (!boost::apply_visitor(
+          expression_visitor{module, builder, named_values, source},
+          node)) {
+      throw std::runtime_error{
+        format_error_message(source.string(),
+                             "Failed to generate expression code")};
+    }
   }
 
   void operator()(const ast::return_statement& node) const
@@ -246,6 +248,12 @@ struct statement_visitor : public boost::static_visitor<void> {
     auto* retval = boost::apply_visitor(
       expression_visitor{module, builder, named_values, source},
       node.rhs);
+
+    if (!retval) {
+      throw std::runtime_error{
+        format_error_message(source.string(),
+                             "Failure to generate return value.")};
+    }
 
     builder.CreateRet(retval);
   }
@@ -278,22 +286,33 @@ struct top_visitor : public boost::static_visitor<llvm::Function*> {
     BOOST_ASSERT(0);
   }
 
+  // Function declaration
   llvm::Function* operator()(const ast::function_decl& node) const
   {
-    auto* func_type = llvm::FunctionType::get(builder.getInt32Ty(), false);
+    std::vector<llvm::Type*> param_types(node.args.size(),
+                                         builder.getInt32Ty());
+
+    auto* func_type
+      = llvm::FunctionType::get(builder.getInt32Ty(), param_types, false);
 
     auto* func = llvm::Function::Create(func_type,
                                         llvm::Function::ExternalLinkage,
                                         node.name,
                                         module.get());
 
+    // Set names for all arguments.
+    {
+      std::size_t idx = 0;
+      for (auto&& arg : func->args())
+        arg.setName(node.args[idx++]);
+    }
+
     return func;
   }
 
+  // Function definition
   llvm::Function* operator()(const ast::function_def& node) const
   {
-    symbol_table named_values;
-
     auto* func = module->getFunction(node.decl.name);
 
     if (!func)
@@ -308,6 +327,19 @@ struct top_visitor : public boost::static_visitor<llvm::Function*> {
 
     auto* basic_block = llvm::BasicBlock::Create(context, "entry", func);
     builder.SetInsertPoint(basic_block);
+
+    symbol_table named_values;
+    for (auto& arg : func->args()) {
+      // Create an alloca for this variable.
+      auto* alloca
+        = create_entry_block_alloca(func, context, arg.getName().str());
+
+      // Store the initial value into the alloca.
+      builder.CreateStore(&arg, alloca);
+
+      // Add arguments to variable symbol table.
+      named_values.insert(arg.getName().str(), alloca);
+    }
 
     for (auto&& statement : node.body) {
       boost::apply_visitor(
@@ -340,7 +372,8 @@ private:
 
 code_generator::code_generator(const ast::program&          ast,
                                const position_cache&        positions,
-                               const std::filesystem::path& source)
+                               const std::filesystem::path& source,
+                               const bool                   optimize)
   : module{std::make_shared<llvm::Module>(source.filename().string(), context)}
   , builder{context}
   , fpm{module.get()}
@@ -348,27 +381,26 @@ code_generator::code_generator(const ast::program&          ast,
   , ast{ast}
   , positions{positions}
 {
-  // Do simple "peephole" optimizations and bit-twiddling optzns.
-  fpm.add(llvm::createInstructionCombiningPass());
-  // Reassociate expressions.
-  fpm.add(llvm::createReassociatePass());
-  // Eliminate Common SubExpressions.
-  fpm.add(llvm::createGVNPass());
-  // Simplify the control flow graph (deleting unreachable blocks, etc).
-  fpm.add(llvm::createCFGSimplificationPass());
+  if (optimize) {
+    // Do simple "peephole" optimizations and bit-twiddling optzns.
+    fpm.add(llvm::createInstructionCombiningPass());
+    // Reassociate expressions.
+    fpm.add(llvm::createReassociatePass());
+    // Eliminate Common SubExpressions.
+    fpm.add(llvm::createGVNPass());
+    // Simplify the control flow graph (deleting unreachable blocks, etc).
+    fpm.add(llvm::createCFGSimplificationPass());
+    // Promote allocas to registers.
+    fpm.add(llvm::createPromoteMemoryToRegisterPass());
+    // Do simple "peephole" optimizations and bit-twiddling optzns.
+    fpm.add(llvm::createInstructionCombiningPass());
+    // Reassociate expressions.
+    fpm.add(llvm::createReassociatePass());
+  }
 
   fpm.doInitialization();
 
   codegen();
-}
-
-bool code_generator::mem2reg()
-{
-  llvm::legacy::PassManager pm;
-  // mem2reg
-  pm.add(llvm::createPromoteMemoryToRegisterPass());
-
-  return pm.run(*module);
 }
 
 void code_generator::write_llvm_ir_to_file(

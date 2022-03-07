@@ -31,12 +31,8 @@ bool is_back_newline(const char* str) noexcept
 
 void output_to_file(miko::codegen::code_generator& generator,
                     const std::filesystem::path&   path,
-                    const bool                     output_llvmir,
-                    const bool                     mem2reg)
+                    const bool                     output_llvmir)
 {
-  if (mem2reg)
-    generator.mem2reg();
-
   if (output_llvmir) {
     // test.xxx -> test.ll
     generator.write_llvm_ir_to_file(path.stem().string() + ".ll");
@@ -71,7 +67,7 @@ try {
     std::exit(EXIT_SUCCESS);
   }
 
-  const auto mem2reg = vm["mem2reg"].as<bool>();
+  const auto optimize = vm["opt"].as<bool>();
 
   if (vm.count("input")) {
     std::string_view file_path = "input";
@@ -83,9 +79,10 @@ try {
     // Code generation occurs as soon as the constructor is called.
     miko::codegen::code_generator generator{parser.get_ast(),
                                             parser.get_positions(),
-                                            file_path};
+                                            file_path,
+                                            optimize};
 
-    output_to_file(generator, file_path, vm.count("llvmir"), mem2reg);
+    output_to_file(generator, file_path, vm.count("llvmir"));
   }
   else {
     auto file_paths = miko::get_input_files(vm);
@@ -99,13 +96,22 @@ try {
       // Code generation occurs as soon as the constructor is called.
       miko::codegen::code_generator generator{parser.get_ast(),
                                               parser.get_positions(),
-                                              file_path};
+                                              file_path,
+                                              optimize};
 
-      output_to_file(generator, file_path, vm.count("llvmir"), mem2reg);
+      output_to_file(generator, file_path, vm.count("llvmir"));
     }
   }
 }
+catch (const program_options::error& err) {
+  // Error about command line options.
+  std::cerr << miko::format_error_message("mikoc", err.what(), true)
+            << (is_back_newline(err.what()) ? "" : "\n")
+            << "compilation terminated." << std::endl;
+  std::exit(EXIT_FAILURE);
+}
 catch (const std::exception& err) {
+  // All compilation errors are caught here.
   std::cerr << err.what() << (is_back_newline(err.what()) ? "" : "\n")
             << "compilation terminated." << std::endl;
   std::exit(EXIT_FAILURE);

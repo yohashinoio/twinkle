@@ -21,7 +21,7 @@ assert() {
   fi
 }
 
-assert 0  "fn main() {ret 0;}"
+assert  0 "fn main() {ret 0;}"
 assert 42 "fn main() {ret 42;}"
 assert 58 "fn main() {ret 48 + 10;}"
 assert 58 "fn main() {ret 48+10;}"
@@ -53,5 +53,14 @@ assert  2 "fn main() {ret 1+(10>=10);}"
 assert 48 "fn main() { 1+(48>10); ret +(-(48 * -(1 + 0))); }"
 assert 25 "fn g() { ret (10 + 20 - 5) * 2; } fn f() { ret g() - 25; } fn main() { ret f(); }"
 assert 58 "extern clock(); fn main() { clock(); ret 48 + 10; }"
+assert 58 "fn twice(n) { ret n * 2; } fn main() { ret twice(29) + 1 - 1; }"
+assert 58 "fn add(a, b) { ret a + b; } fn twice(n) { ret n * 2; } fn main() { ret add(twice(add(4, 8) + 1 + 0), 32); }"
+# hello, world
+assert 58 "extern putchar(ch); fn main() {
+  putchar(104);putchar(101);putchar(108);putchar(108);putchar(111);putchar(44);
+  putchar(32);putchar(119);putchar(111);putchar(114);putchar(108);putchar(100);
+  putchar(10);
+  ret 48 + 10;
+}"
 
 echo OK

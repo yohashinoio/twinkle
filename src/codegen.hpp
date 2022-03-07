@@ -22,11 +22,8 @@ namespace miko::codegen
 struct code_generator {
   code_generator(const ast::program&          ast,
                  const position_cache&        positions,
-                 const std::filesystem::path& source);
-
-  // Returns true if the module has been modified, false otherwise.
-  // Thus, the return value does not indicate a successful failure.
-  bool mem2reg();
+                 const std::filesystem::path& source,
+                 const bool                   optimize);
 
   void write_llvm_ir_to_file(const std::filesystem::path& out) const;
 
