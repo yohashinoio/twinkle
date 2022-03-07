@@ -2,7 +2,7 @@
 //  utility.hpp
 //
 //  Copyright (c) 2022 The Miko Authors.
-//  MIT License
+//  Apache License v2.0
 //
 
 #ifndef _d63c66d6_93b5_11ec_b909_0242ac120002

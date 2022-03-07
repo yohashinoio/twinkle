@@ -2,7 +2,7 @@
 //  codegen.hpp
 //
 //  Copyright (c) 2022 The Miko Authors.
-//  MIT License
+//  Apache License v2.0
 //
 
 #ifndef _7d00490e_93b3_11ec_b909_0242ac120002

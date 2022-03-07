@@ -2,7 +2,7 @@
 //  parse.hpp
 //
 //  Copyright (c) 2022 The Miko Authors.
-//  MIT License
+//  Apache License v2.0
 //
 
 #ifndef _2fdb7c8a_93b7_11ec_b909_0242ac120002
@@ -22,8 +22,8 @@ namespace parse
 {
 
 struct parser {
-  parser(input_iterator_type                first,
-         const input_iterator_type          last,
+  parser(input_iterator_type          first,
+         const input_iterator_type    last,
          const std::filesystem::path& source);
 
   [[nodiscard]] const ast::program& get_ast() const noexcept;

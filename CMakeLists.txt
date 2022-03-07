@@ -2,7 +2,7 @@
 #  CMakeLists.txt
 #
 #  Copyright (c) 2022 The Miko Authors.
-#  MIT License
+#  Apache License v2.0
 #
 
 cmake_minimum_required(VERSION 3.16)

@@ -2,7 +2,7 @@
 //  pch.hpp (Pre compiled header)
 //
 //  Copyright (c) 2022 The Miko Authors.
-//  MIT License
+//  Apache License v2.0
 //
 
 #ifndef _dc3d87fc_95e2_11ec_b909_0242ac120002

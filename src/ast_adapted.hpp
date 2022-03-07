@@ -2,7 +2,7 @@
 //  ast_adapted.hpp
 //
 //  Copyright (c) 2022 The Miko Authors.
-//  MIT License
+//  Apache License v2.0
 //
 
 #ifndef _4a13c82a_9536_11ec_b909_0242ac120002

@@ -1,8 +1,14 @@
 #!/bin/bash
 
-# I used Ueyama rui's test of
-# "https://www.sigbus.info/compilerbook"
-# as a reference.
+#
+#  test.sh
+#
+#  Copyright (c) 2022 The Miko Authors.
+#  Apache License v2.0
+#
+# This shell script is based on Ueyama rui's 9cc test.
+# Thank you.
+#
 
 assert() {
   expected="$1"

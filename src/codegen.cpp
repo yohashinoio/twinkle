@@ -2,7 +2,7 @@
 //  codegen.cpp
 //
 //  Copyright (c) 2022 The Miko Authors.
-//  MIT License
+//  Apache License v2.0
 //
 
 #include "codegen.hpp"
