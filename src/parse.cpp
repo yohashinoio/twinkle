@@ -92,6 +92,7 @@ namespace peg
 {
 
 // expreesion rules
+const x3::rule<struct assignment_tag, ast::expression> assignment{"assignment"};
 const x3::rule<struct equality_tag, ast::expression>   equality{"equality"};
 const x3::rule<struct relational_tag, ast::expression> relational{"relational"};
 const x3::rule<struct addition_tag, ast::expression>   addition{"addition"};
@@ -112,9 +113,14 @@ const auto data_type = x3::rule<struct data_type, std::string>{"data type"}
 const auto integer = x3::rule<struct integer, int>{"integral number"}
 = x3::int_;
 
-const auto unary_operator
-  = x3::rule<struct unary_operator, std::string>{"unary operator"}
-= x3::char_("+-")[action::char_to_string];
+const auto argument_list
+  = x3::rule<struct argument_list_tag,
+             std::vector<ast::expression>>{"argument list"}
+= -(expression >> *(x3::lit(',') > expression));
+
+const auto assignment_operator
+  = x3::rule<struct assignment_operator, std::string>{"assignment operator"}
+= x3::string("=");
 
 const auto equality_operator
   = x3::rule<struct equality_operator, std::string>{"equality operator"}
@@ -133,10 +139,15 @@ const auto multitive_operator
   = x3::rule<struct multitive_operator, std::string>{"multitive operator"}
 = x3::char_("*/")[action::char_to_string];
 
-const auto argument_list
-  = x3::rule<struct argument_list_tag,
-             std::vector<ast::expression>>{"argument list"}
-= -(expression >> *(x3::lit(',') > expression));
+const auto unary_operator
+  = x3::rule<struct unary_operator, std::string>{"unary operator"}
+= x3::char_("+-")[action::char_to_string];
+
+const auto expression_def = assignment;
+
+const auto assignment_def
+  = equality[action::assign_attr_to_val]
+    >> *(assignment_operator > equality)[action::assign_binop_to_val];
 
 const auto equality_def
   = relational[action::assign_attr_to_val]
@@ -164,9 +175,12 @@ const auto primary_def
        > x3::lit(")"))[action::assign_function_call_to_val]
     | identifier[action::assign_variable_to_val];
 
-const auto expression_def = equality;
-
 // statement rules
+const auto variable_def_statement
+  = x3::rule<struct variable_def_statement_tag,
+             ast::variable_def>{"variable definition"}
+= x3::lit("let") > identifier > x3::lit(';'); // TODO: initialization
+
 const auto return_statement
   = x3::rule<struct return_statement_tag,
              ast::return_statement>{"return statement"}
@@ -181,6 +195,9 @@ const auto statement
   = x3::rule<struct statement_tag, ast::statement>{"statement"}
 = return_statement /* If return_statement does not have a higher priority than
                       expression_statement, "ret" will match the identifier.*/
+  | variable_def_statement /* If variable_def_statement does not have a higher
+                       priority than expression_statement, "let" will match the
+                       identifier.*/
   | expression_statement;
 
 const auto compound_statement
@@ -203,7 +220,7 @@ const auto function_decl = x3::rule<struct function_decl_tag,
 
 const auto function_defi
   = x3::rule<struct function_defi_tag, ast::function_def>{"function definition"}
-= x3::lit("fn") > function_proto > compound_statement;
+= x3::lit("func") > function_proto > compound_statement;
 
 // top rule
 const auto top = x3::rule<struct top_tag, ast::top>{"Function, extern, etc"}
@@ -213,7 +230,8 @@ const auto top = x3::rule<struct top_tag, ast::top>{"Function, extern, etc"}
 const auto parser = x3::rule<struct parser_tag, ast::program>{"parser"}
 = x3::eoi /*Empty program*/ | (x3::expect[top] >> *top > x3::eoi);
 
-BOOST_SPIRIT_DEFINE(expression,
+BOOST_SPIRIT_DEFINE(assignment,
+                    expression,
                     equality,
                     relational,
                     addition,
@@ -223,6 +241,9 @@ BOOST_SPIRIT_DEFINE(expression,
 
 // expression tags definition
 struct argument_list_tag
+  : with_error_handling
+  , annotate_position {};
+struct assignment_tag
   : with_error_handling
   , annotate_position {};
 struct expression_tag
@@ -248,6 +269,9 @@ struct primary_tag
   , annotate_position {};
 
 // statement
+struct variable_def_statement
+  : with_error_handling
+  , annotate_position {};
 struct return_statement_tag
   : with_error_handling
   , annotate_position {};

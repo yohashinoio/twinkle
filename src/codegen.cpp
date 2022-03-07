@@ -72,50 +72,82 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
       return rhs;
     if (node.op == "-") {
       // -x to 0-x
-      return apply_sub_op(llvm::ConstantInt::get(builder.getInt32Ty(), 0), rhs);
+      return builder.CreateSub(llvm::ConstantInt::get(builder.getInt32Ty(), 0),
+                               rhs);
     }
 
     BOOST_ASSERT_MSG(
       0,
-      "Unsupported unary operators may have been converted to ASTs.");
+      "unsupported unary operators may have been converted to ASTs.");
   }
 
   llvm::Value* operator()(const ast::binop& node) const
   {
+    // Special case assignment because we don't want to emit the left-hand-side
+    // as an expression.
+    if (node.op == "=") {
+      try {
+        auto&& lhs = boost::get<ast::variable>(node.lhs);
+
+        auto* rhs = boost::apply_visitor(*this, node.rhs);
+        if (!rhs)
+          return nullptr;
+
+        auto* variable = named_values[lhs.name];
+
+        if (!variable) {
+          throw std::runtime_error{
+            format_error_message(source.string(),
+                                 format("unknown variable name %s", lhs.name))};
+        }
+
+        builder.CreateStore(rhs, variable);
+        return rhs;
+      }
+      catch (const boost::bad_get&) {
+        // left hand side was not a variable.
+        throw std::runtime_error{format_error_message(
+          source.string(),
+          "the left hand side of the assignment must be a variable")};
+      }
+    }
+
     auto lhs = boost::apply_visitor(*this, node.lhs);
     auto rhs = boost::apply_visitor(*this, node.rhs);
+    if (!lhs || !rhs)
+      return nullptr;
 
     // addition
     if (node.op == "+")
-      return apply_add_op(lhs, rhs);
+      return builder.CreateAdd(lhs, rhs);
     if (node.op == "-")
-      return apply_sub_op(lhs, rhs);
+      return builder.CreateSub(lhs, rhs);
 
     // multiplication
     if (node.op == "*")
-      return apply_mul_op(lhs, rhs);
+      return builder.CreateMul(lhs, rhs);
     if (node.op == "/")
-      return apply_div_op(lhs, rhs);
+      return builder.CreateSDiv(lhs, rhs);
 
     // equality
     if (node.op == "==")
-      return apply_equal(lhs, rhs);
+      return builder.CreateICmp(llvm::ICmpInst::ICMP_EQ, lhs, rhs);
     if (node.op == "!=")
-      return apply_not_equal(lhs, rhs);
+      return builder.CreateICmp(llvm::ICmpInst::ICMP_NE, lhs, rhs);
 
     // relational
     if (node.op == "<")
-      return apply_signed_lt(lhs, rhs);
+      return builder.CreateICmp(llvm::ICmpInst::ICMP_SLT, lhs, rhs);
     if (node.op == ">")
-      return apply_signed_gt(lhs, rhs);
+      return builder.CreateICmp(llvm::ICmpInst::ICMP_SGT, lhs, rhs);
     if (node.op == "<=")
-      return apply_signed_lte(lhs, rhs);
+      return builder.CreateICmp(llvm::ICmpInst::ICMP_SLE, lhs, rhs);
     if (node.op == ">=")
-      return apply_signed_gte(lhs, rhs);
+      return builder.CreateICmp(llvm::ICmpInst::ICMP_SGE, lhs, rhs);
 
     BOOST_ASSERT_MSG(
       0,
-      "Unsupported binary operators may have been converted to ASTs.");
+      "unsupported binary operators may have been converted to ASTs.");
   }
 
   llvm::Value* operator()(const ast::variable& node) const
@@ -124,7 +156,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     if (!ainst) {
       throw std::runtime_error{format_error_message(
         source.string(),
-        format("Unknown variable '%s' referenced", node.name))};
+        format("unknown variable '%s' referenced", node.name))};
     }
 
     return builder.CreateLoad(ainst->getAllocatedType(),
@@ -139,13 +171,13 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     if (!callee_f) {
       throw std::runtime_error{format_error_message(
         source.string(),
-        format("Unknown function '%s' referenced", node.callee))};
+        format("unknown function '%s' referenced", node.callee))};
     }
 
     if (callee_f->arg_size() != node.args.size()) {
       throw std::runtime_error{
         format_error_message(source.string(),
-                             format("Incorrect arguments passed"))};
+                             format("incorrect arguments passed"))};
     }
 
     std::vector<llvm::Value*> args_value;
@@ -166,61 +198,16 @@ private:
   symbol_table& named_values;
 
   const std::filesystem::path& source;
-
-  llvm::Value* apply_add_op(llvm::Value* lhs, llvm::Value* rhs) const
-  {
-    return builder.CreateAdd(lhs, rhs);
-  }
-  llvm::Value* apply_sub_op(llvm::Value* lhs, llvm::Value* rhs) const
-  {
-    return builder.CreateSub(lhs, rhs);
-  }
-  llvm::Value* apply_mul_op(llvm::Value* lhs, llvm::Value* rhs) const
-  {
-    return builder.CreateMul(lhs, rhs);
-  }
-  llvm::Value* apply_div_op(llvm::Value* lhs, llvm::Value* rhs) const
-  {
-    return builder.CreateSDiv(lhs, rhs);
-  }
-
-  llvm::Value* apply_equal(llvm::Value* lhs, llvm::Value* rhs) const
-  {
-    return builder.CreateICmp(llvm::ICmpInst::ICMP_EQ, lhs, rhs);
-  }
-  llvm::Value* apply_not_equal(llvm::Value* lhs, llvm::Value* rhs) const
-  {
-    return builder.CreateICmp(llvm::ICmpInst::ICMP_NE, lhs, rhs);
-  }
-
-  // Less than
-  llvm::Value* apply_signed_lt(llvm::Value* lhs, llvm::Value* rhs) const
-  {
-    return builder.CreateICmp(llvm::ICmpInst::ICMP_SLT, lhs, rhs);
-  }
-  // Greater than
-  llvm::Value* apply_signed_gt(llvm::Value* lhs, llvm::Value* rhs) const
-  {
-    return builder.CreateICmp(llvm::ICmpInst::ICMP_SGT, lhs, rhs);
-  }
-  // Less than or equal to
-  llvm::Value* apply_signed_lte(llvm::Value* lhs, llvm::Value* rhs) const
-  {
-    return builder.CreateICmp(llvm::ICmpInst::ICMP_SLE, lhs, rhs);
-  }
-  // Greater than or equal to
-  llvm::Value* apply_signed_gte(llvm::Value* lhs, llvm::Value* rhs) const
-  {
-    return builder.CreateICmp(llvm::ICmpInst::ICMP_SGE, lhs, rhs);
-  }
 };
 
 struct statement_visitor : public boost::static_visitor<void> {
-  statement_visitor(std::shared_ptr<llvm::Module> module,
+  statement_visitor(llvm::LLVMContext&            context,
+                    std::shared_ptr<llvm::Module> module,
                     llvm::IRBuilder<>&            builder,
                     symbol_table&                 named_values,
                     const std::filesystem::path&  source)
-    : module{module}
+    : context{context}
+    , module{module}
     , builder{builder}
     , named_values{named_values}
     , source{source}
@@ -239,7 +226,7 @@ struct statement_visitor : public boost::static_visitor<void> {
           node)) {
       throw std::runtime_error{
         format_error_message(source.string(),
-                             "Failed to generate expression code")};
+                             "failed to generate expression code")};
     }
   }
 
@@ -252,13 +239,24 @@ struct statement_visitor : public boost::static_visitor<void> {
     if (!retval) {
       throw std::runtime_error{
         format_error_message(source.string(),
-                             "Failure to generate return value.")};
+                             "failure to generate return value.")};
     }
 
     builder.CreateRet(retval);
   }
 
+  void operator()(const ast::variable_def& node) const
+  {
+    auto* func = builder.GetInsertBlock()->getParent();
+
+    auto* ainst = create_entry_block_alloca(func, context, node.name);
+    builder.CreateStore(llvm::ConstantInt::get(builder.getInt32Ty(), 0), ainst);
+
+    named_values.insert(node.name, ainst);
+  }
+
 private:
+  llvm::LLVMContext&            context;
   std::shared_ptr<llvm::Module> module;
   llvm::IRBuilder<>&            builder;
 
@@ -321,7 +319,7 @@ struct top_visitor : public boost::static_visitor<llvm::Function*> {
     if (!func) {
       throw std::runtime_error{format_error_message(
         source.string(),
-        format("Failed to create function %s", node.decl.name),
+        format("failed to create function %s", node.decl.name),
         true)};
     }
 
@@ -343,7 +341,7 @@ struct top_visitor : public boost::static_visitor<llvm::Function*> {
 
     for (auto&& statement : node.body) {
       boost::apply_visitor(
-        statement_visitor{module, builder, named_values, source},
+        statement_visitor{context, module, builder, named_values, source},
         statement);
     }
 
@@ -433,7 +431,7 @@ void code_generator::write_object_code_to_file(
   if (!target) {
     throw std::runtime_error{format_error_message(
       "mikoc",
-      format("Failed to lookup target %s: %s", target_triple, target_triple_es),
+      format("failed to lookup target %s: %s", target_triple, target_triple_es),
       true)};
   }
 
@@ -465,7 +463,7 @@ void code_generator::write_object_code_to_file(
                                               llvm::CGFT_ObjectFile)) {
     throw std::runtime_error{
       format_error_message("mikoc",
-                           "TargetMachine can't emit a file of this types",
+                           "targetMachine can't emit a file of this types",
                            true)};
   }
 

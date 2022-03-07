@@ -14,6 +14,10 @@
 namespace ast = miko::ast;
 
 // clang-format off
+
+////////////////
+// expression //
+////////////////
 BOOST_FUSION_ADAPT_STRUCT(
   ast::unaryop,
   (std::string, op)
@@ -38,6 +42,14 @@ BOOST_FUSION_ADAPT_STRUCT(
   (std::vector<ast::expression>, args)
 )
 
+///////////////
+// statement //
+///////////////
+BOOST_FUSION_ADAPT_STRUCT(
+  ast::variable_def,
+  (std::string, name)
+)
+
 BOOST_FUSION_ADAPT_STRUCT(
   ast::return_statement,
   (ast::expression, rhs)
@@ -54,6 +66,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 	(ast::function_decl, decl)
   (ast::compound_statement, body)
 )
+
 // clang-format on
 
 #endif

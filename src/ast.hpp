@@ -21,10 +21,14 @@ namespace miko::ast
 
 struct nil {};
 
+////////////////
+// expression //
+////////////////
 struct unaryop;
 struct binop;
 struct variable;
 struct function_call;
+struct assignment;
 
 using expression
   = boost::variant<nil,
@@ -37,6 +41,7 @@ using expression
                    ,
                    boost::recursive_wrapper<function_call>>;
 
+// TODO: namespace expr
 struct unaryop : x3::position_tagged {
   std::string op;
   expression  rhs;
@@ -106,10 +111,29 @@ struct function_call : x3::position_tagged {
   }
 };
 
+///////////////
+// statement //
+///////////////
 struct return_statement;
+struct variable_def;
 
-using statement          = boost::variant<nil, expression, return_statement>;
+using statement
+  = boost::variant<nil, expression, return_statement, variable_def>;
 using compound_statement = std::vector<statement>;
+
+struct variable_def {
+  std::string name;
+
+  explicit variable_def(const std::string& name)
+    : name{name}
+  {
+  }
+
+  variable_def()
+    : name{}
+  {
+  }
+};
 
 struct return_statement {
   expression rhs;
@@ -165,6 +189,9 @@ struct function_def : x3::position_tagged {
   }
 };
 
+/////////////
+// program //
+/////////////
 using program = std::vector<top>;
 
 } // namespace miko::ast
