@@ -52,5 +52,6 @@ assert  2 "fn main() {ret 1 + (10 >= 10);}"
 assert  2 "fn main() {ret 1+(10>=10);}"
 assert 48 "fn main() { 1+(48>10); ret +(-(48 * -(1 + 0))); }"
 assert 25 "fn g() { ret (10 + 20 - 5) * 2; } fn f() { ret g() - 25; } fn main() { ret f(); }"
+assert 58 "extern clock(); fn main() { clock(); ret 48 + 10; }"
 
 echo OK

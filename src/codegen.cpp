@@ -7,6 +7,7 @@
 
 #include "codegen.hpp"
 #include "utility.hpp"
+#include <boost/spirit/include/support_line_pos_iterator.hpp>
 
 namespace miko::codegen
 {
@@ -42,12 +43,12 @@ llvm::AllocaInst* create_entry_block_alloca(llvm::Function*    func,
 
 // It seems that the member function has to be const.
 struct expression_visitor : public boost::static_visitor<llvm::Value*> {
-  expression_visitor(llvm::IRBuilder<>&            builder,
-                     std::shared_ptr<llvm::Module> module,
+  expression_visitor(std::shared_ptr<llvm::Module> module,
+                     llvm::IRBuilder<>&            builder,
                      symbol_table&                 named_values,
                      const std::filesystem::path&  source)
-    : builder{builder}
-    , module{module}
+    : module{module}
+    , builder{builder}
     , named_values{named_values}
     , source{source}
   {
@@ -161,8 +162,8 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
   }
 
 private:
-  llvm::IRBuilder<>&            builder;
   std::shared_ptr<llvm::Module> module;
+  llvm::IRBuilder<>&            builder;
 
   symbol_table& named_values;
 
@@ -217,12 +218,12 @@ private:
 };
 
 struct statement_visitor : public boost::static_visitor<void> {
-  statement_visitor(llvm::IRBuilder<>&            builder,
-                    std::shared_ptr<llvm::Module> module,
+  statement_visitor(std::shared_ptr<llvm::Module> module,
+                    llvm::IRBuilder<>&            builder,
                     symbol_table&                 named_values,
                     const std::filesystem::path&  source)
-    : builder{builder}
-    , module{module}
+    : module{module}
+    , builder{builder}
     , named_values{named_values}
     , source{source}
   {
@@ -236,22 +237,22 @@ struct statement_visitor : public boost::static_visitor<void> {
   void operator()(const ast::expression& node) const
   {
     boost::apply_visitor(
-      expression_visitor{builder, module, named_values, source},
+      expression_visitor{module, builder, named_values, source},
       node);
   }
 
   void operator()(const ast::return_statement& node) const
   {
     auto* retval = boost::apply_visitor(
-      expression_visitor{builder, module, named_values, source},
+      expression_visitor{module, builder, named_values, source},
       node.rhs);
 
     builder.CreateRet(retval);
   }
 
 private:
-  llvm::IRBuilder<>&            builder;
   std::shared_ptr<llvm::Module> module;
+  llvm::IRBuilder<>&            builder;
 
   symbol_table& named_values;
 
@@ -260,13 +261,13 @@ private:
 
 struct top_visitor : public boost::static_visitor<llvm::Function*> {
   top_visitor(llvm::LLVMContext&                 context,
-              llvm::IRBuilder<>&                 builder,
               std::shared_ptr<llvm::Module>      module,
+              llvm::IRBuilder<>&                 builder,
               llvm::legacy::FunctionPassManager& fpm,
               const std::filesystem::path&       source)
     : context{context}
-    , builder{builder}
     , module{module}
+    , builder{builder}
     , fpm{fpm}
     , source{source}
   {
@@ -308,10 +309,11 @@ struct top_visitor : public boost::static_visitor<llvm::Function*> {
     auto* basic_block = llvm::BasicBlock::Create(context, "entry", func);
     builder.SetInsertPoint(basic_block);
 
-    for (auto&& statement : node.body)
+    for (auto&& statement : node.body) {
       boost::apply_visitor(
-        statement_visitor{builder, module, named_values, source},
+        statement_visitor{module, builder, named_values, source},
         statement);
+    }
 
     std::string              em;
     llvm::raw_string_ostream os{em};
@@ -328,8 +330,8 @@ struct top_visitor : public boost::static_visitor<llvm::Function*> {
 
 private:
   llvm::LLVMContext&            context;
-  llvm::IRBuilder<>&            builder;
   std::shared_ptr<llvm::Module> module;
+  llvm::IRBuilder<>&            builder;
 
   llvm::legacy::FunctionPassManager& fpm;
 
@@ -337,12 +339,14 @@ private:
 };
 
 code_generator::code_generator(const ast::program&          ast,
+                               const position_cache&        positions,
                                const std::filesystem::path& source)
-  : builder{context}
-  , module{std::make_shared<llvm::Module>(source.filename().string(), context)}
+  : module{std::make_shared<llvm::Module>(source.filename().string(), context)}
+  , builder{context}
   , fpm{module.get()}
   , source{source}
   , ast{ast}
+  , positions{positions}
 {
   // Do simple "peephole" optimizations and bit-twiddling optzns.
   fpm.add(llvm::createInstructionCombiningPass());
@@ -356,6 +360,15 @@ code_generator::code_generator(const ast::program&          ast,
   fpm.doInitialization();
 
   codegen();
+}
+
+bool code_generator::mem2reg()
+{
+  llvm::legacy::PassManager pm;
+  // mem2reg
+  pm.add(llvm::createPromoteMemoryToRegisterPass());
+
+  return pm.run(*module);
 }
 
 void code_generator::write_llvm_ir_to_file(
@@ -430,9 +443,10 @@ void code_generator::write_object_code_to_file(
 
 void code_generator::codegen()
 {
-  for (auto&& node : ast)
-    boost::apply_visitor(top_visitor{context, builder, module, fpm, source},
+  for (auto&& node : ast) {
+    boost::apply_visitor(top_visitor{context, module, builder, fpm, source},
                          node);
+  }
 }
 
 } // namespace miko::codegen

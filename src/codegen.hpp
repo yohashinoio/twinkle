@@ -14,12 +14,19 @@
 
 #include "pch.hpp"
 #include "ast.hpp"
+#include "utility.hpp"
 
 namespace miko::codegen
 {
 
 struct code_generator {
-  code_generator(const ast::program& ast, const std::filesystem::path& source);
+  code_generator(const ast::program&          ast,
+                 const position_cache&        positions,
+                 const std::filesystem::path& source);
+
+  // Returns true if the module has been modified, false otherwise.
+  // Thus, the return value does not indicate a successful failure.
+  bool mem2reg();
 
   void write_llvm_ir_to_file(const std::filesystem::path& out) const;
 
@@ -29,14 +36,15 @@ struct code_generator {
 
 private:
   llvm::LLVMContext             context;
-  llvm::IRBuilder<>             builder;
   std::shared_ptr<llvm::Module> module;
+  llvm::IRBuilder<>             builder;
 
   llvm::legacy::FunctionPassManager fpm;
 
   const std::filesystem::path& source;
 
-  const ast::program& ast;
+  const ast::program&   ast;
+  const position_cache& positions;
 };
 
 } // namespace miko::codegen

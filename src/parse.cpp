@@ -7,7 +7,6 @@
 
 #include "pch.hpp"
 #include "ast_adapted.hpp"
-#include "utility.hpp"
 #include "parse.hpp"
 
 namespace x3     = boost::spirit::x3;
@@ -46,7 +45,7 @@ struct annotate_position {
                          T&              ast,
                          const Context&  context)
   {
-    auto& position_cache = x3::get<position_cache_tag>(context);
+    auto&& position_cache = x3::get<position_cache_tag>(context);
     position_cache.annotate(ast, first, last);
   }
 };
@@ -204,8 +203,8 @@ const auto function_defi
   = x3::rule<struct function_defi_tag, ast::function_def>{"function definition"}
 = x3::lit("fn") > function_proto > compound_statement;
 
-// top level rule
-const auto top = x3::rule<struct top_tag, ast::top>{"top level"}
+// top rule
+const auto top = x3::rule<struct top_tag, ast::top>{"Function, extern, etc"}
 = function_decl | function_defi;
 
 // parser rule
@@ -268,7 +267,7 @@ struct function_defi_tag
   : with_error_handling
   , annotate_position {};
 
-// top level tag definition
+// top tag definition
 struct top_tag
   : with_error_handling
   , annotate_position {};
@@ -280,8 +279,8 @@ struct parser_tag
 
 } // namespace peg
 
-parser::parser(iterator_type                first,
-               const iterator_type          last,
+parser::parser(input_iterator_type                first,
+               const input_iterator_type          last,
                const std::filesystem::path& source)
   : first{first}
   , last{last}
@@ -303,7 +302,7 @@ parser::parser(iterator_type                first,
 
 void parser::parse()
 {
-  x3::error_handler<iterator_type> error_handler{first,
+  x3::error_handler<input_iterator_type> error_handler{first,
                                                  last,
                                                  std::cerr,
                                                  source.string()};

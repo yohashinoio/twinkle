@@ -17,6 +17,10 @@
 namespace miko
 {
 
+using input_iterator_type = std::string::const_iterator;
+using position_cache
+  = boost::spirit::x3::position_cache<std::vector<input_iterator_type>>;
+
 namespace program_options = boost::program_options;
 
 #define COLOR_DEFAULT "\x1b[0m"
@@ -31,6 +35,7 @@ void display_version();
                                                const std::string_view message,
                                                const bool fatal = false);
 
+// Formatting and coloring.
 [[nodiscard]] std::string
 format_error_message_without_filename(const std::string_view message,
                                       const bool             fatal = false);

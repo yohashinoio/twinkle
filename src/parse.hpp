@@ -13,21 +13,17 @@
 #endif // _MSC_VER > 1000
 
 #include "ast.hpp"
-#include <string>
+#include "utility.hpp"
 
 namespace miko
 {
-
-using iterator_type = std::string::const_iterator;
-using position_cache
-  = boost::spirit::x3::position_cache<std::vector<iterator_type>>;
 
 namespace parse
 {
 
 struct parser {
-  parser(iterator_type                first,
-         const iterator_type          last,
+  parser(input_iterator_type                first,
+         const input_iterator_type          last,
          const std::filesystem::path& source);
 
   [[nodiscard]] const ast::program& get_ast() const noexcept;
@@ -37,8 +33,8 @@ struct parser {
 private:
   void parse();
 
-  iterator_type       first;
-  const iterator_type last;
+  input_iterator_type       first;
+  const input_iterator_type last;
 
   ast::program   ast;
   position_cache positions;

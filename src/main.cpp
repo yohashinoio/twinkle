@@ -31,8 +31,12 @@ bool is_back_newline(const char* str) noexcept
 
 void output_to_file(miko::codegen::code_generator& generator,
                     const std::filesystem::path&   path,
-                    const bool                     output_llvmir)
+                    const bool                     output_llvmir,
+                    const bool                     mem2reg)
 {
+  if (mem2reg)
+    generator.mem2reg();
+
   if (output_llvmir) {
     // test.xxx -> test.ll
     generator.write_llvm_ir_to_file(path.stem().string() + ".ll");
@@ -67,6 +71,8 @@ try {
     std::exit(EXIT_SUCCESS);
   }
 
+  const auto mem2reg = vm["mem2reg"].as<bool>();
+
   if (vm.count("input")) {
     std::string_view file_path = "input";
 
@@ -75,9 +81,11 @@ try {
     miko::parse::parser parser{input.cbegin(), input.cend(), file_path};
 
     // Code generation occurs as soon as the constructor is called.
-    miko::codegen::code_generator generator{parser.get_ast(), file_path};
+    miko::codegen::code_generator generator{parser.get_ast(),
+                                            parser.get_positions(),
+                                            file_path};
 
-    output_to_file(generator, file_path, vm.count("llvmir"));
+    output_to_file(generator, file_path, vm.count("llvmir"), mem2reg);
   }
   else {
     auto file_paths = miko::get_input_files(vm);
@@ -89,9 +97,11 @@ try {
       miko::parse::parser parser{input.cbegin(), input.cend(), file_path};
 
       // Code generation occurs as soon as the constructor is called.
-      miko::codegen::code_generator generator{parser.get_ast(), file_path};
+      miko::codegen::code_generator generator{parser.get_ast(),
+                                              parser.get_positions(),
+                                              file_path};
 
-      output_to_file(generator, file_path, vm.count("llvmir"));
+      output_to_file(generator, file_path, vm.count("llvmir"), mem2reg);
     }
   }
 }
