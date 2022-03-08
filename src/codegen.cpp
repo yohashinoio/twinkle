@@ -309,8 +309,12 @@ struct statement_visitor : public boost::static_visitor<void> {
     // then statement codegen.
     builder.SetInsertPoint(then_bb);
 
+    bool with_return = false;
+
     for (auto&& statement : node.then_statement) {
       if (statement.type() == typeid(ast::return_statement)) {
+        with_return = true;
+
         auto&& return_node = boost::get<ast::return_statement>(statement);
 
         auto* retval = boost::apply_visitor(
@@ -347,6 +351,8 @@ struct statement_visitor : public boost::static_visitor<void> {
     if (node.else_statement) {
       for (auto&& statement : *node.else_statement) {
         if (statement.type() == typeid(ast::return_statement)) {
+          with_return = true;
+
           auto&& return_node = boost::get<ast::return_statement>(statement);
 
           auto* retval = boost::apply_visitor(
@@ -377,12 +383,14 @@ struct statement_visitor : public boost::static_visitor<void> {
     if (!else_bb->getTerminator())
       builder.CreateBr(end_bb);
 
-    func->getBasicBlockList().push_back(return_bb);
-    builder.SetInsertPoint(return_bb);
+    if (with_return) {
+      func->getBasicBlockList().push_back(return_bb);
+      builder.SetInsertPoint(return_bb);
 
-    auto* retval
-      = builder.CreateLoad(retval_ainst->getAllocatedType(), retval_ainst);
-    builder.CreateRet(retval);
+      auto* retval
+        = builder.CreateLoad(retval_ainst->getAllocatedType(), retval_ainst);
+      builder.CreateRet(retval);
+    }
 
     func->getBasicBlockList().push_back(end_bb);
     builder.SetInsertPoint(end_bb);
@@ -483,6 +491,15 @@ struct program_visitor : public boost::static_visitor<llvm::Function*> {
         statement_visitor{context, module, builder, named_values, file_path},
         statement);
     }
+
+    // Return 0 if main function has no return.
+    if (node.decl.name == "main"
+        && !builder.GetInsertBlock()->getTerminator()) {
+      builder.CreateRet(llvm::ConstantInt::get(builder.getInt32Ty(), 0));
+    }
+
+    // DEBUG
+    module->dump();
 
     std::string              em;
     llvm::raw_string_ostream os{em};
