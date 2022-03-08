@@ -10,6 +10,9 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
+# set(CMAKE_C_FLAGS_INIT "-fsanitize=undefined")
+# set(CMAKE_CXX_FLAGS_INIT "-fsanitize=undefined")
+
 find_package(Threads REQUIRED)
 
 find_package(Boost REQUIRED COMPONENTS program_options) # 1.71.0 in development

@@ -85,6 +85,10 @@ const auto assign_function_call_to_val = [](auto&& ctx) {
                          fusion::at_c<1>(x3::_attr(ctx)) /* arguments */};
 };
 
+const auto assign_compound_statement_to_val = [](auto&& ctx) {
+  x3::_val(ctx) = ast::compound_statement{x3::_attr(ctx)};
+};
+
 const auto char_to_string = [](auto&& ctx) -> void {
   x3::_val(ctx) = std::string{x3::_attr(ctx)};
 };
@@ -188,6 +192,16 @@ const auto primary_def
 /////////////////////
 // Statement rules //
 /////////////////////
+const x3::rule<struct compound_statement_tag, ast::compound_statement>
+           compound_statement{"compound statement"};
+const auto statement
+  = x3::rule<struct statement_tag, ast::statement>{"statement"};
+
+const auto expression_statement
+  = x3::rule<struct expression_statement_tag,
+             ast::expression>{"expression statement"}
+= expression > x3::lit(';');
+
 const auto variable_def_statement
   = x3::rule<struct variable_def_statement_tag,
              ast::variable_def>{"variable definition"}
@@ -198,24 +212,27 @@ const auto return_statement
              ast::return_statement>{"return statement"}
 = x3::lit("ret") > expression > x3::lit(';');
 
-const auto expression_statement
-  = x3::rule<struct expression_statement_tag,
-             ast::expression>{"expression statement"}
-= expression > x3::lit(';');
+const auto compound_statement_or_statement
+  = x3::rule<struct compound_statement_or_statement_tag,
+             ast::compound_statement>{"compound statement or statement"}
+= compound_statement
+    [action::assign_compound_statement_to_val] /* For some reason it bugs me if
+                                                  I don't have it. */
+  | statement[action::assign_compound_statement_to_val];
 
-const auto statement
-  = x3::rule<struct statement_tag, ast::statement>{"statement"}
-= return_statement /* If return_statement does not have a higher priority than
-                      expression_statement, "ret" will match the identifier.*/
-  | variable_def_statement /* If variable_def_statement does not have a higher
-                       priority than expression_statement, "let" will match the
-                       identifier.*/
-  | expression_statement;
+const auto if_statement
+  = x3::rule<struct if_statement_tag, ast::if_statement>{"if else statement"}
+= x3::lit("if") > x3::lit('(') > expression > x3::lit(')')
+  > compound_statement_or_statement
+  >> -(x3::lit("else") > compound_statement_or_statement);
 
-const auto compound_statement
-  = x3::rule<struct compound_statement_tag,
-             ast::compound_statement>{"compound statement"}
-= x3::lit('{') > *statement > x3::lit('}');
+const auto statement_def = x3::lit(';') /* empty statement */ | return_statement
+                           | variable_def_statement | if_statement
+                           | expression_statement;
+
+const auto compound_statement_def = (x3::lit('{') > *statement > x3::lit('}'));
+
+BOOST_SPIRIT_DEFINE(compound_statement, statement)
 
 ////////////////////
 // Function rules //
@@ -285,13 +302,19 @@ struct primary_tag
 ////////////////////
 // Statement tags //
 ////////////////////
+struct compound_statement_or_statement_tag
+  : with_error_handling
+  , annotate_position {};
+struct expression_statement_tag
+  : with_error_handling
+  , annotate_position {};
 struct variable_def_statement
   : with_error_handling
   , annotate_position {};
 struct return_statement_tag
   : with_error_handling
   , annotate_position {};
-struct expression_statement_tag
+struct if_statement_tag
   : with_error_handling
   , annotate_position {};
 struct statement_tag
@@ -328,8 +351,8 @@ struct program_tag
 
 parser::parser(std::string&& input, const std::filesystem::path& file_path)
   : input{std::move(input)}
-  , first{input.cbegin()}
-  , last{input.cend()}
+  , first{this->input.cbegin()}
+  , last{this->input.cend()}
   , positions{first, last}
   , file_path{file_path}
 {

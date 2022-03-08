@@ -12,7 +12,8 @@ namespace miko::codegen
 {
 
 struct symbol_table {
-  llvm::AllocaInst* operator[](const std::string& name) const noexcept
+  [[nodiscard]] llvm::AllocaInst*
+  operator[](const std::string& name) const noexcept
   try {
     return named_values.at(name);
   }
@@ -20,7 +21,8 @@ struct symbol_table {
     return nullptr;
   }
 
-  void insert(const std::string& name, llvm::AllocaInst* value)
+  // regist stands for register.
+  void regist(const std::string& name, llvm::AllocaInst* value)
   {
     named_values.insert({name, value});
   }
@@ -31,9 +33,10 @@ private:
 
 // Create an alloca instruction in the entry block of
 // the function.  This is used for mutable variables etc.
-llvm::AllocaInst* create_entry_block_alloca(llvm::Function*    func,
-                                            llvm::LLVMContext& context,
-                                            const std::string& var_name)
+[[nodiscard]] llvm::AllocaInst*
+create_entry_block_alloca(llvm::Function*    func,
+                          llvm::LLVMContext& context,
+                          const std::string& var_name)
 {
   llvm::IRBuilder<> tmp(&func->getEntryBlock(), func->getEntryBlock().begin());
 
@@ -215,7 +218,7 @@ struct statement_visitor : public boost::static_visitor<void> {
 
   void operator()(ast::nil) const
   {
-    BOOST_ASSERT(0);
+    // empty statement.
   }
 
   void operator()(const ast::expression& node) const
@@ -268,7 +271,121 @@ struct statement_visitor : public boost::static_visitor<void> {
                           ainst);
     }
 
-    named_values.insert(node.name, ainst);
+    named_values.regist(node.name, ainst);
+  }
+
+  void operator()(const ast::if_statement& node) const
+  {
+    auto* condition_value = boost::apply_visitor(
+      expression_visitor{module, builder, named_values, file_path},
+      node.condition);
+
+    if (!condition_value) {
+      throw std::runtime_error{
+        format_error_message(file_path.string(),
+                             "invalid condition in if statement")};
+    }
+
+    // Convert condition to a bool by comparing non-equal to 0.
+    condition_value
+      = builder.CreateICmp(llvm::ICmpInst::ICMP_NE,
+                           condition_value,
+                           llvm::ConstantInt::get(builder.getInt1Ty(), 0));
+
+    auto* func = builder.GetInsertBlock()->getParent();
+
+    auto* retval_ainst = create_entry_block_alloca(func, context, "if_retval");
+
+    auto* then_bb = llvm::BasicBlock::Create(context, "if.then", func);
+    auto* else_bb = llvm::BasicBlock::Create(context, "if.else");
+
+    // Used only when there is a return statement in an if statement
+    auto* return_bb = llvm::BasicBlock::Create(context, "if.return");
+
+    auto* end_bb = llvm::BasicBlock::Create(context, "if.end");
+
+    builder.CreateCondBr(condition_value, then_bb, else_bb);
+
+    // then statement codegen.
+    builder.SetInsertPoint(then_bb);
+
+    for (auto&& statement : node.then_statement) {
+      if (statement.type() == typeid(ast::return_statement)) {
+        auto&& return_node = boost::get<ast::return_statement>(statement);
+
+        auto* retval = boost::apply_visitor(
+          expression_visitor{module, builder, named_values, file_path},
+          return_node.rhs);
+
+        if (!retval) {
+          throw std::runtime_error{
+            format_error_message(file_path.string(),
+                                 "failure to generate return value")};
+        }
+
+        builder.CreateStore(retval, retval_ainst);
+
+        builder.CreateBr(return_bb);
+
+        break;
+      }
+
+      boost::apply_visitor(
+        statement_visitor{context, module, builder, named_values, file_path},
+        statement);
+    }
+
+    // Generate a br to end_bb only if there is no terminator (such as a br to
+    // return_bb).
+    if (!then_bb->getTerminator())
+      builder.CreateBr(end_bb);
+
+    // else statement codegen.
+    func->getBasicBlockList().push_back(else_bb);
+    builder.SetInsertPoint(else_bb);
+
+    if (node.else_statement) {
+      for (auto&& statement : *node.else_statement) {
+        if (statement.type() == typeid(ast::return_statement)) {
+          auto&& return_node = boost::get<ast::return_statement>(statement);
+
+          auto* retval = boost::apply_visitor(
+            expression_visitor{module, builder, named_values, file_path},
+            return_node.rhs);
+
+          if (!retval) {
+            throw std::runtime_error{
+              format_error_message(file_path.string(),
+                                   "failure to generate return value")};
+          }
+
+          builder.CreateStore(retval, retval_ainst);
+
+          builder.CreateBr(return_bb);
+
+          break;
+        }
+
+        boost::apply_visitor(
+          statement_visitor{context, module, builder, named_values, file_path},
+          statement);
+      }
+    }
+
+    // Generate a br to end_bb only if there is no terminator (such as a br to
+    // return_bb).
+    if (!else_bb->getTerminator())
+      builder.CreateBr(end_bb);
+
+    func->getBasicBlockList().push_back(return_bb);
+    builder.SetInsertPoint(return_bb);
+
+    auto* retval
+      = builder.CreateLoad(retval_ainst->getAllocatedType(), retval_ainst);
+    builder.CreateRet(retval);
+
+    func->getBasicBlockList().push_back(end_bb);
+    builder.SetInsertPoint(end_bb);
   }
 
 private:
@@ -343,6 +460,7 @@ struct program_visitor : public boost::static_visitor<llvm::Function*> {
     builder.SetInsertPoint(basic_block);
 
     symbol_table named_values;
+
     for (auto& arg : func->args()) {
       // Create an alloca for this variable.
       auto* alloca
@@ -352,10 +470,15 @@ struct program_visitor : public boost::static_visitor<llvm::Function*> {
       builder.CreateStore(&arg, alloca);
 
       // Add arguments to variable symbol table.
-      named_values.insert(arg.getName().str(), alloca);
+      named_values.regist(arg.getName().str(), alloca);
     }
 
     for (auto&& statement : node.body) {
+      // If there is already a Terminator, the code generation of the main body
+      // of the function is terminated on the spot.
+      if (builder.GetInsertBlock()->getTerminator())
+        break;
+
       boost::apply_visitor(
         statement_visitor{context, module, builder, named_values, file_path},
         statement);
@@ -422,6 +545,8 @@ code_generator::code_generator(const ast::program&          ast,
 void code_generator::write_llvm_ir_to_file(
   const std::filesystem::path& out) const
 {
+  // TODO: Add target triple
+
   std::error_code      ostream_ec;
   llvm::raw_fd_ostream os{out.string(),
                           ostream_ec,
@@ -441,7 +566,7 @@ void code_generator::write_object_code_to_file(
 {
   const auto target_triple = llvm::sys::getDefaultTargetTriple();
 
-  // target triple error string.
+  // Target triple error string.
   std::string target_triple_es;
   auto        target
     = llvm::TargetRegistry::lookupTarget(target_triple, target_triple_es);

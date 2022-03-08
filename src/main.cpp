@@ -87,9 +87,10 @@ try {
     auto file_paths = miko::get_input_files(vm);
 
     for (auto&& file_path : file_paths) {
+      auto input = miko::load_file_to_string(file_path);
+
       // Parsing is performed as soon as the constructor is called.
-      miko::parse::parser parser{miko::load_file_to_string(file_path),
-                                 file_path};
+      miko::parse::parser parser{std::move(input), file_path};
 
       // Code generation occurs as soon as the constructor is called.
       miko::codegen::code_generator generator{parser.get_ast(),

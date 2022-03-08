@@ -56,6 +56,13 @@ BOOST_FUSION_ADAPT_STRUCT(
   (ast::expression, rhs)
 )
 
+BOOST_FUSION_ADAPT_STRUCT(
+  ast::if_statement,
+  (ast::expression, condition)
+  (ast::compound_statement, then_statement)
+  (std::optional<ast::compound_statement>, else_statement)
+)
+
 /////////////
 // Program //
 /////////////

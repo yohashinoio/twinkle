@@ -105,7 +105,7 @@ struct function_call : x3::position_tagged {
 
   function_call()
     : callee{}
-    , args{args}
+    , args{}
   {
   }
 };
@@ -115,17 +115,23 @@ struct function_call : x3::position_tagged {
 ///////////////
 struct return_statement;
 struct variable_def;
+struct if_statement;
 
-using statement
-  = boost::variant<nil, expression, return_statement, variable_def>;
+using statement = boost::variant<nil,
+                                 boost::recursive_wrapper<if_statement>,
+                                 expression,
+                                 return_statement,
+                                 variable_def>;
+
+// expression or { *(expression ';') }
 using compound_statement = std::vector<statement>;
 
-struct variable_def {
+struct variable_def : x3::position_tagged {
   std::string               name;
   std::optional<expression> initializer;
 
-  explicit variable_def(const std::string&               name,
-                        const std::optional<expression>& initializer)
+  variable_def(const std::string&               name,
+               const std::optional<expression>& initializer)
     : name{name}
     , initializer{initializer}
   {
@@ -138,7 +144,7 @@ struct variable_def {
   }
 };
 
-struct return_statement {
+struct return_statement : x3::position_tagged {
   expression rhs;
 
   explicit return_statement(const expression& rhs)
@@ -148,6 +154,28 @@ struct return_statement {
 
   return_statement()
     : rhs{}
+  {
+  }
+};
+
+struct if_statement : x3::position_tagged {
+  expression                        condition;
+  compound_statement                then_statement;
+  std::optional<compound_statement> else_statement;
+
+  if_statement(const expression&                        condition,
+               const compound_statement&                then_statement,
+               const std::optional<compound_statement>& else_statement)
+    : condition{condition}
+    , then_statement{then_statement}
+    , else_statement{else_statement}
+  {
+  }
+
+  if_statement()
+    : condition{}
+    , then_statement{}
+    , else_statement{}
   {
   }
 };
