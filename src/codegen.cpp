@@ -311,26 +311,27 @@ struct statement_visitor : public boost::static_visitor<void> {
 
     bool with_return = false;
 
+    const auto return_handler = [&](const ast::return_statement& return_node) {
+      with_return = true;
+
+      auto* retval = boost::apply_visitor(
+        expression_visitor{module, builder, named_values, file_path},
+        return_node.rhs);
+
+      if (!retval) {
+        throw std::runtime_error{
+          format_error_message(file_path.string(),
+                               "failure to generate return value")};
+      }
+
+      builder.CreateStore(retval, retval_ainst);
+
+      builder.CreateBr(return_bb);
+    };
+
     for (auto&& statement : node.then_statement) {
       if (statement.type() == typeid(ast::return_statement)) {
-        with_return = true;
-
-        auto&& return_node = boost::get<ast::return_statement>(statement);
-
-        auto* retval = boost::apply_visitor(
-          expression_visitor{module, builder, named_values, file_path},
-          return_node.rhs);
-
-        if (!retval) {
-          throw std::runtime_error{
-            format_error_message(file_path.string(),
-                                 "failure to generate return value")};
-        }
-
-        builder.CreateStore(retval, retval_ainst);
-
-        builder.CreateBr(return_bb);
-
+        return_handler(boost::get<ast::return_statement>(statement));
         break;
       }
 
@@ -351,24 +352,7 @@ struct statement_visitor : public boost::static_visitor<void> {
     if (node.else_statement) {
       for (auto&& statement : *node.else_statement) {
         if (statement.type() == typeid(ast::return_statement)) {
-          with_return = true;
-
-          auto&& return_node = boost::get<ast::return_statement>(statement);
-
-          auto* retval = boost::apply_visitor(
-            expression_visitor{module, builder, named_values, file_path},
-            return_node.rhs);
-
-          if (!retval) {
-            throw std::runtime_error{
-              format_error_message(file_path.string(),
-                                   "failure to generate return value")};
-          }
-
-          builder.CreateStore(retval, retval_ainst);
-
-          builder.CreateBr(return_bb);
-
+          return_handler(boost::get<ast::return_statement>(statement));
           break;
         }
 
@@ -498,9 +482,6 @@ struct program_visitor : public boost::static_visitor<llvm::Function*> {
       builder.CreateRet(llvm::ConstantInt::get(builder.getInt32Ty(), 0));
     }
 
-    // DEBUG
-    module->dump();
-
     std::string              em;
     llvm::raw_string_ostream os{em};
     if (llvm::verifyFunction(*func, &os)) {
@@ -537,6 +518,12 @@ code_generator::code_generator(const ast::program&          ast,
   , ast{ast}
   , positions{positions}
 {
+  llvm::InitializeAllTargetInfos();
+  llvm::InitializeAllTargets();
+  llvm::InitializeAllTargetMCs();
+  llvm::InitializeAllAsmParsers();
+  llvm::InitializeAllAsmPrinters();
+
   if (optimize) {
     // Do simple "peephole" optimizations and bit-twiddling optzns.
     fpm.add(llvm::createInstructionCombiningPass());
@@ -556,14 +543,39 @@ code_generator::code_generator(const ast::program&          ast,
 
   fpm.doInitialization();
 
+  // set target triple and data layout to module
+  const auto target_triple = llvm::sys::getDefaultTargetTriple();
+
+  std::string target_triple_error;
+  auto        target
+    = llvm::TargetRegistry::lookupTarget(target_triple, target_triple_error);
+
+  if (!target) {
+    throw std::runtime_error{
+      format_error_message("mikoc",
+                           format("failed to lookup target %s: %s",
+                                  target_triple,
+                                  target_triple_error),
+                           true)};
+  }
+
+  llvm::TargetOptions target_options;
+  target_machine
+    = target->createTargetMachine(target_triple,
+                                  "generic",
+                                  "",
+                                  target_options,
+                                  llvm::Optional<llvm::Reloc::Model>());
+
+  module->setTargetTriple(target_triple);
+  module->setDataLayout(target_machine->createDataLayout());
+
   codegen();
 }
 
 void code_generator::write_llvm_ir_to_file(
   const std::filesystem::path& out) const
 {
-  // TODO: Add target triple
-
   std::error_code      ostream_ec;
   llvm::raw_fd_ostream os{out.string(),
                           ostream_ec,
@@ -581,31 +593,6 @@ void code_generator::write_llvm_ir_to_file(
 void code_generator::write_object_code_to_file(
   const std::filesystem::path& out) const
 {
-  const auto target_triple = llvm::sys::getDefaultTargetTriple();
-
-  // Target triple error string.
-  std::string target_triple_es;
-  auto        target
-    = llvm::TargetRegistry::lookupTarget(target_triple, target_triple_es);
-
-  if (!target) {
-    throw std::runtime_error{format_error_message(
-      "mikoc",
-      format("failed to lookup target %s: %s", target_triple, target_triple_es),
-      true)};
-  }
-
-  llvm::TargetOptions opt;
-  auto*               the_target_machine
-    = target->createTargetMachine(target_triple,
-                                  "generic",
-                                  "",
-                                  opt,
-                                  llvm::Optional<llvm::Reloc::Model>());
-
-  module->setTargetTriple(target_triple);
-  module->setDataLayout(the_target_machine->createDataLayout());
-
   std::error_code      ostream_ec;
   llvm::raw_fd_ostream os{out.string(),
                           ostream_ec,
@@ -617,10 +604,10 @@ void code_generator::write_object_code_to_file(
   }
 
   llvm::legacy::PassManager pm;
-  if (the_target_machine->addPassesToEmitFile(pm,
-                                              os,
-                                              nullptr,
-                                              llvm::CGFT_ObjectFile)) {
+  if (target_machine->addPassesToEmitFile(pm,
+                                          os,
+                                          nullptr,
+                                          llvm::CGFT_ObjectFile)) {
     throw std::runtime_error{
       format_error_message("mikoc",
                            "targetMachine can't emit a file of this types",

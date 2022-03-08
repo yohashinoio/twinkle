@@ -45,12 +45,6 @@ void output_to_file(miko::codegen::code_generator& generator,
 
 int main(const int argc, const char* const* const argv)
 try {
-  llvm::InitializeAllTargetInfos();
-  llvm::InitializeAllTargets();
-  llvm::InitializeAllTargetMCs();
-  llvm::InitializeAllAsmParsers();
-  llvm::InitializeAllAsmPrinters();
-
   const auto desc = miko::create_options_description();
   const auto vm   = miko::get_variable_map(desc, argc, argv);
 

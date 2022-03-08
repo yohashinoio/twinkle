@@ -29,12 +29,14 @@ struct code_generator {
 
   void write_object_code_to_file(const std::filesystem::path& out) const;
 
+private:
   void codegen();
 
-private:
   llvm::LLVMContext             context;
   std::shared_ptr<llvm::Module> module;
   llvm::IRBuilder<>             builder;
+
+  llvm::TargetMachine* target_machine;
 
   llvm::legacy::FunctionPassManager fpm;
 
