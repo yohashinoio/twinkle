@@ -22,7 +22,7 @@ namespace miko::codegen
 struct code_generator {
   code_generator(const ast::program&          ast,
                  const position_cache&        positions,
-                 const std::filesystem::path& source,
+                 const std::filesystem::path& file_path,
                  const bool                   optimize);
 
   void write_llvm_ir_to_file(const std::filesystem::path& out) const;
@@ -38,7 +38,7 @@ private:
 
   llvm::legacy::FunctionPassManager fpm;
 
-  const std::filesystem::path& source;
+  const std::filesystem::path& file_path;
 
   const ast::program&   ast;
   const position_cache& positions;

@@ -22,7 +22,7 @@ namespace miko::ast
 struct nil {};
 
 ////////////////
-// expression //
+// Expression //
 ////////////////
 struct unaryop;
 struct binop;
@@ -111,7 +111,7 @@ struct function_call : x3::position_tagged {
 };
 
 ///////////////
-// statement //
+// Statement //
 ///////////////
 struct return_statement;
 struct variable_def;
@@ -153,7 +153,7 @@ struct return_statement {
 };
 
 /////////////
-// program //
+// Program //
 /////////////
 struct function_decl;
 struct function_def;

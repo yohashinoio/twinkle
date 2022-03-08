@@ -52,6 +52,9 @@ struct annotate_position {
   }
 };
 
+//////////////////////
+// Semantic actions //
+//////////////////////
 namespace action
 {
 
@@ -88,11 +91,14 @@ const auto char_to_string = [](auto&& ctx) -> void {
 
 } // namespace action
 
+/////////////
+// Grammer //
+/////////////
 namespace peg
 {
 
 //////////////////
-// common rules //
+// Common rules //
 //////////////////
 const auto identifier = x3::rule<struct identifier, std::string>{"identifier"}
 = x3::raw[x3::lexeme[(x3::alpha | x3::lit('_'))
@@ -105,7 +111,7 @@ const auto integer = x3::rule<struct integer, int>{"integral number"}
 = x3::int_;
 
 //////////////////////
-// expreesion rules //
+// Expreesion rules //
 //////////////////////
 const x3::rule<struct assignment_tag, ast::expression> assignment{"assignment"};
 const x3::rule<struct equality_tag, ast::expression>   equality{"equality"};
@@ -180,7 +186,7 @@ const auto primary_def
     | identifier[action::assign_variable_to_val];
 
 /////////////////////
-// statement rules //
+// Statement rules //
 /////////////////////
 const auto variable_def_statement
   = x3::rule<struct variable_def_statement_tag,
@@ -212,7 +218,7 @@ const auto compound_statement
 = x3::lit('{') > *statement > x3::lit('}');
 
 ////////////////////
-// function rules //
+// Function rules //
 ////////////////////
 const auto parameter_list = x3::rule<struct parameter_list_tag,
                                      std::vector<std::string>>{"parameter list"}
@@ -230,9 +236,9 @@ const auto function_defi
   = x3::rule<struct function_defi_tag, ast::function_def>{"function definition"}
 = x3::lit("func") > function_proto > compound_statement;
 
-/////////////////
-// parser rule //
-/////////////////
+//////////////////
+// Program rule //
+//////////////////
 const auto program = x3::rule<struct program_tag, ast::program>{"program"}
 = *(function_decl | function_defi) > x3::eoi;
 
@@ -246,7 +252,7 @@ BOOST_SPIRIT_DEFINE(assignment,
                     primary)
 
 /////////////////////
-// expression tags //
+// Expression tags //
 /////////////////////
 struct argument_list_tag
   : with_error_handling
@@ -277,7 +283,7 @@ struct primary_tag
   , annotate_position {};
 
 ////////////////////
-// statement tags //
+// Statement tags //
 ////////////////////
 struct variable_def_statement
   : with_error_handling
@@ -296,7 +302,7 @@ struct compound_statement_tag
   , annotate_position {};
 
 ///////////////////
-// function tags //
+// Function tags //
 ///////////////////
 struct parameter_list_tag
   : with_error_handling
@@ -312,7 +318,7 @@ struct function_defi_tag
   , annotate_position {};
 
 /////////////////
-// program tag //
+// Program tag //
 /////////////////
 struct program_tag
   : with_error_handling
@@ -320,13 +326,22 @@ struct program_tag
 
 } // namespace peg
 
-parser::parser(input_iterator_type          first,
-               const input_iterator_type    last,
-               const std::filesystem::path& source)
-  : first{first}
-  , last{last}
+parser::parser(std::string&& input, const std::filesystem::path& file_path)
+  : input{std::move(input)}
+  , first{input.cbegin()}
+  , last{input.cend()}
   , positions{first, last}
-  , source{source}
+  , file_path{file_path}
+{
+  parse();
+}
+
+parser::parser(const std::string& input, const std::filesystem::path& file_path)
+  : input{input}
+  , first{input.cbegin()}
+  , last{input.cend()}
+  , positions{first, last}
+  , file_path{file_path}
 {
   parse();
 }
@@ -346,7 +361,7 @@ void parser::parse()
   x3::error_handler<input_iterator_type> error_handler{first,
                                                        last,
                                                        std::cerr,
-                                                       source.string()};
+                                                       file_path.string()};
 
   const auto parser = x3::with<x3::error_handler_tag>(std::ref(
     error_handler))[x3::with<position_cache_tag>(positions)[peg::program]];

@@ -22,9 +22,9 @@ namespace parse
 {
 
 struct parser {
-  parser(input_iterator_type          first,
-         const input_iterator_type    last,
-         const std::filesystem::path& source);
+  parser(std::string&& input, const std::filesystem::path& file_path);
+
+  parser(const std::string& input, const std::filesystem::path& file_path);
 
   [[nodiscard]] const ast::program& get_ast() const noexcept;
 
@@ -33,13 +33,14 @@ struct parser {
 private:
   void parse();
 
+  std::string               input;
   input_iterator_type       first;
   const input_iterator_type last;
 
   ast::program   ast;
   position_cache positions;
 
-  const std::filesystem::path& source;
+  const std::filesystem::path& file_path;
 };
 
 } // namespace parse

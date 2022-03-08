@@ -72,9 +72,8 @@ try {
   if (vm.count("input")) {
     std::string_view file_path = "input";
 
-    const std::string&  input = vm["input"].as<std::string>();
     // Parsing is performed as soon as the constructor is called.
-    miko::parse::parser parser{input.cbegin(), input.cend(), file_path};
+    miko::parse::parser parser{vm["input"].as<std::string>(), file_path};
 
     // Code generation occurs as soon as the constructor is called.
     miko::codegen::code_generator generator{parser.get_ast(),
@@ -88,10 +87,9 @@ try {
     auto file_paths = miko::get_input_files(vm);
 
     for (auto&& file_path : file_paths) {
-      const std::string input = miko::load_file_to_string(file_path);
-
       // Parsing is performed as soon as the constructor is called.
-      miko::parse::parser parser{input.cbegin(), input.cend(), file_path};
+      miko::parse::parser parser{miko::load_file_to_string(file_path),
+                                 file_path};
 
       // Code generation occurs as soon as the constructor is called.
       miko::codegen::code_generator generator{parser.get_ast(),

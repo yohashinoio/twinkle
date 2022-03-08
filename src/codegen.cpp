@@ -45,11 +45,11 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
   expression_visitor(std::shared_ptr<llvm::Module> module,
                      llvm::IRBuilder<>&            builder,
                      symbol_table&                 named_values,
-                     const std::filesystem::path&  source)
+                     const std::filesystem::path&  file_path)
     : module{module}
     , builder{builder}
     , named_values{named_values}
-    , source{source}
+    , file_path{file_path}
   {
   }
 
@@ -96,7 +96,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
 
         if (!variable) {
           throw std::runtime_error{
-            format_error_message(source.string(),
+            format_error_message(file_path.string(),
                                  format("unknown variable name %s", lhs.name))};
         }
 
@@ -106,7 +106,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
       catch (const boost::bad_get&) {
         // left hand side was not a variable.
         throw std::runtime_error{format_error_message(
-          source.string(),
+          file_path.string(),
           "the left hand side of the assignment must be a variable")};
       }
     }
@@ -154,7 +154,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     auto* ainst = named_values[node.name];
     if (!ainst) {
       throw std::runtime_error{format_error_message(
-        source.string(),
+        file_path.string(),
         format("unknown variable '%s' referenced", node.name))};
     }
 
@@ -169,13 +169,13 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
 
     if (!callee_f) {
       throw std::runtime_error{format_error_message(
-        source.string(),
+        file_path.string(),
         format("unknown function '%s' referenced", node.callee))};
     }
 
     if (callee_f->arg_size() != node.args.size()) {
       throw std::runtime_error{
-        format_error_message(source.string(),
+        format_error_message(file_path.string(),
                              format("incorrect arguments passed"))};
     }
 
@@ -196,7 +196,7 @@ private:
 
   symbol_table& named_values;
 
-  const std::filesystem::path& source;
+  const std::filesystem::path& file_path;
 };
 
 struct statement_visitor : public boost::static_visitor<void> {
@@ -204,12 +204,12 @@ struct statement_visitor : public boost::static_visitor<void> {
                     std::shared_ptr<llvm::Module> module,
                     llvm::IRBuilder<>&            builder,
                     symbol_table&                 named_values,
-                    const std::filesystem::path&  source)
+                    const std::filesystem::path&  file_path)
     : context{context}
     , module{module}
     , builder{builder}
     , named_values{named_values}
-    , source{source}
+    , file_path{file_path}
   {
   }
 
@@ -221,10 +221,10 @@ struct statement_visitor : public boost::static_visitor<void> {
   void operator()(const ast::expression& node) const
   {
     if (!boost::apply_visitor(
-          expression_visitor{module, builder, named_values, source},
+          expression_visitor{module, builder, named_values, file_path},
           node)) {
       throw std::runtime_error{
-        format_error_message(source.string(),
+        format_error_message(file_path.string(),
                              "failed to generate expression code")};
     }
   }
@@ -232,12 +232,12 @@ struct statement_visitor : public boost::static_visitor<void> {
   void operator()(const ast::return_statement& node) const
   {
     auto* retval = boost::apply_visitor(
-      expression_visitor{module, builder, named_values, source},
+      expression_visitor{module, builder, named_values, file_path},
       node.rhs);
 
     if (!retval) {
       throw std::runtime_error{
-        format_error_message(source.string(),
+        format_error_message(file_path.string(),
                              "failure to generate return value")};
     }
 
@@ -252,12 +252,12 @@ struct statement_visitor : public boost::static_visitor<void> {
 
     if (node.initializer) {
       auto* initializer = boost::apply_visitor(
-        expression_visitor{module, builder, named_values, source},
+        expression_visitor{module, builder, named_values, file_path},
         *node.initializer);
 
       if (!initializer) {
         throw std::runtime_error{format_error_message(
-          source.string(),
+          file_path.string(),
           format("initialization of variable %s failed", node.name))};
       }
 
@@ -278,7 +278,7 @@ private:
 
   symbol_table& named_values;
 
-  const std::filesystem::path& source;
+  const std::filesystem::path& file_path;
 };
 
 struct program_visitor : public boost::static_visitor<llvm::Function*> {
@@ -286,12 +286,12 @@ struct program_visitor : public boost::static_visitor<llvm::Function*> {
                   std::shared_ptr<llvm::Module>      module,
                   llvm::IRBuilder<>&                 builder,
                   llvm::legacy::FunctionPassManager& fpm,
-                  const std::filesystem::path&       source)
+                  const std::filesystem::path&       file_path)
     : context{context}
     , module{module}
     , builder{builder}
     , fpm{fpm}
-    , source{source}
+    , file_path{file_path}
   {
   }
 
@@ -334,7 +334,7 @@ struct program_visitor : public boost::static_visitor<llvm::Function*> {
 
     if (!func) {
       throw std::runtime_error{format_error_message(
-        source.string(),
+        file_path.string(),
         format("failed to create function %s", node.decl.name),
         true)};
     }
@@ -357,7 +357,7 @@ struct program_visitor : public boost::static_visitor<llvm::Function*> {
 
     for (auto&& statement : node.body) {
       boost::apply_visitor(
-        statement_visitor{context, module, builder, named_values, source},
+        statement_visitor{context, module, builder, named_values, file_path},
         statement);
     }
 
@@ -366,7 +366,8 @@ struct program_visitor : public boost::static_visitor<llvm::Function*> {
     if (llvm::verifyFunction(*func, &os)) {
       func->eraseFromParent();
 
-      throw std::runtime_error{format_error_message(source.string(), os.str())};
+      throw std::runtime_error{
+        format_error_message(file_path.string(), os.str())};
     }
 
     fpm.run(*func);
@@ -381,17 +382,18 @@ private:
 
   llvm::legacy::FunctionPassManager& fpm;
 
-  const std::filesystem::path& source;
+  const std::filesystem::path& file_path;
 };
 
 code_generator::code_generator(const ast::program&          ast,
                                const position_cache&        positions,
-                               const std::filesystem::path& source,
+                               const std::filesystem::path& file_path,
                                const bool                   optimize)
-  : module{std::make_shared<llvm::Module>(source.filename().string(), context)}
+  : module{std::make_shared<llvm::Module>(file_path.filename().string(),
+                                          context)}
   , builder{context}
   , fpm{module.get()}
-  , source{source}
+  , file_path{file_path}
   , ast{ast}
   , positions{positions}
 {
@@ -490,8 +492,9 @@ void code_generator::write_object_code_to_file(
 void code_generator::codegen()
 {
   for (auto&& node : ast) {
-    boost::apply_visitor(program_visitor{context, module, builder, fpm, source},
-                         node);
+    boost::apply_visitor(
+      program_visitor{context, module, builder, fpm, file_path},
+      node);
   }
 }
 
