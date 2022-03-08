@@ -5,21 +5,30 @@
 ## Syntax
 ### Example
 ```go
-func twice(n)
+func fib(n)
 {
-    ret n * 2;
+  if (n < 3)
+    ret 1;
+  else
+    ret fib(n - 1) + fib(n - 2);
+
+  ret 0;
 }
 
 func main()
 {
-    let n = 58;
-    ret twice(n) / 2;
+  let result = fib(40);
+
+  if (result == 102334155)
+    ret 0;
+  else
+    ret 1;
 }
 ```
 
 ```bash
 $ echo $?
-58
+0
 ```
 ### Operators
 #### Arithmetic operators
