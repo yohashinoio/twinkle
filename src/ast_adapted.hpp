@@ -19,25 +19,25 @@ namespace ast = miko::ast;
 // Expression //
 ////////////////
 BOOST_FUSION_ADAPT_STRUCT(
-  ast::unaryop,
+  ast::unary_op_expr,
   (std::string, op)
   (ast::expression, rhs)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  ast::binop,
+  ast::binary_op_expr,
   (ast::expression, lhs)
   (std::string, op)
   (ast::expression, rhs)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  ast::variable,
+  ast::variable_expr,
   (std::string, name)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  ast::function_call,
+  ast::function_call_expr,
   (std::string, callee)
   (std::vector<ast::expression>, args)
 )
@@ -46,7 +46,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 // Statement //
 ///////////////
 BOOST_FUSION_ADAPT_STRUCT(
-  ast::variable_def,
+  ast::variable_def_statement,
   (std::string, name)
   (std::optional<ast::expression>, initializer)
 )
@@ -67,14 +67,14 @@ BOOST_FUSION_ADAPT_STRUCT(
 // Program //
 /////////////
 BOOST_FUSION_ADAPT_STRUCT(
-  ast::function_decl,
+  ast::function_declare,
   (std::string, name)
   (std::vector<std::string>, args)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  ast::function_def,
-	(ast::function_decl, decl)
+  ast::function_define,
+	(ast::function_declare, decl)
   (ast::compound_statement, body)
 )
 

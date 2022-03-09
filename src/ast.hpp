@@ -16,146 +16,111 @@
 
 namespace x3 = boost::spirit::x3;
 
+//===----------------------------------------------------------------------===//
+// Abstract syntax tree
+//===----------------------------------------------------------------------===//
+
 namespace miko::ast
 {
 
 struct nil {};
 
-////////////////
-// Expression //
-////////////////
-struct unaryop;
-struct binop;
-struct variable;
-struct function_call;
+//===----------------------------------------------------------------------===//
+// Expression abstract syntax tree
+//===----------------------------------------------------------------------===//
+
+struct unary_op_expr;
+struct binary_op_expr;
+struct variable_expr;
+struct function_call_expr;
 struct assignment;
 
 using expression
   = boost::variant<nil,
                    int,
-                   boost::recursive_wrapper<unaryop>,
-                   boost::recursive_wrapper<binop>,
-                   boost::recursive_wrapper<variable> /* I don't know why, but
-                                                         it has to be wrapped in
+                   boost::recursive_wrapper<unary_op_expr>,
+                   boost::recursive_wrapper<binary_op_expr>,
+                   boost::recursive_wrapper<variable_expr> /* I don't know why,
+                                                         but it has to be
+                                                         wrapped in
                                                          recursive_wrapper. */
                    ,
-                   boost::recursive_wrapper<function_call>>;
+                   boost::recursive_wrapper<function_call_expr>>;
 
-struct unaryop : x3::position_tagged {
+struct unary_op_expr : x3::position_tagged {
   std::string op;
   expression  rhs;
 
-  unaryop(const std::string& op, const expression& rhs)
-    : op{op}
-    , rhs{rhs}
-  {
-  }
+  unary_op_expr(const std::string& op, const expression& rhs);
 
-  unaryop()
-    : op{}
-    , rhs{}
-  {
-  }
+  unary_op_expr();
 };
 
-struct binop : x3::position_tagged {
+struct binary_op_expr : x3::position_tagged {
   expression  lhs;
   std::string op;
   expression  rhs;
 
-  binop(const expression& lhs, const std::string& op, const expression& rhs)
-    : lhs{lhs}
-    , op{op}
-    , rhs{rhs}
-  {
-  }
+  binary_op_expr(const expression&  lhs,
+                 const std::string& op,
+                 const expression&  rhs);
 
-  binop()
-    : lhs{}
-    , op{}
-    , rhs{}
-  {
-  }
+  binary_op_expr();
 };
 
-struct variable : x3::position_tagged {
+struct variable_expr : x3::position_tagged {
   std::string name;
 
-  explicit variable(const std::string& name)
-    : name{name}
-  {
-  }
+  explicit variable_expr(const std::string& name);
 
-  variable()
-    : name{}
-  {
-  }
+  variable_expr();
 };
 
-struct function_call : x3::position_tagged {
+struct function_call_expr : x3::position_tagged {
   std::string             callee;
   std::vector<expression> args;
 
-  explicit function_call(const std::string&             callee,
-                         const std::vector<expression>& args)
-    : callee{callee}
-    , args{args}
-  {
-  }
+  explicit function_call_expr(const std::string&             callee,
+                              const std::vector<expression>& args);
 
-  function_call()
-    : callee{}
-    , args{}
-  {
-  }
+  function_call_expr();
 };
 
-///////////////
-// Statement //
-///////////////
+//===----------------------------------------------------------------------===//
+// Expression abstract syntax tree
+//===----------------------------------------------------------------------===//
+
 struct return_statement;
-struct variable_def;
+struct variable_def_statement;
 struct if_statement;
+struct for_statement;
 
 using statement = boost::variant<nil,
                                  boost::recursive_wrapper<if_statement>,
+                                 boost::recursive_wrapper<for_statement>,
                                  expression,
                                  return_statement,
-                                 variable_def>;
+                                 variable_def_statement>;
 
 // expression or { *(expression ';') }
 using compound_statement = std::vector<statement>;
 
-struct variable_def : x3::position_tagged {
+struct variable_def_statement : x3::position_tagged {
   std::string               name;
   std::optional<expression> initializer;
 
-  variable_def(const std::string&               name,
-               const std::optional<expression>& initializer)
-    : name{name}
-    , initializer{initializer}
-  {
-  }
+  variable_def_statement(const std::string&               name,
+                         const std::optional<expression>& initializer);
 
-  variable_def()
-    : name{}
-    , initializer{}
-  {
-  }
+  variable_def_statement();
 };
 
 struct return_statement : x3::position_tagged {
   expression rhs;
 
-  explicit return_statement(const expression& rhs)
-    : rhs{rhs}
-  {
-  }
+  explicit return_statement(const expression& rhs);
 
-  return_statement()
-    : rhs{}
-  {
-  }
+  return_statement();
 };
 
 struct if_statement : x3::position_tagged {
@@ -165,62 +130,53 @@ struct if_statement : x3::position_tagged {
 
   if_statement(const expression&                        condition,
                const compound_statement&                then_statement,
-               const std::optional<compound_statement>& else_statement)
-    : condition{condition}
-    , then_statement{then_statement}
-    , else_statement{else_statement}
-  {
-  }
+               const std::optional<compound_statement>& else_statement);
 
-  if_statement()
-    : condition{}
-    , then_statement{}
-    , else_statement{}
-  {
-  }
+  if_statement();
 };
 
-/////////////
-// Program //
-/////////////
-struct function_decl;
-struct function_def;
+// TODO:
+struct for_statement : x3::position_tagged {
+  expression         init_expression;
+  expression         cond_expression;
+  expression         loop_expression;
+  compound_statement body;
 
-using program = std::vector<boost::variant<nil, function_decl, function_def>>;
+  for_statement(const expression&         init_expression,
+                const expression&         cond_expression,
+                const expression&         loop_expression,
+                const compound_statement& body);
 
-struct function_decl : x3::position_tagged {
+  for_statement();
+};
+
+//===----------------------------------------------------------------------===//
+// Program abstract syntax tree
+//===----------------------------------------------------------------------===//
+
+struct function_declare;
+struct function_define;
+
+using program
+  = std::vector<boost::variant<nil, function_declare, function_define>>;
+
+struct function_declare : x3::position_tagged {
   std::string              name;
   std::vector<std::string> args;
 
-  explicit function_decl(const std::string&              name,
-                         const std::vector<std::string>& args)
-    : name{name}
-    , args{args}
-  {
-  }
+  function_declare(const std::string&              name,
+                   const std::vector<std::string>& args);
 
-  function_decl()
-    : name{}
-    , args{}
-  {
-  }
+  function_declare();
 };
 
-struct function_def : x3::position_tagged {
-  function_decl      decl;
+struct function_define : x3::position_tagged {
+  function_declare   decl;
   compound_statement body;
 
-  function_def(const function_decl& decl, const compound_statement& body)
-    : decl{decl}
-    , body{body}
-  {
-  }
+  function_define(const function_declare& decl, const compound_statement& body);
 
-  function_def()
-    : decl{}
-    , body{}
-  {
-  }
+  function_define();
 };
 
 } // namespace miko::ast

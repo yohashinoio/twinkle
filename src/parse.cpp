@@ -18,6 +18,10 @@ namespace miko
 namespace parse
 {
 
+//===----------------------------------------------------------------------===//
+// Error handling
+//===----------------------------------------------------------------------===//
+
 struct with_error_handling {
   template <typename Iterator, typename Context>
   x3::error_handler_result on_error([[maybe_unused]] Iterator&       first,
@@ -39,7 +43,13 @@ struct with_error_handling {
 
 std::size_t with_error_handling::total_errors = 0;
 
+//===----------------------------------------------------------------------===//
+// Annotations
+//===----------------------------------------------------------------------===//
+
+// tag used to get the position cache from the context
 struct position_cache_tag;
+
 struct annotate_position {
   template <typename T, typename Iterator, typename Context>
   inline void on_success(const Iterator& first,
@@ -52,9 +62,10 @@ struct annotate_position {
   }
 };
 
-//////////////////////
-// Semantic actions //
-//////////////////////
+//===----------------------------------------------------------------------===//
+// Semantic actions
+//===----------------------------------------------------------------------===//
+
 namespace action
 {
 
@@ -64,25 +75,25 @@ const auto assign_attr_to_val = [](auto&& ctx) -> void {
 
 const auto assign_unaryop_to_val = [](auto&& ctx) -> void {
   x3::_val(ctx)
-    = ast::unaryop{fusion::at_c<0>(x3::_attr(ctx)) /* operator */,
-                   fusion::at_c<1>(x3::_attr(ctx)) /* right hand side*/};
+    = ast::unary_op_expr{fusion::at_c<0>(x3::_attr(ctx)) /* operator */,
+                         fusion::at_c<1>(x3::_attr(ctx)) /* right hand side*/};
 };
 
 const auto assign_binop_to_val = [](auto&& ctx) -> void {
-  x3::_val(ctx)
-    = ast::binop{x3::_val(ctx),
-                 fusion::at_c<0>(x3::_attr(ctx)) /* operator */,
-                 fusion::at_c<1>(x3::_attr(ctx)) /* right hand side */};
+  x3::_val(ctx) = ast::binary_op_expr{
+    x3::_val(ctx),
+    fusion::at_c<0>(x3::_attr(ctx)) /* operator */,
+    fusion::at_c<1>(x3::_attr(ctx)) /* right hand side */};
 };
 
 const auto assign_variable_to_val = [](auto&& ctx) {
-  x3::_val(ctx) = ast::variable{x3::_attr(ctx) /* name */};
+  x3::_val(ctx) = ast::variable_expr{x3::_attr(ctx) /* name */};
 };
 
 const auto assign_function_call_to_val = [](auto&& ctx) {
   x3::_val(ctx)
-    = ast::function_call{fusion::at_c<0>(x3::_attr(ctx)) /* callee */,
-                         fusion::at_c<1>(x3::_attr(ctx)) /* arguments */};
+    = ast::function_call_expr{fusion::at_c<0>(x3::_attr(ctx)) /* callee */,
+                              fusion::at_c<1>(x3::_attr(ctx)) /* arguments */};
 };
 
 const auto assign_compound_statement_to_val = [](auto&& ctx) {
@@ -95,15 +106,17 @@ const auto char_to_string = [](auto&& ctx) -> void {
 
 } // namespace action
 
-/////////////
-// Grammer //
-/////////////
+//===----------------------------------------------------------------------===//
+// Parsing expression grammar
+//===----------------------------------------------------------------------===//
+
 namespace peg
 {
 
-//////////////////
-// Common rules //
-//////////////////
+//===----------------------------------------------------------------------===//
+// Common rules
+//===----------------------------------------------------------------------===//
+
 const auto identifier = x3::rule<struct identifier, std::string>{"identifier"}
 = x3::raw[x3::lexeme[(x3::alpha | x3::lit('_'))
                      >> *(x3::alnum | x3::lit('_'))]];
@@ -114,9 +127,10 @@ const auto data_type = x3::rule<struct data_type, std::string>{"data type"}
 const auto integer = x3::rule<struct integer, int>{"integral number"}
 = x3::int_;
 
-//////////////////////
-// Expreesion rules //
-//////////////////////
+//===----------------------------------------------------------------------===//
+// Expression rules
+//===----------------------------------------------------------------------===//
+
 const x3::rule<struct assignment_tag, ast::expression> assignment{"assignment"};
 const x3::rule<struct equality_tag, ast::expression>   equality{"equality"};
 const x3::rule<struct relational_tag, ast::expression> relational{"relational"};
@@ -189,9 +203,10 @@ const auto primary_def
        > x3::lit(")"))[action::assign_function_call_to_val]
     | identifier[action::assign_variable_to_val];
 
-/////////////////////
-// Statement rules //
-/////////////////////
+//===----------------------------------------------------------------------===//
+// Statement rules
+//===----------------------------------------------------------------------===//
+
 const x3::rule<struct compound_statement_tag, ast::compound_statement>
            compound_statement{"compound statement"};
 const auto statement
@@ -204,7 +219,7 @@ const auto expression_statement
 
 const auto variable_def_statement
   = x3::rule<struct variable_def_statement_tag,
-             ast::variable_def>{"variable definition"}
+             ast::variable_def_statement>{"variable definition"}
 = x3::lit("let") > identifier >> -(x3::lit('=') > expression) > x3::lit(';');
 
 const auto return_statement
@@ -234,30 +249,31 @@ const auto compound_statement_def = (x3::lit('{') > *statement > x3::lit('}'));
 
 BOOST_SPIRIT_DEFINE(compound_statement, statement)
 
-////////////////////
-// Function rules //
-////////////////////
+//===----------------------------------------------------------------------===//
+// Program rules
+//===----------------------------------------------------------------------===//
+
 const auto parameter_list = x3::rule<struct parameter_list_tag,
                                      std::vector<std::string>>{"parameter list"}
 = -(identifier >> *(x3::lit(',') > identifier));
 
-const auto function_proto = x3::rule<struct function_proto_tag,
-                                     ast::function_decl>{"function prototype"}
+const auto function_proto
+  = x3::rule<struct function_proto_tag,
+             ast::function_declare>{"function prototype"}
 = identifier > x3::lit('(') > parameter_list > x3::lit(')');
 
-const auto function_decl = x3::rule<struct function_decl_tag,
-                                    ast::function_decl>{"function declaration"}
+const auto function_declare
+  = x3::rule<struct function_declare_tag,
+             ast::function_declare>{"function declaration"}
 = x3::lit("extern") > function_proto > x3::lit(';');
 
-const auto function_defi
-  = x3::rule<struct function_defi_tag, ast::function_def>{"function definition"}
+const auto function_define
+  = x3::rule<struct function_define_tag,
+             ast::function_define>{"function definition"}
 = x3::lit("func") > function_proto > compound_statement;
 
-//////////////////
-// Program rule //
-//////////////////
 const auto program = x3::rule<struct program_tag, ast::program>{"program"}
-= *(function_decl | function_defi) > x3::eoi;
+= *(function_declare | function_define) > x3::eoi;
 
 BOOST_SPIRIT_DEFINE(assignment,
                     expression,
@@ -268,9 +284,10 @@ BOOST_SPIRIT_DEFINE(assignment,
                     unary,
                     primary)
 
-/////////////////////
-// Expression tags //
-/////////////////////
+//===----------------------------------------------------------------------===//
+// Expression tags
+//===----------------------------------------------------------------------===//
+
 struct argument_list_tag
   : with_error_handling
   , annotate_position {};
@@ -299,9 +316,10 @@ struct primary_tag
   : with_error_handling
   , annotate_position {};
 
-////////////////////
-// Statement tags //
-////////////////////
+//===----------------------------------------------------------------------===//
+// Statement tags
+//===----------------------------------------------------------------------===//
+
 struct compound_statement_or_statement_tag
   : with_error_handling
   , annotate_position {};
@@ -324,25 +342,22 @@ struct compound_statement_tag
   : with_error_handling
   , annotate_position {};
 
-///////////////////
-// Function tags //
-///////////////////
+//===----------------------------------------------------------------------===//
+// Program tags
+//===----------------------------------------------------------------------===//
+
 struct parameter_list_tag
   : with_error_handling
   , annotate_position {};
 struct function_proto_tag
   : with_error_handling
   , annotate_position {};
-struct function_decl_tag
+struct function_declare_tag
   : with_error_handling
   , annotate_position {};
-struct function_defi_tag
+struct function_define_tag
   : with_error_handling
   , annotate_position {};
-
-/////////////////
-// Program tag //
-/////////////////
 struct program_tag
   : with_error_handling
   , annotate_position {};

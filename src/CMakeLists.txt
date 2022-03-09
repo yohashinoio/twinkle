@@ -31,6 +31,7 @@ add_executable(
   parse.cpp
   codegen.cpp
   utility.cpp
+  ast.cpp
 )
 
 target_precompile_headers(mikoc PRIVATE pch.hpp)

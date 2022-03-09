@@ -11,6 +11,10 @@
 namespace miko::codegen
 {
 
+//===----------------------------------------------------------------------===//
+// Utilities
+//===----------------------------------------------------------------------===//
+
 struct symbol_table {
   [[nodiscard]] llvm::AllocaInst*
   operator[](const std::string& name) const noexcept
@@ -43,6 +47,10 @@ create_entry_block_alloca(llvm::Function*    func,
   return tmp.CreateAlloca(llvm::Type::getInt32Ty(context), nullptr, var_name);
 }
 
+//===----------------------------------------------------------------------===//
+// Visitors
+//===----------------------------------------------------------------------===//
+
 // It seems that the member function has to be const.
 struct expression_visitor : public boost::static_visitor<llvm::Value*> {
   expression_visitor(std::shared_ptr<llvm::Module> module,
@@ -66,7 +74,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     return llvm::ConstantInt::get(builder.getInt32Ty(), value);
   }
 
-  llvm::Value* operator()(const ast::unaryop& node) const
+  llvm::Value* operator()(const ast::unary_op_expr& node) const
   {
     auto rhs = boost::apply_visitor(*this, node.rhs);
 
@@ -83,13 +91,13 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
       "unsupported unary operators may have been converted to ASTs.");
   }
 
-  llvm::Value* operator()(const ast::binop& node) const
+  llvm::Value* operator()(const ast::binary_op_expr& node) const
   {
     // Special case assignment because we don't want to emit the left-hand-side
     // as an expression.
     if (node.op == "=") {
       try {
-        auto&& lhs = boost::get<ast::variable>(node.lhs);
+        auto&& lhs = boost::get<ast::variable_expr>(node.lhs);
 
         auto* rhs = boost::apply_visitor(*this, node.rhs);
         if (!rhs)
@@ -152,7 +160,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
       "unsupported binary operators may have been converted to ASTs.");
   }
 
-  llvm::Value* operator()(const ast::variable& node) const
+  llvm::Value* operator()(const ast::variable_expr& node) const
   {
     auto* ainst = named_values[node.name];
     if (!ainst) {
@@ -166,7 +174,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
                               node.name.c_str());
   }
 
-  llvm::Value* operator()(const ast::function_call& node) const
+  llvm::Value* operator()(const ast::function_call_expr& node) const
   {
     auto* callee_f = module->getFunction(node.callee);
 
@@ -247,7 +255,7 @@ struct statement_visitor : public boost::static_visitor<void> {
     builder.CreateRet(retval);
   }
 
-  void operator()(const ast::variable_def& node) const
+  void operator()(const ast::variable_def_statement& node) const
   {
     auto* func = builder.GetInsertBlock()->getParent();
 
@@ -380,6 +388,10 @@ struct statement_visitor : public boost::static_visitor<void> {
     builder.SetInsertPoint(end_bb);
   }
 
+  void operator()(const ast::for_statement& node) const
+  {
+  }
+
 private:
   llvm::LLVMContext&            context;
   std::shared_ptr<llvm::Module> module;
@@ -410,7 +422,7 @@ struct program_visitor : public boost::static_visitor<llvm::Function*> {
   }
 
   // Function declaration
-  llvm::Function* operator()(const ast::function_decl& node) const
+  llvm::Function* operator()(const ast::function_declare& node) const
   {
     std::vector<llvm::Type*> param_types(node.args.size(),
                                          builder.getInt32Ty());
@@ -434,7 +446,7 @@ struct program_visitor : public boost::static_visitor<llvm::Function*> {
   }
 
   // Function definition
-  llvm::Function* operator()(const ast::function_def& node) const
+  llvm::Function* operator()(const ast::function_define& node) const
   {
     auto* func = module->getFunction(node.decl.name);
 
@@ -505,6 +517,10 @@ private:
 
   const std::filesystem::path& file_path;
 };
+
+//===----------------------------------------------------------------------===//
+// Code generator
+//===----------------------------------------------------------------------===//
 
 code_generator::code_generator(const ast::program&          ast,
                                const position_cache&        positions,

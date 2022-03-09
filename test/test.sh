@@ -82,4 +82,18 @@ assert 58 "func main() { let a; a = 48 + 10; ret a * 2 / 2; }"
 assert 58 "func main() { let a = 4810; a = a / 2 / 5; ret a * 10 - 4810 + 58; }"
 assert 58 "func main() { let a = 24 * 2; let b = 5 * 2; ret a + b; }"
 
+# Fibonacci numbers
+assert 58 "func fib(n) {
+  if (n < 3)
+    ret 1;
+  else
+    ret fib(n - 1) + fib(n - 2);
+  ret 0;
+}
+func main()
+{
+  if (fib(10) == 55)
+    ret 58;
+}"
+
 echo OK
