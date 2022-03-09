@@ -1,3 +1,6 @@
+# .clang-format
+# For clang-format 13 or later.
+
 Standard: Cpp11
 Language: Cpp
 ColumnLimit: 80
