@@ -137,16 +137,15 @@ struct if_statement : x3::position_tagged {
   if_statement();
 };
 
-// TODO:
 struct for_statement : x3::position_tagged {
-  expression         init_expression;
-  expression         cond_expression;
-  expression         loop_expression;
-  compound_statement body;
+  std::optional<expression> init_expression;
+  std::optional<expression> cond_expression;
+  std::optional<expression> loop_expression;
+  compound_statement        body;
 
-  for_statement(const expression&         init_expression,
-                const expression&         cond_expression,
-                const expression&         loop_expression,
+  for_statement(const std::optional<expression>&         init_expression,
+                const std::optional<expression>&         cond_expression,
+                const std::optional<expression>&         loop_expression,
                 const compound_statement& body);
 
   for_statement();

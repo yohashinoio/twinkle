@@ -217,12 +217,16 @@ struct statement_visitor : public boost::static_visitor<void> {
                     std::shared_ptr<llvm::Module> module,
                     llvm::IRBuilder<>&            builder,
                     symbol_table&                 named_values,
-                    const std::filesystem::path&  file_path)
+                    const std::filesystem::path&  file_path,
+                    llvm::AllocaInst*             alloca_ret,
+                    llvm::BasicBlock*             end_bb)
     : context{context}
     , module{module}
     , builder{builder}
     , named_values{named_values}
     , file_path{file_path}
+    , alloca_ret{alloca_ret}
+    , end_bb{end_bb}
   {
   }
 
@@ -251,10 +255,11 @@ struct statement_visitor : public boost::static_visitor<void> {
     if (!retval) {
       throw std::runtime_error{
         format_error_message(file_path.string(),
-                             "failure to generate return value")};
+                             "failed to generate return value")};
     }
 
-    builder.CreateRet(retval);
+    builder.CreateStore(retval, alloca_ret);
+    builder.CreateBr(end_bb);
   }
 
   void operator()(const ast::variable_def_statement& node) const
@@ -275,10 +280,6 @@ struct statement_visitor : public boost::static_visitor<void> {
       }
 
       builder.CreateStore(initializer, ainst);
-    }
-    else {
-      builder.CreateStore(llvm::ConstantInt::get(builder.getInt32Ty(), 0),
-                          ainst);
     }
 
     named_values.regist(node.name, ainst);
@@ -304,56 +305,29 @@ struct statement_visitor : public boost::static_visitor<void> {
 
     auto* func = builder.GetInsertBlock()->getParent();
 
-    auto* retval_ainst = create_entry_block_alloca(func, context, "if_retval");
-
     auto* then_bb = llvm::BasicBlock::Create(context, "if.then", func);
     auto* else_bb = llvm::BasicBlock::Create(context, "if.else");
 
-    // Used only when there is a return statement in an if statement
-    auto* return_bb = llvm::BasicBlock::Create(context, "if.return");
-
-    auto* end_bb = llvm::BasicBlock::Create(context, "if.end");
+    auto* merge_bb = llvm::BasicBlock::Create(context, "if.merge");
 
     builder.CreateCondBr(condition_value, then_bb, else_bb);
 
     // then statement codegen.
     builder.SetInsertPoint(then_bb);
 
-    bool with_return = false;
-
-    const auto return_handler = [&](const ast::return_statement& return_node) {
-      with_return = true;
-
-      auto* retval = boost::apply_visitor(
-        expression_visitor{module, builder, named_values, file_path},
-        return_node.rhs);
-
-      if (!retval) {
-        throw std::runtime_error{
-          format_error_message(file_path.string(),
-                               "failure to generate return value")};
-      }
-
-      builder.CreateStore(retval, retval_ainst);
-
-      builder.CreateBr(return_bb);
-    };
-
     for (auto&& statement : node.then_statement) {
-      if (statement.type() == typeid(ast::return_statement)) {
-        return_handler(boost::get<ast::return_statement>(statement));
-        break;
-      }
-
-      boost::apply_visitor(
-        statement_visitor{context, module, builder, named_values, file_path},
-        statement);
+      boost::apply_visitor(statement_visitor{context,
+                                             module,
+                                             builder,
+                                             named_values,
+                                             file_path,
+                                             alloca_ret,
+                                             end_bb},
+                           statement);
     }
 
-    // Generate a br to end_bb only if there is no terminator (such as a br to
-    // return_bb).
-    if (!then_bb->getTerminator())
-      builder.CreateBr(end_bb);
+    if (!builder.GetInsertBlock()->getTerminator())
+      builder.CreateBr(merge_bb);
 
     // else statement codegen.
     func->getBasicBlockList().push_back(else_bb);
@@ -361,37 +335,109 @@ struct statement_visitor : public boost::static_visitor<void> {
 
     if (node.else_statement) {
       for (auto&& statement : *node.else_statement) {
-        if (statement.type() == typeid(ast::return_statement)) {
-          return_handler(boost::get<ast::return_statement>(statement));
-          break;
-        }
-
-        boost::apply_visitor(
-          statement_visitor{context, module, builder, named_values, file_path},
-          statement);
+        boost::apply_visitor(statement_visitor{context,
+                                               module,
+                                               builder,
+                                               named_values,
+                                               file_path,
+                                               alloca_ret,
+                                               end_bb},
+                             statement);
       }
     }
 
-    // Generate a br to end_bb only if there is no terminator (such as a br to
-    // return_bb).
-    if (!else_bb->getTerminator())
-      builder.CreateBr(end_bb);
+    if (!builder.GetInsertBlock()->getTerminator())
+      builder.CreateBr(merge_bb);
 
-    if (with_return) {
-      func->getBasicBlockList().push_back(return_bb);
-      builder.SetInsertPoint(return_bb);
-
-      auto* retval
-        = builder.CreateLoad(retval_ainst->getAllocatedType(), retval_ainst);
-      builder.CreateRet(retval);
-    }
-
-    func->getBasicBlockList().push_back(end_bb);
-    builder.SetInsertPoint(end_bb);
+    func->getBasicBlockList().push_back(merge_bb);
+    builder.SetInsertPoint(merge_bb);
   }
 
   void operator()(const ast::for_statement& node) const
   {
+    if (node.init_expression) {
+      auto* init_value = boost::apply_visitor(
+        expression_visitor{module, builder, named_values, file_path},
+        *node.init_expression);
+
+      if (!init_value) {
+        throw std::runtime_error{format_error_message(
+          file_path.string(),
+          "failed to generate init expression in for statement")};
+      }
+    }
+
+    auto* func = builder.GetInsertBlock()->getParent();
+
+    auto* cond_bb = llvm::BasicBlock::Create(context, "for.cond", func);
+    auto* loop_bb = llvm::BasicBlock::Create(context, "for.loop");
+    auto* body_bb = llvm::BasicBlock::Create(context, "for.body");
+
+    auto* for_end_bb = llvm::BasicBlock::Create(context, "for.end");
+
+    builder.CreateBr(cond_bb);
+    builder.SetInsertPoint(cond_bb);
+
+    if (node.cond_expression) {
+      auto* cond_value = boost::apply_visitor(
+        expression_visitor{module, builder, named_values, file_path},
+        *node.cond_expression);
+
+      if (!cond_value) {
+        throw std::runtime_error{format_error_message(
+          file_path.string(),
+          "failed to generate condition expression in for statement")};
+      }
+
+      cond_value
+        = builder.CreateICmp(llvm::ICmpInst::ICMP_NE,
+                             cond_value,
+                             llvm::ConstantInt::get(builder.getInt1Ty(), 0));
+
+      builder.CreateCondBr(cond_value, body_bb, for_end_bb);
+    }
+    else {
+      // If condition is absent, unconditionally true.
+      builder.CreateCondBr(llvm::ConstantInt::get(builder.getInt1Ty(), true),
+                           body_bb,
+                           for_end_bb);
+    }
+
+    func->getBasicBlockList().push_back(body_bb);
+    builder.SetInsertPoint(body_bb);
+
+    for (auto&& statement : node.body) {
+      boost::apply_visitor(statement_visitor{context,
+                                             module,
+                                             builder,
+                                             named_values,
+                                             file_path,
+                                             alloca_ret,
+                                             end_bb},
+                           statement);
+    }
+
+    builder.CreateBr(loop_bb);
+
+    func->getBasicBlockList().push_back(loop_bb);
+    builder.SetInsertPoint(loop_bb);
+
+    if (node.loop_expression) {
+      auto* loop_value = boost::apply_visitor(
+        expression_visitor{module, builder, named_values, file_path},
+        *node.loop_expression);
+
+      if (!loop_value) {
+        throw std::runtime_error{format_error_message(
+          file_path.string(),
+          "failed to generate loop expression in for statement")};
+      }
+    }
+
+    builder.CreateBr(cond_bb);
+
+    func->getBasicBlockList().push_back(for_end_bb);
+    builder.SetInsertPoint(for_end_bb);
   }
 
 private:
@@ -402,6 +448,9 @@ private:
   symbol_table& named_values;
 
   const std::filesystem::path& file_path;
+
+  llvm::AllocaInst* alloca_ret;
+  llvm::BasicBlock* end_bb;
 };
 
 struct program_visitor : public boost::static_visitor<llvm::Function*> {
@@ -462,10 +511,12 @@ struct program_visitor : public boost::static_visitor<llvm::Function*> {
         true)};
     }
 
-    auto* basic_block = llvm::BasicBlock::Create(context, "entry", func);
-    builder.SetInsertPoint(basic_block);
+    auto* entry_bb = llvm::BasicBlock::Create(context, "entry", func);
+    builder.SetInsertPoint(entry_bb);
 
     symbol_table named_values;
+
+    auto* alloca_ret = create_entry_block_alloca(func, context, "retval");
 
     for (auto& arg : func->args()) {
       // Create an alloca for this variable.
@@ -479,22 +530,38 @@ struct program_visitor : public boost::static_visitor<llvm::Function*> {
       named_values.regist(arg.getName().str(), alloca);
     }
 
+    auto* end_bb = llvm::BasicBlock::Create(context, "end");
+
     for (auto&& statement : node.body) {
-      // If there is already a Terminator, the code generation of the main body
-      // of the function is terminated on the spot.
+      // If there is already a Terminator, the code generation of the main
+      // body of the function is terminated on the spot.
       if (builder.GetInsertBlock()->getTerminator())
         break;
 
-      boost::apply_visitor(
-        statement_visitor{context, module, builder, named_values, file_path},
-        statement);
+      boost::apply_visitor(statement_visitor{context,
+                                             module,
+                                             builder,
+                                             named_values,
+                                             file_path,
+                                             alloca_ret,
+                                             end_bb},
+                           statement);
     }
 
     // Return 0 if main function has no return.
     if (node.decl.name == "main"
         && !builder.GetInsertBlock()->getTerminator()) {
-      builder.CreateRet(llvm::ConstantInt::get(builder.getInt32Ty(), 0));
+      builder.CreateStore(llvm::ConstantInt::get(builder.getInt32Ty(), 0),
+                          alloca_ret);
+      builder.CreateBr(end_bb);
     }
+
+    func->getBasicBlockList().push_back(end_bb);
+    builder.SetInsertPoint(end_bb);
+
+    auto* retval
+      = builder.CreateLoad(alloca_ret->getAllocatedType(), alloca_ret);
+    builder.CreateRet(retval);
 
     std::string              em;
     llvm::raw_string_ostream os{em};

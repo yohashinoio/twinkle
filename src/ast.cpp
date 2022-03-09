@@ -118,10 +118,10 @@ if_statement::if_statement()
 {
 }
 
-for_statement::for_statement(const expression&         init_expression,
-                             const expression&         cond_expression,
-                             const expression&         loop_expression,
-                             const compound_statement& body)
+for_statement::for_statement(const std::optional<expression>& init_expression,
+                             const std::optional<expression>& cond_expression,
+                             const std::optional<expression>& loop_expression,
+                             const compound_statement&        body)
   : init_expression{init_expression}
   , cond_expression{cond_expression}
   , loop_expression{loop_expression}

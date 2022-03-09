@@ -67,6 +67,14 @@ BOOST_FUSION_ADAPT_STRUCT(
   (std::optional<ast::compound_statement>, else_statement)
 )
 
+BOOST_FUSION_ADAPT_STRUCT(
+  ast::for_statement,
+  (std::optional<ast::expression>, init_expression)
+  (std::optional<ast::expression>, cond_expression)
+  (std::optional<ast::expression>, loop_expression)
+  (ast::compound_statement, body)
+)
+
 //===----------------------------------------------------------------------===//
 // Program abstract syntax tree adapt
 //===----------------------------------------------------------------------===//

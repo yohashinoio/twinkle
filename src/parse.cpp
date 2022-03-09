@@ -205,6 +205,15 @@ const auto primary_def
        > x3::lit(")"))[action::assign_function_call_to_val]
     | identifier[action::assign_variable_to_val];
 
+BOOST_SPIRIT_DEFINE(assignment,
+                    expression,
+                    equality,
+                    relational,
+                    addition,
+                    multiplication,
+                    unary,
+                    primary)
+
 //===----------------------------------------------------------------------===//
 // Statement rules
 //===----------------------------------------------------------------------===//
@@ -232,9 +241,7 @@ const auto return_statement
 const auto compound_statement_or_statement
   = x3::rule<struct compound_statement_or_statement_tag,
              ast::compound_statement>{"compound statement or statement"}
-= compound_statement
-    [action::assign_compound_statement_to_val] /* For some reason it bugs me if
-                                                  I don't have it. */
+= compound_statement[action::assign_compound_statement_to_val]
   | statement[action::assign_compound_statement_to_val];
 
 const auto if_statement
@@ -243,9 +250,16 @@ const auto if_statement
   > compound_statement_or_statement
   >> -(x3::lit("else") > compound_statement_or_statement);
 
+const auto for_statement
+  = x3::rule<struct for_statement_tag, ast::for_statement>{"for statement"}
+= x3::lit("for") > x3::lit('(') >> -expression /* init */ > x3::lit(';')
+  >> -expression /* cond */
+  > x3::lit(';') >> -expression /* loop */ > x3::lit(')')
+  > compound_statement_or_statement;
+
 const auto statement_def = x3::lit(';') /* empty statement */ | return_statement
                            | variable_def_statement | if_statement
-                           | expression_statement;
+                           | for_statement | expression_statement;
 
 const auto compound_statement_def = (x3::lit('{') > *statement > x3::lit('}'));
 
@@ -276,15 +290,6 @@ const auto function_define
 
 const auto program = x3::rule<struct program_tag, ast::program>{"program"}
 = *(function_declare | function_define) > x3::eoi;
-
-BOOST_SPIRIT_DEFINE(assignment,
-                    expression,
-                    equality,
-                    relational,
-                    addition,
-                    multiplication,
-                    unary,
-                    primary)
 
 //===----------------------------------------------------------------------===//
 // Expression tags
@@ -322,6 +327,12 @@ struct primary_tag
 // Statement tags
 //===----------------------------------------------------------------------===//
 
+struct statement_tag
+  : with_error_handling
+  , annotate_position {};
+struct compound_statement_tag
+  : with_error_handling
+  , annotate_position {};
 struct compound_statement_or_statement_tag
   : with_error_handling
   , annotate_position {};
@@ -337,10 +348,7 @@ struct return_statement_tag
 struct if_statement_tag
   : with_error_handling
   , annotate_position {};
-struct statement_tag
-  : with_error_handling
-  , annotate_position {};
-struct compound_statement_tag
+struct for_statement_tag
   : with_error_handling
   , annotate_position {};
 
