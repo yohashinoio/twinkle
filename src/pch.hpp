@@ -1,9 +1,11 @@
-//
-//  pch.hpp (Pre compiled header)
-//
-//  Copyright (c) 2022 The Miko Authors.
-//  Apache License v2.0
-//
+/**
+ * pch.hpp (Pre compiled header)
+ *
+ * These codes are licensed under Apache-2.0 License.
+ * See the LICENSE for details.
+ *
+ * Copyright (c) 2021 Hiramoto Ittou.
+ */
 
 #ifndef _dc3d87fc_95e2_11ec_b909_0242ac120002
 #define _dc3d87fc_95e2_11ec_b909_0242ac120002

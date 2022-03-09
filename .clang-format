@@ -1,17 +1,6 @@
-#
-#  .clang-format
-#
-#  Copyright (c) 2022 The Miko Authors.
-#  Apache License v2.0
-#
-#  clang-format-13
-#
-
-
 Standard: Cpp11
 Language: Cpp
 ColumnLimit: 80
-
 AccessModifierOffset: -2
 AlignAfterOpenBracket: Align
 AlignArrayOfStructures: Right

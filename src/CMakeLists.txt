@@ -1,9 +1,6 @@
-#
-#  CMakeLists.txt
-#
-#  Copyright (c) 2022 The Miko Authors.
-#  Apache License v2.0
-#
+# These codes are licensed under Apache-2.0 License.
+# See the LICENSE for details.
+# Copyright (c) 2021 Hiramoto Ittou.
 
 set(CMAKE_CXX_STANDARD 20)
 set(THREADS_PREFER_PTHREAD_FLAG ON)

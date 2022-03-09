@@ -1,9 +1,11 @@
-//
-//  ast.cpp
-//
-//  Copyright (c) 2022 The Miko Authors.
-//  Apache License v2.0
-//
+/**
+ * ast.cpp
+ *
+ * These codes are licensed under Apache-2.0 License.
+ * See the LICENSE for details.
+ *
+ * Copyright (c) 2021 Hiramoto Ittou.
+ */
 
 #include "ast.hpp"
 

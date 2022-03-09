@@ -1,9 +1,11 @@
-//
-//  main.cpp
-//
-//  Copyright (c) 2022 The Miko Authors.
-//  Apache License v2.0
-//
+/**
+ * main.cpp
+ *
+ * These codes are licensed under Apache-2.0 License.
+ * See the LICENSE for details.
+ *
+ * Copyright (c) 2021 Hiramoto Ittou.
+ */
 
 #include "parse.hpp"
 #include "codegen.hpp"

@@ -1,9 +1,11 @@
-//
-//  ast_adapted.hpp
-//
-//  Copyright (c) 2022 The Miko Authors.
-//  Apache License v2.0
-//
+/**
+ * ast_adapted.hpp
+ *
+ * These codes are licensed under Apache-2.0 License.
+ * See the LICENSE for details.
+ *
+ * Copyright (c) 2021 Hiramoto Ittou.
+ */
 
 #ifndef _4a13c82a_9536_11ec_b909_0242ac120002
 #define _4a13c82a_9536_11ec_b909_0242ac120002
@@ -15,9 +17,10 @@ namespace ast = miko::ast;
 
 // clang-format off
 
-////////////////
-// Expression //
-////////////////
+//===----------------------------------------------------------------------===//
+// Expression abstract syntax tree adapt
+//===----------------------------------------------------------------------===//
+
 BOOST_FUSION_ADAPT_STRUCT(
   ast::unary_op_expr,
   (std::string, op)
@@ -42,9 +45,10 @@ BOOST_FUSION_ADAPT_STRUCT(
   (std::vector<ast::expression>, args)
 )
 
-///////////////
-// Statement //
-///////////////
+//===----------------------------------------------------------------------===//
+// Statement abstract syntax tree adapt
+//===----------------------------------------------------------------------===//
+
 BOOST_FUSION_ADAPT_STRUCT(
   ast::variable_def_statement,
   (std::string, name)
@@ -63,9 +67,10 @@ BOOST_FUSION_ADAPT_STRUCT(
   (std::optional<ast::compound_statement>, else_statement)
 )
 
-/////////////
-// Program //
-/////////////
+//===----------------------------------------------------------------------===//
+// Program abstract syntax tree adapt
+//===----------------------------------------------------------------------===//
+
 BOOST_FUSION_ADAPT_STRUCT(
   ast::function_declare,
   (std::string, name)

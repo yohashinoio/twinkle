@@ -1,9 +1,11 @@
-//
-//  utility.hpp
-//
-//  Copyright (c) 2022 The Miko Authors.
-//  Apache License v2.0
-//
+/**
+ * utility.hpp
+ *
+ * These codes are licensed under Apache-2.0 License.
+ * See the LICENSE for details.
+ *
+ * Copyright (c) 2021 Hiramoto Ittou.
+ */
 
 #ifndef _d63c66d6_93b5_11ec_b909_0242ac120002
 #define _d63c66d6_93b5_11ec_b909_0242ac120002

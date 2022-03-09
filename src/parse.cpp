@@ -1,9 +1,11 @@
-//
-//  parse.cpp
-//
-//  Copyright (c) 2022 The Miko Authors.
-//  Apache License v2.0
-//
+/**
+ * parse.cpp
+ *
+ * These codes are licensed under Apache-2.0 License.
+ * See the LICENSE for details.
+ *
+ * Copyright (c) 2021 Hiramoto Ittou.
+ */
 
 #include "pch.hpp"
 #include "ast_adapted.hpp"
