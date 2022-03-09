@@ -2,63 +2,6 @@
     <h1>The Miko Programming Language</h1>
 </div>
 
-## Statements
-### Expression statements
-```peg
-expression? ';'
-```
-
-### Compound statements
-```peg
-'{' *statement '}'
-```
-
-### Selection statements
-```peg
-"if" '(' condition ')'
-  (compound-statement | statement)
-```
-
-### Iteration statements
-```peg
-"for" '(' expression? ';' condition? ';' expression? ')'
-  (compound-statement | statement)
-```
-
-### Jump statements
-```peg
-"ret" expression ';'
-```
-
-## Declarations and definitions
-### Functions
-```rust
-extern twice(n); // Declaration
-
-func main() // Definition
-{
-  ret f(58);
-}
-
-func twice(n) // Definition
-{
-  ret n * 2;
-}
-```
-
-### Variables
-```rust
-func main()
-{
-  // Declare and define int variables i and j.
-  let i;
-  let j = 58;
-
-  ret i; // i is undefined, so it is a bullshit value!
-  ret j; // OK
-}
-```
-
 ## Operators
 ### Arithmetic operators
 | Operator name  | Syntax |
@@ -92,6 +35,63 @@ func main()
 
 This section on Operators is based on "Operators in C and C++" from wikipedia.<br/>
 Thank you!
+
+## Declarations and definitions
+### Functions
+```rust
+extern twice(n); // Declaration
+
+func main() // Definition
+{
+  ret f(58);
+}
+
+func twice(n) // Definition
+{
+  ret n * 2;
+}
+```
+
+### Variables
+```rust
+func main()
+{
+  // Declare and define int variables i and j.
+  let i;
+  let j = 58;
+
+  ret i; // i is undefined, so it is a bullshit value!
+  ret j; // OK
+}
+```
+
+## Statements
+### Expression statements
+```peg
+expression? ';'
+```
+
+### Compound statements
+```peg
+'{' *statement '}'
+```
+
+### Selection statements
+```peg
+"if" '(' condition ')'
+  (compound-statement | statement)
+```
+
+### Iteration statements
+```peg
+"for" '(' expression? ';' condition? ';' expression? ')'
+  (compound-statement | statement)
+```
+
+### Jump statements
+```peg
+"ret" expression ';'
+```
 
 ## Examples
 ### Fibonacci numbers
