@@ -4,7 +4,7 @@
 
 ## Syntax
 ### Example
-```go
+```rust
 func fib(n)
 {
   if (n < 3)
