@@ -466,8 +466,9 @@ void codegen_compound_statement(const ast::compound_statement& statements,
 // Top level statement visitor
 //===----------------------------------------------------------------------===//
 
-struct top_level_stmt : public boost::static_visitor<llvm::Function*> {
-  top_level_stmt(codegen_common& common, llvm::legacy::FunctionPassManager& fpm)
+struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
+  top_level_stmt_visitor(codegen_common&                    common,
+                         llvm::legacy::FunctionPassManager& fpm)
     : common{common}
     , fpm{fpm}
   {
@@ -704,7 +705,7 @@ void code_generator::write_object_code_to_file(
 void code_generator::codegen()
 {
   for (auto&& node : ast) {
-    boost::apply_visitor(top_level_stmt{common, fpm}, node);
+    boost::apply_visitor(top_level_stmt_visitor{common, fpm}, node);
   }
 }
 
