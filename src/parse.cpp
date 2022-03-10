@@ -294,6 +294,10 @@ const auto top_level_stmt = x3::rule<struct top_level_stmt_tag,
                                      ast::top_level_stmt>{"top level statement"}
 = function_declare | function_define;
 
+//===----------------------------------------------------------------------===//
+// Program rule
+//===----------------------------------------------------------------------===//
+
 const auto program = x3::rule<struct program_tag, ast::program>{"program"}
 = *top_level_stmt > x3::eoi;
 
@@ -374,7 +378,7 @@ struct for_statement_tag
   , annotate_position {};
 
 //===----------------------------------------------------------------------===//
-// Top level tags
+// Top level statement tags
 //===----------------------------------------------------------------------===//
 
 struct parameter_list_tag
@@ -396,6 +400,10 @@ struct function_define_tag
 struct top_level_stmt_tag
   : with_error_handling
   , annotate_position {};
+
+//===----------------------------------------------------------------------===//
+// Program tag
+//===----------------------------------------------------------------------===//
 
 struct program_tag
   : with_error_handling
