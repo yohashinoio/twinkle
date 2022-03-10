@@ -76,7 +76,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 //===----------------------------------------------------------------------===//
-// Program abstract syntax tree adapt
+// Top level statement abstract syntax tree adapt
 //===----------------------------------------------------------------------===//
 
 BOOST_FUSION_ADAPT_STRUCT(

@@ -138,7 +138,7 @@ for_statement::for_statement()
 }
 
 //===----------------------------------------------------------------------===//
-// Program abstract syntax tree
+// Top level statement abstract syntax tree
 //===----------------------------------------------------------------------===//
 
 function_declare::function_declare(const std::string&              name,

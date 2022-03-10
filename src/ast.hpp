@@ -152,14 +152,15 @@ struct for_statement : x3::position_tagged {
 };
 
 //===----------------------------------------------------------------------===//
-// Program abstract syntax tree
+// Top level abstract syntax tree
 //===----------------------------------------------------------------------===//
 
 struct function_declare;
 struct function_define;
 
-using program
-  = std::vector<boost::variant<nil, function_declare, function_define>>;
+using top_level_stmt = boost::variant<nil, function_declare, function_define>;
+
+using program = std::vector<top_level_stmt>;
 
 struct function_declare : x3::position_tagged {
   std::string              name;

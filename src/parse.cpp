@@ -268,7 +268,7 @@ const auto compound_statement_def = (x3::lit('{') > *statement > x3::lit('}'));
 BOOST_SPIRIT_DEFINE(compound_statement, statement)
 
 //===----------------------------------------------------------------------===//
-// Program rules
+// Top level rules
 //===----------------------------------------------------------------------===//
 
 const auto parameter_list = x3::rule<struct parameter_list_tag,
@@ -290,8 +290,12 @@ const auto function_define
              ast::function_define>{"function definition"}
 = x3::lit("func") > function_proto > compound_statement;
 
+const auto top_level_stmt = x3::rule<struct top_level_stmt_tag,
+                                     ast::top_level_stmt>{"top level statement"}
+= function_declare | function_define;
+
 const auto program = x3::rule<struct program_tag, ast::program>{"program"}
-= *(function_declare | function_define) > x3::eoi;
+= *top_level_stmt > x3::eoi;
 
 //===----------------------------------------------------------------------===//
 // Expression tags
@@ -300,27 +304,35 @@ const auto program = x3::rule<struct program_tag, ast::program>{"program"}
 struct argument_list_tag
   : with_error_handling
   , annotate_position {};
+
 struct assignment_tag
   : with_error_handling
   , annotate_position {};
+
 struct expression_tag
   : with_error_handling
   , annotate_position {};
+
 struct equality_tag
   : with_error_handling
   , annotate_position {};
+
 struct relational_tag
   : with_error_handling
   , annotate_position {};
+
 struct addition_tag
   : with_error_handling
   , annotate_position {};
+
 struct multiplication_tag
   : with_error_handling
   , annotate_position {};
+
 struct unary_tag
   : with_error_handling
   , annotate_position {};
+
 struct primary_tag
   : with_error_handling
   , annotate_position {};
@@ -332,44 +344,59 @@ struct primary_tag
 struct statement_tag
   : with_error_handling
   , annotate_position {};
+
 struct compound_statement_tag
   : with_error_handling
   , annotate_position {};
+
 struct compound_statement_or_statement_tag
   : with_error_handling
   , annotate_position {};
+
 struct expression_statement_tag
   : with_error_handling
   , annotate_position {};
+
 struct variable_def_statement
   : with_error_handling
   , annotate_position {};
+
 struct return_statement_tag
   : with_error_handling
   , annotate_position {};
+
 struct if_statement_tag
   : with_error_handling
   , annotate_position {};
+
 struct for_statement_tag
   : with_error_handling
   , annotate_position {};
 
 //===----------------------------------------------------------------------===//
-// Program tags
+// Top level tags
 //===----------------------------------------------------------------------===//
 
 struct parameter_list_tag
   : with_error_handling
   , annotate_position {};
+
 struct function_proto_tag
   : with_error_handling
   , annotate_position {};
+
 struct function_declare_tag
   : with_error_handling
   , annotate_position {};
+
 struct function_define_tag
   : with_error_handling
   , annotate_position {};
+
+struct top_level_stmt_tag
+  : with_error_handling
+  , annotate_position {};
+
 struct program_tag
   : with_error_handling
   , annotate_position {};

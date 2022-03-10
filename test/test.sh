@@ -224,6 +224,14 @@ assert 110 "func main() {
   }
   ret n;
 }"
+assert 58 "func main() {
+  let i;
+  for (i = 0; i < 4810; i = i + 1) {
+    let n = i;
+    if (n == 58)
+      ret n;
+  }
+}"
 
 
 echo OK

@@ -21,6 +21,17 @@
 namespace miko::codegen
 {
 
+// A structure that summarizes variables commonly needed by visitors.
+struct codegen_common {
+  codegen_common(const std::filesystem::path& file);
+
+  llvm::LLVMContext             context;
+  std::shared_ptr<llvm::Module> module;
+  llvm::IRBuilder<>             builder;
+
+  std::filesystem::path file;
+};
+
 struct code_generator {
   code_generator(const ast::program&          ast,
                  const position_cache&        positions,
@@ -34,15 +45,11 @@ struct code_generator {
 private:
   void codegen();
 
-  llvm::LLVMContext             context;
-  std::shared_ptr<llvm::Module> module;
-  llvm::IRBuilder<>             builder;
+  codegen_common common;
 
   llvm::TargetMachine* target_machine;
 
   llvm::legacy::FunctionPassManager fpm;
-
-  const std::filesystem::path& file_path;
 
   const ast::program&   ast;
   const position_cache& positions;
