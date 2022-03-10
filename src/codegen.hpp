@@ -49,7 +49,7 @@ private:
 
   llvm::TargetMachine* target_machine;
 
-  llvm::legacy::FunctionPassManager fpm;
+  llvm::legacy::FunctionPassManager function_pm;
 
   const ast::program&   ast;
   const position_cache& positions;

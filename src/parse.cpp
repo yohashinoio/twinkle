@@ -14,10 +14,7 @@
 namespace x3     = boost::spirit::x3;
 namespace fusion = boost::fusion;
 
-namespace miko
-{
-
-namespace parse
+namespace miko::parse
 {
 
 //===----------------------------------------------------------------------===//
@@ -459,5 +456,4 @@ void parser::parse()
   }
 }
 
-} // namespace parse
-} // namespace miko
+} // namespace miko::parse

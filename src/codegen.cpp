@@ -8,7 +8,6 @@
  */
 
 #include "codegen.hpp"
-#include "utility.hpp"
 
 namespace miko::codegen
 {
@@ -189,15 +188,15 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
 
   llvm::Value* operator()(const ast::function_call_expr& node) const
   {
-    auto* callee_f = common.module->getFunction(node.callee);
+    auto* callee_function = common.module->getFunction(node.callee);
 
-    if (!callee_f) {
+    if (!callee_function) {
       throw std::runtime_error{format_error_message(
         common.file.string(),
         format("unknown function '%s' referenced", node.callee))};
     }
 
-    if (callee_f->arg_size() != node.args.size()) {
+    if (callee_function->arg_size() != node.args.size()) {
       throw std::runtime_error{
         format_error_message(common.file.string(),
                              format("incorrect arguments passed"))};
@@ -211,7 +210,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
         return nullptr;
     }
 
-    return common.builder.CreateCall(callee_f, args_value);
+    return common.builder.CreateCall(callee_function, args_value);
   }
 
 private:
@@ -279,9 +278,10 @@ struct statement_visitor : public boost::static_visitor<void> {
                              format("redefinition of '%s'", node.name))};
     }
 
-    auto* func = common.builder.GetInsertBlock()->getParent();
+    auto* function = common.builder.GetInsertBlock()->getParent();
 
-    auto* ainst = create_entry_block_alloca(func, common.context, node.name);
+    auto* ainst
+      = create_entry_block_alloca(function, common.context, node.name);
 
     if (node.initializer) {
       auto* initializer
@@ -317,9 +317,10 @@ struct statement_visitor : public boost::static_visitor<void> {
       condition_value,
       llvm::ConstantInt::get(common.builder.getInt1Ty(), 0));
 
-    auto* func = common.builder.GetInsertBlock()->getParent();
+    auto* function = common.builder.GetInsertBlock()->getParent();
 
-    auto* then_bb = llvm::BasicBlock::Create(common.context, "if.then", func);
+    auto* then_bb
+      = llvm::BasicBlock::Create(common.context, "if.then", function);
     auto* else_bb = llvm::BasicBlock::Create(common.context, "if.else");
 
     auto* merge_bb = llvm::BasicBlock::Create(common.context, "if.merge");
@@ -339,7 +340,7 @@ struct statement_visitor : public boost::static_visitor<void> {
       common.builder.CreateBr(merge_bb);
 
     // else statement codegen.
-    func->getBasicBlockList().push_back(else_bb);
+    function->getBasicBlockList().push_back(else_bb);
     common.builder.SetInsertPoint(else_bb);
 
     if (node.else_statement) {
@@ -353,7 +354,7 @@ struct statement_visitor : public boost::static_visitor<void> {
     if (!common.builder.GetInsertBlock()->getTerminator())
       common.builder.CreateBr(merge_bb);
 
-    func->getBasicBlockList().push_back(merge_bb);
+    function->getBasicBlockList().push_back(merge_bb);
     common.builder.SetInsertPoint(merge_bb);
   }
 
@@ -370,9 +371,10 @@ struct statement_visitor : public boost::static_visitor<void> {
       }
     }
 
-    auto* func = common.builder.GetInsertBlock()->getParent();
+    auto* function = common.builder.GetInsertBlock()->getParent();
 
-    auto* cond_bb = llvm::BasicBlock::Create(common.context, "for.cond", func);
+    auto* cond_bb
+      = llvm::BasicBlock::Create(common.context, "for.cond", function);
     auto* loop_bb = llvm::BasicBlock::Create(common.context, "for.loop");
     auto* body_bb = llvm::BasicBlock::Create(common.context, "for.body");
 
@@ -406,14 +408,14 @@ struct statement_visitor : public boost::static_visitor<void> {
         for_end_bb);
     }
 
-    func->getBasicBlockList().push_back(body_bb);
+    function->getBasicBlockList().push_back(body_bb);
     common.builder.SetInsertPoint(body_bb);
 
     codegen_compound_statement(node.body, scope, common, retvar, end_bb);
 
     common.builder.CreateBr(loop_bb);
 
-    func->getBasicBlockList().push_back(loop_bb);
+    function->getBasicBlockList().push_back(loop_bb);
     common.builder.SetInsertPoint(loop_bb);
 
     if (node.loop_expression) {
@@ -429,7 +431,7 @@ struct statement_visitor : public boost::static_visitor<void> {
 
     common.builder.CreateBr(cond_bb);
 
-    func->getBasicBlockList().push_back(for_end_bb);
+    function->getBasicBlockList().push_back(for_end_bb);
     common.builder.SetInsertPoint(for_end_bb);
   }
 
@@ -468,9 +470,9 @@ void codegen_compound_statement(const ast::compound_statement& statements,
 
 struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
   top_level_stmt_visitor(codegen_common&                    common,
-                         llvm::legacy::FunctionPassManager& fpm)
+                         llvm::legacy::FunctionPassManager& function_pm)
     : common{common}
-    , fpm{fpm}
+    , function_pm{function_pm}
   {
   }
 
@@ -485,34 +487,34 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
     std::vector<llvm::Type*> param_types(node.args.size(),
                                          common.builder.getInt32Ty());
 
-    auto* func_type = llvm::FunctionType::get(common.builder.getInt32Ty(),
-                                              param_types,
-                                              false);
+    auto* function_type = llvm::FunctionType::get(common.builder.getInt32Ty(),
+                                                  param_types,
+                                                  false);
 
-    auto* func = llvm::Function::Create(func_type,
-                                        llvm::Function::ExternalLinkage,
-                                        node.name,
-                                        common.module.get());
+    auto* function = llvm::Function::Create(function_type,
+                                            llvm::Function::ExternalLinkage,
+                                            node.name,
+                                            common.module.get());
 
     // Set names for all arguments.
     {
       std::size_t idx = 0;
-      for (auto&& arg : func->args())
+      for (auto&& arg : function->args())
         arg.setName(node.args[idx++]);
     }
 
-    return func;
+    return function;
   }
 
   // Function definition
   llvm::Function* operator()(const ast::function_define& node) const
   {
-    auto* func = common.module->getFunction(node.decl.name);
+    auto* function = common.module->getFunction(node.decl.name);
 
-    if (!func)
-      func = this->operator()(node.decl);
+    if (!function)
+      function = this->operator()(node.decl);
 
-    if (!func) {
+    if (!function) {
       throw std::runtime_error{format_error_message(
         common.file.string(),
         format("failed to create function %s", node.decl.name),
@@ -521,13 +523,15 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
 
     symbol_table argument_values;
 
-    auto* entry_bb = llvm::BasicBlock::Create(common.context, "entry", func);
+    auto* entry_bb
+      = llvm::BasicBlock::Create(common.context, "entry", function);
     common.builder.SetInsertPoint(entry_bb);
 
-    for (auto& arg : func->args()) {
+    for (auto& arg : function->args()) {
       // Create an alloca for this variable.
-      auto* alloca
-        = create_entry_block_alloca(func, common.context, arg.getName().str());
+      auto* alloca = create_entry_block_alloca(function,
+                                               common.context,
+                                               arg.getName().str());
 
       // Store the initial value into the alloca.
       common.builder.CreateStore(&arg, alloca);
@@ -537,7 +541,8 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
     }
 
     // Used to combine returns into one.
-    auto* retvar = create_entry_block_alloca(func, common.context, "retval");
+    auto* retvar
+      = create_entry_block_alloca(function, common.context, "retval");
     auto* end_bb = llvm::BasicBlock::Create(common.context, "end");
 
     codegen_compound_statement(node.body,
@@ -555,7 +560,7 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
       common.builder.CreateBr(end_bb);
     }
 
-    func->getBasicBlockList().push_back(end_bb);
+    function->getBasicBlockList().push_back(end_bb);
     common.builder.SetInsertPoint(end_bb);
 
     auto* retval
@@ -564,22 +569,22 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
 
     std::string              em;
     llvm::raw_string_ostream os{em};
-    if (llvm::verifyFunction(*func, &os)) {
-      func->eraseFromParent();
+    if (llvm::verifyFunction(*function, &os)) {
+      function->eraseFromParent();
 
       throw std::runtime_error{
         format_error_message(common.file.string(), os.str())};
     }
 
-    fpm.run(*func);
+    function_pm.run(*function);
 
-    return func;
+    return function;
   }
 
 private:
   codegen_common& common;
 
-  llvm::legacy::FunctionPassManager& fpm;
+  llvm::legacy::FunctionPassManager& function_pm;
 };
 
 //===----------------------------------------------------------------------===//
@@ -599,7 +604,7 @@ code_generator::code_generator(const ast::program&          ast,
                                const std::filesystem::path& file,
                                const bool                   optimize)
   : common{file}
-  , fpm{common.module.get()}
+  , function_pm{common.module.get()}
   , ast{ast}
   , positions{positions}
 {
@@ -611,22 +616,22 @@ code_generator::code_generator(const ast::program&          ast,
 
   if (optimize) {
     // Do simple "peephole" optimizations and bit-twiddling optzns.
-    fpm.add(llvm::createInstructionCombiningPass());
+    function_pm.add(llvm::createInstructionCombiningPass());
     // Reassociate expressions.
-    fpm.add(llvm::createReassociatePass());
+    function_pm.add(llvm::createReassociatePass());
     // Eliminate Common SubExpressions.
-    fpm.add(llvm::createGVNPass());
+    function_pm.add(llvm::createGVNPass());
     // Simplify the control flow graph (deleting unreachable blocks, etc).
-    fpm.add(llvm::createCFGSimplificationPass());
+    function_pm.add(llvm::createCFGSimplificationPass());
     // Promote allocas to registers.
-    fpm.add(llvm::createPromoteMemoryToRegisterPass());
+    function_pm.add(llvm::createPromoteMemoryToRegisterPass());
     // Do simple "peephole" optimizations and bit-twiddling optzns.
-    fpm.add(llvm::createInstructionCombiningPass());
+    function_pm.add(llvm::createInstructionCombiningPass());
     // Reassociate expressions.
-    fpm.add(llvm::createReassociatePass());
+    function_pm.add(llvm::createReassociatePass());
   }
 
-  fpm.doInitialization();
+  function_pm.doInitialization();
 
   // set target triple and data layout to module
   const auto target_triple = llvm::sys::getDefaultTargetTriple();
@@ -706,7 +711,7 @@ void code_generator::write_object_code_to_file(
 void code_generator::codegen()
 {
   for (auto&& node : ast) {
-    boost::apply_visitor(top_level_stmt_visitor{common, fpm}, node);
+    boost::apply_visitor(top_level_stmt_visitor{common, function_pm}, node);
   }
 }
 

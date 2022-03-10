@@ -17,10 +17,7 @@
 #include "ast.hpp"
 #include "utility.hpp"
 
-namespace miko
-{
-
-namespace parse
+namespace miko::parse
 {
 
 struct parser {
@@ -45,7 +42,6 @@ private:
   const std::filesystem::path& file_path;
 };
 
-} // namespace parse
-} // namespace miko
+} // namespace miko::parse
 
 #endif
