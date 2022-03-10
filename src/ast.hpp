@@ -143,10 +143,10 @@ struct for_statement : x3::position_tagged {
   std::optional<expression> loop_expression;
   compound_statement        body;
 
-  for_statement(const std::optional<expression>&         init_expression,
-                const std::optional<expression>&         cond_expression,
-                const std::optional<expression>&         loop_expression,
-                const compound_statement& body);
+  for_statement(const std::optional<expression>& init_expression,
+                const std::optional<expression>& cond_expression,
+                const std::optional<expression>& loop_expression,
+                const compound_statement&        body);
 
   for_statement();
 };

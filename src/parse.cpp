@@ -260,7 +260,8 @@ const auto for_statement
 
 const auto statement_def = x3::lit(';') /* null statements */ | return_statement
                            | variable_def_statement | if_statement
-                           | for_statement | expression_statement;
+                           | for_statement
+                           | expression_statement; // TODO: support to block
 
 const auto compound_statement_def = (x3::lit('{') > *statement > x3::lit('}'));
 

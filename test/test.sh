@@ -168,6 +168,12 @@ assert 58 "func main() {
   else
     ret 123;
 }"
+assert 58 "func main() {
+  let n = 58;
+  if (1) {}
+  if (1) ;
+  ret n;
+}"
 
 # Fibonacci numbers
 assert 58 "func fib(n) {

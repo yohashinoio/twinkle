@@ -33,6 +33,20 @@ struct symbol_table {
     named_values.insert({name, value});
   }
 
+  bool exists(const std::string& name)
+  {
+    return named_values.count(name);
+  }
+
+  // For debug.
+  void print_symbols() const
+  {
+    for (auto&& r : named_values) {
+      std::cout << r.first << ' ';
+    }
+    std::endl(std::cout);
+  }
+
 private:
   std::unordered_map<std::string, llvm::AllocaInst*> named_values;
 };
@@ -57,12 +71,12 @@ create_entry_block_alloca(llvm::Function*    func,
 struct expression_visitor : public boost::static_visitor<llvm::Value*> {
   expression_visitor(std::shared_ptr<llvm::Module> module,
                      llvm::IRBuilder<>&            builder,
-                     symbol_table&                 named_values,
-                     const std::filesystem::path&  file_path)
+                     const std::filesystem::path&  file_path,
+                     symbol_table&                 scope)
     : module{module}
     , builder{builder}
-    , named_values{named_values}
     , file_path{file_path}
+    , scope{scope}
   {
   }
 
@@ -105,7 +119,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
         if (!rhs)
           return nullptr;
 
-        auto* variable = named_values[lhs.name];
+        auto* variable = scope[lhs.name];
 
         if (!variable) {
           throw std::runtime_error{
@@ -164,7 +178,8 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
 
   llvm::Value* operator()(const ast::variable_expr& node) const
   {
-    auto* ainst = named_values[node.name];
+    auto* ainst = scope[node.name];
+
     if (!ainst) {
       throw std::runtime_error{format_error_message(
         file_path.string(),
@@ -207,24 +222,33 @@ private:
   std::shared_ptr<llvm::Module> module;
   llvm::IRBuilder<>&            builder;
 
-  symbol_table& named_values;
-
   const std::filesystem::path& file_path;
+
+  symbol_table& scope;
 };
+
+void codegen_compound_statement(const ast::compound_statement& statements,
+                                const symbol_table&            table,
+                                llvm::LLVMContext&             context,
+                                std::shared_ptr<llvm::Module>  module,
+                                llvm::IRBuilder<>&             builder,
+                                const std::filesystem::path&   file_path,
+                                llvm::AllocaInst*              alloca_ret,
+                                llvm::BasicBlock*              end_bb);
 
 struct statement_visitor : public boost::static_visitor<void> {
   statement_visitor(llvm::LLVMContext&            context,
                     std::shared_ptr<llvm::Module> module,
                     llvm::IRBuilder<>&            builder,
-                    symbol_table&                 named_values,
                     const std::filesystem::path&  file_path,
+                    symbol_table&                 scope,
                     llvm::AllocaInst*             alloca_ret,
                     llvm::BasicBlock*             end_bb)
     : context{context}
     , module{module}
     , builder{builder}
-    , named_values{named_values}
     , file_path{file_path}
+    , scope{scope}
     , alloca_ret{alloca_ret}
     , end_bb{end_bb}
   {
@@ -238,7 +262,7 @@ struct statement_visitor : public boost::static_visitor<void> {
   void operator()(const ast::expression& node) const
   {
     if (!boost::apply_visitor(
-          expression_visitor{module, builder, named_values, file_path},
+          expression_visitor{module, builder, file_path, scope},
           node)) {
       throw std::runtime_error{
         format_error_message(file_path.string(),
@@ -249,7 +273,7 @@ struct statement_visitor : public boost::static_visitor<void> {
   void operator()(const ast::return_statement& node) const
   {
     auto* retval = boost::apply_visitor(
-      expression_visitor{module, builder, named_values, file_path},
+      expression_visitor{module, builder, file_path, scope},
       node.rhs);
 
     if (!retval) {
@@ -264,13 +288,19 @@ struct statement_visitor : public boost::static_visitor<void> {
 
   void operator()(const ast::variable_def_statement& node) const
   {
+    if (scope.exists(node.name)) {
+      throw std::runtime_error{
+        format_error_message(file_path.string(),
+                             format("redefinition of '%s'", node.name))};
+    }
+
     auto* func = builder.GetInsertBlock()->getParent();
 
     auto* ainst = create_entry_block_alloca(func, context, node.name);
 
     if (node.initializer) {
       auto* initializer = boost::apply_visitor(
-        expression_visitor{module, builder, named_values, file_path},
+        expression_visitor{module, builder, file_path, scope},
         *node.initializer);
 
       if (!initializer) {
@@ -282,13 +312,13 @@ struct statement_visitor : public boost::static_visitor<void> {
       builder.CreateStore(initializer, ainst);
     }
 
-    named_values.regist(node.name, ainst);
+    scope.regist(node.name, ainst);
   }
 
   void operator()(const ast::if_statement& node) const
   {
     auto* condition_value = boost::apply_visitor(
-      expression_visitor{module, builder, named_values, file_path},
+      expression_visitor{module, builder, file_path, scope},
       node.condition);
 
     if (!condition_value) {
@@ -315,16 +345,14 @@ struct statement_visitor : public boost::static_visitor<void> {
     // then statement codegen.
     builder.SetInsertPoint(then_bb);
 
-    for (auto&& statement : node.then_statement) {
-      boost::apply_visitor(statement_visitor{context,
-                                             module,
-                                             builder,
-                                             named_values,
-                                             file_path,
-                                             alloca_ret,
-                                             end_bb},
-                           statement);
-    }
+    codegen_compound_statement(node.then_statement,
+                               scope,
+                               context,
+                               module,
+                               builder,
+                               file_path,
+                               alloca_ret,
+                               end_bb);
 
     if (!builder.GetInsertBlock()->getTerminator())
       builder.CreateBr(merge_bb);
@@ -334,16 +362,14 @@ struct statement_visitor : public boost::static_visitor<void> {
     builder.SetInsertPoint(else_bb);
 
     if (node.else_statement) {
-      for (auto&& statement : *node.else_statement) {
-        boost::apply_visitor(statement_visitor{context,
-                                               module,
-                                               builder,
-                                               named_values,
-                                               file_path,
-                                               alloca_ret,
-                                               end_bb},
-                             statement);
-      }
+      codegen_compound_statement(*node.else_statement,
+                                 scope,
+                                 context,
+                                 module,
+                                 builder,
+                                 file_path,
+                                 alloca_ret,
+                                 end_bb);
     }
 
     if (!builder.GetInsertBlock()->getTerminator())
@@ -357,7 +383,7 @@ struct statement_visitor : public boost::static_visitor<void> {
   {
     if (node.init_expression) {
       auto* init_value = boost::apply_visitor(
-        expression_visitor{module, builder, named_values, file_path},
+        expression_visitor{module, builder, file_path, scope},
         *node.init_expression);
 
       if (!init_value) {
@@ -380,7 +406,7 @@ struct statement_visitor : public boost::static_visitor<void> {
 
     if (node.cond_expression) {
       auto* cond_value = boost::apply_visitor(
-        expression_visitor{module, builder, named_values, file_path},
+        expression_visitor{module, builder, file_path, scope},
         *node.cond_expression);
 
       if (!cond_value) {
@@ -406,16 +432,14 @@ struct statement_visitor : public boost::static_visitor<void> {
     func->getBasicBlockList().push_back(body_bb);
     builder.SetInsertPoint(body_bb);
 
-    for (auto&& statement : node.body) {
-      boost::apply_visitor(statement_visitor{context,
-                                             module,
-                                             builder,
-                                             named_values,
-                                             file_path,
-                                             alloca_ret,
-                                             end_bb},
-                           statement);
-    }
+    codegen_compound_statement(node.body,
+                               scope,
+                               context,
+                               module,
+                               builder,
+                               file_path,
+                               alloca_ret,
+                               end_bb);
 
     builder.CreateBr(loop_bb);
 
@@ -424,7 +448,7 @@ struct statement_visitor : public boost::static_visitor<void> {
 
     if (node.loop_expression) {
       auto* loop_value = boost::apply_visitor(
-        expression_visitor{module, builder, named_values, file_path},
+        expression_visitor{module, builder, file_path, scope},
         *node.loop_expression);
 
       if (!loop_value) {
@@ -445,25 +469,53 @@ private:
   std::shared_ptr<llvm::Module> module;
   llvm::IRBuilder<>&            builder;
 
-  symbol_table& named_values;
-
   const std::filesystem::path& file_path;
+
+  symbol_table& scope;
 
   llvm::AllocaInst* alloca_ret;
   llvm::BasicBlock* end_bb;
 };
 
+void codegen_compound_statement(const ast::compound_statement& statements,
+                                const symbol_table&            table,
+                                llvm::LLVMContext&             context,
+                                std::shared_ptr<llvm::Module>  module,
+                                llvm::IRBuilder<>&             builder,
+                                const std::filesystem::path&   file_path,
+                                llvm::AllocaInst*              alloca_ret,
+                                llvm::BasicBlock*              end_bb)
+{
+  symbol_table scope = table;
+
+  for (auto&& statement : statements) {
+    // If there is already a Terminator, the code generation of the main
+    // body of the function is terminated on the spot.
+    if (builder.GetInsertBlock()->getTerminator())
+      break;
+
+    boost::apply_visitor(statement_visitor{context,
+                                           module,
+                                           builder,
+                                           file_path,
+                                           scope,
+                                           alloca_ret,
+                                           end_bb},
+                         statement);
+  }
+}
+
 struct program_visitor : public boost::static_visitor<llvm::Function*> {
   program_visitor(llvm::LLVMContext&                 context,
                   std::shared_ptr<llvm::Module>      module,
                   llvm::IRBuilder<>&                 builder,
-                  llvm::legacy::FunctionPassManager& fpm,
-                  const std::filesystem::path&       file_path)
+                  const std::filesystem::path&       file_path,
+                  llvm::legacy::FunctionPassManager& fpm)
     : context{context}
     , module{module}
     , builder{builder}
-    , fpm{fpm}
     , file_path{file_path}
+    , fpm{fpm}
   {
   }
 
@@ -511,12 +563,10 @@ struct program_visitor : public boost::static_visitor<llvm::Function*> {
         true)};
     }
 
+    symbol_table argument_values;
+
     auto* entry_bb = llvm::BasicBlock::Create(context, "entry", func);
     builder.SetInsertPoint(entry_bb);
-
-    symbol_table named_values;
-
-    auto* alloca_ret = create_entry_block_alloca(func, context, "retval");
 
     for (auto& arg : func->args()) {
       // Create an alloca for this variable.
@@ -527,37 +577,31 @@ struct program_visitor : public boost::static_visitor<llvm::Function*> {
       builder.CreateStore(&arg, alloca);
 
       // Add arguments to variable symbol table.
-      named_values.regist(arg.getName().str(), alloca);
+      argument_values.regist(arg.getName().str(), alloca);
     }
 
-    auto* end_bb = llvm::BasicBlock::Create(context, "end");
+    auto* alloca_ret  = create_entry_block_alloca(func, context, "retval");
+    auto* func_end_bb = llvm::BasicBlock::Create(context, "end");
 
-    for (auto&& statement : node.body) {
-      // If there is already a Terminator, the code generation of the main
-      // body of the function is terminated on the spot.
-      if (builder.GetInsertBlock()->getTerminator())
-        break;
-
-      boost::apply_visitor(statement_visitor{context,
-                                             module,
-                                             builder,
-                                             named_values,
-                                             file_path,
-                                             alloca_ret,
-                                             end_bb},
-                           statement);
-    }
+    codegen_compound_statement(node.body,
+                               argument_values,
+                               context,
+                               module,
+                               builder,
+                               file_path,
+                               alloca_ret,
+                               func_end_bb);
 
     // Return 0 if main function has no return.
     if (node.decl.name == "main"
         && !builder.GetInsertBlock()->getTerminator()) {
       builder.CreateStore(llvm::ConstantInt::get(builder.getInt32Ty(), 0),
                           alloca_ret);
-      builder.CreateBr(end_bb);
+      builder.CreateBr(func_end_bb);
     }
 
-    func->getBasicBlockList().push_back(end_bb);
-    builder.SetInsertPoint(end_bb);
+    func->getBasicBlockList().push_back(func_end_bb);
+    builder.SetInsertPoint(func_end_bb);
 
     auto* retval
       = builder.CreateLoad(alloca_ret->getAllocatedType(), alloca_ret);
@@ -582,9 +626,9 @@ private:
   std::shared_ptr<llvm::Module> module;
   llvm::IRBuilder<>&            builder;
 
-  llvm::legacy::FunctionPassManager& fpm;
-
   const std::filesystem::path& file_path;
+
+  llvm::legacy::FunctionPassManager& fpm;
 };
 
 //===----------------------------------------------------------------------===//
@@ -707,7 +751,7 @@ void code_generator::codegen()
 {
   for (auto&& node : ast) {
     boost::apply_visitor(
-      program_visitor{context, module, builder, fpm, file_path},
+      program_visitor{context, module, builder, file_path, fpm},
       node);
   }
 }
