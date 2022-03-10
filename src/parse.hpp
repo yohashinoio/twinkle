@@ -4,7 +4,7 @@
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
  *
- * Copyright (c) 2021 Hiramoto Ittou.
+ * Copyright (c) 2022 Hiramoto Ittou.
  */
 
 #ifndef _2fdb7c8a_93b7_11ec_b909_0242ac120002

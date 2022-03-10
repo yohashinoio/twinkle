@@ -4,7 +4,7 @@
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
  *
- * Copyright (c) 2021 Hiramoto Ittou.
+ * Copyright (c) 2022 Hiramoto Ittou.
  */
 
 #include "pch.hpp"
@@ -31,9 +31,9 @@ struct with_error_handling {
     ++total_errors;
 
     auto&& error_handler = x3::get<x3::error_handler_tag>(context).get();
-    error_handler(
-      x.where(),
-      format_error_message_without_filename("expected: " + x.which()));
+    error_handler(x.where(),
+                  format_error_message_without_filename(
+                    "expected: " + boost::core::demangle(x.which().c_str())));
     return x3::error_handler_result::fail;
   }
 
@@ -85,17 +85,17 @@ const auto assign_binop_to_val = [](auto&& ctx) -> void {
     fusion::at_c<1>(x3::_attr(ctx)) /* right hand side */};
 };
 
-const auto assign_variable_to_val = [](auto&& ctx) {
+const auto assign_variable_to_val = [](auto&& ctx) -> void {
   x3::_val(ctx) = ast::variable_expr{x3::_attr(ctx) /* name */};
 };
 
-const auto assign_function_call_to_val = [](auto&& ctx) {
+const auto assign_function_call_to_val = [](auto&& ctx) -> void {
   x3::_val(ctx)
     = ast::function_call_expr{fusion::at_c<0>(x3::_attr(ctx)) /* callee */,
                               fusion::at_c<1>(x3::_attr(ctx)) /* arguments */};
 };
 
-const auto assign_compound_statement_to_val = [](auto&& ctx) {
+const auto assign_compound_statement_to_val = [](auto&& ctx) -> void {
   x3::_val(ctx) = ast::compound_statement{x3::_attr(ctx)};
 };
 
@@ -215,10 +215,10 @@ BOOST_SPIRIT_DEFINE(assignment,
 // Statement rules
 //===----------------------------------------------------------------------===//
 
+const x3::rule<struct statement_tag, ast::statement> statement{"statement"};
+
 const x3::rule<struct compound_statement_tag, ast::compound_statement>
-           compound_statement{"compound statement"};
-const auto statement
-  = x3::rule<struct statement_tag, ast::statement>{"statement"};
+  compound_statement{"compound statement"};
 
 const auto expression_statement
   = x3::rule<struct expression_statement_tag,
@@ -236,7 +236,7 @@ const auto return_statement
 = x3::lit("ret") > expression > x3::lit(';');
 
 const auto compound_statement_or_statement
-  = x3::rule<struct compound_statement_or_statement_tag,
+  = x3::rule<struct compound_statement_or_statement,
              ast::compound_statement>{"compound statement or statement"}
 = compound_statement[action::assign_compound_statement_to_val]
   | statement[action::assign_compound_statement_to_val];
@@ -245,7 +245,7 @@ const auto if_statement
   = x3::rule<struct if_statement_tag, ast::if_statement>{"if else statement"}
 = x3::lit("if") > x3::lit('(') > expression > x3::lit(')')
   > compound_statement_or_statement
-  >> -(x3::lit("else") > compound_statement_or_statement);
+  > -(x3::lit("else") > compound_statement_or_statement);
 
 const auto for_statement
   = x3::rule<struct for_statement_tag, ast::for_statement>{"for statement"}
@@ -260,7 +260,7 @@ const auto statement_def = x3::lit(';') /* null statements */ | return_statement
                            | for_statement
                            | expression_statement; // TODO: support to block
 
-const auto compound_statement_def = (x3::lit('{') > *statement > x3::lit('}'));
+const auto compound_statement_def = x3::lit('{') > *statement > x3::lit('}');
 
 BOOST_SPIRIT_DEFINE(compound_statement, statement)
 
@@ -347,10 +347,6 @@ struct statement_tag
   , annotate_position {};
 
 struct compound_statement_tag
-  : with_error_handling
-  , annotate_position {};
-
-struct compound_statement_or_statement_tag
   : with_error_handling
   , annotate_position {};
 
