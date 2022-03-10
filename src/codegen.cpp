@@ -590,6 +590,7 @@ codegen_common::codegen_common(const std::filesystem::path& file)
   : context{}
   , module{std::make_shared<llvm::Module>(file.filename().string(), context)}
   , builder{context}
+  , file{file}
 {
 }
 
