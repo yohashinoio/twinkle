@@ -239,7 +239,6 @@ assert 58 "func main() {
 
   /*
   var 123;
-
   */
 
   ret 58;
