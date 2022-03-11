@@ -228,7 +228,7 @@ const auto expression_statement
 const auto variable_def_statement
   = x3::rule<struct variable_def_statement_tag,
              ast::variable_def_statement>{"variable definition"}
-= x3::lit("let") > identifier >> -(x3::lit('=') > expression) > x3::lit(';');
+= x3::lit("var") > identifier >> -(x3::lit('=') > expression) > x3::lit(';');
 
 const auto return_statement
   = x3::rule<struct return_statement_tag,
@@ -290,6 +290,32 @@ const auto function_define
 const auto top_level_stmt = x3::rule<struct top_level_stmt_tag,
                                      ast::top_level_stmt>{"top level statement"}
 = function_declare | function_define;
+
+//===----------------------------------------------------------------------===//
+// Comment rules
+//===----------------------------------------------------------------------===//
+
+const x3::rule<struct block_comment_tag> block_comment{"block comment"};
+
+const auto single_line_comment
+  = x3::rule<struct single_line_comment_tag>{"single line comment"}
+= x3::lit("//") >> *(x3::char_ - x3::eol) >> (x3::eol | x3::eoi);
+
+const auto block_comment_def = x3::lit("/*")
+                               >> *(block_comment | (x3::char_ - x3::lit("*/")))
+                               >> x3::lit("*/");
+
+const auto comment = x3::rule<struct comment_tag>{"comment"}
+= single_line_comment | block_comment;
+
+BOOST_SPIRIT_DEFINE(block_comment)
+
+//===----------------------------------------------------------------------===//
+// Skipper rule
+//===----------------------------------------------------------------------===//
+
+const auto skipper = x3::rule<struct skipper_tag>{"skipper"}
+= x3::space | comment;
 
 //===----------------------------------------------------------------------===//
 // Program rule
@@ -444,7 +470,7 @@ void parser::parse()
   const auto parser = x3::with<x3::error_handler_tag>(std::ref(
     error_handler))[x3::with<position_cache_tag>(positions)[peg::program]];
 
-  const auto success = x3::phrase_parse(first, last, parser, x3::space, ast);
+  const auto success = x3::phrase_parse(first, last, parser, peg::skipper, ast);
 
   if (!success || first != last) {
     throw std::runtime_error{
