@@ -250,8 +250,8 @@ const auto if_statement
 const auto for_statement
   = x3::rule<struct for_statement_tag, ast::for_statement>{"for statement"}
 = x3::lit("for") > x3::lit('(')
-  >> -expression /* TODO: support to statement */ > x3::lit(';')
-  >> -expression /* cond */
+  > -expression /* TODO: support to statement */ > x3::lit(';')
+  > -expression /* cond */
   > x3::lit(';') >> -expression /* loop */ > x3::lit(')')
   > compound_statement_or_statement;
 
