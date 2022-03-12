@@ -16,20 +16,25 @@ namespace miko::codegen
 // Utilities
 //===----------------------------------------------------------------------===//
 
+struct variable_info {
+  llvm::AllocaInst* instance;
+  bool              is_mutable;
+};
+
 struct symbol_table {
-  [[nodiscard]] llvm::AllocaInst*
+  [[nodiscard]] std::optional<variable_info>
   operator[](const std::string& name) const noexcept
   try {
     return named_values.at(name);
   }
   catch (const std::out_of_range&) {
-    return nullptr;
+    return std::nullopt;
   }
 
   // regist stands for register.
-  void regist(const std::string& name, llvm::AllocaInst* value)
+  void regist(const std::string& name, variable_info info)
   {
-    named_values.insert({name, value});
+    named_values.insert({name, info});
   }
 
   // Returns true if the variable is already registered, false otherwise.
@@ -48,7 +53,7 @@ struct symbol_table {
   }
 
 private:
-  std::unordered_map<std::string, llvm::AllocaInst*> named_values;
+  std::unordered_map<std::string, variable_info> named_values;
 };
 
 // Create an alloca instruction in the entry block of
@@ -114,15 +119,21 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
         if (!rhs)
           return nullptr;
 
-        auto* variable = scope[lhs.name];
+        auto var_info = scope[lhs.name];
 
-        if (!variable) {
-          throw std::runtime_error{
-            format_error_message(common.file.string(),
-                                 format("unknown variable name %s", lhs.name))};
+        if (!var_info) {
+          throw std::runtime_error{format_error_message(
+            common.file.string(),
+            format("unknown variable name '%s'", lhs.name))};
         }
 
-        common.builder.CreateStore(rhs, variable);
+        if (!var_info->is_mutable) {
+          throw std::runtime_error{format_error_message(
+            common.file.string(),
+            format("assignment of read-only variable '%s'", lhs.name))};
+        }
+
+        common.builder.CreateStore(rhs, var_info->instance);
         return rhs;
       }
       catch (const boost::bad_get&) {
@@ -173,16 +184,16 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
 
   llvm::Value* operator()(const ast::variable_expr& node) const
   {
-    auto* ainst = scope[node.name];
+    auto var_info = scope[node.name];
 
-    if (!ainst) {
+    if (!var_info) {
       throw std::runtime_error{format_error_message(
         common.file.string(),
         format("unknown variable '%s' referenced", node.name))};
     }
 
-    return common.builder.CreateLoad(ainst->getAllocatedType(),
-                                     ainst,
+    return common.builder.CreateLoad(var_info->instance->getAllocatedType(),
+                                     var_info->instance,
                                      node.name.c_str());
   }
 
@@ -280,8 +291,7 @@ struct statement_visitor : public boost::static_visitor<void> {
 
     auto* function = common.builder.GetInsertBlock()->getParent();
 
-    auto* ainst
-      = create_entry_block_alloca(function, common.context, node.name);
+    auto* inst = create_entry_block_alloca(function, common.context, node.name);
 
     if (node.initializer) {
       auto* initializer
@@ -294,10 +304,11 @@ struct statement_visitor : public boost::static_visitor<void> {
           format("initialization of variable %s failed", node.name))};
       }
 
-      common.builder.CreateStore(initializer, ainst);
+      common.builder.CreateStore(initializer, inst);
     }
 
-    scope.regist(node.name, ainst);
+    scope.regist(node.name,
+                 {inst, *node.keyword == variable_def_keywords_id::mutable_});
   }
 
   void operator()(const ast::if_statement& node) const
@@ -529,15 +540,15 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
 
     for (auto& arg : function->args()) {
       // Create an alloca for this variable.
-      auto* alloca = create_entry_block_alloca(function,
-                                               common.context,
-                                               arg.getName().str());
+      auto* inst = create_entry_block_alloca(function,
+                                             common.context,
+                                             arg.getName().str());
 
       // Store the initial value into the alloca.
-      common.builder.CreateStore(&arg, alloca);
+      common.builder.CreateStore(&arg, inst);
 
       // Add arguments to variable symbol table.
-      argument_values.regist(arg.getName().str(), alloca);
+      argument_values.regist(arg.getName().str(), {inst, false});
     }
 
     // Used to combine returns into one.

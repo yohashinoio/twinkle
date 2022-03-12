@@ -113,17 +113,37 @@ namespace peg
 {
 
 //===----------------------------------------------------------------------===//
+// Symbol table
+//===----------------------------------------------------------------------===//
+
+struct variable_def_keywords_ : x3::symbols<variable_def_keywords_id> {
+  variable_def_keywords_()
+  {
+    // clang-format off
+    add
+      ("mutable", variable_def_keywords_id::mutable_)
+    ;
+    // clang-format on
+  }
+} variable_def_keywords;
+
+//===----------------------------------------------------------------------===//
 // Common rules
 //===----------------------------------------------------------------------===//
 
-const auto identifier = x3::rule<struct identifier, std::string>{"identifier"}
+const auto identifier
+  = x3::rule<struct identifier_tag, std::string>{"identifier"}
 = x3::raw[x3::lexeme[(x3::alpha | x3::lit('_'))
                      >> *(x3::alnum | x3::lit('_'))]];
 
-const auto data_type = x3::rule<struct data_type, std::string>{"data type"}
+const auto keyword = x3::rule<struct keyword_tag, std::string>{"identifier"}
+= x3::raw[x3::lexeme[(x3::alpha | x3::lit('_'))
+                     >> *(x3::alnum | x3::lit('_'))]];
+
+const auto data_type = x3::rule<struct data_type_tag, std::string>{"data type"}
 = x3::string("i32");
 
-const auto integer = x3::rule<struct integer, int>{"integral number"}
+const auto integer = x3::rule<struct integer_tag, int>{"integral number"}
 = x3::int_;
 
 //===----------------------------------------------------------------------===//
@@ -141,28 +161,28 @@ const x3::rule<struct primary_tag, ast::expression>    primary{"primary"};
 const x3::rule<struct expression_tag, ast::expression> expression{"expression"};
 
 const auto assignment_operator
-  = x3::rule<struct assignment_operator, std::string>{"assignment operator"}
+  = x3::rule<struct assignment_operator_tag, std::string>{"assignment operator"}
 = x3::string("=");
 
 const auto equality_operator
-  = x3::rule<struct equality_operator, std::string>{"equality operator"}
+  = x3::rule<struct equality_operator_tag, std::string>{"equality operator"}
 = x3::string("==") | x3::string("!=");
 
 const auto relational_operator
-  = x3::rule<struct relational_operator, std::string>{"relational operator"}
+  = x3::rule<struct relational_operator_tag, std::string>{"relational operator"}
 = x3::string("<=") | x3::string(">=") /* <= and >= must come first */
   | x3::string("<") | x3::string(">");
 
 const auto additive_operator
-  = x3::rule<struct additive_operator, std::string>{"additive operator"}
+  = x3::rule<struct additive_operator_tag, std::string>{"additive operator"}
 = x3::char_("+-")[action::char_to_string];
 
 const auto multitive_operator
-  = x3::rule<struct multitive_operator, std::string>{"multitive operator"}
+  = x3::rule<struct multitive_operator_tag, std::string>{"multitive operator"}
 = x3::char_("*/")[action::char_to_string];
 
 const auto unary_operator
-  = x3::rule<struct unary_operator, std::string>{"unary operator"}
+  = x3::rule<struct unary_operator_tag, std::string>{"unary operator"}
 = x3::char_("+-")[action::char_to_string];
 
 const auto argument_list
@@ -228,7 +248,8 @@ const auto expression_statement
 const auto variable_def_statement
   = x3::rule<struct variable_def_statement_tag,
              ast::variable_def_statement>{"variable definition"}
-= x3::lit("var") > identifier > -(x3::lit('=') > expression) > x3::lit(';');
+= x3::lit("var") > -variable_def_keywords > identifier
+  > -(x3::lit('=') > expression) > x3::lit(';');
 
 const auto return_statement
   = x3::rule<struct return_statement_tag,

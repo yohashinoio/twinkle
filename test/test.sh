@@ -108,11 +108,11 @@ assert 58 "func main() {
   ret a + 58;
 }"
 assert 58 "func main() {
-  var a; a = 48 + 10;
+  var mutable a; a = 48 + 10;
   ret a * 2 / 2;
 }"
 assert 58 "func main() {
-  var a = 4810;
+  var mutable a = 4810;
   a = a / 2 / 5;
   ret a * 10 - 4810 + 58;
 }"
@@ -147,7 +147,7 @@ assert 58 "func main() {
     if (b == 4810)
       ret 1;
     else if (b == 110) {
-      var i;
+      var mutable i;
       for (i = 0; i < 58; i = i + 1) ;
       ret i;
     }
@@ -191,11 +191,11 @@ func main()
 
 # For statement
 assert 58 "func main() {
-  var i; var n = 0;
+  var mutable i; var mutable n = 0;
   for (i = 0; i < 10; i = i + 1) {
     n = n + 1;
   }
-  var j;
+  var mutable j;
   for (j = 0; j < 48; j = j + 1)
     n = n + 1;
   ret n;
@@ -208,7 +208,7 @@ assert 58 "func main() {
   ret i;
 }"
 assert 58 "func main() {
-  var i = 0;
+  var mutable i = 0;
   for (;; i = i + 1) {
     if (i == 58)
       ret i;
@@ -216,7 +216,7 @@ assert 58 "func main() {
   ret 123;
 }"
 assert 110 "func main() {
-  var i; var j; var n = 0;
+  var mutable i; var mutable j; var mutable n = 0;
   for (i = 0; i < 10; i = i + 1) {
     n = n + 1;
     for (j = 0; j < 10; j = j + 1)
@@ -225,7 +225,7 @@ assert 110 "func main() {
   ret n;
 }"
 assert 58 "func main() {
-  var i;
+  var mutable i;
   for (i = 0; i < 4810; i = i + 1) {
     var n = i;
     if (n == 58)

@@ -15,6 +15,7 @@
 #endif // _MSC_VER > 1000
 
 #include "pch.hpp"
+#include "utility.hpp"
 
 namespace x3 = boost::spirit::x3;
 
@@ -108,10 +109,12 @@ using statement = boost::variant<nil,
 using compound_statement = std::vector<statement>;
 
 struct variable_def_statement : x3::position_tagged {
-  std::string               name;
-  std::optional<expression> initializer;
+  std::optional<variable_def_keywords_id> keyword;
+  std::string                             name;
+  std::optional<expression>               initializer;
 
-  variable_def_statement(const std::string&               name,
+  variable_def_statement(const std::optional<variable_def_keywords_id>& keyword,
+                         const std::string&                             name,
                          const std::optional<expression>& initializer);
 
   variable_def_statement();

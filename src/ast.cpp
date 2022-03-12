@@ -78,15 +78,18 @@ function_call_expr::function_call_expr()
 //===----------------------------------------------------------------------===//
 
 variable_def_statement::variable_def_statement(
-  const std::string&               name,
-  const std::optional<expression>& initializer)
-  : name{name}
+  const std::optional<variable_def_keywords_id>& keyword,
+  const std::string&                             name,
+  const std::optional<expression>&               initializer)
+  : keyword{keyword}
+  , name{name}
   , initializer{initializer}
 {
 }
 
 variable_def_statement::variable_def_statement()
-  : name{}
+  : keyword{}
+  , name{}
   , initializer{}
 {
 }
