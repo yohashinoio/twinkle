@@ -102,35 +102,35 @@ assert  58 "extern putchar(ch); func main() {
   ret 48 + 10;
 }"
 
-# Variable
+# letiable
 assert 58 "func main() {
-  var a = 0;
+  let a = 0;
   ret a + 58;
 }"
 assert 58 "func main() {
-  var mutable a; a = 48 + 10;
+  let mutable a; a = 48 + 10;
   ret a * 2 / 2;
 }"
 assert 58 "func main() {
-  var mutable a = 4810;
+  let mutable a = 4810;
   a = a / 2 / 5;
   ret a * 10 - 4810 + 58;
 }"
 assert 58 "func main() {
-  var a = 24 * 2;
-  var b = 5 * 2; ret a + b;
+  let a = 24 * 2;
+  let b = 5 * 2; ret a + b;
 }"
 
 # If statement
 assert 48 "func main() {
-  var n = 4;
+  let n = 4;
   if (n == 4)
     ret 48;
   else
     ret 10;
 }"
 assert 10 "func main() {
-  var n = 4;
+  let n = 4;
   if (n != 4) {
     ret 48;
   }
@@ -141,13 +141,13 @@ assert 10 "func main() {
     ret 10;
 }"
 assert 58 "func main() {
-  var a = 4810;
+  let a = 4810;
   if (a == 4810) {
-    var b = 110;
+    let b = 110;
     if (b == 4810)
       ret 1;
     else if (b == 110) {
-      var mutable i;
+      let mutable i;
       for (i = 0; i < 58; i = i + 1) ;
       ret i;
     }
@@ -157,7 +157,7 @@ assert 58 "func main() {
   ret 3;
 }"
 assert 58 "func main() {
-  var n = 4810;
+  let n = 4810;
   if (n != 4810)
     ret 0;
   else if (n == 4810) {
@@ -169,7 +169,7 @@ assert 58 "func main() {
     ret 123;
 }"
 assert 58 "func main() {
-  var n = 58;
+  let n = 58;
   if (1) {}
   if (1) ;
   ret n;
@@ -191,24 +191,24 @@ func main()
 
 # For statement
 assert 58 "func main() {
-  var mutable i; var mutable n = 0;
+  let mutable i; let mutable n = 0;
   for (i = 0; i < 10; i = i + 1) {
     n = n + 1;
   }
-  var mutable j;
+  let mutable j;
   for (j = 0; j < 48; j = j + 1)
     n = n + 1;
   ret n;
 }"
 assert 58 "func main() {
-  var i = 58;
+  let i = 58;
 
   for (; i < 10; ) ;
 
   ret i;
 }"
 assert 58 "func main() {
-  var mutable i = 0;
+  let mutable i = 0;
   for (;; i = i + 1) {
     if (i == 58)
       ret i;
@@ -216,7 +216,7 @@ assert 58 "func main() {
   ret 123;
 }"
 assert 110 "func main() {
-  var mutable i; var mutable j; var mutable n = 0;
+  let mutable i; let mutable j; let mutable n = 0;
   for (i = 0; i < 10; i = i + 1) {
     n = n + 1;
     for (j = 0; j < 10; j = j + 1)
@@ -225,9 +225,9 @@ assert 110 "func main() {
   ret n;
 }"
 assert 58 "func main() {
-  var mutable i;
+  let mutable i;
   for (i = 0; i < 4810; i = i + 1) {
-    var n = i;
+    let n = i;
     if (n == 58)
       ret n;
   }
@@ -238,7 +238,7 @@ assert 58 "func main() {
   // return abc;
 
   /*
-  var 123;
+  let 123;
   */
 
   ret 58;

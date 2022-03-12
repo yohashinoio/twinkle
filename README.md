@@ -36,6 +36,28 @@
 This section on Operators is based on "Operators in C and C++" from wikipedia.<br/>
 Thank you!
 
+## Comments
+### Single line comment
+```rust
+func main()
+{
+  // ret 123;
+  // If not return, main function returns 0.
+}
+```
+
+### Block comment
+```rust
+func main()
+{
+  /*
+  The only ones who can shoot are those who are prepared to be shot.
+  ― Lelouch Vi Britannia
+  */
+  ret 0;
+}
+```
+
 ## Declarations and definitions
 ### Functions
 ```rust
@@ -56,12 +78,14 @@ func twice(n) // Definition
 ```rust
 func main()
 {
-  // Declare and define int variables i and j.
-  let i;
-  let j = 58;
+  let i; // OK. Constant. The value that originally existed in memory is stored.
+  i = 58; // NG
 
-  ret i; // i is undefined, so it is a bullshit value!
-  ret j; // OK
+  let j = 48; // OK. Constant.
+  j = 58; // NG
+
+  let mutable k = 48; // OK Mutable
+  k = 58; // OK
 }
 ```
 

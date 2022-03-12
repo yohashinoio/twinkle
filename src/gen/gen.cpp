@@ -308,8 +308,15 @@ struct statement_visitor : public boost::static_visitor<void> {
       common.builder.CreateStore(initializer, inst);
     }
 
-    scope.regist(node.name,
-                 {inst, *node.qualifier == variable_qualifier_id::mutable_});
+    if (!node.qualifier) {
+      // consttant variable.
+      scope.regist(node.name, {inst, false});
+    }
+
+    if (*node.qualifier == variable_qualifier_id::mutable_) {
+      // mutable variable.
+      scope.regist(node.name, {inst, true});
+    }
   }
 
   void operator()(const ast::if_statement& node) const
