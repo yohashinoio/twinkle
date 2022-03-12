@@ -41,8 +41,8 @@ Thank you!
 ```rust
 func main()
 {
-  // ret 123;
-  // If not return, main function returns 0.
+  // This is a comment.
+  ret 0;
 }
 ```
 
