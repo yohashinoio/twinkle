@@ -22,40 +22,42 @@ message(STATUS "Using .cmake in: ${LLVM_DIR}")
 separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
 add_definitions(${LLVM_DEFINITIONS})
 
-add_executable(
-  mikoc
-  main.cpp
-  parse.cpp
-  codegen.cpp
-  utility.cpp
-  ast.cpp
-)
-
-target_precompile_headers(mikoc PRIVATE pch.hpp)
-
-target_include_directories(
-  mikoc
-  PRIVATE
-  ${Boost_INCLUDE_DIRS}
-  ${LLVM_INCLUDE_DIRS}
-)
-
 execute_process(COMMAND llvm-config --libs all
                 OUTPUT_VARIABLE CONFIG_OUTPUT)
 string(REGEX REPLACE "[ \t]*[\r\n]+[ \t]*" ";" CONFIG_OUTPUT ${CONFIG_OUTPUT})
 
+include_directories(
+  ${CMAKE_SOURCE_DIR}/src
+  ${Boost_INCLUDE_DIRS}
+  ${LLVM_INCLUDE_DIRS}
+)
+
+add_executable(
+  ${CMAKE_PROJECT_NAME}
+  main.cpp
+)
+
+target_precompile_headers(${CMAKE_PROJECT_NAME} PRIVATE pch/pch.hpp)
+
+add_subdirectory(ast)
+add_subdirectory(gen)
+add_subdirectory(parse)
+add_subdirectory(util)
 
 target_link_libraries(
-  mikoc
+  ${CMAKE_PROJECT_NAME}
   PRIVATE
-  ${LLVM_LIBS}
   Threads::Threads
   ${Boost_LIBRARIES}
   ${CONFIG_OUTPUT}
+  ast
+  gen
+  parse
+  util
 )
 
 target_compile_options(
-  mikoc
+  ${CMAKE_PROJECT_NAME}
   PRIVATE
   -Wall
   -Wextra

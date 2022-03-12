@@ -7,7 +7,7 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include "ast.hpp"
+#include <ast/ast.hpp>
 
 namespace x3 = boost::spirit::x3;
 

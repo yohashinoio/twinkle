@@ -14,8 +14,8 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include "ast.hpp"
-#include "utility.hpp"
+#include <ast/ast.hpp>
+#include <util/util.hpp>
 
 namespace miko::parse
 {

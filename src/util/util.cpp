@@ -7,8 +7,8 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include "pch.hpp"
-#include "utility.hpp"
+#include <pch/pch.hpp>
+#include <util/util.hpp>
 #include <fstream>
 
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))

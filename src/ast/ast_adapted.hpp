@@ -10,8 +10,8 @@
 #ifndef _4a13c82a_9536_11ec_b909_0242ac120002
 #define _4a13c82a_9536_11ec_b909_0242ac120002
 
-#include "pch.hpp"
-#include "ast.hpp"
+#include <pch/pch.hpp>
+#include <ast/ast.hpp>
 
 namespace ast = miko::ast;
 

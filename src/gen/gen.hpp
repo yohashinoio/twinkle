@@ -14,9 +14,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include "pch.hpp"
-#include "ast.hpp"
-#include "utility.hpp"
+#include <pch/pch.hpp>
+#include <ast/ast.hpp>
+#include <util/util.hpp>
 
 namespace miko::codegen
 {

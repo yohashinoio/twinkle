@@ -7,9 +7,9 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include "parse.hpp"
-#include "codegen.hpp"
-#include "utility.hpp"
+#include <parse/parse.hpp>
+#include <gen/gen.hpp>
+#include <util/util.hpp>
 
 namespace program_options = boost::program_options;
 

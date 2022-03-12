@@ -7,9 +7,9 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include "pch.hpp"
-#include "ast_adapted.hpp"
-#include "parse.hpp"
+#include <pch/pch.hpp>
+#include <ast/ast_adapted.hpp>
+#include <parse/parse.hpp>
 
 namespace x3     = boost::spirit::x3;
 namespace fusion = boost::fusion;

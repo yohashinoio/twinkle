@@ -7,7 +7,7 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include "codegen.hpp"
+#include <gen/gen.hpp>
 
 namespace miko::codegen
 {

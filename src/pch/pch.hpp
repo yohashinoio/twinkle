@@ -14,7 +14,7 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include "format.hpp"
+#include <util/format.hpp>
 
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Constants.h>
