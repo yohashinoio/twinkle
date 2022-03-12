@@ -43,25 +43,25 @@ template <typename T,
 
 // format function internal.
 template <typename... Args>
-[[nodiscard]] static auto format_internal(const std::string& format,
+[[nodiscard]] static auto format_internal(const std::string& fmt,
                                           Args&&... args)
 {
-  const int string_len
-    = std::snprintf(nullptr, 0, format.c_str(), std::forward<Args>(args)...);
+  const int str_len
+    = std::snprintf(nullptr, 0, fmt.c_str(), std::forward<Args>(args)...);
 
-  if (string_len < 0) {
+  if (str_len < 0) {
     // std::snprintf failed.
     BOOST_ASSERT(0);
   }
 
   // null termination
-  std::size_t buf_size = string_len + sizeof(char);
+  std::size_t buf_size = str_len + sizeof(char);
 
   std::unique_ptr<char[]> buf(new char[buf_size]);
 
-  std::snprintf(buf.get(), buf_size, format.c_str(), args...);
+  std::snprintf(buf.get(), buf_size, fmt.c_str(), args...);
 
-  return std::string(buf.get(), buf.get() + string_len);
+  return std::string(buf.get(), buf.get() + str_len);
 }
 
 namespace miko

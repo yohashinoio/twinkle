@@ -8,6 +8,7 @@
  */
 
 #include <gen/gen.hpp>
+#include <parse/enum.hpp>
 
 namespace miko::codegen
 {
@@ -308,7 +309,7 @@ struct statement_visitor : public boost::static_visitor<void> {
     }
 
     scope.regist(node.name,
-                 {inst, *node.keyword == variable_def_keywords_id::mutable_});
+                 {inst, *node.qualifier == variable_qualifier_id::mutable_});
   }
 
   void operator()(const ast::if_statement& node) const

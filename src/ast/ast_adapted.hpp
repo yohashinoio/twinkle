@@ -51,7 +51,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   ast::variable_def_statement,
-  (std::optional<miko::variable_def_keywords_id>, keyword)
+  (std::optional<miko::variable_qualifier_id>, qualifier)
   (std::string, name)
   (std::optional<ast::expression>, initializer)
 )

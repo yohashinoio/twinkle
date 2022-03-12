@@ -10,6 +10,7 @@
 #include <pch/pch.hpp>
 #include <ast/ast_adapted.hpp>
 #include <parse/parse.hpp>
+#include <parse/enum.hpp>
 
 namespace x3     = boost::spirit::x3;
 namespace fusion = boost::fusion;
@@ -116,16 +117,16 @@ namespace peg
 // Symbol table
 //===----------------------------------------------------------------------===//
 
-struct variable_def_keywords_ : x3::symbols<variable_def_keywords_id> {
-  variable_def_keywords_()
+struct variable_qualifier_tag : x3::symbols<variable_qualifier_id> {
+  variable_qualifier_tag()
   {
     // clang-format off
     add
-      ("mutable", variable_def_keywords_id::mutable_)
+      ("mutable", variable_qualifier_id::mutable_)
     ;
     // clang-format on
   }
-} variable_def_keywords;
+} variable_qualifier;
 
 //===----------------------------------------------------------------------===//
 // Common rules
@@ -248,7 +249,7 @@ const auto expression_statement
 const auto variable_def_statement
   = x3::rule<struct variable_def_statement_tag,
              ast::variable_def_statement>{"variable definition"}
-= x3::lit("var") > -variable_def_keywords > identifier
+= x3::lit("var") > -variable_qualifier > identifier
   > -(x3::lit('=') > expression) > x3::lit(';');
 
 const auto return_statement
