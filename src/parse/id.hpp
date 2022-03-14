@@ -1,5 +1,5 @@
 /**
- * enum.hpp
+ * id.hpp
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -14,17 +14,22 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-namespace miko
+namespace miko::id
 {
 
-enum class variable_qualifier_id {
+enum class data_type {
+  i32,
+  boolean,
+};
+
+enum class variable_qualifier {
   mutable_,
 };
 
-enum class function_linkage_id {
+enum class function_linkage {
   private_,
 };
 
-} // namespace miko
+} // namespace miko::id
 
 #endif

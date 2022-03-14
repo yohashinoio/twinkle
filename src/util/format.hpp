@@ -14,9 +14,6 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#pragma GCC diagnostic   ignored "-Wformat-security"
-#pragma clang diagnostic ignored "-Wformat-security"
-
 #include <boost/assert.hpp>
 #include <type_traits>
 #include <memory>
@@ -41,6 +38,9 @@ template <typename T,
   return std::forward<T>(value);
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-security"
+
 // format function internal.
 template <typename... Args>
 [[nodiscard]] static auto format_internal(const std::string& fmt,
@@ -63,6 +63,8 @@ template <typename... Args>
 
   return std::string(buf.get(), buf.get() + str_len);
 }
+
+#pragma GCC diagnostic pop
 
 namespace miko
 {

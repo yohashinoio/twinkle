@@ -78,9 +78,9 @@ function_call_expr::function_call_expr()
 //===----------------------------------------------------------------------===//
 
 variable_def_statement::variable_def_statement(
-  const std::optional<variable_qualifier_id>& qualifier,
-  const std::string&                          name,
-  const std::optional<expression>&            initializer)
+  const std::optional<id::variable_qualifier>& qualifier,
+  const std::string&                           name,
+  const std::optional<expression>&             initializer)
   : qualifier{qualifier}
   , name{name}
   , initializer{initializer}
@@ -145,18 +145,22 @@ for_statement::for_statement()
 //===----------------------------------------------------------------------===//
 
 function_declare::function_declare(
-  const std::optional<function_linkage_id>& linkage,
-  const std::string&                        name,
-  const std::vector<std::string>&           args)
+  const std::optional<id::function_linkage>& linkage,
+  const std::string&                         name,
+  const std::vector<std::string>&            args,
+  const id::data_type                        return_type)
   : linkage{linkage}
   , name{name}
   , args{args}
+  , return_type{return_type}
 {
 }
 
 function_declare::function_declare()
-  : name{}
+  : linkage{linkage}
+  , name{}
   , args{}
+  , return_type{return_type}
 {
 }
 

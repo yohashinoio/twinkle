@@ -8,7 +8,7 @@
  */
 
 #include <gen/gen.hpp>
-#include <parse/enum.hpp>
+#include <parse/id.hpp>
 
 namespace miko::codegen
 {
@@ -312,7 +312,7 @@ struct statement_visitor : public boost::static_visitor<void> {
       // consttant variable.
       scope.regist(node.name, {inst, false});
     }
-    else if (*node.qualifier == variable_qualifier_id::mutable_) {
+    else if (*node.qualifier == id::variable_qualifier::mutable_) {
       // mutable variable.
       scope.regist(node.name, {inst, true});
     }
@@ -505,9 +505,10 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
     std::vector<llvm::Type*> param_types(node.args.size(),
                                          common.builder.getInt32Ty());
 
-    auto* function_type = llvm::FunctionType::get(common.builder.getInt32Ty(),
-                                                  param_types,
-                                                  false);
+    auto* function_type
+      = llvm::FunctionType::get(common.data_type_to_llvm_type(node.return_type),
+                                param_types,
+                                false);
 
     llvm::Function* function;
     if (!node.linkage) {
@@ -517,7 +518,7 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
                                         node.name,
                                         common.module.get());
     }
-    else if (node.linkage == function_linkage_id::private_) {
+    else if (node.linkage == id::function_linkage::private_) {
       // Internal linkage
       function = llvm::Function::Create(function_type,
                                         llvm::Function::InternalLinkage,
@@ -624,6 +625,20 @@ codegen_common::codegen_common(const std::filesystem::path& file)
   , builder{context}
   , file{file}
 {
+}
+
+// Returns nullptr if none of the types apply
+[[nodiscard]] llvm::Type*
+codegen_common::data_type_to_llvm_type(const id::data_type type)
+{
+  switch (type) {
+  case id::data_type::i32:
+    return builder.getInt32Ty();
+  case id::data_type::boolean:
+    return builder.getInt1Ty();
+  }
+
+  return nullptr;
 }
 
 code_generator::code_generator(const ast::program&          ast,

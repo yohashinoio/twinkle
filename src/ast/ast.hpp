@@ -15,7 +15,7 @@
 #endif // _MSC_VER > 1000
 
 #include <pch/pch.hpp>
-#include <parse/enum.hpp>
+#include <parse/id.hpp>
 
 namespace x3 = boost::spirit::x3;
 
@@ -109,12 +109,12 @@ using statement = boost::variant<nil,
 using compound_statement = std::vector<statement>;
 
 struct variable_def_statement : x3::position_tagged {
-  std::optional<variable_qualifier_id> qualifier;
-  std::string                          name;
-  std::optional<expression>            initializer;
+  std::optional<id::variable_qualifier> qualifier;
+  std::string                           name;
+  std::optional<expression>             initializer;
 
-  variable_def_statement(const std::optional<variable_qualifier_id>& qualifier,
-                         const std::string&                          name,
+  variable_def_statement(const std::optional<id::variable_qualifier>& qualifier,
+                         const std::string&                           name,
                          const std::optional<expression>& initializer);
 
   variable_def_statement();
@@ -166,13 +166,15 @@ using top_level_stmt = boost::variant<nil, function_declare, function_define>;
 using program = std::vector<top_level_stmt>;
 
 struct function_declare : x3::position_tagged {
-  std::optional<function_linkage_id> linkage;
-  std::string                        name;
-  std::vector<std::string>           args;
+  std::optional<id::function_linkage> linkage;
+  std::string                         name;
+  std::vector<std::string>            args;
+  id::data_type                       return_type;
 
-  function_declare(const std::optional<function_linkage_id>& linkage,
-                   const std::string&                        name,
-                   const std::vector<std::string>&           args);
+  function_declare(const std::optional<id::function_linkage>& linkage,
+                   const std::string&                         name,
+                   const std::vector<std::string>&            args,
+                   const id::data_type                        return_type);
 
   function_declare();
 };

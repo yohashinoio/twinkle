@@ -10,7 +10,7 @@
 #include <pch/pch.hpp>
 #include <ast/ast_adapted.hpp>
 #include <parse/parse.hpp>
-#include <parse/enum.hpp>
+#include <parse/id.hpp>
 
 namespace x3     = boost::spirit::x3;
 namespace fusion = boost::fusion;
@@ -117,27 +117,39 @@ namespace peg
 // Symbol table
 //===----------------------------------------------------------------------===//
 
-struct variable_qualifier_tag : x3::symbols<variable_qualifier_id> {
-  variable_qualifier_tag()
+struct data_type_symbols_tag : x3::symbols<id::data_type> {
+  data_type_symbols_tag()
   {
     // clang-format off
     add
-      ("mutable", variable_qualifier_id::mutable_)
+      ("i32", id::data_type::i32)
+      ("bool", id::data_type::boolean)
     ;
     // clang-format on
   }
-} variable_qualifier;
+} data_type_symbols;
 
-struct function_linkage_tag : x3::symbols<function_linkage_id> {
-  function_linkage_tag()
+struct variable_qualifier_symbols_tag : x3::symbols<id::variable_qualifier> {
+  variable_qualifier_symbols_tag()
   {
     // clang-format off
     add
-      ("private", function_linkage_id::private_)
+      ("mutable", id::variable_qualifier::mutable_)
     ;
     // clang-format on
   }
-} function_linkage;
+} variable_qualifier_symbols;
+
+struct function_linkage_symbols_tag : x3::symbols<id::function_linkage> {
+  function_linkage_symbols_tag()
+  {
+    // clang-format off
+    add
+      ("private", id::function_linkage::private_)
+    ;
+    // clang-format on
+  }
+} function_linkage_symbols;
 
 //===----------------------------------------------------------------------===//
 // Common rules
@@ -152,8 +164,18 @@ const auto keyword = x3::rule<struct keyword_tag, std::string>{"identifier"}
 = x3::raw[x3::lexeme[(x3::alpha | x3::lit('_'))
                      >> *(x3::alnum | x3::lit('_'))]];
 
-const auto data_type = x3::rule<struct data_type_tag, std::string>{"data type"}
-= x3::string("i32");
+const auto data_type
+  = x3::rule<struct data_type_tag, id::data_type>{"data type"}
+= data_type_symbols;
+
+const auto variable_qualifier
+  = x3::rule<struct variable_qualifier_tag,
+             id::variable_qualifier>{"variable qualifier"}
+= variable_qualifier_symbols;
+
+const auto function_linkage = x3::rule<struct function_linkage_tag,
+                                       id::function_linkage>{"function linkage"}
+= function_linkage_symbols;
 
 const auto integer = x3::rule<struct integer_tag, int>{"integral number"}
 = x3::int_;
@@ -308,7 +330,8 @@ const auto parameter_list = x3::rule<struct parameter_list_tag,
 const auto function_proto
   = x3::rule<struct function_proto_tag,
              ast::function_declare>{"function prototype"}
-= -function_linkage > identifier > x3::lit('(') > parameter_list > x3::lit(')');
+= -function_linkage > identifier > x3::lit('(') > parameter_list > x3::lit(')')
+  > x3::lit("->") > data_type;
 
 const auto function_declare
   = x3::rule<struct function_declare_tag,
@@ -356,6 +379,34 @@ const auto skipper = x3::rule<struct skipper_tag>{"skipper"}
 
 const auto program = x3::rule<struct program_tag, ast::program>{"program"}
 = *top_level_stmt > x3::eoi;
+
+//===----------------------------------------------------------------------===//
+// Common tags
+//===----------------------------------------------------------------------===//
+
+struct identifier_tag
+  : with_error_handling
+  , annotate_position {};
+
+struct keyword_tag
+  : with_error_handling
+  , annotate_position {};
+
+struct data_type_tag
+  : with_error_handling
+  , annotate_position {};
+
+struct variable_qualifier_tag
+  : with_error_handling
+  , annotate_position {};
+
+struct function_linkage_tag
+  : with_error_handling
+  , annotate_position {};
+
+struct integer_tag
+  : with_error_handling
+  , annotate_position {};
 
 //===----------------------------------------------------------------------===//
 // Expression tags
