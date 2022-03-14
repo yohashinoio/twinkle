@@ -19,6 +19,7 @@ namespace miko::id
 
 enum class data_type {
   i32,
+  u32,
   boolean,
 };
 

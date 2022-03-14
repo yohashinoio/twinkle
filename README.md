@@ -75,10 +75,10 @@ Thank you!
 ```rust
 func main() -> i32
 {
-  let mutable a: i8 = 2147483647; // Max
+  let mutable a: i32 = 2147483647; // Max
   a = -2147483648; // Min
 
-  let mutable b: u8 = 4294967295; // Max
+  let mutable b: u32 = 4294967295; // Max
   b = 0; // Min
 }
 ```
