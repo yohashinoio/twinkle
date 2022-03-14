@@ -3,7 +3,7 @@
 </div>
 
 ## Operators
-### Arithmetic operators
+### Arithmetic Operators
 | Operator name  | Syntax |
 | -------------- | ------ |
 | Addition       | a + b  |
@@ -13,7 +13,7 @@
 | Unary plus     | +a     |
 | Unary minus    | -a     |
 
-### Comparison operators/relational operators
+### Comparison Operators/Relational Operators
 | Operator name            | Syntax  |
 | ------------------------ | ------- |
 | Equal to                 | a == b  |
@@ -23,12 +23,12 @@
 | Greater than or equal to | a >= b  |
 | Less than or equal to    | a <= b |
 
-### Assignment operators
+### Assignment Operators
 | Operator name     | Syntax |
 | ----------------- | ------ |
 | Direct assignment | a = b  |
 
-### Other operators
+### Other Operators
 | Operator name | Syntax    |
 | ------------- | --------- |
 | Function call | a(a1, a2) |
@@ -37,7 +37,7 @@ This section on Operators is based on "Operators in C and C++" from wikipedia.<b
 Thank you!
 
 ## Comments
-### Single line comment
+### Single Line Comment
 ```rust
 func main()
 {
@@ -46,7 +46,7 @@ func main()
 }
 ```
 
-### Block comment
+### Block Comment
 ```rust
 func main()
 {
@@ -58,7 +58,7 @@ func main()
 }
 ```
 
-## Declarations and definitions
+## Declarations And Definitions
 ### Functions
 ```rust
 extern twice(n); // Declaration
@@ -73,7 +73,6 @@ func twice(n) // Definition
   ret n * 2;
 }
 ```
-
 ### Variables
 ```rust
 func main()
@@ -89,36 +88,50 @@ func main()
 }
 ```
 
+## Linkage
+### Functions
+```rust
+func twice(n) // External linkage
+{
+  ret n * 2;
+}
+
+func private thrice(n) // Internal linkage
+{
+  ret n * 3;
+}
+```
+
 ## Statements
-### Expression statements
+### Expression Statement
 ```peg
 expression? ';'
 ```
 
-### Compound statements
+### Compound Statement
 ```peg
 '{' *statement '}'
 ```
 
-### Selection statements
+### Selection Statement
 ```peg
 "if" '(' condition ')'
   (compound-statement | statement)
 ```
 
-### Iteration statements
+### Iteration Statement
 ```peg
 "for" '(' expression? ';' condition? ';' expression? ')'
   (compound-statement | statement)
 ```
 
-### Jump statements
+### Jump Statement
 ```peg
 "ret" expression ';'
 ```
 
 ## Examples
-### Fibonacci numbers
+### Fibonacci Number
 ```rust
 func fib(n)
 {
@@ -145,7 +158,7 @@ func main()
 
 - [きつねさんでもわかるLLVM](https://tatsu-zine.com/books/llvm): あらゆる可能性を秘めたコンパイラ基盤として注目されているLLVM。本書はコンパイラを実際に作りながらLLVMのフロントエンドからバックエンドまでを幅広く解説した世界初(!?)のLLVM解説本です。
 
-Thank you all!
+Thank you!
 
 ## License
 This project is available under the Apache-2.0 license.<br/>
