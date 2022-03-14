@@ -166,11 +166,13 @@ using top_level_stmt = boost::variant<nil, function_declare, function_define>;
 using program = std::vector<top_level_stmt>;
 
 struct function_declare : x3::position_tagged {
-  std::string              name;
-  std::vector<std::string> args;
+  std::optional<function_linkage_id> linkage;
+  std::string                        name;
+  std::vector<std::string>           args;
 
-  function_declare(const std::string&              name,
-                   const std::vector<std::string>& args);
+  function_declare(const std::optional<function_linkage_id>& linkage,
+                   const std::string&                        name,
+                   const std::vector<std::string>&           args);
 
   function_declare();
 };

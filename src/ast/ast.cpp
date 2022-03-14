@@ -144,9 +144,12 @@ for_statement::for_statement()
 // Top level statement abstract syntax tree
 //===----------------------------------------------------------------------===//
 
-function_declare::function_declare(const std::string&              name,
-                                   const std::vector<std::string>& args)
-  : name{name}
+function_declare::function_declare(
+  const std::optional<function_linkage_id>& linkage,
+  const std::string&                        name,
+  const std::vector<std::string>&           args)
+  : linkage{linkage}
+  , name{name}
   , args{args}
 {
 }

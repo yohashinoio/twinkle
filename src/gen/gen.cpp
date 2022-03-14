@@ -312,8 +312,7 @@ struct statement_visitor : public boost::static_visitor<void> {
       // consttant variable.
       scope.regist(node.name, {inst, false});
     }
-
-    if (*node.qualifier == variable_qualifier_id::mutable_) {
+    else if (*node.qualifier == variable_qualifier_id::mutable_) {
       // mutable variable.
       scope.regist(node.name, {inst, true});
     }
@@ -510,17 +509,26 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
                                                   param_types,
                                                   false);
 
-    auto* function = llvm::Function::Create(function_type,
-                                            llvm::Function::ExternalLinkage,
-                                            node.name,
-                                            common.module.get());
+    llvm::Function* function;
+    if (!node.linkage) {
+      // External linkage
+      function = llvm::Function::Create(function_type,
+                                        llvm::Function::ExternalLinkage,
+                                        node.name,
+                                        common.module.get());
+    }
+    else if (node.linkage == function_linkage_id::private_) {
+      // Internal linkage
+      function = llvm::Function::Create(function_type,
+                                        llvm::Function::InternalLinkage,
+                                        node.name,
+                                        common.module.get());
+    }
 
     // Set names for all arguments.
-    {
-      std::size_t idx = 0;
-      for (auto&& arg : function->args())
-        arg.setName(node.args[idx++]);
-    }
+    std::size_t idx = 0;
+    for (auto&& arg : function->args())
+      arg.setName(node.args[idx++]);
 
     return function;
   }

@@ -18,8 +18,11 @@ namespace miko
 {
 
 enum class variable_qualifier_id {
-  nil,
   mutable_,
+};
+
+enum class function_linkage_id {
+  private_,
 };
 
 } // namespace miko

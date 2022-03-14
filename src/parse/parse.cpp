@@ -128,6 +128,17 @@ struct variable_qualifier_tag : x3::symbols<variable_qualifier_id> {
   }
 } variable_qualifier;
 
+struct function_linkage_tag : x3::symbols<function_linkage_id> {
+  function_linkage_tag()
+  {
+    // clang-format off
+    add
+      ("private", function_linkage_id::private_)
+    ;
+    // clang-format on
+  }
+} function_linkage;
+
 //===----------------------------------------------------------------------===//
 // Common rules
 //===----------------------------------------------------------------------===//
@@ -297,7 +308,7 @@ const auto parameter_list = x3::rule<struct parameter_list_tag,
 const auto function_proto
   = x3::rule<struct function_proto_tag,
              ast::function_declare>{"function prototype"}
-= identifier > x3::lit('(') > parameter_list > x3::lit(')');
+= -function_linkage > identifier > x3::lit('(') > parameter_list > x3::lit(')');
 
 const auto function_declare
   = x3::rule<struct function_declare_tag,

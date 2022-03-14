@@ -82,6 +82,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   ast::function_declare,
+  (std::optional<miko::function_linkage_id>, linkage)
   (std::string, name)
   (std::vector<std::string>, args)
 )
