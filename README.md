@@ -2,6 +2,30 @@
     <h1>The Miko Programming Language</h1>
 </div>
 
+- [Operators](#operators)
+  - [Arithmetic Operators](#arithmetic-operators)
+  - [Comparison Operators/Relational Operators](#comparison-operatorsrelational-operators)
+  - [Assignment Operators](#assignment-operators)
+  - [Other Operators](#other-operators)
+- [Comments](#comments)
+  - [Single Line Comment](#single-line-comment)
+  - [Block Comment](#block-comment)
+- [Declaration And Definition](#declaration-and-definition)
+  - [Function](#function)
+  - [Variable](#variable)
+- [Linkage](#linkage)
+  - [Function](#function-1)
+- [Statements](#statements)
+  - [Expression Statement](#expression-statement)
+  - [Compound Statement](#compound-statement)
+  - [Selection Statement](#selection-statement)
+  - [Iteration Statement](#iteration-statement)
+  - [Jump Statement](#jump-statement)
+- [Example](#example)
+  - [Fibonacci Number](#fibonacci-number)
+- [References](#references)
+- [License](#license)
+
 ## Operators
 ### Arithmetic Operators
 | Operator name  | Syntax |
