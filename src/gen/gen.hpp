@@ -25,7 +25,7 @@ namespace miko::codegen
 struct codegen_common {
   codegen_common(const std::filesystem::path& file);
 
-  // Returns nullptr if none of the types apply
+  // Returns nullptr if none of the types apply.
   [[nodiscard]] llvm::Type* data_type_to_llvm_type(const id::data_type type);
 
   llvm::LLVMContext             context;

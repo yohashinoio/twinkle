@@ -122,7 +122,16 @@ struct data_type_symbols_tag : x3::symbols<id::data_type> {
   {
     // clang-format off
     add
-      ("i32", id::data_type::i32)
+      (  "i8",      id::data_type::i8)
+      (  "u8",      id::data_type::u8)
+      ( "i16",     id::data_type::i16)
+      ( "u16",     id::data_type::u16)
+      ( "i32",     id::data_type::i32)
+      ( "u32",     id::data_type::u32)
+      ( "i64",     id::data_type::i64)
+      ( "u64",     id::data_type::u64)
+      ("i128",    id::data_type::i128)
+      ("u128",    id::data_type::u128)
       ("bool", id::data_type::boolean)
     ;
     // clang-format on

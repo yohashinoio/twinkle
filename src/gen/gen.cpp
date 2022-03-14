@@ -627,13 +627,26 @@ codegen_common::codegen_common(const std::filesystem::path& file)
 {
 }
 
-// Returns nullptr if none of the types apply
+// Returns nullptr if none of the types apply.
 [[nodiscard]] llvm::Type*
 codegen_common::data_type_to_llvm_type(const id::data_type type)
 {
   switch (type) {
+  case id::data_type::i8:
+  case id::data_type::u8:
+    return builder.getInt8Ty();
+  case id::data_type::i16:
+  case id::data_type::u16:
+    return builder.getInt16Ty();
   case id::data_type::i32:
+  case id::data_type::u32:
     return builder.getInt32Ty();
+  case id::data_type::i64:
+  case id::data_type::u64:
+    return builder.getInt64Ty();
+  case id::data_type::i128:
+  case id::data_type::u128:
+    return builder.getInt128Ty();
   case id::data_type::boolean:
     return builder.getInt1Ty();
   }
