@@ -89,7 +89,7 @@ extern twice(n); // Declaration
 
 func main() // Definition
 {
-  ret f(58);
+  ret twice(58);
 }
 
 func twice(n) // Definition
@@ -164,7 +164,8 @@ func fib(n)
   else
     ret fib(n - 1) + fib(n - 2);
 
-  ret 0;
+  ret 0; // A return is always required
+         // at the end of any function other than the main function.
 }
 
 func main()
