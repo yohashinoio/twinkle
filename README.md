@@ -58,8 +58,8 @@ func main()
 }
 ```
 
-## Declarations And Definitions
-### Functions
+## Declaration And Definition
+### Function
 ```rust
 extern twice(n); // Declaration
 
@@ -73,7 +73,7 @@ func twice(n) // Definition
   ret n * 2;
 }
 ```
-### Variables
+### Variable
 ```rust
 func main()
 {
@@ -89,7 +89,7 @@ func main()
 ```
 
 ## Linkage
-### Functions
+### Function
 ```rust
 func twice(n) // External linkage
 {
@@ -130,7 +130,7 @@ expression? ';'
 "ret" expression ';'
 ```
 
-## Examples
+## Example
 ### Fibonacci Number
 ```rust
 func fib(n)
