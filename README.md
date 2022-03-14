@@ -84,7 +84,7 @@ func main()
   let j = 48; // OK. Constant.
   j = 58; // NG
 
-  let mutable k = 48; // OK Mutable
+  let mutable k = 48; // OK. Mutable.
   k = 58; // OK
 }
 ```
