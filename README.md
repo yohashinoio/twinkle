@@ -199,8 +199,8 @@ func fib(n) -> i32
   else
     ret fib(n - 1) + fib(n - 2);
 
-  ret 0; // A return is always required
-         // at the end of any function other than the main function.
+  ret 0; // A return is always required at the end of any function
+         // other than the main function.
 }
 
 func main() -> i32

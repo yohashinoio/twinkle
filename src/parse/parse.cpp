@@ -169,10 +169,6 @@ const auto identifier
 = x3::raw[x3::lexeme[(x3::alpha | x3::lit('_'))
                      >> *(x3::alnum | x3::lit('_'))]];
 
-const auto keyword = x3::rule<struct keyword_tag, std::string>{"identifier"}
-= x3::raw[x3::lexeme[(x3::alpha | x3::lit('_'))
-                     >> *(x3::alnum | x3::lit('_'))]];
-
 const auto data_type
   = x3::rule<struct data_type_tag, id::data_type>{"data type"}
 = data_type_symbols;
