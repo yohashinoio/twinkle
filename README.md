@@ -7,9 +7,12 @@
   - [Comparison operators / Relational operators](#comparison-operators--relational-operators)
   - [Assignment operators](#assignment-operators)
   - [Other operators](#other-operators)
+- [Data types](#data-types)
+  - [Integer types](#integer-types)
+  - [Boolean type](#boolean-type)
 - [Comments](#comments)
   - [Single line comment](#single-line-comment)
-  - [Block comment](#block-comment)
+  - [Multi line comment](#multi-line-comment)
 - [Declaration and Definition](#declaration-and-definition)
   - [Function](#function)
   - [Variable](#variable)
@@ -45,7 +48,7 @@
 | Greater than             | a > b   |
 | Less than                | a < b   |
 | Greater than or equal to | a >= b  |
-| Less than or equal to    | a <= b |
+| Less than or equal to    | a <= b  |
 
 ### Assignment operators
 | Operator name     | Syntax |
@@ -60,19 +63,51 @@
 This section on Operators is based on "Operators in C and C++" from wikipedia.<br/>
 Thank you!
 
+## Data types
+### Integer types
+| Length  | Signed | Unsigned |
+| ------- | ------ | -------- |
+| 8-bit   | i8     | u8       |
+| 16-bit  | i16    | u16      |
+| 32-bit  | i32    | u32      |
+| 64-bit  | i64    | u64      |
+| 128-bit | i128   | u128     |
+```rust
+func main() -> i32
+{
+  let mutable a: i8 = 2147483647; // Max
+  a = -2147483648; // Min
+
+  let mutable b: u8 = 4294967295; // Max
+  b = 0; // Min
+}
+```
+
+### Boolean type
+| Length  | Name |
+| ------- | ---- |
+| 1-bit   | bool |
+```rust
+func main() -> i32
+{
+  let f: bool = true;
+  let g: bool = false;
+}
+```
+
 ## Comments
 ### Single line comment
 ```rust
-func main()
+func main() -> i32
 {
   // This is a comment.
   ret 0;
 }
 ```
 
-### Block comment
+### Multi line comment
 ```rust
-func main()
+func main() -> i32
 {
   /*
   The only ones who can shoot are those who are prepared to be shot.
@@ -85,21 +120,21 @@ func main()
 ## Declaration and Definition
 ### Function
 ```rust
-extern twice(n); // Declaration
+extern twice(n) -> i32; // Declaration
 
-func main() // Definition
+func main() -> i32 // Definition
 {
   ret twice(58);
 }
 
-func twice(n) // Definition
+func twice(n) -> i32// Definition
 {
   ret n * 2;
 }
 ```
 ### Variable
 ```rust
-func main()
+func main() -> i32
 {
   let i; // OK. Constant. The value that originally existed in memory is stored.
   i = 58; // NG
@@ -115,12 +150,12 @@ func main()
 ## Linkage
 ### Function
 ```rust
-func twice(n) // External linkage
+func twice(n) -> i32 // External linkage
 {
   ret n * 2;
 }
 
-func private thrice(n) // Internal linkage
+func private thrice(n) -> i32 // Internal linkage
 {
   ret n * 3;
 }
@@ -157,7 +192,7 @@ expression? ';'
 ## Example
 ### Fibonacci number
 ```rust
-func fib(n)
+func fib(n) -> i32
 {
   if (n < 3)
     ret 1;
@@ -168,7 +203,7 @@ func fib(n)
          // at the end of any function other than the main function.
 }
 
-func main()
+func main() -> i32
 {
   let result = fib(40);
 }
