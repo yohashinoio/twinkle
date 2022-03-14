@@ -3,31 +3,31 @@
 </div>
 
 - [Operators](#operators)
-  - [Arithmetic Operators](#arithmetic-operators)
-  - [Comparison Operators/Relational Operators](#comparison-operatorsrelational-operators)
-  - [Assignment Operators](#assignment-operators)
-  - [Other Operators](#other-operators)
+  - [Arithmetic operators](#arithmetic-operators)
+  - [Comparison operators / Relational operators](#comparison-operators--relational-operators)
+  - [Assignment operators](#assignment-operators)
+  - [Other operators](#other-operators)
 - [Comments](#comments)
-  - [Single Line Comment](#single-line-comment)
-  - [Block Comment](#block-comment)
-- [Declaration And Definition](#declaration-and-definition)
+  - [Single line comment](#single-line-comment)
+  - [Block comment](#block-comment)
+- [Declaration and Definition](#declaration-and-definition)
   - [Function](#function)
   - [Variable](#variable)
 - [Linkage](#linkage)
   - [Function](#function-1)
 - [Statements](#statements)
-  - [Expression Statement](#expression-statement)
-  - [Compound Statement](#compound-statement)
-  - [Selection Statement](#selection-statement)
-  - [Iteration Statement](#iteration-statement)
-  - [Jump Statement](#jump-statement)
+  - [Expression statement](#expression-statement)
+  - [Compound statement](#compound-statement)
+  - [Selection statement](#selection-statement)
+  - [Iteration statement](#iteration-statement)
+  - [Jump statement](#jump-statement)
 - [Example](#example)
-  - [Fibonacci Number](#fibonacci-number)
+  - [Fibonacci number](#fibonacci-number)
 - [References](#references)
 - [License](#license)
 
 ## Operators
-### Arithmetic Operators
+### Arithmetic operators
 | Operator name  | Syntax |
 | -------------- | ------ |
 | Addition       | a + b  |
@@ -37,7 +37,7 @@
 | Unary plus     | +a     |
 | Unary minus    | -a     |
 
-### Comparison Operators/Relational Operators
+### Comparison operators / Relational operators
 | Operator name            | Syntax  |
 | ------------------------ | ------- |
 | Equal to                 | a == b  |
@@ -47,12 +47,12 @@
 | Greater than or equal to | a >= b  |
 | Less than or equal to    | a <= b |
 
-### Assignment Operators
+### Assignment operators
 | Operator name     | Syntax |
 | ----------------- | ------ |
 | Direct assignment | a = b  |
 
-### Other Operators
+### Other operators
 | Operator name | Syntax    |
 | ------------- | --------- |
 | Function call | a(a1, a2) |
@@ -61,7 +61,7 @@ This section on Operators is based on "Operators in C and C++" from wikipedia.<b
 Thank you!
 
 ## Comments
-### Single Line Comment
+### Single line comment
 ```rust
 func main()
 {
@@ -70,7 +70,7 @@ func main()
 }
 ```
 
-### Block Comment
+### Block comment
 ```rust
 func main()
 {
@@ -82,7 +82,7 @@ func main()
 }
 ```
 
-## Declaration And Definition
+## Declaration and Definition
 ### Function
 ```rust
 extern twice(n); // Declaration
@@ -127,35 +127,35 @@ func private thrice(n) // Internal linkage
 ```
 
 ## Statements
-### Expression Statement
+### Expression statement
 ```peg
 expression? ';'
 ```
 
-### Compound Statement
+### Compound statement
 ```peg
 '{' *statement '}'
 ```
 
-### Selection Statement
+### Selection statement
 ```peg
 "if" '(' condition ')'
   (compound-statement | statement)
 ```
 
-### Iteration Statement
+### Iteration statement
 ```peg
 "for" '(' expression? ';' condition? ';' expression? ')'
   (compound-statement | statement)
 ```
 
-### Jump Statement
+### Jump statement
 ```peg
 "ret" expression ';'
 ```
 
 ## Example
-### Fibonacci Number
+### Fibonacci number
 ```rust
 func fib(n)
 {
@@ -182,8 +182,6 @@ func main()
 - [LLVM Tutorial](https://llvm.org/docs/GettingStartedTutorials.html): Tutorials about using LLVM. Includes a tutorial about making a custom language with LLVM.
 
 - [きつねさんでもわかるLLVM](https://tatsu-zine.com/books/llvm): あらゆる可能性を秘めたコンパイラ基盤として注目されているLLVM。本書はコンパイラを実際に作りながらLLVMのフロントエンドからバックエンドまでを幅広く解説した世界初(!?)のLLVM解説本です。
-
-Thank you!
 
 ## License
 This project is available under the Apache-2.0 license.<br/>
