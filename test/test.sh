@@ -25,27 +25,44 @@ assert() {
   fi
 }
 
+# Four arithmetic operations
 assert  0 "func main() -> i32 {ret 0;}"
-assert 42 "func main() -> i32 {ret 42;}"
+assert 58 "func main() -> i32 {ret 58;}"
 
 assert 58 "func main() -> i32 {ret 48 + 10;}"
 assert 58 "func main() -> i32 {ret 48+10;}"
 assert 38 "func main() -> i32 {ret 48 - 10;}"
 assert 38 "func main() -> i32 {ret 48-10;}"
-assert 32 "func main() -> i32 {ret 4 * 8 * 1 + 0;}"
-assert 32 "func main() -> i32 {ret 4*8*1+0;}"
-assert 10 "func main() -> i32 {ret 4810 / 481;}"
-assert 10 "func main() -> i32 {ret 4810/481;}"
+assert 32 "func main() -> i32 {ret 4 * 8;}"
+assert  0 "func main() -> i32 {ret 1*0;}"
+assert 48 "func main() -> i32 {ret 480 / 10;}"
+assert 48 "func main() -> i32 {ret 480/10;}"
 
-assert 36 "func main() -> i32 {ret 4 * (8 + 1) + 0;}"
-assert 36 "func main() -> i32 {ret 4*(8+1)+0;}"
+assert 10 "func main() -> i32 {ret 2 * 3 + 4;}"
+assert 10 "func main() -> i32 {ret 2*3+4;}"
+assert 14 "func main() -> i32 {ret 2 * (3 + 4);}"
+assert 14 "func main() -> i32 {ret 2*(3+4);}"
+assert  5 "func main() -> i32 {ret 12 / 3 + 1;}"
+assert  5 "func main() -> i32 {ret 12/3+1;}"
+assert  3 "func main() -> i32 {ret 12 / (3 + 1);}"
+assert  3 "func main() -> i32 {ret 12/(3+1);}"
 
+assert  9 "func main() -> i32 {ret 4 * 8 / 4 + 1 - 0;}"
+assert  9 "func main() -> i32 {ret 4*8/4+1-0;}"
+
+assert  3 "func main() -> i32 {ret 4 * 4 / (2 + 2) - 1;}"
+assert  3 "func main() -> i32 {ret 4*4/(2+2)-1;}"
+assert  3 "func main() -> i32 {ret 3 * 3 / ((2 + 2) - 1);}"
+assert  3 "func main() -> i32 {ret 3*3/((2+2)-1);}"
+
+# Unary operator
 assert 38 "func main() -> i32 {ret 48 + -10;}"
 assert 58 "func main() -> i32 {ret +48 + 10;}"
 assert 58 "func main() -> i32 {ret 10 - -48;}"
 assert 58 "func main() -> i32 {ret +10 - -48;}"
 assert 48 "func main() -> i32 {ret +(-(48 * -(1 + 0)));}"
 
+# Comparison operators and relational operators
 assert  1 "func main() -> i32 {ret 1 + (48 == 10);}"
 assert  1 "func main() -> i32 {ret 1+(48==10);}"
 assert  2 "func main() -> i32 {ret 1 + (48 != 10);}"
@@ -59,6 +76,7 @@ assert  2 "func main() -> i32 {ret 1+(48<=48);}"
 assert  2 "func main() -> i32 {ret 1 + (10 >= 10);}"
 assert  2 "func main() -> i32 {ret 1+(10>=10);}"
 
+# Expression statement
 assert 48 "func main() -> i32 { 1+(48>10); ret +(-(48 * -(1 + 0))); }"
 
 # Function
@@ -103,7 +121,7 @@ func main() -> i32 {
   ret 48 + 10;
 }"
 
-# letiable
+# Variable
 assert 58 "func main() -> i32 {
   let a = 0;
   ret a + 58;
@@ -260,6 +278,5 @@ assert 58 "func f() -> i32 {
 func main() -> i32 {
   ret f();
 }"
-
 
 echo OK
