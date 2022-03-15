@@ -127,7 +127,7 @@ func main() -> i32 // Definition
   ret twice(58);
 }
 
-func twice(n) -> i32// Definition
+func twice(n) -> i32 // Definition
 {
   ret n * 2;
 }
