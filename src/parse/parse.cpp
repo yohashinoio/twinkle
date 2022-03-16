@@ -143,7 +143,7 @@ struct variable_qualifier_symbols_tag : x3::symbols<id::variable_qualifier> {
   {
     // clang-format off
     add
-      ("mutable", id::variable_qualifier::mutable_)
+      ("mut", id::variable_qualifier::mutable_)
     ;
     // clang-format on
   }
@@ -287,7 +287,7 @@ const auto expression_statement
 const auto variable_def_statement
   = x3::rule<struct variable_def_statement_tag,
              ast::variable_def_statement>{"variable definition"}
-= x3::lit("let") > -variable_qualifier > identifier > x3::lit(':') > data_type
+= x3::lit("var") > -variable_qualifier > identifier > x3::lit(':') > data_type
   > -(x3::lit('=') > expression) > x3::lit(';');
 
 const auto return_statement

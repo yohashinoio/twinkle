@@ -75,10 +75,10 @@ Thank you!
 ```rust
 func main() -> i32
 {
-  let mutable a: i32 = 2147483647; // Max
+  var mut a: i32 = 2147483647; // Max
   a = -2147483648; // Min
 
-  let mutable b: u32 = 4294967295; // Max
+  var mut b: u32 = 4294967295; // Max
   b = 0; // Min
 }
 ```
@@ -90,8 +90,8 @@ func main() -> i32
 ```rust
 func main() -> i32
 {
-  let f: bool = true;
-  let g: bool = false;
+  var f: bool = true;
+  var g: bool = false;
 }
 ```
 
@@ -132,17 +132,30 @@ func twice(n: i32) -> i32 // Definition
   ret n * 2;
 }
 ```
+```rust
+func f(n: i32) -> i32
+{
+  n = 123; // NG
+  ret n;
+}
+
+func g(mut n: i32) -> i32
+{
+  n = 123; // OK
+  ret n;
+}
+```
 ### Variable
 ```rust
 func main() -> i32
 {
-  let i: i32; // OK. Constant. The value that originally existed in memory is stored.
+  var i: i32; // OK. Constant. The value that originally existed in memory is stored.
   i = 58; // NG
 
-  let j: i32 = 48; // OK. Constant.
+  var j: i32 = 48; // OK. Constant.
   j = 58; // NG
 
-  let mutable k: i32 = 48; // OK. Mutable.
+  var mut k: i32 = 48; // OK. Mutable.
   k = 58; // OK
 }
 ```
@@ -205,7 +218,7 @@ func fib(n: i32) -> i32
 
 func main() -> i32
 {
-  let result: i32 = fib(40);
+  var result: i32 = fib(40);
 }
 ```
 

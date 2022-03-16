@@ -123,35 +123,35 @@ func main() -> i32 {
 
 # Variable
 assert 58 "func main() -> i32 {
-  let a: i32 = 0;
+  var a: i32 = 0;
   ret a + 58;
 }"
 assert 58 "func main() -> i32 {
-  let mutable a: i32;
+  var mut a: i32;
   a = 48 + 10;
   ret a * 2 / 2;
 }"
 assert 58 "func main() -> i32 {
-  let mutable a: i32 = 4810;
+  var mut a: i32 = 4810;
   a = a / 2 / 5;
   ret a * 10 - 4810 + 58;
 }"
 assert 58 "func main() -> i32 {
-  let a: i32 = 24 * 2;
-  let b: i32 = 5 * 2;
+  var a: i32 = 24 * 2;
+  var b: i32 = 5 * 2;
   ret a + b;
 }"
 
 # If statement
 assert 48 "func main() -> i32 {
-  let n: i32 = 4;
+  var n: i32 = 4;
   if (n == 4)
     ret 48;
   else
     ret 10;
 }"
 assert 10 "func main() -> i32 {
-  let n: i32 = 4;
+  var n: i32 = 4;
   if (n != 4) {
     ret 48;
   }
@@ -162,13 +162,13 @@ assert 10 "func main() -> i32 {
     ret 10;
 }"
 assert 58 "func main() -> i32 {
-  let a: i32 = 4810;
+  var a: i32 = 4810;
   if (a == 4810) {
-    let b: i32 = 110;
+    var b: i32 = 110;
     if (b == 4810)
       ret 1;
     else if (b == 110) {
-      let mutable i: i32;
+      var mut i: i32;
       for (i = 0; i < 58; i = i + 1) ;
       ret i;
     }
@@ -178,7 +178,7 @@ assert 58 "func main() -> i32 {
   ret 3;
 }"
 assert 58 "func main() -> i32 {
-  let n: i32 = 4810;
+  var n: i32 = 4810;
   if (n != 4810)
     ret 0;
   else if (n == 4810) {
@@ -190,7 +190,7 @@ assert 58 "func main() -> i32 {
     ret 123;
 }"
 assert 58 "func main() -> i32 {
-  let n: i32 = 58;
+  var n: i32 = 58;
   if (1) {}
   if (1) ;
   ret n;
@@ -212,25 +212,25 @@ func main() -> i32
 
 # For statement
 assert 58 "func main() -> i32 {
-  let mutable i: i32;
-  let mutable n: i32 = 0;
+  var mut i: i32;
+  var mut n: i32 = 0;
   for (i = 0; i < 10; i = i + 1) {
     n = n + 1;
   }
-  let mutable j: i32;
+  var mut j: i32;
   for (j = 0; j < 48; j = j + 1)
     n = n + 1;
   ret n;
 }"
 assert 58 "func main() -> i32 {
-  let i: i32 = 58;
+  var i: i32 = 58;
 
   for (; i < 10; ) ;
 
   ret i;
 }"
 assert 58 "func main() -> i32 {
-  let mutable i: i32 = 0;
+  var mut i: i32 = 0;
   for (;; i = i + 1) {
     if (i == 58)
       ret i;
@@ -238,9 +238,9 @@ assert 58 "func main() -> i32 {
   ret 123;
 }"
 assert 110 "func main() -> i32 {
-  let mutable i: i32;
-  let mutable j: i32;
-  let mutable n: i32 = 0;
+  var mut i: i32;
+  var mut j: i32;
+  var mut n: i32 = 0;
   for (i = 0; i < 10; i = i + 1) {
     n = n + 1;
     for (j = 0; j < 10; j = j + 1)
@@ -249,9 +249,9 @@ assert 110 "func main() -> i32 {
   ret n;
 }"
 assert 58 "func main() -> i32 {
-  let mutable i: i32;
+  var mut i: i32;
   for (i = 0; i < 4810; i = i + 1) {
-    let n: i32 = i;
+    var n: i32 = i;
     if (n == 58)
       ret n;
   }
@@ -262,7 +262,7 @@ assert 58 "func main() -> i32 {
   // return abc;
 
   /*
-  let 123;
+  var 123;
   */
 
   ret 58;
@@ -286,28 +286,28 @@ func main() -> i32 {
 
 # Variable type
 assert 58 "func main() -> i32 {
-  // let a: i8 = 48;
-  // let b: u8 = 10;
+  // var a: i8 = 48;
+  // var b: u8 = 10;
 
   /*
   /*
-  let c: i16 = 48;
-  let d: u16 = 10;
+  var c: i16 = 48;
+  var d: u16 = 10;
   */
   */
 
-  let e: i32 = 48;
-  let f: u32 = 10;
+  var e: i32 = 48;
+  var f: u32 = 10;
 
   /*
-  let g: i64 = 48;
-  let h: u64 = 10;
+  var g: i64 = 48;
+  var h: u64 = 10;
   */
 
-  // let i: i128 = 48;
-  /* let j: u128 = 10; */
+  // var i: i128 = 48;
+  /* var j: u128 = 10; */
 
-  let k: bool = e == f;
+  var k: bool = e == f;
 
   if (k)
     ret 4810;
@@ -320,12 +320,20 @@ assert 58 "func equal(a: i32, b: i32) -> bool {
   ret a == b;
 }
 func main() -> i32 {
-  let a: i32 = 48;
-  let b: i32 = 10;
+  var a: i32 = 48;
+  var b: i32 = 10;
   if (equal(a, b))
     ret 4810;
   else
     ret 58;
+}"
+
+assert 58 "func f(mut a: i32) -> i32 {
+  ret a = 58;
+}
+func main() -> i32 {
+  var n: i32 = 4810;
+  ret f(n);
 }"
 
 echo OK
