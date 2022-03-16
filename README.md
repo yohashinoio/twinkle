@@ -56,9 +56,10 @@
 | Direct assignment | a = b  |
 
 ### Other operators
-| Operator name | Syntax    |
-| ------------- | --------- |
-| Function call | a(a1, a2) |
+| Operator name | Syntax        |
+| ------------- | ------------- |
+| Function call | a(a1, a2)     |
+| Conversion    | a as **type** |
 
 This section on Operators is based on "Operators in C and C++" from wikipedia.<br/>
 Thank you!
@@ -75,12 +76,7 @@ Thank you!
 ```rust
 func main() -> i32
 {
-  var mut a: i32 = 2147483647; // Max
-  a = -2147483648; // Min
-
-  var mut b: u32 = 4294967295; // Max
-  b = 0; // Min
-}
+  var a: i32;
 ```
 
 ### Boolean type
@@ -90,8 +86,8 @@ func main() -> i32
 ```rust
 func main() -> i32
 {
-  var f: bool = true;
-  var g: bool = false;
+  var f: bool;
+  var g: bool;
 }
 ```
 
