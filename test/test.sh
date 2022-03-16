@@ -95,17 +95,17 @@ func main() -> i32 {
   clock(); ret 48 + 10;
 }"
 
-assert 58 "func twice(n) -> i32 {
+assert 58 "func twice(n: i32) -> i32 {
   ret n * 2;
 }
 func main() -> i32 {
   ret twice(29) + 1 - 1;
 }"
 
-assert 58 "func add(a, b) -> i32 {
+assert 58 "func add(a: i32, b: i32) -> i32 {
   ret a + b;
 }
-func twice(n) -> i32{
+func twice(n: i32) -> i32 {
   ret n * 2;
 }
 func main() -> i32 {
@@ -113,7 +113,7 @@ func main() -> i32 {
 }"
 
 # hello, world
-assert  58 "extern putchar(ch) -> i32;
+assert  58 "extern putchar(ch: i32) -> i32;
 func main() -> i32 {
   putchar(104);putchar(101);putchar(108);putchar(108);putchar(111);putchar(44);
   putchar(32);putchar(119);putchar(111);putchar(114);putchar(108);putchar(100);
@@ -123,33 +123,35 @@ func main() -> i32 {
 
 # Variable
 assert 58 "func main() -> i32 {
-  let a = 0;
+  let a: i32 = 0;
   ret a + 58;
 }"
 assert 58 "func main() -> i32 {
-  let mutable a; a = 48 + 10;
+  let mutable a: i32;
+  a = 48 + 10;
   ret a * 2 / 2;
 }"
 assert 58 "func main() -> i32 {
-  let mutable a = 4810;
+  let mutable a: i32 = 4810;
   a = a / 2 / 5;
   ret a * 10 - 4810 + 58;
 }"
 assert 58 "func main() -> i32 {
-  let a = 24 * 2;
-  let b = 5 * 2; ret a + b;
+  let a: i32 = 24 * 2;
+  let b: i32 = 5 * 2;
+  ret a + b;
 }"
 
 # If statement
 assert 48 "func main() -> i32 {
-  let n = 4;
+  let n: i32 = 4;
   if (n == 4)
     ret 48;
   else
     ret 10;
 }"
 assert 10 "func main() -> i32 {
-  let n = 4;
+  let n: i32 = 4;
   if (n != 4) {
     ret 48;
   }
@@ -160,13 +162,13 @@ assert 10 "func main() -> i32 {
     ret 10;
 }"
 assert 58 "func main() -> i32 {
-  let a = 4810;
+  let a: i32 = 4810;
   if (a == 4810) {
-    let b = 110;
+    let b: i32 = 110;
     if (b == 4810)
       ret 1;
     else if (b == 110) {
-      let mutable i;
+      let mutable i: i32;
       for (i = 0; i < 58; i = i + 1) ;
       ret i;
     }
@@ -176,7 +178,7 @@ assert 58 "func main() -> i32 {
   ret 3;
 }"
 assert 58 "func main() -> i32 {
-  let n = 4810;
+  let n: i32 = 4810;
   if (n != 4810)
     ret 0;
   else if (n == 4810) {
@@ -188,14 +190,14 @@ assert 58 "func main() -> i32 {
     ret 123;
 }"
 assert 58 "func main() -> i32 {
-  let n = 58;
+  let n: i32 = 58;
   if (1) {}
   if (1) ;
   ret n;
 }"
 
 # Fibonacci numbers
-assert 58 "func fib(n) -> i32 {
+assert 58 "func fib(n: i32) -> i32 {
   if (n < 3)
     ret 1;
   else
@@ -210,24 +212,25 @@ func main() -> i32
 
 # For statement
 assert 58 "func main() -> i32 {
-  let mutable i; let mutable n = 0;
+  let mutable i: i32;
+  let mutable n: i32 = 0;
   for (i = 0; i < 10; i = i + 1) {
     n = n + 1;
   }
-  let mutable j;
+  let mutable j: i32;
   for (j = 0; j < 48; j = j + 1)
     n = n + 1;
   ret n;
 }"
 assert 58 "func main() -> i32 {
-  let i = 58;
+  let i: i32 = 58;
 
   for (; i < 10; ) ;
 
   ret i;
 }"
 assert 58 "func main() -> i32 {
-  let mutable i = 0;
+  let mutable i: i32 = 0;
   for (;; i = i + 1) {
     if (i == 58)
       ret i;
@@ -235,7 +238,9 @@ assert 58 "func main() -> i32 {
   ret 123;
 }"
 assert 110 "func main() -> i32 {
-  let mutable i; let mutable j; let mutable n = 0;
+  let mutable i: i32;
+  let mutable j: i32;
+  let mutable n: i32 = 0;
   for (i = 0; i < 10; i = i + 1) {
     n = n + 1;
     for (j = 0; j < 10; j = j + 1)
@@ -244,9 +249,9 @@ assert 110 "func main() -> i32 {
   ret n;
 }"
 assert 58 "func main() -> i32 {
-  let mutable i;
+  let mutable i: i32;
   for (i = 0; i < 4810; i = i + 1) {
-    let n = i;
+    let n: i32 = i;
     if (n == 58)
       ret n;
   }
@@ -277,6 +282,50 @@ assert 58 "func f() -> i32 {
 }
 func main() -> i32 {
   ret f();
+}"
+
+# Variable type
+assert 58 "func main() -> i32 {
+  // let a: i8 = 48;
+  // let b: u8 = 10;
+
+  /*
+  /*
+  let c: i16 = 48;
+  let d: u16 = 10;
+  */
+  */
+
+  let e: i32 = 48;
+  let f: u32 = 10;
+
+  /*
+  let g: i64 = 48;
+  let h: u64 = 10;
+  */
+
+  // let i: i128 = 48;
+  /* let j: u128 = 10; */
+
+  let k: bool = e == f;
+
+  if (k)
+    ret 4810;
+  else
+    ret 58;
+}"
+
+# Parameter type
+assert 58 "func equal(a: i32, b: i32) -> bool {
+  ret a == b;
+}
+func main() -> i32 {
+  let a: i32 = 48;
+  let b: i32 = 10;
+  if (equal(a, b))
+    ret 4810;
+  else
+    ret 58;
 }"
 
 echo OK
