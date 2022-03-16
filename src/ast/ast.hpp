@@ -90,7 +90,7 @@ struct function_call_expr : x3::position_tagged {
 };
 
 //===----------------------------------------------------------------------===//
-// Expression abstract syntax tree
+// Statement abstract syntax tree
 //===----------------------------------------------------------------------===//
 
 struct return_statement;
@@ -111,10 +111,12 @@ using compound_statement = std::vector<statement>;
 struct variable_def_statement : x3::position_tagged {
   std::optional<id::variable_qualifier> qualifier;
   std::string                           name;
+  id::data_type                         type;
   std::optional<expression>             initializer;
 
   variable_def_statement(const std::optional<id::variable_qualifier>& qualifier,
                          const std::string&                           name,
+                         const id::data_type                          type,
                          const std::optional<expression>& initializer);
 
   variable_def_statement();
@@ -165,15 +167,28 @@ using top_level_stmt = boost::variant<nil, function_declare, function_define>;
 
 using program = std::vector<top_level_stmt>;
 
+struct parameter : x3::position_tagged {
+  std::optional<id::variable_qualifier> qualifier;
+  std::string                           name;
+  id::data_type                         type;
+
+  parameter(const std::optional<id::variable_qualifier>& qualifier,
+            const std::string&                           name,
+            const id::data_type                          type);
+
+  parameter();
+};
+
 struct function_declare : x3::position_tagged {
   std::optional<id::function_linkage> linkage;
   std::string                         name;
-  std::vector<std::string>            args;
+  // TODO: rename to params
+  std::vector<parameter>              args;
   id::data_type                       return_type;
 
   function_declare(const std::optional<id::function_linkage>& linkage,
                    const std::string&                         name,
-                   const std::vector<std::string>&            args,
+                   const std::vector<parameter>&              args,
                    const id::data_type                        return_type);
 
   function_declare();

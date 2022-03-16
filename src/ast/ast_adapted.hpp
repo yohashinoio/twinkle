@@ -13,8 +13,6 @@
 #include <pch/pch.hpp>
 #include <ast/ast.hpp>
 
-namespace ast = miko::ast;
-
 // clang-format off
 
 //===----------------------------------------------------------------------===//
@@ -22,27 +20,27 @@ namespace ast = miko::ast;
 //===----------------------------------------------------------------------===//
 
 BOOST_FUSION_ADAPT_STRUCT(
-  ast::unary_op_expr,
+  miko::ast::unary_op_expr,
   (std::string, op)
-  (ast::expression, rhs)
+  (miko::ast::expression, rhs)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  ast::binary_op_expr,
-  (ast::expression, lhs)
+  miko::ast::binary_op_expr,
+  (miko::ast::expression, lhs)
   (std::string, op)
-  (ast::expression, rhs)
+  (miko::ast::expression, rhs)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  ast::variable_expr,
+  miko::ast::variable_expr,
   (std::string, name)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  ast::function_call_expr,
+  miko::ast::function_call_expr,
   (std::string, callee)
-  (std::vector<ast::expression>, args)
+  (std::vector<miko::ast::expression>, args)
 )
 
 //===----------------------------------------------------------------------===//
@@ -50,30 +48,31 @@ BOOST_FUSION_ADAPT_STRUCT(
 //===----------------------------------------------------------------------===//
 
 BOOST_FUSION_ADAPT_STRUCT(
-  ast::variable_def_statement,
+  miko::ast::variable_def_statement,
   (std::optional<miko::id::variable_qualifier>, qualifier)
   (std::string, name)
-  (std::optional<ast::expression>, initializer)
+  (miko::id::data_type, type)
+  (std::optional<miko::ast::expression>, initializer)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  ast::return_statement,
-  (ast::expression, rhs)
+  miko::ast::return_statement,
+  (miko::ast::expression, rhs)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  ast::if_statement,
-  (ast::expression, condition)
-  (ast::compound_statement, then_statement)
-  (std::optional<ast::compound_statement>, else_statement)
+  miko::ast::if_statement,
+  (miko::ast::expression, condition)
+  (miko::ast::compound_statement, then_statement)
+  (std::optional<miko::ast::compound_statement>, else_statement)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  ast::for_statement,
-  (std::optional<ast::expression>, init_expression)
-  (std::optional<ast::expression>, cond_expression)
-  (std::optional<ast::expression>, loop_expression)
-  (ast::compound_statement, body)
+  miko::ast::for_statement,
+  (std::optional<miko::ast::expression>, init_expression)
+  (std::optional<miko::ast::expression>, cond_expression)
+  (std::optional<miko::ast::expression>, loop_expression)
+  (miko::ast::compound_statement, body)
 )
 
 //===----------------------------------------------------------------------===//
@@ -81,17 +80,24 @@ BOOST_FUSION_ADAPT_STRUCT(
 //===----------------------------------------------------------------------===//
 
 BOOST_FUSION_ADAPT_STRUCT(
-  ast::function_declare,
+  miko::ast::parameter,
+  (std::optional<miko::id::variable_qualifier>, qualifier)
+  (std::string, name)
+  (miko::id::data_type, type)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+  miko::ast::function_declare,
   (std::optional<miko::id::function_linkage>, linkage)
   (std::string, name)
-  (std::vector<std::string>, args)
+  (std::vector<miko::ast::parameter>, args)
   (miko::id::data_type, return_type)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  ast::function_define,
-	(ast::function_declare, decl)
-  (ast::compound_statement, body)
+  miko::ast::function_define,
+	(miko::ast::function_declare, decl)
+  (miko::ast::compound_statement, body)
 )
 
 // clang-format on

@@ -20,6 +20,8 @@ namespace miko::codegen
 struct variable_info {
   llvm::AllocaInst* instance;
   bool              is_mutable;
+  id::data_type     type;
+  bool              is_unsigned;
 };
 
 struct symbol_table {
@@ -61,12 +63,12 @@ private:
 // the function.  This is used for mutable variables etc.
 [[nodiscard]] llvm::AllocaInst*
 create_entry_block_alloca(llvm::Function*    func,
-                          llvm::LLVMContext& context,
-                          const std::string& var_name)
+                          const std::string& var_name,
+                          llvm::Type*        type)
 {
   llvm::IRBuilder<> tmp(&func->getEntryBlock(), func->getEntryBlock().begin());
 
-  return tmp.CreateAlloca(llvm::Type::getInt32Ty(context), nullptr, var_name);
+  return tmp.CreateAlloca(type, nullptr, var_name);
 }
 
 //===----------------------------------------------------------------------===//
@@ -292,7 +294,10 @@ struct statement_visitor : public boost::static_visitor<void> {
 
     auto* function = common.builder.GetInsertBlock()->getParent();
 
-    auto* inst = create_entry_block_alloca(function, common.context, node.name);
+    auto* inst
+      = create_entry_block_alloca(function,
+                                  node.name,
+                                  common.data_type_to_llvm_type(node.type));
 
     if (node.initializer) {
       auto* initializer
@@ -502,8 +507,9 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
   // Function declaration
   llvm::Function* operator()(const ast::function_declare& node) const
   {
-    std::vector<llvm::Type*> param_types(node.args.size(),
-                                         common.builder.getInt32Ty());
+    std::vector<llvm::Type*> param_types(node.args.size());
+    for (std::size_t i = 0, last = param_types.size(); i != last; ++i)
+      param_types[i] = common.data_type_to_llvm_type(node.args[i].type);
 
     auto* function_type
       = llvm::FunctionType::get(common.data_type_to_llvm_type(node.return_type),
@@ -529,7 +535,7 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
     // Set names for all arguments.
     std::size_t idx = 0;
     for (auto&& arg : function->args())
-      arg.setName(node.args[idx++]);
+      arg.setName(node.args[idx++].name);
 
     return function;
   }
@@ -556,21 +562,33 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
     common.builder.SetInsertPoint(entry_bb);
 
     for (auto& arg : function->args()) {
+      const auto& arg_info = node.decl.args[arg.getArgNo()];
+
       // Create an alloca for this variable.
-      auto* inst = create_entry_block_alloca(function,
-                                             common.context,
-                                             arg.getName().str());
+      auto* inst = create_entry_block_alloca(
+        function,
+        arg.getName().str(),
+        common.data_type_to_llvm_type(arg_info.type));
 
       // Store the initial value into the alloca.
       common.builder.CreateStore(&arg, inst);
 
       // Add arguments to variable symbol table.
-      argument_values.regist(arg.getName().str(), {inst, false});
+      if (!arg_info.qualifier) {
+        // consttant variable.
+        argument_values.regist(arg.getName().str(), {inst, false});
+      }
+      else if (*arg_info.qualifier == id::variable_qualifier::mutable_) {
+        // mutable variable.
+        argument_values.regist(arg.getName().str(), {inst, true});
+      }
     }
 
     // Used to combine returns into one.
-    auto* retvar
-      = create_entry_block_alloca(function, common.context, "retval");
+    auto* retvar = create_entry_block_alloca(
+      function,
+      "retval",
+      common.data_type_to_llvm_type(node.decl.return_type));
     auto* end_bb = llvm::BasicBlock::Create(common.context, "end");
 
     codegen_compound_statement(node.body,

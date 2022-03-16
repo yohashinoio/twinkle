@@ -80,9 +80,11 @@ function_call_expr::function_call_expr()
 variable_def_statement::variable_def_statement(
   const std::optional<id::variable_qualifier>& qualifier,
   const std::string&                           name,
+  const id::data_type                          type,
   const std::optional<expression>&             initializer)
   : qualifier{qualifier}
   , name{name}
+  , type{type}
   , initializer{initializer}
 {
 }
@@ -144,10 +146,26 @@ for_statement::for_statement()
 // Top level statement abstract syntax tree
 //===----------------------------------------------------------------------===//
 
+parameter::parameter(const std::optional<id::variable_qualifier>& qualifier,
+                     const std::string&                           name,
+                     const id::data_type                          type)
+  : qualifier{qualifier}
+  , name{name}
+  , type{type}
+{
+}
+
+parameter::parameter()
+  : qualifier{}
+  , name{}
+  , type{}
+{
+}
+
 function_declare::function_declare(
   const std::optional<id::function_linkage>& linkage,
   const std::string&                         name,
-  const std::vector<std::string>&            args,
+  const std::vector<parameter>&              args,
   const id::data_type                        return_type)
   : linkage{linkage}
   , name{name}

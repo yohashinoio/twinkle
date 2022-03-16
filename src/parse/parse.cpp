@@ -287,7 +287,7 @@ const auto expression_statement
 const auto variable_def_statement
   = x3::rule<struct variable_def_statement_tag,
              ast::variable_def_statement>{"variable definition"}
-= x3::lit("let") > -variable_qualifier > identifier
+= x3::lit("let") > -variable_qualifier > identifier > x3::lit(':') > data_type
   > -(x3::lit('=') > expression) > x3::lit(';');
 
 const auto return_statement
@@ -328,9 +328,14 @@ BOOST_SPIRIT_DEFINE(compound_statement, statement)
 // Top level rules
 //===----------------------------------------------------------------------===//
 
-const auto parameter_list = x3::rule<struct parameter_list_tag,
-                                     std::vector<std::string>>{"parameter list"}
-= -(identifier >> *(x3::lit(',') > identifier));
+const auto parameter
+  = x3::rule<struct parameter_tag, ast::parameter>{"parameter"}
+= -variable_qualifier >> identifier > x3::lit(':') > data_type;
+
+const auto parameter_list
+  = x3::rule<struct parameter_list_tag,
+             std::vector<ast::parameter>>{"parameter list"}
+= -(parameter > *(x3::lit(',') > parameter));
 
 const auto function_proto
   = x3::rule<struct function_proto_tag,
@@ -488,6 +493,10 @@ struct for_statement_tag
 //===----------------------------------------------------------------------===//
 // Top level statement tags
 //===----------------------------------------------------------------------===//
+
+struct parameter_tag
+  : with_error_handling
+  , annotate_position {};
 
 struct parameter_list_tag
   : with_error_handling
