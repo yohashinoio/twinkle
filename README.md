@@ -120,14 +120,14 @@ func main() -> i32
 ## Declaration and Definition
 ### Function
 ```rust
-extern twice(n) -> i32; // Declaration
+extern twice(n: i32) -> i32; // Declaration
 
 func main() -> i32 // Definition
 {
   ret twice(58);
 }
 
-func twice(n) -> i32 // Definition
+func twice(n: i32) -> i32 // Definition
 {
   ret n * 2;
 }
@@ -136,13 +136,13 @@ func twice(n) -> i32 // Definition
 ```rust
 func main() -> i32
 {
-  let i; // OK. Constant. The value that originally existed in memory is stored.
+  let i: i32; // OK. Constant. The value that originally existed in memory is stored.
   i = 58; // NG
 
-  let j = 48; // OK. Constant.
+  let j: i32 = 48; // OK. Constant.
   j = 58; // NG
 
-  let mutable k = 48; // OK. Mutable.
+  let mutable k: i32 = 48; // OK. Mutable.
   k = 58; // OK
 }
 ```
@@ -150,12 +150,12 @@ func main() -> i32
 ## Linkage
 ### Function
 ```rust
-func twice(n) -> i32 // External linkage
+func twice(n: i32) -> i32 // External linkage
 {
   ret n * 2;
 }
 
-func private thrice(n) -> i32 // Internal linkage
+func private thrice(n: i32) -> i32 // Internal linkage
 {
   ret n * 3;
 }
@@ -192,7 +192,7 @@ expression? ';'
 ## Example
 ### Fibonacci number
 ```rust
-func fib(n) -> i32
+func fib(n: i32) -> i32
 {
   if (n < 3)
     ret 1;
@@ -205,7 +205,7 @@ func fib(n) -> i32
 
 func main() -> i32
 {
-  let result = fib(40);
+  let result: i32 = fib(40);
 }
 ```
 
