@@ -21,16 +21,22 @@
 namespace miko::codegen
 {
 
+struct integer_type {
+  llvm::Type* type;
+  bool        is_signed;
+};
+
 // A structure that summarizes variables commonly needed by visitors.
 struct codegen_common {
   codegen_common(const std::filesystem::path& file);
 
-  // Returns nullptr if none of the types apply.
-  [[nodiscard]] llvm::Type* data_type_to_llvm_type(const id::data_type type);
+  [[nodiscard]] integer_type typename_to_type(const id::type_name type);
 
-  llvm::LLVMContext             context;
-  std::shared_ptr<llvm::Module> module;
-  llvm::IRBuilder<>             builder;
+  [[nodiscard]] llvm::Value* i1_to_boolean(llvm::Value* value);
+
+  llvm::LLVMContext context;
+  llvm::Module      module;
+  llvm::IRBuilder<> builder;
 
   std::filesystem::path file;
 };
@@ -43,7 +49,7 @@ struct code_generator {
 
   void write_llvm_ir_to_file(const std::filesystem::path& out) const;
 
-  void write_object_code_to_file(const std::filesystem::path& out) const;
+  void write_object_code_to_file(const std::filesystem::path& out);
 
 private:
   void codegen();

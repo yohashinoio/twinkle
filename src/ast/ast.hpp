@@ -36,19 +36,16 @@ struct unary_op_expr;
 struct binary_op_expr;
 struct variable_expr;
 struct function_call_expr;
-struct assignment;
+struct cast_expr;
 
-using expression
-  = boost::variant<nil,
-                   int,
-                   boost::recursive_wrapper<unary_op_expr>,
-                   boost::recursive_wrapper<binary_op_expr>,
-                   boost::recursive_wrapper<variable_expr> /* I don't know why,
-                                                         but it has to be
-                                                         wrapped in
-                                                         recursive_wrapper. */
-                   ,
-                   boost::recursive_wrapper<function_call_expr>>;
+using expression = boost::variant<nil,
+                                  std::uint32_t, /* unsigned integer */
+                                  std::int32_t,  /* signed integer */
+                                  boost::recursive_wrapper<unary_op_expr>,
+                                  boost::recursive_wrapper<binary_op_expr>,
+                                  boost::recursive_wrapper<variable_expr>,
+                                  boost::recursive_wrapper<function_call_expr>,
+                                  boost::recursive_wrapper<cast_expr>>;
 
 struct unary_op_expr : x3::position_tagged {
   std::string op;
@@ -83,10 +80,19 @@ struct function_call_expr : x3::position_tagged {
   std::string             callee;
   std::vector<expression> args;
 
-  explicit function_call_expr(const std::string&             callee,
-                              const std::vector<expression>& args);
+  function_call_expr(const std::string&             callee,
+                     const std::vector<expression>& args);
 
   function_call_expr();
+};
+
+struct cast_expr : x3::position_tagged {
+  expression    rhs;
+  id::type_name as;
+
+  cast_expr(const expression& rhs, const id::type_name as);
+
+  cast_expr();
 };
 
 //===----------------------------------------------------------------------===//
@@ -111,12 +117,12 @@ using compound_statement = std::vector<statement>;
 struct variable_def_statement : x3::position_tagged {
   std::optional<id::variable_qualifier> qualifier;
   std::string                           name;
-  id::data_type                         type;
+  id::type_name                         type;
   std::optional<expression>             initializer;
 
   variable_def_statement(const std::optional<id::variable_qualifier>& qualifier,
                          const std::string&                           name,
-                         const id::data_type                          type,
+                         const id::type_name                          type,
                          const std::optional<expression>& initializer);
 
   variable_def_statement();
@@ -170,11 +176,11 @@ using program = std::vector<top_level_stmt>;
 struct parameter : x3::position_tagged {
   std::optional<id::variable_qualifier> qualifier;
   std::string                           name;
-  id::data_type                         type;
+  id::type_name                         type;
 
   parameter(const std::optional<id::variable_qualifier>& qualifier,
             const std::string&                           name,
-            const id::data_type                          type);
+            const id::type_name                          type);
 
   parameter();
 };
@@ -182,14 +188,13 @@ struct parameter : x3::position_tagged {
 struct function_declare : x3::position_tagged {
   std::optional<id::function_linkage> linkage;
   std::string                         name;
-  // TODO: rename to params
-  std::vector<parameter>              args;
-  id::data_type                       return_type;
+  std::vector<parameter>              params;
+  id::type_name                       return_type;
 
   function_declare(const std::optional<id::function_linkage>& linkage,
                    const std::string&                         name,
-                   const std::vector<parameter>&              args,
-                   const id::data_type                        return_type);
+                   const std::vector<parameter>&              params,
+                   const id::type_name                        return_type);
 
   function_declare();
 };

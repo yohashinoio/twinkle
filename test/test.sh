@@ -63,21 +63,21 @@ assert 58 "func main() -> i32 {ret +10 - -48;}"
 assert 48 "func main() -> i32 {ret +(-(48 * -(1 + 0)));}"
 
 # Comparison operators and relational operators
-assert  1 "func main() -> i32 {ret 1 + (48 == 10);}"
-assert  1 "func main() -> i32 {ret 1+(48==10);}"
-assert  2 "func main() -> i32 {ret 1 + (48 != 10);}"
-assert  2 "func main() -> i32 {ret 1+(48!=10);}"
-assert  1 "func main() -> i32 {ret 1 + (48 < 10);}"
-assert  1 "func main() -> i32 {ret 1+(48<10);}"
-assert  2 "func main() -> i32 {ret 1 + (48 > 10);}"
-assert  2 "func main() -> i32 {ret 1+(48>10);}"
-assert  2 "func main() -> i32 {ret 1 + (48 <= 48);}"
-assert  2 "func main() -> i32 {ret 1+(48<=48);}"
-assert  2 "func main() -> i32 {ret 1 + (10 >= 10);}"
-assert  2 "func main() -> i32 {ret 1+(10>=10);}"
+assert  1 "func main() -> i32 {ret 1 + (48 == 10) as i32;}"
+assert  1 "func main() -> i32 {ret 1+(48==10)as i32;}"
+assert  2 "func main() -> i32 {ret 1 + (48 != 10) as i32;}"
+assert  2 "func main() -> i32 {ret 1+(48!=10)as i32;}"
+assert  1 "func main() -> i32 {ret 1 + (48 < 10) as i32;}"
+assert  1 "func main() -> i32 {ret 1+(48<10)as i32;}"
+assert  2 "func main() -> i32 {ret 1 + (48 > 10) as i32;}"
+assert  2 "func main() -> i32 {ret 1+(48>10)as i32;}"
+assert  2 "func main() -> i32 {ret 1 + (48 <= 48) as i32;}"
+assert  2 "func main() -> i32 {ret 1+(48<=48)as i32;}"
+assert  2 "func main() -> i32 {ret 1 + (10 >= 10) as i32;}"
+assert  2 "func main() -> i32 {ret 1+(10>=10)as i32;}"
 
 # Expression statement
-assert 48 "func main() -> i32 { 1+(48>10); ret +(-(48 * -(1 + 0))); }"
+assert 48 "func main() -> i32 { 1+(48>10)as i32; ret +(-(48 * -(1 + 0))); }"
 
 # Function
 assert 25 "func g() -> i32 {
@@ -286,33 +286,21 @@ func main() -> i32 {
 
 # Variable type
 assert 58 "func main() -> i32 {
-  // var a: i8 = 48;
-  // var b: u8 = 10;
+  var a: i8;
+  var b: u8;
 
-  /*
-  /*
-  var c: i16 = 48;
-  var d: u16 = 10;
-  */
-  */
+  var c: i16;
+  var d: u16;
 
-  var e: i32 = 48;
-  var f: u32 = 10;
+  var e: i32;
+  var f: u32;
 
-  /*
-  var g: i64 = 48;
-  var h: u64 = 10;
-  */
+  var g: i64;
+  var h: u64;
 
-  // var i: i128 = 48;
-  /* var j: u128 = 10; */
+  var k: bool;
 
-  var k: bool = e == f;
-
-  if (k)
-    ret 4810;
-  else
-    ret 58;
+  ret 58;
 }"
 
 # Parameter type
@@ -323,7 +311,7 @@ func main() -> i32 {
   var a: i32 = 48;
   var b: i32 = 10;
   if (equal(a, b))
-    ret 4810;
+    ret 0;
   else
     ret 58;
 }"
@@ -335,5 +323,33 @@ func main() -> i32 {
   var n: i32 = 4810;
   ret f(n);
 }"
+
+# Integer cast
+assert 1 "func main() -> i32 {
+  var n: bool = 1 as bool;
+  ret n as i32;
+}"
+
+assert 58 "func main() -> i64 {
+  var a: i8 = -58 as i8;
+  var b: u8 = 58 as u8;
+
+  var c: i16 = -4810 as i16;
+  var d: u16 = 4810 as u16;
+
+  var e: i32 = -48104810 as i32;
+  var f: u32 = 48104810 as u32;
+
+  var g: i64 = -48104810 as i64;
+  var h: u64 = 4148104810 as u64;
+
+  var k: bool = 1 as bool;
+  var l: bool = 0 as bool;
+
+  ret 58 as i64;
+}"
+
+
+
 
 echo OK

@@ -86,6 +86,12 @@ const auto assign_binop_to_val = [](auto&& ctx) -> void {
     fusion::at_c<1>(x3::_attr(ctx)) /* right hand side */};
 };
 
+const auto assign_cast_to_val = [](auto&& ctx) -> void {
+  x3::_val(ctx)
+    = ast::cast_expr{fusion::at_c<0>(x3::_attr(ctx)) /* right hand side*/,
+                     fusion::at_c<1>(x3::_attr(ctx)) /* data type */};
+};
+
 const auto assign_variable_to_val = [](auto&& ctx) -> void {
   x3::_val(ctx) = ast::variable_expr{x3::_attr(ctx) /* name */};
 };
@@ -117,26 +123,24 @@ namespace peg
 // Symbol table
 //===----------------------------------------------------------------------===//
 
-struct data_type_symbols_tag : x3::symbols<id::data_type> {
-  data_type_symbols_tag()
+struct type_name_symbols_tag : x3::symbols<id::type_name> {
+  type_name_symbols_tag()
   {
     // clang-format off
     add
-      (  "i8",      id::data_type::i8)
-      (  "u8",      id::data_type::u8)
-      ( "i16",     id::data_type::i16)
-      ( "u16",     id::data_type::u16)
-      ( "i32",     id::data_type::i32)
-      ( "u32",     id::data_type::u32)
-      ( "i64",     id::data_type::i64)
-      ( "u64",     id::data_type::u64)
-      ("i128",    id::data_type::i128)
-      ("u128",    id::data_type::u128)
-      ("bool", id::data_type::boolean)
+      (  "i8",      id::type_name::i8)
+      (  "u8",      id::type_name::u8)
+      ( "i16",     id::type_name::i16)
+      ( "u16",     id::type_name::u16)
+      ( "i32",     id::type_name::i32)
+      ( "u32",     id::type_name::u32)
+      ( "i64",     id::type_name::i64)
+      ( "u64",     id::type_name::u64)
+      ("bool", id::type_name::boolean)
     ;
     // clang-format on
   }
-} data_type_symbols;
+} type_name_symbols;
 
 struct variable_qualifier_symbols_tag : x3::symbols<id::variable_qualifier> {
   variable_qualifier_symbols_tag()
@@ -169,9 +173,9 @@ const auto identifier
 = x3::raw[x3::lexeme[(x3::alpha | x3::lit('_'))
                      >> *(x3::alnum | x3::lit('_'))]];
 
-const auto data_type
-  = x3::rule<struct data_type_tag, id::data_type>{"data type"}
-= data_type_symbols;
+const auto type_name
+  = x3::rule<struct type_name_tag, id::type_name>{"type name"}
+= type_name_symbols;
 
 const auto variable_qualifier
   = x3::rule<struct variable_qualifier_tag,
@@ -182,22 +186,28 @@ const auto function_linkage = x3::rule<struct function_linkage_tag,
                                        id::function_linkage>{"function linkage"}
 = function_linkage_symbols;
 
-const auto integer = x3::rule<struct integer_tag, int>{"integral number"}
-= x3::int_;
+const auto unsigned_integer
+  = x3::rule<struct unsigned_integer_tag, std::uint32_t>{"integral number"}
+= x3::uint32;
+
+const auto signed_integer
+  = x3::rule<struct signed_integer_tag, std::int32_t>{"integral number"}
+= x3::int32;
 
 //===----------------------------------------------------------------------===//
 // Expression rules
 //===----------------------------------------------------------------------===//
 
+const x3::rule<struct expression_tag, ast::expression> expression{"expression"};
 const x3::rule<struct assignment_tag, ast::expression> assignment{"assignment"};
 const x3::rule<struct equality_tag, ast::expression>   equality{"equality"};
 const x3::rule<struct relational_tag, ast::expression> relational{"relational"};
 const x3::rule<struct addition_tag, ast::expression>   addition{"addition"};
 const x3::rule<struct multiplication_tag, ast::expression> multiplication{
   "multiplication"};
-const x3::rule<struct unary_tag, ast::expression>      unary{"unary"};
-const x3::rule<struct primary_tag, ast::expression>    primary{"primary"};
-const x3::rule<struct expression_tag, ast::expression> expression{"expression"};
+const x3::rule<struct cast_tag, ast::expression>    cast{"cast"};
+const x3::rule<struct unary_tag, ast::expression>   unary{"unary"};
+const x3::rule<struct primary_tag, ast::expression> primary{"primary"};
 
 const auto assignment_operator
   = x3::rule<struct assignment_operator_tag, std::string>{"assignment operator"}
@@ -248,25 +258,31 @@ const auto addition_def
     >> *(additive_operator > multiplication)[action::assign_binop_to_val];
 
 const auto multiplication_def
-  = unary[action::assign_attr_to_val]
-    >> *(multitive_operator > unary)[action::assign_binop_to_val];
+  = cast[action::assign_attr_to_val]
+    >> *(multitive_operator > cast)[action::assign_binop_to_val];
+
+const auto cast_def
+  = (unary >> x3::lit("as") > type_name)[action::assign_cast_to_val]
+    | unary[action::assign_attr_to_val];
 
 const auto unary_def = (unary_operator > primary)[action::assign_unaryop_to_val]
                        | primary[action::assign_attr_to_val];
 
 const auto primary_def
   = (x3::lit('(') > expression > x3::lit(')'))[action::assign_attr_to_val]
-    | integer[action::assign_attr_to_val]
+    | unsigned_integer[action::assign_attr_to_val]
+    | signed_integer[action::assign_attr_to_val]
     | (identifier >> x3::lit("(") > argument_list
        > x3::lit(")"))[action::assign_function_call_to_val]
     | identifier[action::assign_variable_to_val];
 
-BOOST_SPIRIT_DEFINE(assignment,
-                    expression,
+BOOST_SPIRIT_DEFINE(expression,
+                    assignment,
                     equality,
                     relational,
                     addition,
                     multiplication,
+                    cast,
                     unary,
                     primary)
 
@@ -287,7 +303,7 @@ const auto expression_statement
 const auto variable_def_statement
   = x3::rule<struct variable_def_statement_tag,
              ast::variable_def_statement>{"variable definition"}
-= x3::lit("var") > -variable_qualifier > identifier > x3::lit(':') > data_type
+= x3::lit("var") > -variable_qualifier > identifier > x3::lit(':') > type_name
   > -(x3::lit('=') > expression) > x3::lit(';');
 
 const auto return_statement
@@ -330,7 +346,7 @@ BOOST_SPIRIT_DEFINE(compound_statement, statement)
 
 const auto parameter
   = x3::rule<struct parameter_tag, ast::parameter>{"parameter"}
-= -variable_qualifier >> identifier > x3::lit(':') > data_type;
+= -variable_qualifier >> identifier > x3::lit(':') > type_name;
 
 const auto parameter_list
   = x3::rule<struct parameter_list_tag,
@@ -341,7 +357,7 @@ const auto function_proto
   = x3::rule<struct function_proto_tag,
              ast::function_declare>{"function prototype"}
 = -function_linkage > identifier > x3::lit('(') > parameter_list > x3::lit(')')
-  > x3::lit("->") > data_type;
+  > x3::lit("->") > type_name;
 
 const auto function_declare
   = x3::rule<struct function_declare_tag,
@@ -402,7 +418,7 @@ struct keyword_tag
   : with_error_handling
   , annotate_position {};
 
-struct data_type_tag
+struct type_name_tag
   : with_error_handling
   , annotate_position {};
 
@@ -414,7 +430,11 @@ struct function_linkage_tag
   : with_error_handling
   , annotate_position {};
 
-struct integer_tag
+struct unsigned_integer_tag
+  : with_error_handling
+  , annotate_position {};
+
+struct signed_integer_tag
   : with_error_handling
   , annotate_position {};
 
@@ -447,6 +467,10 @@ struct addition_tag
   , annotate_position {};
 
 struct multiplication_tag
+  : with_error_handling
+  , annotate_position {};
+
+struct cast_tag
   : with_error_handling
   , annotate_position {};
 

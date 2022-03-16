@@ -17,7 +17,7 @@
 namespace miko::id
 {
 
-enum class data_type {
+enum class type_name {
   i8,
   u8,
   i16,
@@ -26,8 +26,6 @@ enum class data_type {
   u32,
   i64,
   u64,
-  i128,
-  u128,
   boolean,
 };
 

@@ -20,8 +20,6 @@ namespace miko::codegen
 struct variable_info {
   llvm::AllocaInst* instance;
   bool              is_mutable;
-  id::data_type     type;
-  bool              is_unsigned;
 };
 
 struct symbol_table {
@@ -87,9 +85,14 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     BOOST_ASSERT(0);
   }
 
-  llvm::Value* operator()(const int value) const
+  llvm::Value* operator()(const std::uint32_t node) const
   {
-    return llvm::ConstantInt::get(common.builder.getInt32Ty(), value);
+    return llvm::ConstantInt::get(common.builder.getInt32Ty(), node);
+  }
+
+  llvm::Value* operator()(const std::int32_t node) const
+  {
+    return llvm::ConstantInt::getSigned(common.builder.getInt32Ty(), node);
   }
 
   llvm::Value* operator()(const ast::unary_op_expr& node) const
@@ -118,9 +121,9 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
       try {
         auto&& lhs = boost::get<ast::variable_expr>(node.lhs);
 
-        auto* rhs = boost::apply_visitor(*this, node.rhs);
+        auto rhs = boost::apply_visitor(*this, node.rhs);
         if (!rhs)
-          return nullptr;
+          BOOST_ASSERT(0);
 
         auto var_info = scope[lhs.name];
 
@@ -150,7 +153,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     auto lhs = boost::apply_visitor(*this, node.lhs);
     auto rhs = boost::apply_visitor(*this, node.rhs);
     if (!lhs || !rhs)
-      return nullptr;
+      BOOST_ASSERT(0);
 
     // addition
     if (node.op == "+")
@@ -166,19 +169,25 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
 
     // equality
     if (node.op == "==")
-      return common.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ, lhs, rhs);
+      return common.i1_to_boolean(
+        common.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ, lhs, rhs));
     if (node.op == "!=")
-      return common.builder.CreateICmp(llvm::ICmpInst::ICMP_NE, lhs, rhs);
+      return common.i1_to_boolean(
+        common.builder.CreateICmp(llvm::ICmpInst::ICMP_NE, lhs, rhs));
 
     // relational
     if (node.op == "<")
-      return common.builder.CreateICmp(llvm::ICmpInst::ICMP_SLT, lhs, rhs);
+      return common.i1_to_boolean(
+        common.builder.CreateICmp(llvm::ICmpInst::ICMP_SLT, lhs, rhs));
     if (node.op == ">")
-      return common.builder.CreateICmp(llvm::ICmpInst::ICMP_SGT, lhs, rhs);
+      return common.i1_to_boolean(
+        common.builder.CreateICmp(llvm::ICmpInst::ICMP_SGT, lhs, rhs));
     if (node.op == "<=")
-      return common.builder.CreateICmp(llvm::ICmpInst::ICMP_SLE, lhs, rhs);
+      return common.i1_to_boolean(
+        common.builder.CreateICmp(llvm::ICmpInst::ICMP_SLE, lhs, rhs));
     if (node.op == ">=")
-      return common.builder.CreateICmp(llvm::ICmpInst::ICMP_SGE, lhs, rhs);
+      return common.i1_to_boolean(
+        common.builder.CreateICmp(llvm::ICmpInst::ICMP_SGE, lhs, rhs));
 
     BOOST_ASSERT_MSG(
       0,
@@ -202,7 +211,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
 
   llvm::Value* operator()(const ast::function_call_expr& node) const
   {
-    auto* callee_function = common.module->getFunction(node.callee);
+    auto callee_function = common.module.getFunction(node.callee);
 
     if (!callee_function) {
       throw std::runtime_error{format_error_message(
@@ -221,10 +230,28 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
       args_value.push_back(boost::apply_visitor(*this, node.args[i]));
 
       if (!args_value.back())
-        return nullptr;
+        BOOST_ASSERT(0);
     }
 
     return common.builder.CreateCall(callee_function, args_value);
+  }
+
+  llvm::Value* operator()(const ast::cast_expr& node) const
+  {
+    // TODO
+    auto rhs = boost::apply_visitor(*this, node.rhs);
+    if (!rhs)
+      BOOST_ASSERT(0);
+
+    auto as = common.typename_to_type(node.as);
+
+    return llvm::CastInst::CreateIntegerCast(rhs,
+                                             as.type,
+                                             as.is_signed,
+                                             "",
+                                             common.builder.GetInsertBlock());
+
+    return rhs;
   }
 
 private:
@@ -271,7 +298,7 @@ struct statement_visitor : public boost::static_visitor<void> {
 
   void operator()(const ast::return_statement& node) const
   {
-    auto* retval
+    auto retval
       = boost::apply_visitor(expression_visitor{common, scope}, node.rhs);
 
     if (!retval) {
@@ -292,17 +319,16 @@ struct statement_visitor : public boost::static_visitor<void> {
                              format("redefinition of '%s'", node.name))};
     }
 
-    auto* function = common.builder.GetInsertBlock()->getParent();
+    auto function = common.builder.GetInsertBlock()->getParent();
 
-    auto* inst
+    auto inst
       = create_entry_block_alloca(function,
                                   node.name,
-                                  common.data_type_to_llvm_type(node.type));
+                                  common.typename_to_type(node.type).type);
 
     if (node.initializer) {
-      auto* initializer
-        = boost::apply_visitor(expression_visitor{common, scope},
-                               *node.initializer);
+      auto initializer = boost::apply_visitor(expression_visitor{common, scope},
+                                              *node.initializer);
 
       if (!initializer) {
         throw std::runtime_error{format_error_message(
@@ -325,7 +351,7 @@ struct statement_visitor : public boost::static_visitor<void> {
 
   void operator()(const ast::if_statement& node) const
   {
-    auto* condition_value
+    auto condition_value
       = boost::apply_visitor(expression_visitor{common, scope}, node.condition);
 
     if (!condition_value) {
@@ -338,15 +364,17 @@ struct statement_visitor : public boost::static_visitor<void> {
     condition_value = common.builder.CreateICmp(
       llvm::ICmpInst::ICMP_NE,
       condition_value,
-      llvm::ConstantInt::get(common.builder.getInt1Ty(), 0));
+      llvm::ConstantInt::get(
+        common.typename_to_type(id::type_name::boolean).type,
+        0));
 
-    auto* function = common.builder.GetInsertBlock()->getParent();
+    auto function = common.builder.GetInsertBlock()->getParent();
 
-    auto* then_bb
+    auto then_bb
       = llvm::BasicBlock::Create(common.context, "if.then", function);
-    auto* else_bb = llvm::BasicBlock::Create(common.context, "if.else");
+    auto else_bb = llvm::BasicBlock::Create(common.context, "if.else");
 
-    auto* merge_bb = llvm::BasicBlock::Create(common.context, "if.merge");
+    auto merge_bb = llvm::BasicBlock::Create(common.context, "if.merge");
 
     common.builder.CreateCondBr(condition_value, then_bb, else_bb);
 
@@ -384,8 +412,8 @@ struct statement_visitor : public boost::static_visitor<void> {
   void operator()(const ast::for_statement& node) const
   {
     if (node.init_expression) {
-      auto* init_value = boost::apply_visitor(expression_visitor{common, scope},
-                                              *node.init_expression);
+      auto init_value = boost::apply_visitor(expression_visitor{common, scope},
+                                             *node.init_expression);
 
       if (!init_value) {
         throw std::runtime_error{format_error_message(
@@ -394,21 +422,21 @@ struct statement_visitor : public boost::static_visitor<void> {
       }
     }
 
-    auto* function = common.builder.GetInsertBlock()->getParent();
+    auto function = common.builder.GetInsertBlock()->getParent();
 
-    auto* cond_bb
+    auto cond_bb
       = llvm::BasicBlock::Create(common.context, "for.cond", function);
-    auto* loop_bb = llvm::BasicBlock::Create(common.context, "for.loop");
-    auto* body_bb = llvm::BasicBlock::Create(common.context, "for.body");
+    auto loop_bb = llvm::BasicBlock::Create(common.context, "for.loop");
+    auto body_bb = llvm::BasicBlock::Create(common.context, "for.body");
 
-    auto* for_end_bb = llvm::BasicBlock::Create(common.context, "for.end");
+    auto for_end_bb = llvm::BasicBlock::Create(common.context, "for.end");
 
     common.builder.CreateBr(cond_bb);
     common.builder.SetInsertPoint(cond_bb);
 
     if (node.cond_expression) {
-      auto* cond_value = boost::apply_visitor(expression_visitor{common, scope},
-                                              *node.cond_expression);
+      auto cond_value = boost::apply_visitor(expression_visitor{common, scope},
+                                             *node.cond_expression);
 
       if (!cond_value) {
         throw std::runtime_error{format_error_message(
@@ -419,7 +447,9 @@ struct statement_visitor : public boost::static_visitor<void> {
       cond_value = common.builder.CreateICmp(
         llvm::ICmpInst::ICMP_NE,
         cond_value,
-        llvm::ConstantInt::get(common.builder.getInt1Ty(), 0));
+        llvm::ConstantInt::get(
+          common.typename_to_type(id::type_name::boolean).type,
+          0));
 
       common.builder.CreateCondBr(cond_value, body_bb, for_end_bb);
     }
@@ -442,8 +472,8 @@ struct statement_visitor : public boost::static_visitor<void> {
     common.builder.SetInsertPoint(loop_bb);
 
     if (node.loop_expression) {
-      auto* loop_value = boost::apply_visitor(expression_visitor{common, scope},
-                                              *node.loop_expression);
+      auto loop_value = boost::apply_visitor(expression_visitor{common, scope},
+                                             *node.loop_expression);
 
       if (!loop_value) {
         throw std::runtime_error{format_error_message(
@@ -507,12 +537,12 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
   // Function declaration
   llvm::Function* operator()(const ast::function_declare& node) const
   {
-    std::vector<llvm::Type*> param_types(node.args.size());
+    std::vector<llvm::Type*> param_types(node.params.size());
     for (std::size_t i = 0, last = param_types.size(); i != last; ++i)
-      param_types[i] = common.data_type_to_llvm_type(node.args[i].type);
+      param_types[i] = common.typename_to_type(node.params[i].type).type;
 
-    auto* function_type
-      = llvm::FunctionType::get(common.data_type_to_llvm_type(node.return_type),
+    auto function_type
+      = llvm::FunctionType::get(common.typename_to_type(node.return_type).type,
                                 param_types,
                                 false);
 
@@ -522,20 +552,20 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
       function = llvm::Function::Create(function_type,
                                         llvm::Function::ExternalLinkage,
                                         node.name,
-                                        common.module.get());
+                                        common.module);
     }
     else if (node.linkage == id::function_linkage::private_) {
       // Internal linkage
       function = llvm::Function::Create(function_type,
                                         llvm::Function::InternalLinkage,
                                         node.name,
-                                        common.module.get());
+                                        common.module);
     }
 
     // Set names for all arguments.
     std::size_t idx = 0;
     for (auto&& arg : function->args())
-      arg.setName(node.args[idx++].name);
+      arg.setName(node.params[idx++].name);
 
     return function;
   }
@@ -543,7 +573,7 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
   // Function definition
   llvm::Function* operator()(const ast::function_define& node) const
   {
-    auto* function = common.module->getFunction(node.decl.name);
+    auto function = common.module.getFunction(node.decl.name);
 
     if (!function)
       function = this->operator()(node.decl);
@@ -557,39 +587,38 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
 
     symbol_table argument_values;
 
-    auto* entry_bb
-      = llvm::BasicBlock::Create(common.context, "entry", function);
+    auto entry_bb = llvm::BasicBlock::Create(common.context, "entry", function);
     common.builder.SetInsertPoint(entry_bb);
 
     for (auto& arg : function->args()) {
-      const auto& arg_info = node.decl.args[arg.getArgNo()];
+      const auto& param_info = node.decl.params[arg.getArgNo()];
 
       // Create an alloca for this variable.
-      auto* inst = create_entry_block_alloca(
+      auto inst = create_entry_block_alloca(
         function,
         arg.getName().str(),
-        common.data_type_to_llvm_type(arg_info.type));
+        common.typename_to_type(param_info.type).type);
 
       // Store the initial value into the alloca.
       common.builder.CreateStore(&arg, inst);
 
       // Add arguments to variable symbol table.
-      if (!arg_info.qualifier) {
+      if (!param_info.qualifier) {
         // consttant variable.
         argument_values.regist(arg.getName().str(), {inst, false});
       }
-      else if (*arg_info.qualifier == id::variable_qualifier::mutable_) {
+      else if (*param_info.qualifier == id::variable_qualifier::mutable_) {
         // mutable variable.
         argument_values.regist(arg.getName().str(), {inst, true});
       }
     }
 
     // Used to combine returns into one.
-    auto* retvar = create_entry_block_alloca(
+    auto retvar = create_entry_block_alloca(
       function,
       "retval",
-      common.data_type_to_llvm_type(node.decl.return_type));
-    auto* end_bb = llvm::BasicBlock::Create(common.context, "end");
+      common.typename_to_type(node.decl.return_type).type);
+    auto end_bb = llvm::BasicBlock::Create(common.context, "end");
 
     codegen_compound_statement(node.body,
                                argument_values,
@@ -609,8 +638,7 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
     function->getBasicBlockList().push_back(end_bb);
     common.builder.SetInsertPoint(end_bb);
 
-    auto* retval
-      = common.builder.CreateLoad(retvar->getAllocatedType(), retvar);
+    auto retval = common.builder.CreateLoad(retvar->getAllocatedType(), retvar);
     common.builder.CreateRet(retval);
 
     std::string              em;
@@ -639,37 +667,51 @@ private:
 
 codegen_common::codegen_common(const std::filesystem::path& file)
   : context{}
-  , module{std::make_shared<llvm::Module>(file.filename().string(), context)}
+  , module{file.filename().string(), context}
   , builder{context}
   , file{file}
 {
 }
 
-// Returns nullptr if none of the types apply.
-[[nodiscard]] llvm::Type*
-codegen_common::data_type_to_llvm_type(const id::data_type type)
+[[nodiscard]] integer_type
+codegen_common::typename_to_type(const id::type_name type)
 {
   switch (type) {
-  case id::data_type::i8:
-  case id::data_type::u8:
-    return builder.getInt8Ty();
-  case id::data_type::i16:
-  case id::data_type::u16:
-    return builder.getInt16Ty();
-  case id::data_type::i32:
-  case id::data_type::u32:
-    return builder.getInt32Ty();
-  case id::data_type::i64:
-  case id::data_type::u64:
-    return builder.getInt64Ty();
-  case id::data_type::i128:
-  case id::data_type::u128:
-    return builder.getInt128Ty();
-  case id::data_type::boolean:
-    return builder.getInt1Ty();
+  case id::type_name::i8:
+    return {builder.getInt8Ty(), true};
+  case id::type_name::u8:
+    return {builder.getInt8Ty(), false};
+  case id::type_name::i16:
+    return {builder.getInt16Ty(), true};
+  case id::type_name::u16:
+    return {builder.getInt16Ty(), false};
+  case id::type_name::i32:
+    return {builder.getInt32Ty(), true};
+  case id::type_name::u32:
+    return {builder.getInt32Ty(), false};
+  case id::type_name::i64:
+    return {builder.getInt64Ty(), true};
+  case id::type_name::u64:
+    return {builder.getInt64Ty(), false};
+  case id::type_name::boolean:
+    // We will represent boolean by u8 instead of u1.
+    // The reason for this is that unsigned is difficult to represent in llvm,
+    // so with u1, true sometimes becomes -1! (My lack of technical skills ;_;)
+    return {builder.getInt8Ty(), false};
   }
 
-  return nullptr;
+  BOOST_ASSERT(0);
+}
+
+[[nodiscard]] llvm::Value* codegen_common::i1_to_boolean(llvm::Value* value)
+{
+  auto as = typename_to_type(id::type_name::boolean);
+
+  return llvm::CastInst::CreateIntegerCast(value,
+                                           as.type,
+                                           as.is_signed,
+                                           "",
+                                           builder.GetInsertBlock());
 }
 
 code_generator::code_generator(const ast::program&          ast,
@@ -677,7 +719,7 @@ code_generator::code_generator(const ast::program&          ast,
                                const std::filesystem::path& file,
                                const bool                   optimize)
   : common{file}
-  , function_pm{common.module.get()}
+  , function_pm{&common.module}
   , ast{ast}
   , positions{positions}
 {
@@ -730,8 +772,8 @@ code_generator::code_generator(const ast::program&          ast,
                                   target_options,
                                   llvm::Optional<llvm::Reloc::Model>());
 
-  common.module->setTargetTriple(target_triple);
-  common.module->setDataLayout(target_machine->createDataLayout());
+  common.module.setTargetTriple(target_triple);
+  common.module.setDataLayout(target_machine->createDataLayout());
 
   codegen();
 }
@@ -750,11 +792,10 @@ void code_generator::write_llvm_ir_to_file(
       format("%s: %s", out.string(), ostream_ec.message()))};
   }
 
-  common.module->print(os, nullptr);
+  common.module.print(os, nullptr);
 }
 
-void code_generator::write_object_code_to_file(
-  const std::filesystem::path& out) const
+void code_generator::write_object_code_to_file(const std::filesystem::path& out)
 {
   std::error_code      ostream_ec;
   llvm::raw_fd_ostream os{out.string(),
@@ -777,7 +818,7 @@ void code_generator::write_object_code_to_file(
                            true)};
   }
 
-  pm.run(*common.module);
+  pm.run(common.module);
   os.flush();
 }
 
