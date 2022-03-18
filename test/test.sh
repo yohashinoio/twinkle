@@ -77,7 +77,7 @@ assert  2 "func main() -> i32 {ret 1 + (10 >= 10) as i32;}"
 assert  2 "func main() -> i32 {ret 1+(10>=10)as i32;}"
 
 # Expression statement
-assert 48 "func main() -> i32 { 1+(48>10)as i32; ret +(-(48 * -(1 + 0))); }"
+assert 48 "func main() -> i32 {1+(48>10)as i32; ret +(-(48 * -(1 + 0)));}"
 
 # Function
 assert 25 "func g() -> i32 {
@@ -349,7 +349,34 @@ assert 58 "func main() -> i64 {
   ret 58 as i64;
 }"
 
+# Void type
+assert 58 "extern putchar(ch: i32) -> i32;
+func f() -> void {
+  putchar(52);
+  putchar(56);
+  putchar(49);
+  putchar(48);
+  putchar(10);
+}
+func main() -> i32 {
+  f();
+  ret 58;
+}"
 
-
+assert 58 "extern putchar(ch: i32) -> i32;
+func f() -> void {
+  putchar(53);
+  putchar(56);
+  putchar(10);
+  ret;
+  putchar(10);
+  ret;
+  putchar(10);
+  ret;
+}
+func main() -> i32 {
+  f();
+  ret 58;
+}"
 
 echo OK

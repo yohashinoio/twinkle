@@ -20,6 +20,7 @@ namespace miko::codegen
 struct variable_info {
   llvm::AllocaInst* instance;
   bool              is_mutable;
+  bool              is_signed;
 };
 
 struct symbol_table {
@@ -164,8 +165,10 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     // multiplication
     if (node.op == "*")
       return common.builder.CreateMul(lhs, rhs);
-    if (node.op == "/")
+    if (node.op == "/") {
+      // TODO: unsigned
       return common.builder.CreateSDiv(lhs, rhs);
+    }
 
     // equality
     if (node.op == "==")
@@ -238,18 +241,13 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
 
   llvm::Value* operator()(const ast::cast_expr& node) const
   {
-    // TODO
     auto rhs = boost::apply_visitor(*this, node.rhs);
     if (!rhs)
       BOOST_ASSERT(0);
 
     auto as = common.typename_to_type(node.as);
 
-    return llvm::CastInst::CreateIntegerCast(rhs,
-                                             as.type,
-                                             as.is_signed,
-                                             "",
-                                             common.builder.GetInsertBlock());
+    return common.builder.CreateIntCast(rhs, as.type, as.is_signed);
 
     return rhs;
   }
@@ -298,16 +296,19 @@ struct statement_visitor : public boost::static_visitor<void> {
 
   void operator()(const ast::return_statement& node) const
   {
-    auto retval
-      = boost::apply_visitor(expression_visitor{common, scope}, node.rhs);
+    if (node.rhs) {
+      auto retval
+        = boost::apply_visitor(expression_visitor{common, scope}, *node.rhs);
 
-    if (!retval) {
-      throw std::runtime_error{
-        format_error_message(common.file.string(),
-                             "failed to generate return value")};
+      if (!retval) {
+        throw std::runtime_error{
+          format_error_message(common.file.string(),
+                               "failed to generate return value")};
+      }
+
+      common.builder.CreateStore(retval, retvar);
     }
 
-    common.builder.CreateStore(retval, retvar);
     common.builder.CreateBr(end_bb);
   }
 
@@ -321,10 +322,9 @@ struct statement_visitor : public boost::static_visitor<void> {
 
     auto function = common.builder.GetInsertBlock()->getParent();
 
-    auto inst
-      = create_entry_block_alloca(function,
-                                  node.name,
-                                  common.typename_to_type(node.type).type);
+    auto type_info = common.typename_to_type(node.type);
+
+    auto inst = create_entry_block_alloca(function, node.name, type_info.type);
 
     if (node.initializer) {
       auto initializer = boost::apply_visitor(expression_visitor{common, scope},
@@ -341,11 +341,11 @@ struct statement_visitor : public boost::static_visitor<void> {
 
     if (!node.qualifier) {
       // consttant variable.
-      scope.regist(node.name, {inst, false});
+      scope.regist(node.name, {inst, false, type_info.is_signed});
     }
     else if (*node.qualifier == id::variable_qualifier::mutable_) {
       // mutable variable.
-      scope.regist(node.name, {inst, true});
+      scope.regist(node.name, {inst, true, type_info.is_signed});
     }
   }
 
@@ -364,9 +364,8 @@ struct statement_visitor : public boost::static_visitor<void> {
     condition_value = common.builder.CreateICmp(
       llvm::ICmpInst::ICMP_NE,
       condition_value,
-      llvm::ConstantInt::get(
-        common.typename_to_type(id::type_name::boolean).type,
-        0));
+      llvm::ConstantInt::get(common.typename_to_type(id::type_name::bool_).type,
+                             0));
 
     auto function = common.builder.GetInsertBlock()->getParent();
 
@@ -448,7 +447,7 @@ struct statement_visitor : public boost::static_visitor<void> {
         llvm::ICmpInst::ICMP_NE,
         cond_value,
         llvm::ConstantInt::get(
-          common.typename_to_type(id::type_name::boolean).type,
+          common.typename_to_type(id::type_name::bool_).type,
           0));
 
       common.builder.CreateCondBr(cond_value, body_bb, for_end_bb);
@@ -614,11 +613,13 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
     }
 
     // Used to combine returns into one.
-    auto retvar = create_entry_block_alloca(
-      function,
-      "retval",
-      common.typename_to_type(node.decl.return_type).type);
     auto end_bb = llvm::BasicBlock::Create(common.context, "end");
+    auto retvar = node.decl.return_type == id::type_name::void_
+                    ? nullptr
+                    : create_entry_block_alloca(
+                      function,
+                      "retval",
+                      common.typename_to_type(node.decl.return_type).type);
 
     codegen_compound_statement(node.body,
                                argument_values,
@@ -635,11 +636,26 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
       common.builder.CreateBr(end_bb);
     }
 
+    // Automatically inserts a terminator if a function that returns void does
+    // not have one.
+    if (node.decl.return_type == id::type_name::void_
+        && !common.builder.GetInsertBlock()->getTerminator()) {
+      common.builder.CreateBr(end_bb);
+    }
+
+    // Return.
     function->getBasicBlockList().push_back(end_bb);
     common.builder.SetInsertPoint(end_bb);
 
-    auto retval = common.builder.CreateLoad(retvar->getAllocatedType(), retvar);
-    common.builder.CreateRet(retval);
+    if (retvar) {
+      auto retval
+        = common.builder.CreateLoad(retvar->getAllocatedType(), retvar);
+      common.builder.CreateRet(retval);
+    }
+    else {
+      // Function that returns void.
+      common.builder.CreateRet(nullptr);
+    }
 
     std::string              em;
     llvm::raw_string_ostream os{em};
@@ -677,6 +693,8 @@ codegen_common::codegen_common(const std::filesystem::path& file)
 codegen_common::typename_to_type(const id::type_name type)
 {
   switch (type) {
+  case id::type_name::void_:
+    return {builder.getVoidTy(), false};
   case id::type_name::i8:
     return {builder.getInt8Ty(), true};
   case id::type_name::u8:
@@ -693,7 +711,7 @@ codegen_common::typename_to_type(const id::type_name type)
     return {builder.getInt64Ty(), true};
   case id::type_name::u64:
     return {builder.getInt64Ty(), false};
-  case id::type_name::boolean:
+  case id::type_name::bool_:
     // We will represent boolean by u8 instead of u1.
     // The reason for this is that unsigned is difficult to represent in llvm,
     // so with u1, true sometimes becomes -1! (My lack of technical skills ;_;)
@@ -705,7 +723,7 @@ codegen_common::typename_to_type(const id::type_name type)
 
 [[nodiscard]] llvm::Value* codegen_common::i1_to_boolean(llvm::Value* value)
 {
-  auto as = typename_to_type(id::type_name::boolean);
+  auto as = typename_to_type(id::type_name::bool_);
 
   return llvm::CastInst::CreateIntegerCast(value,
                                            as.type,

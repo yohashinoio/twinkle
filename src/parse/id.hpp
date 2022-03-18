@@ -18,6 +18,7 @@ namespace miko::id
 {
 
 enum class type_name {
+  void_,
   i8,
   u8,
   i16,
@@ -26,7 +27,7 @@ enum class type_name {
   u32,
   i64,
   u64,
-  boolean,
+  bool_,
 };
 
 enum class variable_qualifier {

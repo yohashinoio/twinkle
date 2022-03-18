@@ -128,6 +128,7 @@ struct type_name_symbols_tag : x3::symbols<id::type_name> {
   {
     // clang-format off
     add
+      ("void",   id::type_name::void_)
       (  "i8",      id::type_name::i8)
       (  "u8",      id::type_name::u8)
       ( "i16",     id::type_name::i16)
@@ -136,7 +137,7 @@ struct type_name_symbols_tag : x3::symbols<id::type_name> {
       ( "u32",     id::type_name::u32)
       ( "i64",     id::type_name::i64)
       ( "u64",     id::type_name::u64)
-      ("bool", id::type_name::boolean)
+      ("bool",   id::type_name::bool_)
     ;
     // clang-format on
   }
@@ -309,7 +310,7 @@ const auto variable_def_statement
 const auto return_statement
   = x3::rule<struct return_statement_tag,
              ast::return_statement>{"return statement"}
-= x3::lit("ret") > expression > x3::lit(';');
+= x3::lit("ret") > -expression > x3::lit(';');
 
 const auto compound_statement_or_statement
   = x3::rule<struct compound_statement_or_statement,

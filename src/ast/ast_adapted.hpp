@@ -63,7 +63,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   miko::ast::return_statement,
-  (miko::ast::expression, rhs)
+  (std::optional<miko::ast::expression>, rhs)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

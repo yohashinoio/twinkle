@@ -129,9 +129,9 @@ struct variable_def_statement : x3::position_tagged {
 };
 
 struct return_statement : x3::position_tagged {
-  expression rhs;
+  std::optional<expression> rhs;
 
-  explicit return_statement(const expression& rhs);
+  explicit return_statement(const std::optional<expression>& rhs);
 
   return_statement();
 };

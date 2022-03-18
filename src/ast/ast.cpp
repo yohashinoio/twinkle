@@ -108,7 +108,7 @@ variable_def_statement::variable_def_statement()
 {
 }
 
-return_statement::return_statement(const expression& rhs)
+return_statement::return_statement(const std::optional<expression>& rhs)
   : rhs{rhs}
 {
 }
