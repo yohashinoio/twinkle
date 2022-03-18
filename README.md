@@ -10,6 +10,7 @@
 - [Data types](#data-types)
   - [Integer types](#integer-types)
   - [Boolean type](#boolean-type)
+  - [Void type](#void-type)
 - [Comments](#comments)
   - [Single line comment](#single-line-comment)
   - [Multi line comment](#multi-line-comment)
@@ -88,6 +89,27 @@ func main() -> i32
 {
   var f: bool;
   var g: bool;
+}
+```
+
+### Void type
+| Name |
+| ---- |
+| void |
+```rust
+func f() -> void
+{
+  ret;
+}
+
+func g() -> void
+{
+}
+
+func main() -> i32
+{
+  f();
+  g();
 }
 ```
 
