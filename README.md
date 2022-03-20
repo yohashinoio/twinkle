@@ -11,6 +11,7 @@
   - [Integer types](#integer-types)
   - [Boolean type](#boolean-type)
   - [Void type](#void-type)
+  - [Pointer types](#pointer-types)
 - [Comments](#comments)
   - [Single line comment](#single-line-comment)
   - [Multi line comment](#multi-line-comment)
@@ -57,10 +58,10 @@
 | Direct assignment | a = b  |
 
 ### Other operators
-| Operator name | Syntax        |
-| ------------- | ------------- |
-| Function call | a(a1, a2)     |
-| Conversion    | a as **type** |
+| Operator name | Syntax    |
+| ------------- | --------- |
+| Function call | a(a1, a2) |
+| Conversion    | a as type |
 
 This section on Operators is based on "Operators in C and C++" from wikipedia.<br/>
 Thank you!
@@ -73,11 +74,9 @@ Thank you!
 | 16-bit  | i16    | u16      |
 | 32-bit  | i32    | u32      |
 | 64-bit  | i64    | u64      |
-| 128-bit | i128   | u128     |
 ```rust
-func main() -> i32
-{
-  var a: i32;
+var n: i32;
+var m: u32;
 ```
 
 ### Boolean type
@@ -85,11 +84,7 @@ func main() -> i32
 | ------- | ---- |
 | 1-bit   | bool |
 ```rust
-func main() -> i32
-{
-  var f: bool;
-  var g: bool;
-}
+var f: bool;
 ```
 
 ### Void type
@@ -111,6 +106,15 @@ func main() -> i32
   f();
   g();
 }
+```
+
+### Pointer types
+| Syntax |
+| ------ |
+| *type  |
+```rust
+var p: *i32;
+var s: *i8;
 ```
 
 ## Comments
