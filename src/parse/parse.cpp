@@ -195,6 +195,12 @@ const auto signed_integer
   = x3::rule<struct signed_integer_tag, std::int32_t>{"integral number"}
 = x3::int32;
 
+// TODO: escape sequence
+const auto string_literal
+  = x3::rule<struct string_literal_tag, ast::string_literal>{"string literal"}
+= x3::lexeme[x3::lit('"') > *(x3::char_ - (x3::lit('"') | x3::eol))
+             > x3::lit('"')];
+
 //===----------------------------------------------------------------------===//
 // Expression rules
 //===----------------------------------------------------------------------===//
@@ -273,8 +279,9 @@ const auto primary_def
   = (x3::lit('(') > expression > x3::lit(')'))[action::assign_attr_to_val]
     | unsigned_integer[action::assign_attr_to_val]
     | signed_integer[action::assign_attr_to_val]
+    | string_literal[action::assign_attr_to_val]
     | (identifier >> x3::lit("(") > argument_list
-       > x3::lit(")"))[action::assign_function_call_to_val]
+       > x3::lit(")"))[action::assign_function_call_to_val] // function call
     | identifier[action::assign_variable_to_val];
 
 BOOST_SPIRIT_DEFINE(expression,
@@ -436,6 +443,10 @@ struct unsigned_integer_tag
   , annotate_position {};
 
 struct signed_integer_tag
+  : with_error_handling
+  , annotate_position {};
+
+struct string_literal_tag
   : with_error_handling
   , annotate_position {};
 

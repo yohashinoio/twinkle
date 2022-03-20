@@ -22,6 +22,16 @@ namespace miko::ast
 // Expression abstract syntax tree
 //===----------------------------------------------------------------------===//
 
+string_literal::string_literal(const std::string& str)
+  : str{str}
+{
+}
+
+string_literal::string_literal()
+  : str{}
+{
+}
+
 unary_op_expr::unary_op_expr(const std::string& op, const expression& rhs)
   : op{op}
   , rhs{rhs}

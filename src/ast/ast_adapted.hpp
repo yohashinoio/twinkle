@@ -19,6 +19,12 @@
 // Expression abstract syntax tree adapt
 //===----------------------------------------------------------------------===//
 
+
+BOOST_FUSION_ADAPT_STRUCT(
+  miko::ast::string_literal,
+  (std::string, str)
+)
+
 BOOST_FUSION_ADAPT_STRUCT(
   miko::ast::unary_op_expr,
   (std::string, op)

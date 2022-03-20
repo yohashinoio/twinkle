@@ -32,18 +32,34 @@ struct nil {};
 // Expression abstract syntax tree
 //===----------------------------------------------------------------------===//
 
+struct string_literal : x3::position_tagged {
+  std::string str;
+
+  explicit string_literal(const std::string& str);
+
+  string_literal();
+};
+
+struct variable_expr : x3::position_tagged {
+  std::string name;
+
+  explicit variable_expr(const std::string& name);
+
+  variable_expr();
+};
+
 struct unary_op_expr;
 struct binary_op_expr;
-struct variable_expr;
 struct function_call_expr;
 struct cast_expr;
 
 using expression = boost::variant<nil,
                                   std::uint32_t, /* unsigned integer */
                                   std::int32_t,  /* signed integer */
+                                  string_literal,
+                                  variable_expr,
                                   boost::recursive_wrapper<unary_op_expr>,
                                   boost::recursive_wrapper<binary_op_expr>,
-                                  boost::recursive_wrapper<variable_expr>,
                                   boost::recursive_wrapper<function_call_expr>,
                                   boost::recursive_wrapper<cast_expr>>;
 
@@ -66,14 +82,6 @@ struct binary_op_expr : x3::position_tagged {
                  const expression&  rhs);
 
   binary_op_expr();
-};
-
-struct variable_expr : x3::position_tagged {
-  std::string name;
-
-  explicit variable_expr(const std::string& name);
-
-  variable_expr();
 };
 
 struct function_call_expr : x3::position_tagged {
@@ -99,20 +107,13 @@ struct cast_expr : x3::position_tagged {
 // Statement abstract syntax tree
 //===----------------------------------------------------------------------===//
 
-struct return_statement;
-struct variable_def_statement;
-struct if_statement;
-struct for_statement;
+struct return_statement : x3::position_tagged {
+  std::optional<expression> rhs;
 
-using statement = boost::variant<nil,
-                                 boost::recursive_wrapper<if_statement>,
-                                 boost::recursive_wrapper<for_statement>,
-                                 expression,
-                                 return_statement,
-                                 variable_def_statement>;
+  explicit return_statement(const std::optional<expression>& rhs);
 
-// expression or { *(expression ';') }
-using compound_statement = std::vector<statement>;
+  return_statement();
+};
 
 struct variable_def_statement : x3::position_tagged {
   std::optional<id::variable_qualifier> qualifier;
@@ -128,13 +129,18 @@ struct variable_def_statement : x3::position_tagged {
   variable_def_statement();
 };
 
-struct return_statement : x3::position_tagged {
-  std::optional<expression> rhs;
+struct if_statement;
+struct for_statement;
 
-  explicit return_statement(const std::optional<expression>& rhs);
+using statement = boost::variant<nil,
+                                 expression,
+                                 return_statement,
+                                 variable_def_statement,
+                                 boost::recursive_wrapper<if_statement>,
+                                 boost::recursive_wrapper<for_statement>>;
 
-  return_statement();
-};
+// expression or { *(expression ';') }
+using compound_statement = std::vector<statement>;
 
 struct if_statement : x3::position_tagged {
   expression                        condition;
@@ -165,13 +171,6 @@ struct for_statement : x3::position_tagged {
 //===----------------------------------------------------------------------===//
 // Top level abstract syntax tree
 //===----------------------------------------------------------------------===//
-
-struct function_declare;
-struct function_define;
-
-using top_level_stmt = boost::variant<nil, function_declare, function_define>;
-
-using program = std::vector<top_level_stmt>;
 
 struct parameter : x3::position_tagged {
   std::optional<id::variable_qualifier> qualifier;
@@ -207,6 +206,10 @@ struct function_define : x3::position_tagged {
 
   function_define();
 };
+
+using top_level_stmt = boost::variant<nil, function_declare, function_define>;
+
+using program = std::vector<top_level_stmt>;
 
 } // namespace miko::ast
 

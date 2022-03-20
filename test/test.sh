@@ -379,4 +379,29 @@ func main() -> i32 {
   ret 58;
 }"
 
+# String literal
+assert 58 'func main() -> i32 {
+  "";
+  " ";
+  "a";
+  "abc";
+  ret 58;
+}'
+
+assert 58 'func yoha() -> i8 {
+  "hello, yoha";
+  ret 48 as i8;
+}
+func shino(yoha: i8, io: i8) -> i32 {
+  "hello, yoha shino io";
+  ret (yoha + io) as i32;
+}
+func io() -> i8 {
+  "hello, io";
+  ret 10 as i8;
+}
+func main() -> i32 {
+  ret shino(yoha(), io());
+}'
+
 echo OK
