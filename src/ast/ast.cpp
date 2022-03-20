@@ -83,7 +83,7 @@ function_call_expr::function_call_expr()
 {
 }
 
-cast_expr::cast_expr(const expression& rhs, const id::type_name as)
+cast_expr::cast_expr(const expression& rhs, const ast::type_info& as)
   : rhs{rhs}
   , as{as}
 {
@@ -102,7 +102,7 @@ cast_expr::cast_expr()
 variable_def_statement::variable_def_statement(
   const std::optional<id::variable_qualifier>& qualifier,
   const std::string&                           name,
-  const id::type_name                          type,
+  const ast::type_info&                        type,
   const std::optional<expression>&             initializer)
   : qualifier{qualifier}
   , name{name}
@@ -170,7 +170,7 @@ for_statement::for_statement()
 
 parameter::parameter(const std::optional<id::variable_qualifier>& qualifier,
                      const std::string&                           name,
-                     const id::type_name                          type)
+                     const ast::type_info&                        type)
   : qualifier{qualifier}
   , name{name}
   , type{type}
@@ -188,7 +188,7 @@ function_declare::function_declare(
   const std::optional<id::function_linkage>& linkage,
   const std::string&                         name,
   const std::vector<parameter>&              params,
-  const id::type_name                        return_type)
+  const ast::type_info&                      return_type)
   : linkage{linkage}
   , name{name}
   , params{params}

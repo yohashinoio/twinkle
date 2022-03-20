@@ -253,7 +253,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     if (!rhs)
       BOOST_ASSERT(0);
 
-    auto as = common.typename_to_type(node.as);
+    auto as = common.typename_to_type(node.as.type);
 
     return common.builder.CreateIntCast(rhs, as.type, as.is_signed);
 
@@ -330,7 +330,7 @@ struct statement_visitor : public boost::static_visitor<void> {
 
     auto function = common.builder.GetInsertBlock()->getParent();
 
-    auto type_info = common.typename_to_type(node.type);
+    auto type_info = common.typename_to_type(node.type.type);
 
     auto inst = create_entry_block_alloca(function, node.name, type_info.type);
 
@@ -546,12 +546,12 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
   {
     std::vector<llvm::Type*> param_types(node.params.size());
     for (std::size_t i = 0, last = param_types.size(); i != last; ++i)
-      param_types[i] = common.typename_to_type(node.params[i].type).type;
+      param_types[i] = common.typename_to_type(node.params[i].type.type).type;
 
-    auto function_type
-      = llvm::FunctionType::get(common.typename_to_type(node.return_type).type,
-                                param_types,
-                                false);
+    auto function_type = llvm::FunctionType::get(
+      common.typename_to_type(node.return_type.type).type,
+      param_types,
+      false);
 
     llvm::Function* function;
     if (!node.linkage) {
@@ -604,7 +604,7 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
       auto inst = create_entry_block_alloca(
         function,
         arg.getName().str(),
-        common.typename_to_type(param_info.type).type);
+        common.typename_to_type(param_info.type.type).type);
 
       // Store the initial value into the alloca.
       common.builder.CreateStore(&arg, inst);
@@ -622,12 +622,12 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
 
     // Used to combine returns into one.
     auto end_bb = llvm::BasicBlock::Create(common.context, "end");
-    auto retvar = node.decl.return_type == id::type_name::void_
+    auto retvar = node.decl.return_type.type == id::type_name::void_
                     ? nullptr
                     : create_entry_block_alloca(
                       function,
                       "retval",
-                      common.typename_to_type(node.decl.return_type).type);
+                      common.typename_to_type(node.decl.return_type.type).type);
 
     codegen_compound_statement(node.body,
                                argument_values,
@@ -646,7 +646,7 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
 
     // Automatically inserts a terminator if a function that returns void does
     // not have one.
-    if (node.decl.return_type == id::type_name::void_
+    if (node.decl.return_type.type == id::type_name::void_
         && !common.builder.GetInsertBlock()->getTerminator()) {
       common.builder.CreateBr(end_bb);
     }

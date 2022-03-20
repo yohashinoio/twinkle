@@ -404,4 +404,30 @@ func main() -> i32 {
   ret shino(yoha(), io());
 }'
 
+# Escape sequence
+assert 58 'func main() -> i32 {
+  "hello\aworld";"hello\bworld";
+  "hello\fworld";"hello\nworld";
+  "hello\rworld";"hello\tworld";
+  "hello\vworld";"hello\0world";
+  "hello\\world";"hello\"world";
+  ret 58;
+}'
+
+# Pointer type (parsing)
+assert 58 "func f() -> i32 {
+  var p1: *i16;
+  var p2: *u16;
+  var p3: *i64;
+  var p4: *u64;
+  ret 58;
+}
+func main() -> i32 {
+  var s1: *i8;
+  var mut s2: *u8;
+  var p1: *i32;
+  var mut p2: *u32;
+  ret f();
+}"
+
 echo OK

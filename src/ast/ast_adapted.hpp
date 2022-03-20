@@ -52,7 +52,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   miko::ast::cast_expr,
   (miko::ast::expression, rhs)
-  (miko::id::type_name, as)
+  (miko::ast::type_info, as)
 )
 
 //===----------------------------------------------------------------------===//
@@ -63,7 +63,7 @@ BOOST_FUSION_ADAPT_STRUCT(
   miko::ast::variable_def_statement,
   (std::optional<miko::id::variable_qualifier>, qualifier)
   (std::string, name)
-  (miko::id::type_name, type)
+  (miko::ast::type_info, type)
   (std::optional<miko::ast::expression>, initializer)
 )
 
@@ -95,7 +95,7 @@ BOOST_FUSION_ADAPT_STRUCT(
   miko::ast::parameter,
   (std::optional<miko::id::variable_qualifier>, qualifier)
   (std::string, name)
-  (miko::id::type_name, type)
+  (miko::ast::type_info, type)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -103,7 +103,7 @@ BOOST_FUSION_ADAPT_STRUCT(
   (std::optional<miko::id::function_linkage>, linkage)
   (std::string, name)
   (std::vector<miko::ast::parameter>, params)
-  (miko::id::type_name, return_type)
+  (miko::ast::type_info, return_type)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

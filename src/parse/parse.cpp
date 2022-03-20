@@ -196,8 +196,17 @@ const auto identifier
                      >> *(x3::alnum | x3::lit('_'))]];
 
 const auto type_name
-  = x3::rule<struct type_name_tag, id::type_name>{"type name"}
-= type_name_symbols;
+  = x3::rule<struct pointer_type_name_tag, ast::type_info>{"pointer type name"}
+= (-x3::char_('*') >> type_name_symbols)[([](auto&& ctx) {
+    if (fusion::at_c<0>(x3::_attr(ctx))) {
+      // pointer
+      x3::_val(ctx) = ast::type_info{true, fusion::at_c<1>(x3::_attr(ctx))};
+    }
+    else {
+      // not pointer
+      x3::_val(ctx) = ast::type_info{false, fusion::at_c<1>(x3::_attr(ctx))};
+    }
+  })];
 
 const auto variable_qualifier
   = x3::rule<struct variable_qualifier_tag,
@@ -401,7 +410,7 @@ const auto function_declare
 const auto function_define
   = x3::rule<struct function_define_tag,
              ast::function_define>{"function definition"}
-= x3::lit("func") > function_proto > compound_statement;
+= x3::lit("func") /* TODO: func to fn */ > function_proto > compound_statement;
 
 const auto top_level_stmt = x3::rule<struct top_level_stmt_tag,
                                      ast::top_level_stmt>{"top level statement"}

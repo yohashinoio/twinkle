@@ -19,12 +19,20 @@
 
 namespace x3 = boost::spirit::x3;
 
+namespace miko
+{
+
 //===----------------------------------------------------------------------===//
 // Abstract syntax tree
 //===----------------------------------------------------------------------===//
 
-namespace miko::ast
+namespace ast
 {
+
+struct type_info {
+  bool          is_pointer;
+  id::type_name type;
+};
 
 struct nil {};
 
@@ -95,10 +103,10 @@ struct function_call_expr : x3::position_tagged {
 };
 
 struct cast_expr : x3::position_tagged {
-  expression    rhs;
-  id::type_name as;
+  expression rhs;
+  type_info  as;
 
-  cast_expr(const expression& rhs, const id::type_name as);
+  cast_expr(const expression& rhs, const type_info& as);
 
   cast_expr();
 };
@@ -118,12 +126,12 @@ struct return_statement : x3::position_tagged {
 struct variable_def_statement : x3::position_tagged {
   std::optional<id::variable_qualifier> qualifier;
   std::string                           name;
-  id::type_name                         type;
+  type_info                             type;
   std::optional<expression>             initializer;
 
   variable_def_statement(const std::optional<id::variable_qualifier>& qualifier,
                          const std::string&                           name,
-                         const id::type_name                          type,
+                         const type_info&                             type,
                          const std::optional<expression>& initializer);
 
   variable_def_statement();
@@ -175,11 +183,11 @@ struct for_statement : x3::position_tagged {
 struct parameter : x3::position_tagged {
   std::optional<id::variable_qualifier> qualifier;
   std::string                           name;
-  id::type_name                         type;
+  type_info                             type;
 
   parameter(const std::optional<id::variable_qualifier>& qualifier,
             const std::string&                           name,
-            const id::type_name                          type);
+            const type_info&                             type);
 
   parameter();
 };
@@ -188,12 +196,12 @@ struct function_declare : x3::position_tagged {
   std::optional<id::function_linkage> linkage;
   std::string                         name;
   std::vector<parameter>              params;
-  id::type_name                       return_type;
+  type_info                           return_type;
 
   function_declare(const std::optional<id::function_linkage>& linkage,
                    const std::string&                         name,
                    const std::vector<parameter>&              params,
-                   const id::type_name                        return_type);
+                   const type_info&                           return_type);
 
   function_declare();
 };
@@ -211,6 +219,7 @@ using top_level_stmt = boost::variant<nil, function_declare, function_define>;
 
 using program = std::vector<top_level_stmt>;
 
-} // namespace miko::ast
+} // namespace ast
+} // namespace miko
 
 #endif
