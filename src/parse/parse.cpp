@@ -165,6 +165,27 @@ struct function_linkage_symbols_tag : x3::symbols<id::function_linkage> {
   }
 } function_linkage_symbols;
 
+struct escape_character_symbols_tag : x3::symbols<unsigned char> {
+  escape_character_symbols_tag()
+  {
+    // clang-format off
+    add
+      ("\\a", '\a')
+      ("\\b", '\b')
+      ("\\f", '\f')
+      ("\\n", '\n')
+      ("\\r", '\r')
+      ("\\t", '\t')
+      ("\\v", '\v')
+      ("\\0", '\0')
+      ("\\\\", '\\')
+      ("\\\'", '\'')
+      ("\\\"", '\"')
+    ;
+    // clang-format on
+  }
+} escape_character_symbols;
+
 //===----------------------------------------------------------------------===//
 // Common rules
 //===----------------------------------------------------------------------===//
@@ -195,10 +216,15 @@ const auto signed_integer
   = x3::rule<struct signed_integer_tag, std::int32_t>{"integral number"}
 = x3::int32;
 
-// TODO: escape sequence
+const auto escape_character
+  = x3::rule<struct escape_character_tag, unsigned char>{"escape character"}
+= escape_character_symbols; // TODO: add \xFF
+
 const auto string_literal
   = x3::rule<struct string_literal_tag, ast::string_literal>{"string literal"}
-= x3::lexeme[x3::lit('"') > *(x3::char_ - (x3::lit('"') | x3::eol))
+= x3::lexeme[x3::lit('"')
+             > *((x3::char_ - (x3::lit('"') | x3::eol | x3::lit('\\')))
+                 | escape_character)
              > x3::lit('"')];
 
 //===----------------------------------------------------------------------===//
@@ -443,6 +469,10 @@ struct unsigned_integer_tag
   , annotate_position {};
 
 struct signed_integer_tag
+  : with_error_handling
+  , annotate_position {};
+
+struct escape_character_tag
   : with_error_handling
   , annotate_position {};
 
