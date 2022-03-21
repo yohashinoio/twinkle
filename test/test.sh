@@ -45,6 +45,8 @@ assert 32 "func main() -> i32 {ret 4 * 8;}"
 assert  0 "func main() -> i32 {ret 1*0;}"
 assert 48 "func main() -> i32 {ret 480 / 10;}"
 assert 48 "func main() -> i32 {ret 480/10;}"
+assert  8 "func main() -> i32 {ret 48 % 10;}"
+assert  8 "func main() -> i32 {ret 48%10;}"
 
 assert 10 "func main() -> i32 {ret 2 * 3 + 4;}"
 assert 10 "func main() -> i32 {ret 2*3+4;}"
