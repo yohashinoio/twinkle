@@ -40,6 +40,7 @@
 | Subtraction    | a - b  |
 | Multiplication | a * b  |
 | Division       | a / b  |
+| Modulo         | a % b  |
 | Unary plus     | +a     |
 | Unary minus    | -a     |
 
