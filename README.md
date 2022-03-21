@@ -3,42 +3,44 @@
 </div>
 
 - [Getting Started](#getting-started)
-  - [Hello world](#hello-world)
-  - [AOT compile](#aot-compile)
-  - [JIT compile](#jit-compile)
-  - [More compiler options](#more-compiler-options)
+  - [Hello World](#hello-world)
+  - [AOT Compile](#aot-compile)
+  - [JIT Compile](#jit-compile)
+  - [More Compiler Options](#more-compiler-options)
 - [Operators](#operators)
-  - [Arithmetic operators](#arithmetic-operators)
-  - [Comparison operators / Relational operators](#comparison-operators--relational-operators)
-  - [Assignment operators](#assignment-operators)
-  - [Other operators](#other-operators)
-- [Data types](#data-types)
-  - [Integer types](#integer-types)
-  - [Boolean type](#boolean-type)
-  - [Void type](#void-type)
+  - [Arithmetic Operators](#arithmetic-operators)
+  - [Comparison Operators / Relational Operators](#comparison-operators--relational-operators)
+  - [Assignment Operators](#assignment-operators)
+  - [Other Operators](#other-operators)
+- [Fundamental (built-in) Types](#fundamental-built-in-types)
+  - [Integer Types](#integer-types)
+  - [The boolean Type](#the-boolean-type)
+  - [The void type](#the-void-type)
   - [Pointer types](#pointer-types)
 - [Comments](#comments)
-  - [Single line comment](#single-line-comment)
-  - [Multi line comment](#multi-line-comment)
-- [Declaration and Definition](#declaration-and-definition)
-  - [Function](#function)
-  - [Variable](#variable)
-- [Linkage](#linkage)
-  - [Function](#function-1)
+  - [Single Line Comment](#single-line-comment)
+  - [Multi Line Comment](#multi-line-comment)
+- [Functions](#functions)
+  - [Declaration](#declaration)
+  - [Definition](#definition)
+  - [Mutable parameters](#mutable-parameters)
+  - [Linkage](#linkage)
+- [Variables](#variables)
+  - [Definition](#definition-1)
+  - [Mutable variables](#mutable-variables)
 - [Statements](#statements)
-  - [Expression statement](#expression-statement)
-  - [Compound statement](#compound-statement)
-  - [Selection statement](#selection-statement)
-  - [Iteration statement](#iteration-statement)
-  - [Jump statement](#jump-statement)
+  - [Expression Statement](#expression-statement)
+  - [Compound Statement](#compound-statement)
+  - [Selection Statement](#selection-statement)
+  - [Iteration Statement](#iteration-statement)
+  - [Jump Statement](#jump-statement)
 - [Example](#example)
-  - [Hello world](#hello-world-1)
-  - [First 40 fibonacci numbers](#first-40-fibonacci-numbers)
+  - [First 40 Fibonacci Numbers](#first-40-fibonacci-numbers)
 - [References](#references)
 - [License](#license)
 
 ## Getting Started
-### Hello world
+### Hello World
 ```rust
 // hello.txt
 extern puts(s: *i8) -> i32;
@@ -49,7 +51,7 @@ func main() -> i32
 }
 ```
 
-### AOT compile
+### AOT Compile
 ```bash
 $ mikoc hello.txt
 $ cc hello.o
@@ -57,20 +59,20 @@ $ ./a.out
 hello, world
 ```
 
-### JIT compile
+### JIT Compile
 ```bash
 $ mikoc --jit hello.txt
 hello, world
 ```
 
-### More compiler options
+### More Compiler Options
 Please see help.
 ```bash
 $ mikoc --help
 ```
 
 ## Operators
-### Arithmetic operators
+### Arithmetic Operators
 | Operator name  | Syntax |
 | -------------- | ------ |
 | Addition       | a + b  |
@@ -81,7 +83,7 @@ $ mikoc --help
 | Unary plus     | +a     |
 | Unary minus    | -a     |
 
-### Comparison operators / Relational operators
+### Comparison Operators / Relational Operators
 | Operator name            | Syntax  |
 | ------------------------ | ------- |
 | Equal to                 | a == b  |
@@ -91,12 +93,12 @@ $ mikoc --help
 | Greater than or equal to | a >= b  |
 | Less than or equal to    | a <= b  |
 
-### Assignment operators
+### Assignment Operators
 | Operator name     | Syntax |
 | ----------------- | ------ |
 | Direct assignment | a = b  |
 
-### Other operators
+### Other Operators
 | Operator name | Syntax    |
 | ------------- | --------- |
 | Function call | a(a1, a2) |
@@ -105,8 +107,8 @@ $ mikoc --help
 This section on Operators is based on "Operators in C and C++" from wikipedia.<br/>
 Thank you!
 
-## Data types
-### Integer types
+## Fundamental (built-in) Types
+### Integer Types
 | Length  | Signed | Unsigned |
 | ------- | ------ | -------- |
 | 8-bit   | i8     | u8       |
@@ -118,7 +120,7 @@ var n: i32;
 var m: u32;
 ```
 
-### Boolean type
+### The boolean Type
 | Length  | Name |
 | ------- | ---- |
 | 1-bit   | bool |
@@ -126,10 +128,14 @@ var m: u32;
 var f: bool;
 ```
 
-### Void type
+### The void type
 | Name |
 | ---- |
 | void |
+
+The type void is a special type: you cannot declare a variable of type void,<br/>
+but you can use type void for the return value of a function,<br/>
+meaning that the function will not return a value.
 ```rust
 func f() -> void
 {
@@ -151,15 +157,16 @@ func main() -> i32
 | Syntax |
 | ------ |
 | *type  |
-```rust
-extern puts(s: *i8) -> i32;
 
+Note that the meaning is equivalent to that of a C pointer,<br/>
+but the position of the * is opposite.
+```rust
 var p: *i32;
 var s: *i8 = "hello, world";
 ```
 
 ## Comments
-### Single line comment
+### Single Line Comment
 ```rust
 func main() -> i32
 {
@@ -168,7 +175,7 @@ func main() -> i32
 }
 ```
 
-### Multi line comment
+### Multi Line Comment
 ```rust
 func main() -> i32
 {
@@ -180,25 +187,27 @@ func main() -> i32
 }
 ```
 
-## Declaration and Definition
-### Function
+## Functions
+### Declaration
 ```rust
-extern twice(n: i32) -> i32; // Declaration
+extern puts(s: *i8) -> i32;
+```
 
-func main() -> i32 // Definition
-{
-  ret twice(58);
-}
-
-func twice(n: i32) -> i32 // Definition
+### Definition
+```rust
+func twice(n: i32) -> i32
 {
   ret n * 2;
 }
 ```
+
+### Mutable parameters
+In this language, parameters are constant by default.<br/>
+To make them mutable, use the "mut" qualifier.
 ```rust
 func f(n: i32) -> i32
 {
-  n = 123; // NG
+  n = 123; // Error!
   ret n;
 }
 
@@ -208,23 +217,8 @@ func g(mut n: i32) -> i32
   ret n;
 }
 ```
-### Variable
-```rust
-func main() -> i32
-{
-  var i: i32; // OK. Constant. The value that originally existed in memory is stored.
-  i = 58; // NG
 
-  var j: i32 = 48; // OK. Constant.
-  j = 58; // NG
-
-  var mut k: i32 = 48; // OK. Mutable.
-  k = 58; // OK
-}
-```
-
-## Linkage
-### Function
+### Linkage
 ```rust
 func twice(n: i32) -> i32 // External linkage
 {
@@ -237,45 +231,62 @@ func private thrice(n: i32) -> i32 // Internal linkage
 }
 ```
 
+## Variables
+### Definition
+```rust
+func main() -> i32
+{
+  var a: i32;
+
+  var b: i32 = 48;
+}
+```
+
+### Mutable variables
+In this language, variables are constant by default.<br/>
+To make them mutable, use the "mut" qualifier.
+```rust
+var i: i32 = 48; // Constant.
+i = 58; // Error!
+
+var mut j: i32 = 48; // Mutable.
+j = 58; // OK
+
+var mut k: i32; // Mutable.
+k = 4810; // OK
+```
+
+
 ## Statements
-### Expression statement
+### Expression Statement
 ```peg
 expression? ';'
 ```
 
-### Compound statement
+### Compound Statement
 ```peg
 '{' *statement '}'
 ```
 
-### Selection statement
+### Selection Statement
 ```peg
 "if" '(' condition ')'
   (compound-statement | statement)
 ```
 
-### Iteration statement
+### Iteration Statement
 ```peg
 "for" '(' expression? ';' condition? ';' expression? ')'
   (compound-statement | statement)
 ```
 
-### Jump statement
+### Jump Statement
 ```peg
 "ret" expression ';'
 ```
 
 ## Example
-### Hello world
-```rust
-extern puts(s: *i8) -> i32;
-
-func main() -> i32
-{
-  puts("hello, world");
-}
-```
-### First 40 fibonacci numbers
+### First 40 Fibonacci Numbers
 ```rust
 extern putchar(ch: i32) -> i32;
 
