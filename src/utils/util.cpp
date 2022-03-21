@@ -95,7 +95,7 @@ program_options::options_description create_options_description()
     ("input", program_options::value<std::string>(), "Input instead of files.")
     ("llvmir", "Output LLVM IR instead of Object code.")
     ("jit", "Perform jit compilation.")
-    ("opt", program_options::value<bool>()->default_value(true), "Disables all optimizations.")
+    ("opt", program_options::value<bool>()->default_value(true), "With or without optimization.")
     ("input-file", program_options::value<std::vector<std::string>>(), "Input file.")
     ;
   // clang-format on
