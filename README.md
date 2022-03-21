@@ -27,6 +27,7 @@
   - [Iteration statement](#iteration-statement)
   - [Jump statement](#jump-statement)
 - [Example](#example)
+  - [Hello world](#hello-world)
   - [Fibonacci number](#fibonacci-number)
 - [References](#references)
 - [License](#license)
@@ -113,8 +114,10 @@ func main() -> i32
 | ------ |
 | *type  |
 ```rust
+extern puts(s: *i8) -> i32;
+
 var p: *i32;
-var s: *i8;
+var s: *i8 = "hello, world";
 ```
 
 ## Comments
@@ -225,6 +228,15 @@ expression? ';'
 ```
 
 ## Example
+### Hello world
+```rust
+extern puts(s: *i8) -> i32;
+
+func main() -> i32
+{
+  puts("hello, world");
+}
+```
 ### Fibonacci number
 ```rust
 func fib(n: i32) -> i32
@@ -234,8 +246,7 @@ func fib(n: i32) -> i32
   else
     ret fib(n - 1) + fib(n - 2);
 
-  ret 0; // A return is always required at the end of any function
-         // other than the main function.
+  ret 0;
 }
 
 func main() -> i32
