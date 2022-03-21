@@ -2,6 +2,11 @@
     <h1>The Miko Programming Language</h1>
 </div>
 
+- [Getting Started](#getting-started)
+  - [Hello world](#hello-world)
+  - [AOT compile](#aot-compile)
+  - [JIT compile](#jit-compile)
+  - [More compiler options](#more-compiler-options)
 - [Operators](#operators)
   - [Arithmetic operators](#arithmetic-operators)
   - [Comparison operators / Relational operators](#comparison-operators--relational-operators)
@@ -27,10 +32,42 @@
   - [Iteration statement](#iteration-statement)
   - [Jump statement](#jump-statement)
 - [Example](#example)
-  - [Hello world](#hello-world)
+  - [Hello world](#hello-world-1)
   - [First 40 fibonacci numbers](#first-40-fibonacci-numbers)
 - [References](#references)
 - [License](#license)
+
+## Getting Started
+### Hello world
+```rust
+// hello.txt
+extern puts(s: *i8) -> i32;
+
+func main() -> i32
+{
+  puts("hello, world");
+}
+```
+
+### AOT compile
+```bash
+$ mikoc hello.txt
+$ cc hello.o
+$ ./a.out
+hello, world
+```
+
+### JIT compile
+```bash
+$ mikoc --jit hello.txt
+hello, world
+```
+
+### More compiler options
+Please see help.
+```bash
+$ mikoc --help
+```
 
 ## Operators
 ### Arithmetic operators
