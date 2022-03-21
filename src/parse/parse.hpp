@@ -15,7 +15,7 @@
 #endif // _MSC_VER > 1000
 
 #include <ast/ast.hpp>
-#include <util/util.hpp>
+#include <utils/util.hpp>
 
 namespace miko::parse
 {

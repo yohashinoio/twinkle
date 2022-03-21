@@ -7,7 +7,7 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <gen/gen.hpp>
+#include <codegen/codegen.hpp>
 #include <parse/id.hpp>
 
 namespace miko::codegen
@@ -241,7 +241,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
 
   llvm::Value* operator()(const ast::function_call_expr& node) const
   {
-    auto callee_function = common.module.getFunction(node.callee);
+    auto callee_function = common.module->getFunction(node.callee);
 
     if (!callee_function) {
       throw std::runtime_error{format_error_message(
@@ -397,10 +397,10 @@ struct statement_visitor : public boost::static_visitor<void> {
     auto function = common.builder.GetInsertBlock()->getParent();
 
     auto then_bb
-      = llvm::BasicBlock::Create(common.context, "if.then", function);
-    auto else_bb = llvm::BasicBlock::Create(common.context, "if.else");
+      = llvm::BasicBlock::Create(*common.context, "if.then", function);
+    auto else_bb = llvm::BasicBlock::Create(*common.context, "if.else");
 
-    auto merge_bb = llvm::BasicBlock::Create(common.context, "if.merge");
+    auto merge_bb = llvm::BasicBlock::Create(*common.context, "if.merge");
 
     common.builder.CreateCondBr(condition_value, then_bb, else_bb);
 
@@ -451,11 +451,11 @@ struct statement_visitor : public boost::static_visitor<void> {
     auto function = common.builder.GetInsertBlock()->getParent();
 
     auto cond_bb
-      = llvm::BasicBlock::Create(common.context, "for.cond", function);
-    auto loop_bb = llvm::BasicBlock::Create(common.context, "for.loop");
-    auto body_bb = llvm::BasicBlock::Create(common.context, "for.body");
+      = llvm::BasicBlock::Create(*common.context, "for.cond", function);
+    auto loop_bb = llvm::BasicBlock::Create(*common.context, "for.loop");
+    auto body_bb = llvm::BasicBlock::Create(*common.context, "for.body");
 
-    auto for_end_bb = llvm::BasicBlock::Create(common.context, "for.end");
+    auto for_end_bb = llvm::BasicBlock::Create(*common.context, "for.end");
 
     common.builder.CreateBr(cond_bb);
     common.builder.SetInsertPoint(cond_bb);
@@ -581,14 +581,14 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
       function = llvm::Function::Create(function_type,
                                         llvm::Function::ExternalLinkage,
                                         node.name,
-                                        common.module);
+                                        *common.module);
     }
     else if (node.linkage == id::function_linkage::private_) {
       // Internal linkage
       function = llvm::Function::Create(function_type,
                                         llvm::Function::InternalLinkage,
                                         node.name,
-                                        common.module);
+                                        *common.module);
     }
 
     // Set names for all arguments.
@@ -602,7 +602,7 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
   // Function definition
   llvm::Function* operator()(const ast::function_define& node) const
   {
-    auto function = common.module.getFunction(node.decl.name);
+    auto function = common.module->getFunction(node.decl.name);
 
     if (!function)
       function = this->operator()(node.decl);
@@ -616,7 +616,8 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
 
     symbol_table argument_values;
 
-    auto entry_bb = llvm::BasicBlock::Create(common.context, "entry", function);
+    auto entry_bb
+      = llvm::BasicBlock::Create(*common.context, "entry", function);
     common.builder.SetInsertPoint(entry_bb);
 
     for (auto& arg : function->args()) {
@@ -644,7 +645,7 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
     }
 
     // Used to combine returns into one.
-    auto end_bb = llvm::BasicBlock::Create(common.context, "end");
+    auto end_bb = llvm::BasicBlock::Create(*common.context, "end");
     // TODO: refactoring
     auto retvar = node.decl.return_type.id == id::type_name::void_
                     ? nullptr
@@ -717,9 +718,9 @@ private:
 //===----------------------------------------------------------------------===//
 
 codegen_common::codegen_common(const std::filesystem::path& file)
-  : context{}
-  , module{file.filename().string(), context}
-  , builder{context}
+  : context{std::make_unique<llvm::LLVMContext>()}
+  , module{std::make_unique<llvm::Module>(file.filename().string(), *context)}
+  , builder{*context}
   , file{file}
 {
 }
@@ -770,7 +771,7 @@ codegen_common::typename_to_type(const id::type_name type, const bool is_ptr)
 
   if (is_ptr) {
     tmp.type
-      = llvm::Type::getIntNPtrTy(context, tmp.type->getIntegerBitWidth());
+      = llvm::Type::getIntNPtrTy(*context, tmp.type->getIntegerBitWidth());
   }
 
   return tmp;
@@ -792,7 +793,7 @@ code_generator::code_generator(const ast::program&          ast,
                                const std::filesystem::path& file,
                                const bool                   optimize)
   : common{file}
-  , function_pm{&common.module}
+  , function_pm{common.module.get()}
   , ast{ast}
   , positions{positions}
 {
@@ -821,7 +822,7 @@ code_generator::code_generator(const ast::program&          ast,
 
   function_pm.doInitialization();
 
-  // set target triple and data layout to module
+  // Set target triple and data layout to module
   const auto target_triple = llvm::sys::getDefaultTargetTriple();
 
   std::string target_triple_error;
@@ -845,8 +846,8 @@ code_generator::code_generator(const ast::program&          ast,
                                   target_options,
                                   llvm::Optional<llvm::Reloc::Model>());
 
-  common.module.setTargetTriple(target_triple);
-  common.module.setDataLayout(target_machine->createDataLayout());
+  common.module->setTargetTriple(target_triple);
+  common.module->setDataLayout(target_machine->createDataLayout());
 
   codegen();
 }
@@ -865,7 +866,7 @@ void code_generator::write_llvm_ir_to_file(
       format("%s: %s", out.string(), ostream_ec.message()))};
   }
 
-  common.module.print(os, nullptr);
+  common.module->print(os, nullptr);
 }
 
 void code_generator::write_object_code_to_file(const std::filesystem::path& out)
@@ -891,15 +892,52 @@ void code_generator::write_object_code_to_file(const std::filesystem::path& out)
                            true)};
   }
 
-  pm.run(common.module);
+  pm.run(*common.module);
   os.flush();
+}
+
+// Returns the return value from the main function.
+int code_generator::jit_compile()
+{
+  auto jit_expected = jit::jit_compiler::create();
+  if (auto err = jit_expected.takeError()) {
+    // Error
+    throw std::runtime_error{
+      format_error_message(common.file.string(),
+                           llvm::toString(std::move(err)),
+                           true)};
+  }
+
+  auto jit = std::move(*jit_expected);
+
+  if (auto err = jit->add_module(
+        {std::move(common.module), std::move(common.context)})) {
+    // Error
+    throw std::runtime_error{
+      format_error_message(common.file.string(),
+                           llvm::toString(std::move(err)))};
+  }
+
+  auto symbol_expected = jit->lookup("main");
+  if (auto err = symbol_expected.takeError()) {
+    // Error
+    throw std::runtime_error{
+      format_error_message(common.file.string(),
+                           "Symbol main could not be found")};
+  }
+
+  auto symbol    = *symbol_expected;
+  auto main_addr = reinterpret_cast<int (*)(/* command line arguments */)>(
+    symbol.getAddress());
+
+  // Run main
+  return main_addr();
 }
 
 void code_generator::codegen()
 {
-  for (auto&& node : ast) {
+  for (auto&& node : ast)
     boost::apply_visitor(top_level_stmt_visitor{common, function_pm}, node);
-  }
 }
 
 } // namespace miko::codegen

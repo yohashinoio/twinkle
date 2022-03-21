@@ -197,10 +197,10 @@ function_declare::function_declare(
 }
 
 function_declare::function_declare()
-  : linkage{linkage}
+  : linkage{}
   , name{}
   , params{}
-  , return_type{return_type}
+  , return_type{}
 {
 }
 

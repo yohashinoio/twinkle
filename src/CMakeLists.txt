@@ -40,9 +40,10 @@ add_executable(
 target_precompile_headers(${CMAKE_PROJECT_NAME} PRIVATE pch/pch.hpp)
 
 add_subdirectory(ast)
-add_subdirectory(gen)
+add_subdirectory(codegen)
+add_subdirectory(jit)
 add_subdirectory(parse)
-add_subdirectory(util)
+add_subdirectory(utils)
 
 target_link_libraries(
   ${CMAKE_PROJECT_NAME}
@@ -51,9 +52,10 @@ target_link_libraries(
   ${Boost_LIBRARIES}
   ${CONFIG_OUTPUT}
   ast
-  gen
+  codegen
+  jit
   parse
-  util
+  utils
 )
 
 target_compile_options(

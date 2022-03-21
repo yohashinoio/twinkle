@@ -8,7 +8,7 @@
  */
 
 #include <pch/pch.hpp>
-#include <util/util.hpp>
+#include <utils/util.hpp>
 #include <fstream>
 
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
@@ -94,6 +94,7 @@ program_options::options_description create_options_description()
     ("version,v", "Display compiler version.")
     ("input", program_options::value<std::string>(), "Input instead of files.")
     ("llvmir", "Output LLVM IR instead of Object code.")
+    ("jit", "Perform jit compilation.")
     ("opt", program_options::value<bool>()->default_value(true), "Disables all optimizations.")
     ("input-file", program_options::value<std::vector<std::string>>(), "Input file.")
     ;

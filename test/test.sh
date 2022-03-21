@@ -7,21 +7,23 @@
 # This shell script is based on Ueyama rui's 9cc test.
 # Thank you.
 
-
 assert() {
   expected="$1"
   input="$2"
 
-  # compile and assemble
-  ../build/mikoc --input="$input"
+  # # compile and assemble
+  # ../build/mikoc --input="$input"
 
-  # link
-  cc -static input.o
-  # Why is -static needed?
-  # https://www.sigbus.info/compilerbook#dynamic-linking
+  # # link
+  # cc -static a.o
+  # # Why is -static needed?
+  # # https://www.sigbus.info/compilerbook#dynamic-linking
 
-  # execution
-  ./a.out
+  # # execution
+  # ./a.out
+
+  # jit compile
+  ../build/mikoc --jit --input="$input"
 
   actual="$?"
 

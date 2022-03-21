@@ -3,6 +3,6 @@
 # Copyright (c) 2022 Hiramoto Ittou.
 
 add_library(
-  util OBJECT
-  util.cpp
+  codegen OBJECT
+  codegen.cpp
 )

@@ -119,6 +119,9 @@ const auto char_to_string = [](auto&& ctx) -> void {
 namespace peg
 {
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Woverloaded-shift-op-parentheses"
+
 //===----------------------------------------------------------------------===//
 // Symbol table
 //===----------------------------------------------------------------------===//
@@ -448,6 +451,8 @@ const auto skipper = x3::rule<struct skipper_tag>{"skipper"}
 
 const auto program = x3::rule<struct program_tag, ast::program>{"program"}
 = *top_level_stmt > x3::eoi;
+
+#pragma GCC diagnostic pop
 
 //===----------------------------------------------------------------------===//
 // Common tags

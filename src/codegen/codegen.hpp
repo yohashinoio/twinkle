@@ -16,7 +16,8 @@
 
 #include <pch/pch.hpp>
 #include <ast/ast.hpp>
-#include <util/util.hpp>
+#include <utils/util.hpp>
+#include <jit/jit.hpp>
 
 namespace miko::codegen
 {
@@ -35,9 +36,9 @@ struct codegen_common {
 
   [[nodiscard]] llvm::Value* i1_to_boolean(llvm::Value* value);
 
-  llvm::LLVMContext context;
-  llvm::Module      module;
-  llvm::IRBuilder<> builder;
+  std::unique_ptr<llvm::LLVMContext> context;
+  std::unique_ptr<llvm::Module>      module;
+  llvm::IRBuilder<>                  builder;
 
   std::filesystem::path file;
 };
@@ -51,6 +52,9 @@ struct code_generator {
   void write_llvm_ir_to_file(const std::filesystem::path& out) const;
 
   void write_object_code_to_file(const std::filesystem::path& out);
+
+  // Returns the return value from the main function.
+  int jit_compile();
 
 private:
   void codegen();

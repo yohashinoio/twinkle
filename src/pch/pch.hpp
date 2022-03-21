@@ -14,7 +14,7 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <util/format.hpp>
+#include <utils/format.hpp>
 
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Constants.h>
@@ -36,6 +36,16 @@
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/Scalar/GVN.h>
 #include <llvm/Transforms/Utils.h>
+#include <llvm/ADT/StringRef.h>
+#include <llvm/ExecutionEngine/JITSymbol.h>
+#include <llvm/ExecutionEngine/Orc/CompileUtils.h>
+#include <llvm/ExecutionEngine/Orc/Core.h>
+#include <llvm/ExecutionEngine/Orc/ExecutionUtils.h>
+#include <llvm/ExecutionEngine/Orc/IRCompileLayer.h>
+#include <llvm/ExecutionEngine/Orc/JITTargetMachineBuilder.h>
+#include <llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h>
+#include <llvm/ExecutionEngine/SectionMemoryManager.h>
+#include <llvm/IR/DataLayout.h>
 
 #include <boost/spirit/home/x3.hpp>
 #include <boost/spirit/home/x3/support/ast/variant.hpp>

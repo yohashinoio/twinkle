@@ -7,9 +7,10 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
+#include <codegen/codegen.hpp>
+#include <jit/jit.hpp>
 #include <parse/parse.hpp>
-#include <gen/gen.hpp>
-#include <util/util.hpp>
+#include <utils/util.hpp>
 
 namespace program_options = boost::program_options;
 
@@ -66,7 +67,7 @@ try {
   const auto optimize = vm["opt"].as<bool>();
 
   if (vm.count("input")) {
-    std::string_view file_path = "input";
+    std::string_view file_path = "a";
 
     // Parsing is performed as soon as the constructor is called.
     miko::parse::parser parser{vm["input"].as<std::string>(), file_path};
@@ -77,7 +78,10 @@ try {
                                             file_path,
                                             optimize};
 
-    output_to_file(generator, file_path, vm.count("llvmir"));
+    if (vm.count("jit"))
+      return generator.jit_compile();
+    else
+      output_to_file(generator, file_path, vm.count("llvmir"));
   }
   else {
     auto file_paths = miko::get_input_files(vm);
@@ -94,7 +98,10 @@ try {
                                               file_path,
                                               optimize};
 
-      output_to_file(generator, file_path, vm.count("llvmir"));
+      if (vm.count("jit"))
+        return generator.jit_compile();
+      else
+        output_to_file(generator, file_path, vm.count("llvmir"));
     }
   }
 }
