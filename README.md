@@ -28,7 +28,7 @@
   - [Jump statement](#jump-statement)
 - [Example](#example)
   - [Hello world](#hello-world)
-  - [Fibonacci number](#fibonacci-number)
+  - [First 40 fibonacci numbers](#first-40-fibonacci-numbers)
 - [References](#references)
 - [License](#license)
 
@@ -237,21 +237,38 @@ func main() -> i32
   puts("hello, world");
 }
 ```
-### Fibonacci number
+### First 40 fibonacci numbers
 ```rust
+extern putchar(ch: i32) -> i32;
+
+func printi(n: i32) -> void
+{
+  if (n != 0) {
+    printi(n / 10);
+    putchar(48 /* '0' */ + n % 10);
+  }
+}
+
+func puti(n: i32) -> void
+{
+  printi(n);
+  putchar(10); // '\n'
+}
+
 func fib(n: i32) -> i32
 {
   if (n < 3)
     ret 1;
   else
     ret fib(n - 1) + fib(n - 2);
-
   ret 0;
 }
 
 func main() -> i32
 {
-  var result: i32 = fib(40);
+  var mut i: i32;
+  for (i = 1; i <= 40; i = i + 1)
+    puti(fib(i));
 }
 ```
 

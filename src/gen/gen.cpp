@@ -1,5 +1,5 @@
 /**
- * codegen_cpp
+ * gen_cpp
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -48,9 +48,8 @@ struct symbol_table {
   // For debug.
   void print_symbols() const
   {
-    for (auto&& r : named_values) {
+    for (auto&& r : named_values)
       std::cout << r.first << ' ';
-    }
     std::endl(std::cout);
   }
 
@@ -167,38 +166,58 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     // addition
     if (node.op == "+")
       return common.builder.CreateAdd(lhs, rhs);
+    // subtraction
     if (node.op == "-")
       return common.builder.CreateSub(lhs, rhs);
 
     // multiplication
     if (node.op == "*")
       return common.builder.CreateMul(lhs, rhs);
+    // division
     if (node.op == "/") {
       // TODO: unsigned
       return common.builder.CreateSDiv(lhs, rhs);
     }
+    if (node.op == "%") {
+      // TODO: unsigned
+      return common.builder.CreateSRem(lhs, rhs);
+    }
 
-    // equality
-    if (node.op == "==")
+    // equal
+    if (node.op == "==") {
       return common.i1_to_boolean(
         common.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ, lhs, rhs));
-    if (node.op == "!=")
+    }
+    // not equal
+    if (node.op == "!=") {
       return common.i1_to_boolean(
         common.builder.CreateICmp(llvm::ICmpInst::ICMP_NE, lhs, rhs));
+    }
 
-    // relational
-    if (node.op == "<")
+    // less than
+    if (node.op == "<") {
+      // TODO: unsigned
       return common.i1_to_boolean(
         common.builder.CreateICmp(llvm::ICmpInst::ICMP_SLT, lhs, rhs));
-    if (node.op == ">")
+    }
+    // greater than
+    if (node.op == ">") {
+      // TODO: unsigned
       return common.i1_to_boolean(
         common.builder.CreateICmp(llvm::ICmpInst::ICMP_SGT, lhs, rhs));
-    if (node.op == "<=")
+    }
+    // less or equal
+    if (node.op == "<=") {
+      // TODO: unsigned
       return common.i1_to_boolean(
         common.builder.CreateICmp(llvm::ICmpInst::ICMP_SLE, lhs, rhs));
-    if (node.op == ">=")
+    }
+    // greater or equal
+    if (node.op == ">=") {
+      // TODO: unsigned
       return common.i1_to_boolean(
         common.builder.CreateICmp(llvm::ICmpInst::ICMP_SGE, lhs, rhs));
+    }
 
     BOOST_ASSERT_MSG(
       0,

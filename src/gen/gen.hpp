@@ -1,5 +1,5 @@
 /**
- * codegen.hpp
+ * gen.hpp
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -31,7 +31,7 @@ struct codegen_common {
   codegen_common(const std::filesystem::path& file);
 
   [[nodiscard]] llvm_type_info typename_to_type(const id::type_name type,
-                                              const bool is_ptr = false);
+                                                const bool is_ptr = false);
 
   [[nodiscard]] llvm::Value* i1_to_boolean(llvm::Value* value);
 

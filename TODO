@@ -1,4 +1,7 @@
-// TODO: Add string type
+// TODO: %演算子
 // TODO: 整数リテラルの自動昇格
 // TODO: インクリメント　デクリメント
 // TODO: void型変数
+// TODO: JITコンパイル
+// TODO: 文字リテラル
+// TODO: break continue

@@ -270,7 +270,7 @@ const auto additive_operator
 
 const auto multitive_operator
   = x3::rule<struct multitive_operator_tag, std::string>{"multitive operator"}
-= x3::char_("*/")[action::char_to_string];
+= x3::char_("*/%")[action::char_to_string];
 
 const auto unary_operator
   = x3::rule<struct unary_operator_tag, std::string>{"unary operator"}
