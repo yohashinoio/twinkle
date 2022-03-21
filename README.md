@@ -234,12 +234,9 @@ func private thrice(n: i32) -> i32 // Internal linkage
 ## Variables
 ### Definition
 ```rust
-func main() -> i32
-{
-  var a: i32;
+var a: i32;
 
-  var b: i32 = 48;
-}
+var b: i32 = 48;
 ```
 
 ### Mutable variables
