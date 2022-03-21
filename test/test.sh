@@ -12,9 +12,17 @@ assert() {
   expected="$1"
   input="$2"
 
+  # compile and assemble
   ../build/mikoc --input="$input"
-  cc input.o
+
+  # link
+  cc -static input.o
+  # Why is -static needed?
+  # https://www.sigbus.info/compilerbook#dynamic-linking
+
+  # execution
   ./a.out
+
   actual="$?"
 
   if [ "$actual" = "$expected" ]; then
@@ -414,7 +422,7 @@ assert 58 'func main() -> i32 {
   ret 58;
 }'
 
-# Pointer type (parsing)
+# Pointer type
 assert 58 "func f() -> i32 {
   var p1: *i16;
   var p2: *u16;
@@ -429,5 +437,14 @@ func main() -> i32 {
   var mut p2: *u32;
   ret f();
 }"
+
+assert 58 'extern puts(s: *i8) -> i32;
+func main() -> i32 {
+  var s1: *i8 = "hello, yoha, shino, io";
+  puts(s1);
+  var mut s2: *i8 = "hello\0, world";
+  puts(s2);
+  ret 58;
+}'
 
 echo OK

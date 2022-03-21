@@ -21,7 +21,7 @@
 namespace miko::codegen
 {
 
-struct integer_type {
+struct llvm_type_info {
   llvm::Type* type;
   bool        is_signed;
 };
@@ -30,7 +30,8 @@ struct integer_type {
 struct codegen_common {
   codegen_common(const std::filesystem::path& file);
 
-  [[nodiscard]] integer_type typename_to_type(const id::type_name type);
+  [[nodiscard]] llvm_type_info typename_to_type(const id::type_name type,
+                                              const bool is_ptr = false);
 
   [[nodiscard]] llvm::Value* i1_to_boolean(llvm::Value* value);
 

@@ -30,8 +30,8 @@ namespace ast
 {
 
 struct type_info {
-  bool          is_pointer;
-  id::type_name type;
+  bool          is_ptr;
+  id::type_name id;
 };
 
 struct nil {};

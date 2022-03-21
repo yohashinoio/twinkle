@@ -253,7 +253,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     if (!rhs)
       BOOST_ASSERT(0);
 
-    auto as = common.typename_to_type(node.as.type);
+    auto as = common.typename_to_type(node.as.id, node.as.is_ptr);
 
     return common.builder.CreateIntCast(rhs, as.type, as.is_signed);
 
@@ -330,7 +330,7 @@ struct statement_visitor : public boost::static_visitor<void> {
 
     auto function = common.builder.GetInsertBlock()->getParent();
 
-    auto type_info = common.typename_to_type(node.type.type);
+    auto type_info = common.typename_to_type(node.type.id, node.type.is_ptr);
 
     auto inst = create_entry_block_alloca(function, node.name, type_info.type);
 
@@ -545,11 +545,14 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
   llvm::Function* operator()(const ast::function_declare& node) const
   {
     std::vector<llvm::Type*> param_types(node.params.size());
-    for (std::size_t i = 0, last = param_types.size(); i != last; ++i)
-      param_types[i] = common.typename_to_type(node.params[i].type.type).type;
+    for (std::size_t i = 0, last = param_types.size(); i != last; ++i) {
+      const auto& param_info = node.params[i].type;
+      param_types[i]
+        = common.typename_to_type(param_info.id, param_info.is_ptr).type;
+    }
 
     auto function_type = llvm::FunctionType::get(
-      common.typename_to_type(node.return_type.type).type,
+      common.typename_to_type(node.return_type.id).type,
       param_types,
       false);
 
@@ -598,23 +601,24 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
     common.builder.SetInsertPoint(entry_bb);
 
     for (auto& arg : function->args()) {
-      const auto& param_info = node.decl.params[arg.getArgNo()];
+      const auto& param_node = node.decl.params[arg.getArgNo()];
 
       // Create an alloca for this variable.
       auto inst = create_entry_block_alloca(
         function,
         arg.getName().str(),
-        common.typename_to_type(param_info.type.type).type);
+        common.typename_to_type(param_node.type.id, param_node.type.is_ptr)
+          .type);
 
       // Store the initial value into the alloca.
       common.builder.CreateStore(&arg, inst);
 
       // Add arguments to variable symbol table.
-      if (!param_info.qualifier) {
+      if (!param_node.qualifier) {
         // consttant variable.
         argument_values.regist(arg.getName().str(), {inst, false});
       }
-      else if (*param_info.qualifier == id::variable_qualifier::mutable_) {
+      else if (*param_node.qualifier == id::variable_qualifier::mutable_) {
         // mutable variable.
         argument_values.regist(arg.getName().str(), {inst, true});
       }
@@ -622,12 +626,16 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
 
     // Used to combine returns into one.
     auto end_bb = llvm::BasicBlock::Create(common.context, "end");
-    auto retvar = node.decl.return_type.type == id::type_name::void_
+    // TODO: refactoring
+    auto retvar = node.decl.return_type.id == id::type_name::void_
                     ? nullptr
                     : create_entry_block_alloca(
                       function,
                       "retval",
-                      common.typename_to_type(node.decl.return_type.type).type);
+                      common
+                        .typename_to_type(node.decl.return_type.id,
+                                          node.decl.return_type.is_ptr)
+                        .type);
 
     codegen_compound_statement(node.body,
                                argument_values,
@@ -646,7 +654,7 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
 
     // Automatically inserts a terminator if a function that returns void does
     // not have one.
-    if (node.decl.return_type.type == id::type_name::void_
+    if (node.decl.return_type.id == id::type_name::void_
         && !common.builder.GetInsertBlock()->getTerminator()) {
       common.builder.CreateBr(end_bb);
     }
@@ -697,36 +705,56 @@ codegen_common::codegen_common(const std::filesystem::path& file)
 {
 }
 
-[[nodiscard]] integer_type
-codegen_common::typename_to_type(const id::type_name type)
+[[nodiscard]] llvm_type_info
+codegen_common::typename_to_type(const id::type_name type, const bool is_ptr)
 {
+  llvm_type_info tmp;
+
   switch (type) {
   case id::type_name::void_:
-    return {builder.getVoidTy(), false};
+    tmp = {builder.getVoidTy(), false};
+    break;
   case id::type_name::i8:
-    return {builder.getInt8Ty(), true};
+    tmp = {builder.getInt8Ty(), true};
+    break;
   case id::type_name::u8:
-    return {builder.getInt8Ty(), false};
+    tmp = {builder.getInt8Ty(), false};
+    break;
   case id::type_name::i16:
-    return {builder.getInt16Ty(), true};
+    tmp = {builder.getInt16Ty(), true};
+    break;
   case id::type_name::u16:
-    return {builder.getInt16Ty(), false};
+    tmp = {builder.getInt16Ty(), false};
+    break;
   case id::type_name::i32:
-    return {builder.getInt32Ty(), true};
+    tmp = {builder.getInt32Ty(), true};
+    break;
   case id::type_name::u32:
-    return {builder.getInt32Ty(), false};
+    tmp = {builder.getInt32Ty(), false};
+    break;
   case id::type_name::i64:
-    return {builder.getInt64Ty(), true};
+    tmp = {builder.getInt64Ty(), true};
+    break;
   case id::type_name::u64:
-    return {builder.getInt64Ty(), false};
+    tmp = {builder.getInt64Ty(), false};
+    break;
   case id::type_name::bool_:
     // We will represent boolean by u8 instead of u1.
     // The reason for this is that unsigned is difficult to represent in llvm,
-    // so with u1, true sometimes becomes -1! (My lack of technical skills ;_;)
-    return {builder.getInt8Ty(), false};
+    // so with u1, true sometimes becomes -1! (My lack of technical skills
+    // ;_;)
+    tmp = {builder.getInt8Ty(), false};
+    break;
+  default:
+    BOOST_ASSERT(0);
   }
 
-  BOOST_ASSERT(0);
+  if (is_ptr) {
+    tmp.type
+      = llvm::Type::getIntNPtrTy(context, tmp.type->getIntegerBitWidth());
+  }
+
+  return tmp;
 }
 
 [[nodiscard]] llvm::Value* codegen_common::i1_to_boolean(llvm::Value* value)
