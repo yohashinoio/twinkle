@@ -46,7 +46,7 @@
 LLVM, Boost, CMake, Make (ninja), GCC (clang) must be installed.<br/>
 Here is how to install them in ubuntu.
 ```bash
-$ sudo apt update
+$ sudo apt update -y
 ```
 Install GCC Make CMake Boost.
 ```bash
@@ -76,12 +76,12 @@ $ mkdir build && cd $_
 Finally, build. (It may take a few minutes)
 ```bash
 $ cmake ..
-$ sudo make install -j
+$ sudo make install
 ```
 If you want to specify where to install.
 ```bash
 $ cmake .. -DCMAKE_INSTALL_PREFIX="path/to/install"
-$ sudo make install -j
+$ make install
 ```
 
 ### Hello world
