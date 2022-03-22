@@ -3,6 +3,8 @@
 </div>
 
 - [Getting Started](#getting-started)
+  - [Requirement](#requirement)
+  - [Installation](#installation)
   - [Hello world](#hello-world)
   - [AOT compile](#aot-compile)
   - [JIT compile](#jit-compile)
@@ -40,6 +42,42 @@
 - [License](#license)
 
 ## Getting Started
+### Requirement
+LLVM, Boost, CMake, Make (ninja), GCC (clang) must be installed.<br/>
+Here is how to install them in ubuntu.
+```bash
+$ sudo apt update
+```
+Install GCC Make CMake Boost.
+```bash
+$ sudo apt install -y build-essential cmake libboost-all-dev
+```
+Install LLVM. (https://apt.llvm.org/)
+```bash
+$ sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
+```
+
+### Installation
+First, clone.
+```bash
+$ git clone <this project>
+$ cd <this project name>
+```
+Next, create a build directory.
+```bash
+$ mkdir build && cd $_
+```
+Finally, build. (It may take a few minutes)
+```bash
+$ cmake ..
+$ sudo make install -j
+```
+If you want to specify where to install.
+```bash
+$ cmake .. -DCMAKE_INSTALL_PREFIX="path/to/install"
+$ sudo make install -j
+```
+
 ### Hello world
 ```rust
 // hello.txt

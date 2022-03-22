@@ -6,3 +6,4 @@
 // TODO: 文字リテラル
 // TODO: break continue
 // TODO: true false
+// TODO: コード生成のエラーを分かりやすく（行番号などをエラーに付与）
