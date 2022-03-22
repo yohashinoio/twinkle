@@ -7,6 +7,8 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
+include(GNUInstallDirs)
+
 # set(CMAKE_C_FLAGS_INIT "-fsanitize=undefined")
 # set(CMAKE_CXX_FLAGS_INIT "-fsanitize=undefined")
 
@@ -64,4 +66,10 @@ target_compile_options(
   -Wall
   -Wextra
   -DLLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING
+)
+
+install(
+  TARGETS ${CMAKE_PROJECT_NAME}
+  RUNTIME
+  DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
