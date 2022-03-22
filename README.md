@@ -3,7 +3,7 @@
 </div>
 
 - [Getting Started](#getting-started)
-  - [Requirement](#requirement)
+  - [Requirements](#requirements)
   - [Installation](#installation)
   - [Hello world](#hello-world)
   - [AOT compile](#aot-compile)
@@ -42,7 +42,7 @@
 - [License](#license)
 
 ## Getting Started
-### Requirement
+### Requirements
 LLVM, Boost, CMake, Make (ninja), GCC (clang) must be installed.<br/>
 Here is how to install them in ubuntu.
 ```bash
