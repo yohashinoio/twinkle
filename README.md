@@ -138,9 +138,14 @@ $ mikoc --help
 | Less than or equal to    | a <= b  |
 
 ### Assignment operators
-| Operator name     | Syntax |
-| ----------------- | ------ |
-| Direct assignment | a = b  |
+| Operator name             | Syntax |
+| ------------------------- | ------ |
+| Direct assignment         | a = b  |
+| Addition assignment	      | a += b |
+| Subtraction assignment	  | a -= b |
+| Multiplication assignment	| a *= b |
+| Division assignment	      | a /= b |
+| Modulo assignment         | a %= b |
 
 ### Other operators
 | Operator name | Syntax    |
