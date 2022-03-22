@@ -451,4 +451,18 @@ func main() -> i32 {
   ret 58;
 }'
 
+# Addition assignment
+assert 58 "func main() -> i32 {
+  var mut shino: i32 = 0;
+  shino += 48;
+  shino += 10;
+  ret shino;
+}"
+
+assert 116 "func main() -> i32 {
+  var mut shino: i32 = 0;
+  shino += 48;
+  ret (shino += 10) * 2;
+}"
+
 echo OK

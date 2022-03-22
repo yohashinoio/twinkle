@@ -1,4 +1,3 @@
-// TODO: %演算子
 // TODO: 整数リテラルの自動昇格
 // TODO: インクリメント　デクリメント
 // TODO: void型変数
@@ -7,3 +6,4 @@
 // TODO: break continue
 // TODO: true false
 // TODO: コード生成のエラーを分かりやすく（行番号などをエラーに付与）
+// TODO: boost assertを使ってるところをちゃんとエラー出力に変える

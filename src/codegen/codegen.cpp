@@ -125,7 +125,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
   {
     // Special case assignment because we don't want to emit the
     // left-hand-side as an expression.
-    if (node.op == "=") {
+    if (node.op == "=" || node.op == "+=" | node.op == "-=") {
       try {
         auto&& lhs = boost::get<ast::variable_expr>(node.lhs);
 
@@ -147,8 +147,26 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
             format("assignment of read-only variable '%s'", lhs.name))};
         }
 
-        common.builder.CreateStore(rhs, var_info->instance);
-        return rhs;
+        if (node.op == "=")
+          return common.builder.CreateStore(rhs, var_info->instance);
+
+        if (node.op == "+=") {
+          auto lhs_value
+            = common.builder.CreateLoad(var_info->instance->getAllocatedType(),
+                                        var_info->instance);
+          return common.builder.CreateStore(
+            common.builder.CreateAdd(lhs_value, rhs),
+            var_info->instance);
+        }
+
+        if (node.op == "-=") {
+          auto lhs_value
+            = common.builder.CreateLoad(var_info->instance->getAllocatedType(),
+                                        var_info->instance);
+          return common.builder.CreateStore(
+            common.builder.CreateSub(lhs_value, rhs),
+            var_info->instance);
+        }
       }
       catch (const boost::bad_get&) {
         // left hand side was not a variable.

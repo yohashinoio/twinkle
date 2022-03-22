@@ -256,7 +256,7 @@ const x3::rule<struct primary_tag, ast::expression> primary{"primary"};
 
 const auto assignment_operator
   = x3::rule<struct assignment_operator_tag, std::string>{"assignment operator"}
-= x3::string("=");
+= x3::string("=") | x3::string("+=") | x3::string("-=");
 
 const auto equality_operator
   = x3::rule<struct equality_operator_tag, std::string>{"equality operator"}
@@ -269,11 +269,12 @@ const auto relational_operator
 
 const auto additive_operator
   = x3::rule<struct additive_operator_tag, std::string>{"additive operator"}
-= x3::char_("+-")[action::char_to_string];
+= (x3::string("+") - x3::string("+=")) | (x3::string("-") - x3::string("-="));
 
 const auto multitive_operator
   = x3::rule<struct multitive_operator_tag, std::string>{"multitive operator"}
-= x3::char_("*/%")[action::char_to_string];
+= (x3::string("*") - x3::string("*=")) | (x3::string("/") - x3::string("/="))
+  | (x3::string("%") - x3::string("%="));
 
 const auto unary_operator
   = x3::rule<struct unary_operator_tag, std::string>{"unary operator"}
@@ -354,8 +355,7 @@ const auto variable_def_statement
   = x3::rule<struct variable_def_statement_tag,
              ast::variable_def_statement>{"variable definition"}
 = x3::lit("var") > -variable_qualifier > identifier > x3::lit(':')
-  > variable_type /* The type of a variable cannot be void. */
-  > -(x3::lit('=') > expression) > x3::lit(';');
+  > variable_type > -(x3::lit('=') > expression) > x3::lit(';');
 
 const auto return_statement
   = x3::rule<struct return_statement_tag,
