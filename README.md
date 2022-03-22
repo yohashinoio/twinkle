@@ -3,23 +3,23 @@
 </div>
 
 - [Getting Started](#getting-started)
-  - [Hello World](#hello-world)
-  - [AOT Compile](#aot-compile)
-  - [JIT Compile](#jit-compile)
-  - [More Compiler Options](#more-compiler-options)
+  - [Hello world](#hello-world)
+  - [AOT compile](#aot-compile)
+  - [JIT compile](#jit-compile)
+  - [More compiler options](#more-compiler-options)
 - [Operators](#operators)
-  - [Arithmetic Operators](#arithmetic-operators)
-  - [Comparison Operators / Relational Operators](#comparison-operators--relational-operators)
-  - [Assignment Operators](#assignment-operators)
-  - [Other Operators](#other-operators)
-- [Fundamental (built-in) Types](#fundamental-built-in-types)
-  - [Integer Types](#integer-types)
-  - [The boolean Type](#the-boolean-type)
+  - [Arithmetic operators](#arithmetic-operators)
+  - [Comparison operators / Relational operators](#comparison-operators--relational-operators)
+  - [Assignment operators](#assignment-operators)
+  - [Other operators](#other-operators)
+- [Fundamental (Built-in) Types](#fundamental-built-in-types)
+  - [Integer types](#integer-types)
+  - [The boolean type](#the-boolean-type)
   - [The void type](#the-void-type)
   - [Pointer types](#pointer-types)
 - [Comments](#comments)
-  - [Single Line Comment](#single-line-comment)
-  - [Multi Line Comment](#multi-line-comment)
+  - [Single line comment](#single-line-comment)
+  - [Multi line comment](#multi-line-comment)
 - [Functions](#functions)
   - [Declaration](#declaration)
   - [Definition](#definition)
@@ -29,18 +29,18 @@
   - [Definition](#definition-1)
   - [Mutable variables](#mutable-variables)
 - [Statements](#statements)
-  - [Expression Statement](#expression-statement)
-  - [Compound Statement](#compound-statement)
-  - [Selection Statement](#selection-statement)
-  - [Iteration Statement](#iteration-statement)
-  - [Jump Statement](#jump-statement)
+  - [Expression statement](#expression-statement)
+  - [Compound statement](#compound-statement)
+  - [Selection statement](#selection-statement)
+  - [Iteration statement](#iteration-statement)
+  - [Jump statement](#jump-statement)
 - [Example](#example)
-  - [First 40 Fibonacci Numbers](#first-40-fibonacci-numbers)
+  - [First 40 fibonacci numbers](#first-40-fibonacci-numbers)
 - [References](#references)
 - [License](#license)
 
 ## Getting Started
-### Hello World
+### Hello world
 ```rust
 // hello.txt
 extern puts(s: *i8) -> i32;
@@ -51,7 +51,7 @@ func main() -> i32
 }
 ```
 
-### AOT Compile
+### AOT compile
 ```bash
 $ mikoc hello.txt
 $ cc hello.o
@@ -59,20 +59,20 @@ $ ./a.out
 hello, world
 ```
 
-### JIT Compile
+### JIT compile
 ```bash
 $ mikoc --jit hello.txt
 hello, world
 ```
 
-### More Compiler Options
+### More compiler options
 Please see help.
 ```bash
 $ mikoc --help
 ```
 
 ## Operators
-### Arithmetic Operators
+### Arithmetic operators
 | Operator name  | Syntax |
 | -------------- | ------ |
 | Addition       | a + b  |
@@ -83,7 +83,7 @@ $ mikoc --help
 | Unary plus     | +a     |
 | Unary minus    | -a     |
 
-### Comparison Operators / Relational Operators
+### Comparison operators / Relational operators
 | Operator name            | Syntax  |
 | ------------------------ | ------- |
 | Equal to                 | a == b  |
@@ -93,12 +93,12 @@ $ mikoc --help
 | Greater than or equal to | a >= b  |
 | Less than or equal to    | a <= b  |
 
-### Assignment Operators
+### Assignment operators
 | Operator name     | Syntax |
 | ----------------- | ------ |
 | Direct assignment | a = b  |
 
-### Other Operators
+### Other operators
 | Operator name | Syntax    |
 | ------------- | --------- |
 | Function call | a(a1, a2) |
@@ -107,8 +107,8 @@ $ mikoc --help
 This section on Operators is based on "Operators in C and C++" from wikipedia.<br/>
 Thank you!
 
-## Fundamental (built-in) Types
-### Integer Types
+## Fundamental (Built-in) Types
+### Integer types
 | Length  | Signed | Unsigned |
 | ------- | ------ | -------- |
 | 8-bit   | i8     | u8       |
@@ -120,7 +120,7 @@ var n: i32;
 var m: u32;
 ```
 
-### The boolean Type
+### The boolean type
 | Length  | Name |
 | ------- | ---- |
 | 1-bit   | bool |
@@ -166,7 +166,7 @@ var s: *i8 = "hello, world";
 ```
 
 ## Comments
-### Single Line Comment
+### Single line comment
 ```rust
 func main() -> i32
 {
@@ -175,7 +175,7 @@ func main() -> i32
 }
 ```
 
-### Multi Line Comment
+### Multi line comment
 ```rust
 func main() -> i32
 {
@@ -255,35 +255,35 @@ k = 4810; // OK
 
 
 ## Statements
-### Expression Statement
+### Expression statement
 ```peg
 expression? ';'
 ```
 
-### Compound Statement
+### Compound statement
 ```peg
 '{' *statement '}'
 ```
 
-### Selection Statement
+### Selection statement
 ```peg
 "if" '(' condition ')'
   (compound-statement | statement)
 ```
 
-### Iteration Statement
+### Iteration statement
 ```peg
 "for" '(' expression? ';' condition? ';' expression? ')'
   (compound-statement | statement)
 ```
 
-### Jump Statement
+### Jump statement
 ```peg
 "ret" expression ';'
 ```
 
 ## Example
-### First 40 Fibonacci Numbers
+### First 40 fibonacci numbers
 ```rust
 extern putchar(ch: i32) -> i32;
 
