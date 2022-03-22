@@ -119,8 +119,8 @@ const auto char_to_string = [](auto&& ctx) -> void {
 namespace peg
 {
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Woverloaded-shift-op-parentheses"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Woverloaded-shift-op-parentheses"
 
 //===----------------------------------------------------------------------===//
 // Symbol table
@@ -346,10 +346,15 @@ const auto expression_statement
              ast::expression>{"expression statement"}
 = expression > x3::lit(';');
 
+const auto variable_type
+  = x3::rule<struct variable_type_tag, ast::type_info>{"variable type"}
+= type_name - x3::lit("void");
+
 const auto variable_def_statement
   = x3::rule<struct variable_def_statement_tag,
              ast::variable_def_statement>{"variable definition"}
-= x3::lit("var") > -variable_qualifier > identifier > x3::lit(':') > type_name
+= x3::lit("var") > -variable_qualifier > identifier > x3::lit(':')
+  > variable_type /* The type of a variable cannot be void. */
   > -(x3::lit('=') > expression) > x3::lit(';');
 
 const auto return_statement
@@ -413,7 +418,7 @@ const auto function_declare
 const auto function_define
   = x3::rule<struct function_define_tag,
              ast::function_define>{"function definition"}
-= x3::lit("func") /* TODO: func to fn */ > function_proto > compound_statement;
+= x3::lit("func") > function_proto > compound_statement;
 
 const auto top_level_stmt = x3::rule<struct top_level_stmt_tag,
                                      ast::top_level_stmt>{"top level statement"}
@@ -452,7 +457,7 @@ const auto skipper = x3::rule<struct skipper_tag>{"skipper"}
 const auto program = x3::rule<struct program_tag, ast::program>{"program"}
 = *top_level_stmt > x3::eoi;
 
-#pragma GCC diagnostic pop
+#pragma clang diagnostic pop
 
 //===----------------------------------------------------------------------===//
 // Common tags
@@ -551,6 +556,10 @@ struct compound_statement_tag
   , annotate_position {};
 
 struct expression_statement_tag
+  : with_error_handling
+  , annotate_position {};
+
+struct variable_type_tag
   : with_error_handling
   , annotate_position {};
 
