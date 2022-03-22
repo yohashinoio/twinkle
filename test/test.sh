@@ -451,7 +451,7 @@ func main() -> i32 {
   ret 58;
 }'
 
-# Addition assignment
+# Addition assignment operator
 assert 58 "func main() -> i32 {
   var mut shino: i32 = 0;
   shino += 48;
@@ -463,6 +463,54 @@ assert 116 "func main() -> i32 {
   var mut shino: i32 = 0;
   shino += 48;
   ret (shino += 10) * 2;
+}"
+
+# Subtraction assignment operator
+assert 58 "func main() -> i32 {
+  var mut shino: i32 = 68;
+  shino -= 10;
+  ret shino;
+}"
+
+assert 116 "func main() -> i32 {
+  var mut shino: i32 = 68;
+  ret (shino -= 10) * 2;
+}"
+
+# Multiplication assignment operator
+assert 58 "func main() -> i32 {
+  var mut shino: i32 = 29;
+  shino *= 2;
+  ret shino;
+}"
+
+assert 116 "func main() -> i32 {
+  var mut shino: i32 = 29;
+  ret (shino *= 2) * 2;
+}"
+
+# Division assignment operator
+assert 58 "func main() -> i32 {
+  var mut shino: i32 = 116;
+  shino /= 2;
+  ret shino;
+}"
+
+assert 116 "func main() -> i32 {
+  var mut shino: i32 = 116;
+  ret (shino /= 2) * 2;
+}"
+
+# Modulo assignment operator
+assert 1 "func main() -> i32 {
+  var mut shino: i32 = 4810;
+  shino %= 3;
+  ret 1;
+}"
+
+assert 58 "func main() -> i32 {
+  var mut shino: i32 = 4810;
+  ret (shino %= 58) + 4;
 }"
 
 echo OK

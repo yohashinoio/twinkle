@@ -256,7 +256,8 @@ const x3::rule<struct primary_tag, ast::expression> primary{"primary"};
 
 const auto assignment_operator
   = x3::rule<struct assignment_operator_tag, std::string>{"assignment operator"}
-= x3::string("=") | x3::string("+=") | x3::string("-=");
+= x3::string("=") | x3::string("+=") | x3::string("-=") | x3::string("*=")
+  | x3::string("/=") | x3::string("%=");
 
 const auto equality_operator
   = x3::rule<struct equality_operator_tag, std::string>{"equality operator"}

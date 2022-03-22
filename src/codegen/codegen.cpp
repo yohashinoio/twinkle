@@ -18,7 +18,7 @@ namespace miko::codegen
 //===----------------------------------------------------------------------===//
 
 struct variable_info {
-  llvm::AllocaInst* instance;
+  llvm::AllocaInst* inst;
   bool              is_mutable;
   bool              is_signed;
 };
@@ -125,48 +125,64 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
   {
     // Special case assignment because we don't want to emit the
     // left-hand-side as an expression.
-    if (node.op == "=" || node.op == "+=" | node.op == "-=") {
+    if (node.op == "=" || node.op == "+=" || node.op == "-=" || node.op == "*="
+        || node.op == "/=" || node.op == "%=") {
       try {
-        auto&& lhs = boost::get<ast::variable_expr>(node.lhs);
+        auto&& lhs_node = boost::get<ast::variable_expr>(node.lhs);
 
         auto rhs = boost::apply_visitor(*this, node.rhs);
         if (!rhs)
           BOOST_ASSERT(0);
 
-        auto var_info = scope[lhs.name];
+        auto var_info = scope[lhs_node.name];
 
         if (!var_info) {
           throw std::runtime_error{format_error_message(
             common.file.string(),
-            format("unknown variable name '%s'", lhs.name))};
+            format("unknown variable name '%s'", lhs_node.name))};
         }
 
         if (!var_info->is_mutable) {
           throw std::runtime_error{format_error_message(
             common.file.string(),
-            format("assignment of read-only variable '%s'", lhs.name))};
+            format("assignment of read-only variable '%s'", lhs_node.name))};
         }
 
         if (node.op == "=")
-          return common.builder.CreateStore(rhs, var_info->instance);
+          common.builder.CreateStore(rhs, var_info->inst);
+
+        auto lhs = common.builder.CreateLoad(var_info->inst->getAllocatedType(),
+                                             var_info->inst);
 
         if (node.op == "+=") {
-          auto lhs_value
-            = common.builder.CreateLoad(var_info->instance->getAllocatedType(),
-                                        var_info->instance);
-          return common.builder.CreateStore(
-            common.builder.CreateAdd(lhs_value, rhs),
-            var_info->instance);
+          common.builder.CreateStore(common.builder.CreateAdd(lhs, rhs),
+                                     var_info->inst);
         }
 
         if (node.op == "-=") {
-          auto lhs_value
-            = common.builder.CreateLoad(var_info->instance->getAllocatedType(),
-                                        var_info->instance);
-          return common.builder.CreateStore(
-            common.builder.CreateSub(lhs_value, rhs),
-            var_info->instance);
+          common.builder.CreateStore(common.builder.CreateSub(lhs, rhs),
+                                     var_info->inst);
         }
+
+        if (node.op == "*=") {
+          common.builder.CreateStore(common.builder.CreateMul(lhs, rhs),
+                                     var_info->inst);
+        }
+
+        if (node.op == "/=") {
+          // TODO: unsigned
+          common.builder.CreateStore(common.builder.CreateSDiv(lhs, rhs),
+                                     var_info->inst);
+        }
+
+        if (node.op == "%=") {
+          // TODO: unsigned
+          common.builder.CreateStore(common.builder.CreateSRem(lhs, rhs),
+                                     var_info->inst);
+        }
+
+        return common.builder.CreateLoad(var_info->inst->getAllocatedType(),
+                                         var_info->inst);
       }
       catch (const boost::bad_get&) {
         // left hand side was not a variable.
@@ -252,8 +268,8 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
         format("unknown variable '%s' referenced", node.name))};
     }
 
-    return common.builder.CreateLoad(var_info->instance->getAllocatedType(),
-                                     var_info->instance,
+    return common.builder.CreateLoad(var_info->inst->getAllocatedType(),
+                                     var_info->inst,
                                      node.name.c_str());
   }
 
