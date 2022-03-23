@@ -1,5 +1,5 @@
 /**
- * ast.cpp
+ * ast.cxx
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -7,7 +7,7 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <ast/ast.hpp>
+#include <ast/ast.hxx>
 
 namespace x3 = boost::spirit::x3;
 

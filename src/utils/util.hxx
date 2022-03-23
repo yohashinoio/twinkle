@@ -1,5 +1,5 @@
 /**
- * util.hpp
+ * util.hxx
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -14,18 +14,10 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <pch/pch.hpp>
+#include <pch/pch.hxx>
 
 namespace miko
 {
-
-//===----------------------------------------------------------------------===//
-// Using & Typedef
-//===----------------------------------------------------------------------===//
-
-using input_iterator_type = std::string::const_iterator;
-using position_cache
-  = boost::spirit::x3::position_cache<std::vector<input_iterator_type>>;
 
 //===----------------------------------------------------------------------===//
 // Helper
@@ -52,7 +44,8 @@ format_error_message_without_filename(const std::string_view message,
 
 // Load a file to std::string.
 [[nodiscard]] std::string
-load_file_to_string(const std::filesystem::path& path);
+load_file_to_string(const std::string_view       program_name,
+                    const std::filesystem::path& path);
 
 program_options::options_description create_options_description();
 
@@ -63,7 +56,8 @@ get_variable_map(const program_options::options_description& desc,
 
 // If no input files are passed, std::runtime_error is thrown.
 std::vector<std::string>
-get_input_files(const program_options::variables_map& vm);
+get_input_files(const std::string_view                program_name,
+                const program_options::variables_map& vm);
 
 } // namespace miko
 

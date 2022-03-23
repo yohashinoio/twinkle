@@ -4,5 +4,5 @@
 
 add_library(
   parse OBJECT
-  parse.cpp
+  parse.cxx
 )

@@ -1,5 +1,5 @@
 /**
- * jit.cpp
+ * jit.cxx
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -7,7 +7,7 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <jit/jit.hpp>
+#include <jit/jit.hxx>
 
 namespace miko::jit
 {

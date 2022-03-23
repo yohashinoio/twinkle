@@ -1,5 +1,5 @@
 /**
- * gen_cpp
+ * gen_cxx
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -7,8 +7,9 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <codegen/codegen.hpp>
-#include <parse/id.hpp>
+#include <codegen/codegen.hxx>
+#include <parse/id.hxx>
+#include <utils/format.hxx>
 
 namespace miko::codegen
 {
@@ -437,11 +438,10 @@ struct statement_visitor : public boost::static_visitor<void> {
 
     auto function = common.builder.GetInsertBlock()->getParent();
 
-    auto then_bb
-      = llvm::BasicBlock::Create(*common.context, "if.then", function);
-    auto else_bb = llvm::BasicBlock::Create(*common.context, "if.else");
+    auto then_bb = llvm::BasicBlock::Create(*common.context, "", function);
+    auto else_bb = llvm::BasicBlock::Create(*common.context);
 
-    auto merge_bb = llvm::BasicBlock::Create(*common.context, "if.merge");
+    auto merge_bb = llvm::BasicBlock::Create(*common.context);
 
     common.builder.CreateCondBr(condition_value, then_bb, else_bb);
 
@@ -491,12 +491,11 @@ struct statement_visitor : public boost::static_visitor<void> {
 
     auto function = common.builder.GetInsertBlock()->getParent();
 
-    auto cond_bb
-      = llvm::BasicBlock::Create(*common.context, "for.cond", function);
-    auto loop_bb = llvm::BasicBlock::Create(*common.context, "for.loop");
-    auto body_bb = llvm::BasicBlock::Create(*common.context, "for.body");
+    auto cond_bb = llvm::BasicBlock::Create(*common.context, "", function);
+    auto loop_bb = llvm::BasicBlock::Create(*common.context);
+    auto body_bb = llvm::BasicBlock::Create(*common.context);
 
-    auto for_end_bb = llvm::BasicBlock::Create(*common.context, "for.end");
+    auto for_end_bb = llvm::BasicBlock::Create(*common.context);
 
     common.builder.CreateBr(cond_bb);
     common.builder.SetInsertPoint(cond_bb);
@@ -657,8 +656,7 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
 
     symbol_table argument_values;
 
-    auto entry_bb
-      = llvm::BasicBlock::Create(*common.context, "entry", function);
+    auto entry_bb = llvm::BasicBlock::Create(*common.context, "", function);
     common.builder.SetInsertPoint(entry_bb);
 
     for (auto& arg : function->args()) {
@@ -686,13 +684,13 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
     }
 
     // Used to combine returns into one.
-    auto end_bb = llvm::BasicBlock::Create(*common.context, "end");
+    auto end_bb = llvm::BasicBlock::Create(*common.context);
     // TODO: refactoring
     auto retvar = node.decl.return_type.id == id::type_name::void_
                     ? nullptr
                     : create_entry_block_alloca(
                       function,
-                      "retval",
+                      "",
                       common
                         .typename_to_type(node.decl.return_type.id,
                                           node.decl.return_type.is_ptr)
@@ -829,11 +827,13 @@ codegen_common::typename_to_type(const id::type_name type, const bool is_ptr)
                                            builder.GetInsertBlock());
 }
 
-code_generator::code_generator(const ast::program&          ast,
+code_generator::code_generator(const std::string_view       program_name,
+                               const ast::program&          ast,
                                const position_cache&        positions,
                                const std::filesystem::path& file,
                                const bool                   optimize)
-  : common{file}
+  : program_name{program_name}
+  , common{file}
   , function_pm{common.module.get()}
   , ast{ast}
   , positions{positions}
@@ -872,7 +872,7 @@ code_generator::code_generator(const ast::program&          ast,
 
   if (!target) {
     throw std::runtime_error{
-      format_error_message("mikoc",
+      format_error_message(program_name,
                            format("failed to lookup target %s: %s",
                                   target_triple,
                                   target_triple_error),
@@ -903,7 +903,7 @@ void code_generator::write_llvm_ir_to_file(
 
   if (ostream_ec) {
     throw std::runtime_error{format_error_message(
-      "mikoc",
+      program_name,
       format("%s: %s", out.string(), ostream_ec.message()))};
   }
 
@@ -918,7 +918,7 @@ void code_generator::write_object_code_to_file(const std::filesystem::path& out)
                           llvm::sys::fs::OpenFlags::OF_None};
   if (ostream_ec) {
     throw std::runtime_error{format_error_message(
-      "mikoc",
+      program_name,
       format("%s: %s\n", out.string(), ostream_ec.message()))};
   }
 
@@ -928,7 +928,7 @@ void code_generator::write_object_code_to_file(const std::filesystem::path& out)
                                           nullptr,
                                           llvm::CGFT_ObjectFile)) {
     throw std::runtime_error{
-      format_error_message("mikoc",
+      format_error_message(program_name,
                            "targetMachine can't emit a file of this types",
                            true)};
   }
@@ -967,9 +967,10 @@ int code_generator::jit_compile()
                            "Symbol main could not be found")};
   }
 
-  auto symbol    = *symbol_expected;
-  auto main_addr = reinterpret_cast<int (*)(/* command line arguments */)>(
-    symbol.getAddress());
+  auto symbol = *symbol_expected;
+  auto main_addr
+    = reinterpret_cast<int (*)(/* TODO: command line arguments */)>(
+      symbol.getAddress());
 
   // Run main
   return main_addr();
@@ -979,6 +980,11 @@ void code_generator::codegen()
 {
   for (auto&& node : ast)
     boost::apply_visitor(top_level_stmt_visitor{common, function_pm}, node);
+}
+
+void code_generator::throw_error() const
+{
+  auto pos = positions.position_of(ast);
 }
 
 } // namespace miko::codegen

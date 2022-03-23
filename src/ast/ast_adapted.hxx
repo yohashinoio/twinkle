@@ -1,5 +1,5 @@
 /**
- * ast_adapted.hpp
+ * ast_adapted.hxx
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -10,8 +10,8 @@
 #ifndef _4a13c82a_9536_11ec_b909_0242ac120002
 #define _4a13c82a_9536_11ec_b909_0242ac120002
 
-#include <pch/pch.hpp>
-#include <ast/ast.hpp>
+#include <pch/pch.hxx>
+#include <ast/ast.hxx>
 
 // clang-format off
 

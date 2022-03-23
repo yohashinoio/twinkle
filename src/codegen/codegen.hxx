@@ -1,5 +1,5 @@
 /**
- * gen.hpp
+ * gen.hxx
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -14,10 +14,11 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <pch/pch.hpp>
-#include <ast/ast.hpp>
-#include <utils/util.hpp>
-#include <jit/jit.hpp>
+#include <pch/pch.hxx>
+#include <ast/ast.hxx>
+#include <utils/util.hxx>
+#include <utils/typedef.hxx>
+#include <jit/jit.hxx>
 
 namespace miko::codegen
 {
@@ -44,7 +45,8 @@ struct codegen_common {
 };
 
 struct code_generator {
-  code_generator(const ast::program&          ast,
+  code_generator(const std::string_view       program_name,
+                 const ast::program&          ast,
                  const position_cache&        positions,
                  const std::filesystem::path& file_path,
                  const bool                   optimize);
@@ -58,6 +60,10 @@ struct code_generator {
 
 private:
   void codegen();
+
+  void throw_error() const;
+
+  const std::string_view program_name;
 
   codegen_common common;
 

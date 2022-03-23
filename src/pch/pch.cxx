@@ -1,5 +1,5 @@
 /**
- * pch.cpp (Pre compiled header)
+ * pch.cxx (Pre compiled header)
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -7,4 +7,4 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <pch/pch.hpp>
+#include <pch/pch.hxx>

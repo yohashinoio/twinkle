@@ -36,10 +36,10 @@ include_directories(
 
 add_executable(
   ${CMAKE_PROJECT_NAME}
-  main.cpp
+  main.cxx
 )
 
-target_precompile_headers(${CMAKE_PROJECT_NAME} PRIVATE pch/pch.hpp)
+target_precompile_headers(${CMAKE_PROJECT_NAME} PRIVATE pch/pch.hxx)
 
 add_subdirectory(ast)
 add_subdirectory(codegen)

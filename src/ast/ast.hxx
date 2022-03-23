@@ -1,5 +1,5 @@
 /**
- * ast.hpp
+ * ast.hxx
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -14,8 +14,8 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <pch/pch.hpp>
-#include <parse/id.hpp>
+#include <pch/pch.hxx>
+#include <parse/id.hxx>
 
 namespace x3 = boost::spirit::x3;
 

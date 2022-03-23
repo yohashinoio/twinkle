@@ -1,5 +1,5 @@
 /**
- * util.cpp
+ * util.cxx
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -7,8 +7,9 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <pch/pch.hpp>
-#include <utils/util.hpp>
+#include <pch/pch.hxx>
+#include <utils/format.hxx>
+#include <utils/util.hxx>
 #include <fstream>
 
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
@@ -64,11 +65,13 @@ format_error_message_without_filename(const std::string_view message,
 }
 
 // Load a file to std::string.
-[[nodiscard]] std::string load_file_to_string(const std::filesystem::path& path)
+[[nodiscard]] std::string
+load_file_to_string(const std::string_view       program_name,
+                    const std::filesystem::path& path)
 {
   if (!std::filesystem::exists(path)) {
     throw std::runtime_error{format_error_message(
-      "mikoc",
+      program_name,
       format("%s: No such file or directory", path.string()))};
   }
 
@@ -80,7 +83,7 @@ format_error_message_without_filename(const std::string_view message,
   }
 
   throw std::runtime_error{
-    format_error_message("mikoc",
+    format_error_message(program_name,
                          format("%s: Could not open file", path.string()))};
 }
 
@@ -124,13 +127,14 @@ get_variable_map(const program_options::options_description& desc,
 }
 
 std::vector<std::string>
-get_input_files(const program_options::variables_map& vm)
+get_input_files(const std::string_view                program_name,
+                const program_options::variables_map& vm)
 {
   if (vm.count("input-file"))
     return vm["input-file"].as<std::vector<std::string>>();
   else {
     throw std::runtime_error{
-      miko::format_error_message("mikoc", "no input files", true)};
+      miko::format_error_message(program_name, "no input files", true)};
   }
 }
 

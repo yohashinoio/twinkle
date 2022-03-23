@@ -1,0 +1,33 @@
+/**
+ * util.hxx
+ *
+ * These codes are licensed under Apache-2.0 License.
+ * See the LICENSE for details.
+ *
+ * Copyright (c) 2022 Hiramoto Ittou.
+ */
+
+#ifndef _39b9a67c_aa6f_11ec_b909_0242ac120002
+#define _39b9a67c_aa6f_11ec_b909_0242ac120002
+
+#if _MSC_VER > 1000
+#pragma once
+#endif // _MSC_VER > 1000
+
+#include <pch/pch.hxx>
+
+namespace miko
+{
+
+//===----------------------------------------------------------------------===//
+// Using & Typedef
+//===----------------------------------------------------------------------===//
+
+using input_iterator_type = std::string::const_iterator;
+
+using position_cache
+  = boost::spirit::x3::position_cache<std::vector<input_iterator_type>>;
+
+} // namespace miko
+
+#endif

@@ -1,5 +1,5 @@
 /**
- * parse.hpp
+ * parse.hxx
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -14,8 +14,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <ast/ast.hpp>
-#include <utils/util.hpp>
+#include <ast/ast.hxx>
+#include <utils/util.hxx>
+#include <utils/typedef.hxx>
 
 namespace miko::parse
 {

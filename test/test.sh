@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Shell script for black box testing.
+
 # These codes are licensed under Apache-2.0 License.
 # See the LICENSE for details.
 # Copyright (c) 2022 Hiramoto Ittou.

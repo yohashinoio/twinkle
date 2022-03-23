@@ -1,5 +1,5 @@
 /**
- * main.cpp
+ * main.cxx
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -7,10 +7,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <codegen/codegen.hpp>
-#include <jit/jit.hpp>
-#include <parse/parse.hpp>
-#include <utils/util.hpp>
+#include <codegen/codegen.hxx>
+#include <jit/jit.hxx>
+#include <parse/parse.hxx>
+#include <utils/util.hxx>
+#include <utils/format.hxx>
 
 namespace program_options = boost::program_options;
 
@@ -73,7 +74,8 @@ try {
     miko::parse::parser parser{vm["input"].as<std::string>(), file_path};
 
     // Code generation occurs as soon as the constructor is called.
-    miko::codegen::code_generator generator{parser.get_ast(),
+    miko::codegen::code_generator generator{*argv,
+                                            parser.get_ast(),
                                             parser.get_positions(),
                                             file_path,
                                             optimize};
@@ -84,16 +86,17 @@ try {
       output_to_file(generator, file_path, vm.count("llvmir"));
   }
   else {
-    auto file_paths = miko::get_input_files(vm);
+    auto file_paths = miko::get_input_files(*argv, vm);
 
     for (auto&& file_path : file_paths) {
-      auto input = miko::load_file_to_string(file_path);
+      auto input = miko::load_file_to_string(*argv, file_path);
 
       // Parsing is performed as soon as the constructor is called.
       miko::parse::parser parser{std::move(input), file_path};
 
       // Code generation occurs as soon as the constructor is called.
-      miko::codegen::code_generator generator{parser.get_ast(),
+      miko::codegen::code_generator generator{*argv,
+                                              parser.get_ast(),
                                               parser.get_positions(),
                                               file_path,
                                               optimize};
@@ -107,7 +110,7 @@ try {
 }
 catch (const program_options::error& err) {
   // Error about command line options.
-  std::cerr << miko::format_error_message("mikoc", err.what(), true)
+  std::cerr << miko::format_error_message(*argv, err.what(), true)
             << (is_back_newline(err.what()) ? "" : "\n")
             << "compilation terminated." << std::endl;
   std::exit(EXIT_FAILURE);

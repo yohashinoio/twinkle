@@ -4,5 +4,5 @@
 
 add_library(
   ast OBJECT
-  ast.cpp
+  ast.cxx
 )
