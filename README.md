@@ -165,8 +165,8 @@ Thank you!
 | 32-bit  | i32    | u32      |
 | 64-bit  | i64    | u64      |
 ```rust
-var n: i32;
-var m: u32;
+var n: i32 = -58;
+var m: u32 =  58;
 ```
 
 ### The boolean type
@@ -174,7 +174,8 @@ var m: u32;
 | ------- | ---- |
 | 1-bit   | bool |
 ```rust
-var f: bool;
+var f: bool = true;
+var g: bool = false;
 ```
 
 ### The void type
@@ -210,8 +211,7 @@ func main() -> i32
 Note that the meaning is equivalent to that of a C pointer,<br/>
 but the position of the * is opposite.
 ```rust
-var p: *i32;
-var s: *i8 = "hello, world";
+var p: *i8 = "hello, world";
 ```
 
 ## Comments
