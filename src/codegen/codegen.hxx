@@ -1,5 +1,5 @@
 /**
- * gen.hxx
+ * codegen.hxx
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -30,7 +30,8 @@ struct llvm_type_info {
 
 // A structure that summarizes variables commonly needed by visitors.
 struct codegen_common {
-  codegen_common(const std::filesystem::path& file);
+  codegen_common(const std::filesystem::path& file,
+                 const position_cache&        positions);
 
   [[nodiscard]] llvm_type_info typename_to_type(const id::type_name type,
                                                 const bool is_ptr = false);
@@ -42,6 +43,8 @@ struct codegen_common {
   llvm::IRBuilder<>                  builder;
 
   std::filesystem::path file;
+
+  const position_cache& positions;
 };
 
 struct code_generator {
@@ -61,8 +64,6 @@ struct code_generator {
 private:
   void codegen();
 
-  void throw_error() const;
-
   const std::string_view program_name;
 
   codegen_common common;
@@ -71,8 +72,7 @@ private:
 
   llvm::legacy::FunctionPassManager function_pm;
 
-  const ast::program&   ast;
-  const position_cache& positions;
+  const ast::program& ast;
 };
 
 } // namespace miko::codegen

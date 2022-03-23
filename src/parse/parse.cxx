@@ -360,7 +360,7 @@ const auto variable_type
 const auto variable_def_statement
   = x3::rule<struct variable_def_statement_tag,
              ast::variable_def_statement>{"variable definition"}
-= x3::lit("var") > -variable_qualifier > identifier > x3::lit(':')
+= x3::lit("let") > -variable_qualifier > identifier > x3::lit(':')
   > variable_type > -(x3::lit('=') > expression) > x3::lit(';');
 
 const auto return_statement

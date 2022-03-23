@@ -1,8 +1,6 @@
-// TODO: 整数リテラルの自動昇格
-// TODO: インクリメント　デクリメント
-// TODO: void型変数
-// TODO: JITコンパイルのチュートリアルを進める
-// TODO: 文字リテラル
-// TODO: break continue
 // TODO: コード生成のエラーを分かりやすく（行番号などをエラーに付与）
 // TODO: boost assertを使ってるところをちゃんとエラー出力に変える
+// TODO: 文字リテラル
+// TODO: break continue
+// TODO: 整数リテラルの自動昇格
+// TODO: JITコンパイルのチュートリアルを進める

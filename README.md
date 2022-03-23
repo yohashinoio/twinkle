@@ -165,8 +165,8 @@ Thank you!
 | 32-bit  | i32    | u32      |
 | 64-bit  | i64    | u64      |
 ```rust
-var n: i32 = -58;
-var m: u32 =  58;
+let n: i32 = -58;
+let m: u32 =  58;
 ```
 
 ### The boolean type
@@ -174,8 +174,8 @@ var m: u32 =  58;
 | ------- | ---- |
 | 1-bit   | bool |
 ```rust
-var f: bool = true;
-var g: bool = false;
+let f: bool = true;
+let g: bool = false;
 ```
 
 ### The void type
@@ -211,7 +211,7 @@ func main() -> i32
 Note that the meaning is equivalent to that of a C pointer,<br/>
 but the position of the * is opposite.
 ```rust
-var p: *i8 = "hello, world";
+let p: *i8 = "hello, world";
 ```
 
 ## Comments
@@ -283,22 +283,22 @@ func private thrice(n: i32) -> i32 // Internal linkage
 ## Variables
 ### Definition
 ```rust
-var a: i32;
+let a: i32;
 
-var b: i32 = 48;
+let b: i32 = 48;
 ```
 
 ### Mutable variables
 In this language, variables are constant by default.<br/>
 To make them mutable, use the "mut" qualifier.
 ```rust
-var i: i32 = 48; // Constant.
+let i: i32 = 48; // Constant.
 i = 58; // Error!
 
-var mut j: i32 = 48; // Mutable.
+let mut j: i32 = 48; // Mutable.
 j = 58; // OK
 
-var mut k: i32; // Mutable.
+let mut k: i32; // Mutable.
 k = 4810; // OK
 ```
 
@@ -361,7 +361,7 @@ func fib(n: i32) -> i32
 
 func main() -> i32
 {
-  var mut i: i32;
+  let mut i: i32;
   for (i = 1; i <= 40; i = i + 1)
     puti(fib(i));
 }

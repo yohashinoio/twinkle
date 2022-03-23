@@ -1,5 +1,5 @@
 /**
- * gen_cxx
+ * codegen.cxx
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -17,6 +17,18 @@ namespace miko::codegen
 //===----------------------------------------------------------------------===//
 // Utilities
 //===----------------------------------------------------------------------===//
+
+void throw_error(boost::iterator_range<input_iterator_type> pos)
+{
+  // TODO:
+  static int i = 0;
+  std::cout << i << '\n';
+  for (auto it = pos.begin(), last = pos.end(); it != last; ++it) {
+    std::cout << *it;
+  }
+  std::cout << '\n';
+  ++i;
+}
 
 struct variable_info {
   llvm::AllocaInst* inst;
@@ -756,11 +768,13 @@ private:
 // Code generator
 //===----------------------------------------------------------------------===//
 
-codegen_common::codegen_common(const std::filesystem::path& file)
+codegen_common::codegen_common(const std::filesystem::path& file,
+                               const position_cache&        positions)
   : context{std::make_unique<llvm::LLVMContext>()}
   , module{std::make_unique<llvm::Module>(file.filename().string(), *context)}
   , builder{*context}
   , file{file}
+  , positions{positions}
 {
 }
 
@@ -833,10 +847,9 @@ code_generator::code_generator(const std::string_view       program_name,
                                const std::filesystem::path& file,
                                const bool                   optimize)
   : program_name{program_name}
-  , common{file}
+  , common{file, positions}
   , function_pm{common.module.get()}
   , ast{ast}
-  , positions{positions}
 {
   llvm::InitializeAllTargetInfos();
   llvm::InitializeAllTargets();
@@ -980,11 +993,6 @@ void code_generator::codegen()
 {
   for (auto&& node : ast)
     boost::apply_visitor(top_level_stmt_visitor{common, function_pm}, node);
-}
-
-void code_generator::throw_error() const
-{
-  auto pos = positions.position_of(ast);
 }
 
 } // namespace miko::codegen
