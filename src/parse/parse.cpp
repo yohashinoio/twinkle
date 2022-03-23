@@ -228,6 +228,9 @@ const auto signed_integer
   = x3::rule<struct signed_integer_tag, std::int32_t>{"integral number"}
 = x3::int32;
 
+const auto boolean_literal
+  = x3::rule<struct boolean_literal_tag, bool>{"boolean literal"} = x3::bool_;
+
 const auto escape_character
   = x3::rule<struct escape_character_tag, unsigned char>{"escape character"}
 = escape_character_symbols; // TODO: add \xFF
@@ -319,6 +322,7 @@ const auto primary_def
   = (x3::lit('(') > expression > x3::lit(')'))[action::assign_attr_to_val]
     | unsigned_integer[action::assign_attr_to_val]
     | signed_integer[action::assign_attr_to_val]
+    | boolean_literal[action::assign_attr_to_val]
     | string_literal[action::assign_attr_to_val]
     | (identifier >> x3::lit("(") > argument_list
        > x3::lit(")"))[action::assign_function_call_to_val] // function call
@@ -489,6 +493,10 @@ struct unsigned_integer_tag
   , annotate_position {};
 
 struct signed_integer_tag
+  : with_error_handling
+  , annotate_position {};
+
+struct boolean_literal_tag
   : with_error_handling
   , annotate_position {};
 

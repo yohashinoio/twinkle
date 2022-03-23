@@ -85,19 +85,26 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     BOOST_ASSERT(0);
   }
 
-  // unsigned integer literal
+  // unsigned integer literals
   llvm::Value* operator()(const std::uint32_t node) const
   {
     return llvm::ConstantInt::get(common.builder.getInt32Ty(), node);
   }
 
-  // signed integer literal
+  // signed integer literals
   llvm::Value* operator()(const std::int32_t node) const
   {
     return llvm::ConstantInt::getSigned(common.builder.getInt32Ty(), node);
   }
 
-  // string literal
+  // boolean literals
+  llvm::Value* operator()(const bool node) const
+  {
+    return common.i1_to_boolean(
+      llvm::ConstantInt::get(common.builder.getInt1Ty(), node));
+  }
+
+  // string literals
   llvm::Value* operator()(const ast::string_literal& node) const
   {
     return common.builder.CreateGlobalStringPtr(node.str);

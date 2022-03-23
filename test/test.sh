@@ -513,4 +513,19 @@ assert 58 "func main() -> i32 {
   ret (shino %= 58) + 4;
 }"
 
+# Boolean literals
+assert 0 "func main() -> i32 {
+  var f1: bool = true;
+  var f2: bool = false;
+  var mut f3: bool;
+  f3 = true;
+  f3 = false;
+  ret f3 as i32;
+}"
+
+assert 2 "func main() -> i32 {
+  var f: bool = true;
+  ret (f + false + true - false) as i32;
+}"
+
 echo OK

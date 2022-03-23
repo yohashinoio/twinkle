@@ -4,6 +4,5 @@
 // TODO: JITコンパイルのチュートリアルを進める
 // TODO: 文字リテラル
 // TODO: break continue
-// TODO: true false
 // TODO: コード生成のエラーを分かりやすく（行番号などをエラーに付与）
 // TODO: boost assertを使ってるところをちゃんとエラー出力に変える

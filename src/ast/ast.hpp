@@ -62,8 +62,9 @@ struct function_call_expr;
 struct cast_expr;
 
 using expression = boost::variant<nil,
-                                  std::uint32_t, /* unsigned integer */
-                                  std::int32_t,  /* signed integer */
+                                  std::uint32_t, /* unsigned integer literals */
+                                  std::int32_t,  /* signed integer literals */
+                                  bool,          /* boolean literals */
                                   string_literal,
                                   variable_expr,
                                   boost::recursive_wrapper<unary_op_expr>,
