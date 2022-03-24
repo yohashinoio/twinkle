@@ -217,23 +217,15 @@ let p: *i8 = "hello, world";
 ## Comments
 ### Single line comment
 ```rust
-func main() -> i32
-{
-  // This is a comment.
-  ret 0;
-}
+// This is a comment.
 ```
 
 ### Multi line comment
 ```rust
-func main() -> i32
-{
-  /*
-  The only ones who can shoot are those who are prepared to be shot.
-  ― Lelouch Vi Britannia
-  */
-  ret 0;
-}
+/*
+The only ones who can shoot are those who are prepared to be shot.
+― Lelouch Vi Britannia
+*/
 ```
 
 ## Functions
@@ -356,7 +348,6 @@ func fib(n: i32) -> i32
     ret 1;
   else
     ret fib(n - 1) + fib(n - 2);
-  ret 0;
 }
 
 func main() -> i32

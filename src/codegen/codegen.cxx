@@ -714,17 +714,25 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
                                retvar,
                                end_bb);
 
-    // Return 0 if main function has no return.
-    if (node.decl.name == "main"
-        && !common.builder.GetInsertBlock()->getTerminator()) {
-      common.builder.CreateStore(
-        llvm::ConstantInt::get(common.builder.getInt32Ty(), 0),
-        retvar);
-      common.builder.CreateBr(end_bb);
+    // If there is no return, returns undef.
+    if (!common.builder.GetInsertBlock()->getTerminator()
+        && node.decl.return_type.id != id::type_name::void_) {
+      // Return 0 specially for main.
+      if (node.decl.name == "main") {
+        common.builder.CreateStore(
+          llvm::ConstantInt::getSigned(function->getReturnType(), 0),
+          retvar);
+        common.builder.CreateBr(end_bb);
+      }
+      else {
+        common.builder.CreateStore(
+          llvm::UndefValue::get(function->getReturnType()),
+          retvar);
+        common.builder.CreateBr(end_bb);
+      }
     }
 
-    // Automatically inserts a terminator if a function that returns void does
-    // not have one.
+    // Inserts a terminator if the function returning void does not have one.
     if (node.decl.return_type.id == id::type_name::void_
         && !common.builder.GetInsertBlock()->getTerminator()) {
       common.builder.CreateBr(end_bb);
@@ -823,8 +831,8 @@ codegen_common::typename_to_type(const id::type_name type, const bool is_ptr)
   }
 
   if (is_ptr) {
-    tmp.type
-      = llvm::Type::getIntNPtrTy(*context, tmp.type->getIntegerBitWidth());
+    // Get pointer type.
+    tmp.type = llvm::PointerType::getUnqual(tmp.type);
   }
 
   return tmp;
