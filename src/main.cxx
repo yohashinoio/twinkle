@@ -115,7 +115,7 @@ catch (const program_options::error& err) {
             << "compilation terminated." << std::endl;
   std::exit(EXIT_FAILURE);
 }
-catch (const std::exception& err) {
+catch (const std::runtime_error& err) {
   // All compilation errors are caught here.
   std::cerr << err.what() << (is_back_newline(err.what()) ? "" : "\n")
             << "compilation terminated." << std::endl;

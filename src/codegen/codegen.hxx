@@ -38,6 +38,10 @@ struct codegen_common {
 
   [[nodiscard]] llvm::Value* i1_to_boolean(llvm::Value* value);
 
+  [[nodiscard]] std::string
+  format_error(const boost::iterator_range<input_iterator_type> pos,
+                       const std::string_view message);
+
   std::unique_ptr<llvm::LLVMContext> context;
   std::unique_ptr<llvm::Module>      module;
   llvm::IRBuilder<>                  builder;
@@ -59,7 +63,7 @@ struct code_generator {
   void write_object_code_to_file(const std::filesystem::path& out);
 
   // Returns the return value from the main function.
-  int jit_compile();
+  [[nodiscard]] int jit_compile();
 
 private:
   void codegen();

@@ -11,24 +11,16 @@
 #include <parse/id.hxx>
 #include <utils/format.hxx>
 
+#if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
+#include <unistd.h> // isatty
+#endif
+
 namespace miko::codegen
 {
 
 //===----------------------------------------------------------------------===//
 // Utilities
 //===----------------------------------------------------------------------===//
-
-void throw_error(boost::iterator_range<input_iterator_type> pos)
-{
-  // TODO:
-  static int i = 0;
-  std::cout << i << '\n';
-  for (auto it = pos.begin(), last = pos.end(); it != last; ++it) {
-    std::cout << *it;
-  }
-  std::cout << '\n';
-  ++i;
-}
 
 struct variable_info {
   llvm::AllocaInst* inst;
@@ -283,8 +275,8 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     auto var_info = scope[node.name];
 
     if (!var_info) {
-      throw std::runtime_error{format_error_message(
-        common.file.string(),
+      throw std::runtime_error{common.format_error(
+        common.positions.position_of(node),
         format("unknown variable '%s' referenced", node.name))};
     }
 
@@ -298,15 +290,15 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     auto callee_function = common.module->getFunction(node.callee);
 
     if (!callee_function) {
-      throw std::runtime_error{format_error_message(
-        common.file.string(),
+      throw std::runtime_error{common.format_error(
+        common.positions.position_of(node),
         format("unknown function '%s' referenced", node.callee))};
     }
 
     if (callee_function->arg_size() != node.args.size()) {
       throw std::runtime_error{
-        format_error_message(common.file.string(),
-                             format("incorrect arguments passed"))};
+        common.format_error(common.positions.position_of(node),
+                            format("incorrect arguments passed"))};
     }
 
     std::vector<llvm::Value*> args_value;
@@ -383,8 +375,8 @@ struct statement_visitor : public boost::static_visitor<void> {
 
       if (!retval) {
         throw std::runtime_error{
-          format_error_message(common.file.string(),
-                               "failed to generate return value")};
+          common.format_error(common.positions.position_of(node),
+                              "failed to generate return value")};
       }
 
       common.builder.CreateStore(retval, retvar);
@@ -397,8 +389,8 @@ struct statement_visitor : public boost::static_visitor<void> {
   {
     if (scope.exists(node.name)) {
       throw std::runtime_error{
-        format_error_message(common.file.string(),
-                             format("redefinition of '%s'", node.name))};
+        common.format_error(common.positions.position_of(node),
+                            format("redefinition of '%s'", node.name))};
     }
 
     auto function = common.builder.GetInsertBlock()->getParent();
@@ -412,8 +404,8 @@ struct statement_visitor : public boost::static_visitor<void> {
                                               *node.initializer);
 
       if (!initializer) {
-        throw std::runtime_error{format_error_message(
-          common.file.string(),
+        throw std::runtime_error{common.format_error(
+          common.positions.position_of(node),
           format("initialization of variable %s failed", node.name))};
       }
 
@@ -437,8 +429,8 @@ struct statement_visitor : public boost::static_visitor<void> {
 
     if (!condition_value) {
       throw std::runtime_error{
-        format_error_message(common.file.string(),
-                             "invalid condition in if statement")};
+        common.format_error(common.positions.position_of(node),
+                            "invalid condition in if statement")};
     }
 
     // Convert condition to a bool by comparing non-equal to 0.
@@ -495,8 +487,8 @@ struct statement_visitor : public boost::static_visitor<void> {
                                              *node.init_expression);
 
       if (!init_value) {
-        throw std::runtime_error{format_error_message(
-          common.file.string(),
+        throw std::runtime_error{common.format_error(
+          common.positions.position_of(node),
           "failed to generate init expression in for statement")};
       }
     }
@@ -517,8 +509,8 @@ struct statement_visitor : public boost::static_visitor<void> {
                                              *node.cond_expression);
 
       if (!cond_value) {
-        throw std::runtime_error{format_error_message(
-          common.file.string(),
+        throw std::runtime_error{common.format_error(
+          common.positions.position_of(node),
           "failed to generate condition expression in for statement")};
       }
 
@@ -554,8 +546,8 @@ struct statement_visitor : public boost::static_visitor<void> {
                                              *node.loop_expression);
 
       if (!loop_value) {
-        throw std::runtime_error{format_error_message(
-          common.file.string(),
+        throw std::runtime_error{common.format_error(
+          common.positions.position_of(node),
           "failed to generate loop expression in for statement")};
       }
     }
@@ -660,10 +652,9 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
       function = this->operator()(node.decl);
 
     if (!function) {
-      throw std::runtime_error{format_error_message(
-        common.file.string(),
-        format("failed to create function %s", node.decl.name),
-        true)};
+      throw std::runtime_error{common.format_error(
+        common.positions.position_of(node),
+        format("failed to create function %s", node.decl.name))};
     }
 
     symbol_table argument_values;
@@ -758,7 +749,7 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
       function->eraseFromParent();
 
       throw std::runtime_error{
-        format_error_message(common.file.string(), os.str())};
+        common.format_error(common.positions.position_of(node), os.str())};
     }
 
     function_pm.run(*function);
@@ -820,10 +811,7 @@ codegen_common::typename_to_type(const id::type_name type, const bool is_ptr)
     tmp = {builder.getInt64Ty(), false};
     break;
   case id::type_name::bool_:
-    // We will represent boolean by u8 instead of u1.
-    // The reason for this is that unsigned is difficult to represent in llvm,
-    // so with u1, true sometimes becomes -1! (My lack of technical skills
-    // ;_;)
+    // We will represent boolean by u8 instead of i1.
     tmp = {builder.getInt8Ty(), false};
     break;
   default:
@@ -847,6 +835,31 @@ codegen_common::typename_to_type(const id::type_name type, const bool is_ptr)
                                            as.is_signed,
                                            "",
                                            builder.GetInsertBlock());
+}
+
+[[nodiscard]] std::string codegen_common::format_error(
+  const boost::iterator_range<input_iterator_type> pos,
+  const std::string_view                           message)
+{
+  std::distance(pos.begin(), pos.end());
+
+  std::ostringstream ss;
+
+#if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
+  if (isatty(fileno(stdout))) {
+    ss << "In file " << file.string() << ":" << '\n'
+       << COLOR_RED "error: " COLOR_DEFAULT << message << '\n';
+  }
+#else
+  ss << "In file " << file.string() << ":" << '\n'
+     << "error: " << message << '\n';
+#endif
+
+  std::for_each(pos.begin(), pos.end(), [&](auto&& ch) { ss << ch; });
+
+  ss << "\n^_";
+
+  return ss.str();
 }
 
 code_generator::code_generator(const std::string_view       program_name,
@@ -959,7 +972,7 @@ void code_generator::write_object_code_to_file(const std::filesystem::path& out)
 }
 
 // Returns the return value from the main function.
-int code_generator::jit_compile()
+[[nodiscard]] int code_generator::jit_compile()
 {
   auto jit_expected = jit::jit_compiler::create();
   if (auto err = jit_expected.takeError()) {

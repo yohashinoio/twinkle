@@ -216,7 +216,6 @@ assert 58 "func fib(n: i32) -> i32 {
     ret 1;
   else
     ret fib(n - 1) + fib(n - 2);
-  ret 0;
 }
 func main() -> i32
 {

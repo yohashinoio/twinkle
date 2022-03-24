@@ -56,9 +56,9 @@ struct annotate_position {
   inline void on_success(const Iterator& first,
                          const Iterator& last,
                          T&              ast,
-                         const Context&  context)
+                         const Context&  ctx)
   {
-    auto&& position_cache = x3::get<position_cache_tag>(context);
+    auto&& position_cache = x3::get<position_cache_tag>(ctx);
     position_cache.annotate(ast, first, last);
   }
 };
@@ -199,6 +199,11 @@ const auto identifier
 = x3::raw[x3::lexeme[(x3::alpha | x3::lit('_'))
                      >> *(x3::alnum | x3::lit('_'))]];
 
+const auto variable_identifier
+  = x3::rule<struct variable_identifier_tag,
+             ast::variable_expr>{"variable identifier"}
+= identifier;
+
 const auto type_name
   = x3::rule<struct pointer_type_name_tag, ast::type_info>{"pointer type name"}
 = (-x3::char_('*') >> type_name_symbols)[([](auto&& ctx) {
@@ -290,6 +295,14 @@ const auto argument_list
              std::vector<ast::expression>>{"argument list"}
 = -(expression >> *(x3::lit(',') > expression));
 
+const auto function_call
+  = x3::rule<struct function_call_tag, ast::function_call_expr>{"function call"}
+= identifier >> x3::lit("(") > argument_list > x3::lit(")");
+
+const auto unary_expr
+  = x3::rule<struct unary_expr_tag, ast::unary_op_expr>{"unary expression"}
+= unary_operator > primary;
+
 const auto expression_def = assignment;
 
 const auto assignment_def
@@ -316,18 +329,11 @@ const auto cast_def
   = (unary >> x3::lit("as") > type_name)[action::assign_cast_to_val]
     | unary[action::assign_attr_to_val];
 
-const auto unary_def = (unary_operator > primary)[action::assign_unaryop_to_val]
-                       | primary[action::assign_attr_to_val];
+const auto unary_def = unary_expr | primary;
 
-const auto primary_def
-  = (x3::lit('(') > expression > x3::lit(')'))[action::assign_attr_to_val]
-    | unsigned_integer[action::assign_attr_to_val]
-    | signed_integer[action::assign_attr_to_val]
-    | boolean_literal[action::assign_attr_to_val]
-    | string_literal[action::assign_attr_to_val]
-    | (identifier >> x3::lit("(") > argument_list
-       > x3::lit(")"))[action::assign_function_call_to_val] // function call
-    | identifier[action::assign_variable_to_val];
+const auto primary_def = (x3::lit('(') > expression > x3::lit(')'))
+                         | unsigned_integer | signed_integer | boolean_literal
+                         | string_literal | function_call | variable_identifier;
 
 BOOST_SPIRIT_DEFINE(expression,
                     assignment,
@@ -369,7 +375,7 @@ const auto return_statement
 = x3::lit("ret") > -expression > x3::lit(';');
 
 const auto compound_statement_or_statement
-  = x3::rule<struct compound_statement_or_statement,
+  = x3::rule<struct compound_statement_or_statement_tag,
              ast::compound_statement>{"compound statement or statement"}
 = compound_statement[action::assign_compound_statement_to_val]
   | statement[action::assign_compound_statement_to_val];
@@ -473,6 +479,10 @@ struct identifier_tag
   : with_error_handling
   , annotate_position {};
 
+struct variable_identifier_tag
+  : with_error_handling
+  , annotate_position {};
+
 struct keyword_tag
   : with_error_handling
   , annotate_position {};
@@ -514,6 +524,14 @@ struct string_literal_tag
 //===----------------------------------------------------------------------===//
 
 struct argument_list_tag
+  : with_error_handling
+  , annotate_position {};
+
+struct function_call_tag
+  : with_error_handling
+  , annotate_position {};
+
+struct unary_expr_tag
   : with_error_handling
   , annotate_position {};
 
@@ -565,15 +583,19 @@ struct compound_statement_tag
   : with_error_handling
   , annotate_position {};
 
-struct expression_statement_tag
-  : with_error_handling
-  , annotate_position {};
-
 struct variable_type_tag
   : with_error_handling
   , annotate_position {};
 
-struct variable_def_statement
+struct compound_statement_or_statement_tag
+  : with_error_handling
+  , annotate_position {};
+
+struct expression_statement_tag
+  : with_error_handling
+  , annotate_position {};
+
+struct variable_def_statement_tag
   : with_error_handling
   , annotate_position {};
 
