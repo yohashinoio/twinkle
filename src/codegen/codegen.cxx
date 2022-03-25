@@ -38,7 +38,7 @@ struct symbol_table {
     return std::nullopt;
   }
 
-  // regist stands for register.
+  // Regist stands for register.
   void regist(const std::string& name, variable_info info)
   {
     named_values.insert({name, info});
@@ -87,7 +87,9 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
 
   llvm::Value* operator()(ast::nil) const
   {
-    BOOST_ASSERT(0);
+    throw std::runtime_error{format_error_message(
+      common.file.string(),
+      "a function was executed that did not predict execution")};
   }
 
   // unsigned integer literals
@@ -119,6 +121,12 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
   {
     auto rhs = boost::apply_visitor(*this, node.rhs);
 
+    if (!rhs) {
+      throw std::runtime_error{common.format_error(
+        common.positions.position_of(node),
+        "failed to generate right-hand side of unary operator")};
+    }
+
     if (node.op == "+")
       return rhs;
     if (node.op == "-") {
@@ -128,11 +136,13 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
         rhs);
     }
 
-    BOOST_ASSERT_MSG(
-      0,
-      "unsupported unary operators may have been converted to ASTs.");
+    throw std::runtime_error{common.format_error(
+      common.positions.position_of(node),
+      format("unsupported unary operator '%s' detected", node.op))};
   }
 
+  // Binary operator ast returns nullptr on failure because it cannot get a
+  // position.
   llvm::Value* operator()(const ast::binary_op_expr& node) const
   {
     // Special case assignment because we don't want to emit the
@@ -144,20 +154,18 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
 
         auto rhs = boost::apply_visitor(*this, node.rhs);
         if (!rhs)
-          BOOST_ASSERT(0);
+          return nullptr;
 
         auto var_info = scope[lhs_node.name];
 
         if (!var_info) {
-          throw std::runtime_error{format_error_message(
-            common.file.string(),
-            format("unknown variable name '%s'", lhs_node.name))};
+          // Unknown variable name.
+          return nullptr;
         }
 
         if (!var_info->is_mutable) {
-          throw std::runtime_error{format_error_message(
-            common.file.string(),
-            format("assignment of read-only variable '%s'", lhs_node.name))};
+          // Assignment of read-only variable.
+          return nullptr;
         }
 
         if (node.op == "=")
@@ -197,17 +205,15 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
                                          var_info->inst);
       }
       catch (const boost::bad_get&) {
-        // left hand side was not a variable.
-        throw std::runtime_error{format_error_message(
-          common.file.string(),
-          "the left hand side of the assignment must be a variable")};
+        // Left hand side was not a variable.
+        return nullptr;
       }
     }
 
     auto lhs = boost::apply_visitor(*this, node.lhs);
     auto rhs = boost::apply_visitor(*this, node.rhs);
     if (!lhs || !rhs)
-      BOOST_ASSERT(0);
+      return nullptr;
 
     // addition
     if (node.op == "+")
@@ -265,9 +271,8 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
         common.builder.CreateICmp(llvm::ICmpInst::ICMP_SGE, lhs, rhs));
     }
 
-    BOOST_ASSERT_MSG(
-      0,
-      "unsupported binary operators may have been converted to ASTs.");
+    // Unsupported binary operators detected.
+    return nullptr;
   }
 
   llvm::Value* operator()(const ast::variable_expr& node) const
@@ -305,8 +310,11 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     for (std::size_t i = 0, size = node.args.size(); i != size; ++i) {
       args_value.push_back(boost::apply_visitor(*this, node.args[i]));
 
-      if (!args_value.back())
-        BOOST_ASSERT(0);
+      if (!args_value.back()) {
+        throw std::runtime_error{common.format_error(
+          common.positions.position_of(node),
+          format("argument set failed in call to function '%s'", node.callee))};
+      }
     }
 
     return common.builder.CreateCall(callee_function, args_value);
@@ -315,8 +323,12 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
   llvm::Value* operator()(const ast::cast_expr& node) const
   {
     auto rhs = boost::apply_visitor(*this, node.rhs);
-    if (!rhs)
-      BOOST_ASSERT(0);
+
+    if (!rhs) {
+      throw std::runtime_error{common.format_error(
+        common.positions.position_of(node),
+        "failed to generate right-hand side of cast operator")};
+    }
 
     auto as = common.typename_to_type(node.as.id, node.as.is_ptr);
 
@@ -355,7 +367,7 @@ struct statement_visitor : public boost::static_visitor<void> {
 
   void operator()(ast::nil) const
   {
-    // empty statement.
+    // Empty statement, so not processed.
   }
 
   void operator()(const ast::expression& node) const
@@ -363,7 +375,7 @@ struct statement_visitor : public boost::static_visitor<void> {
     if (!boost::apply_visitor(expression_visitor{common, scope}, node)) {
       throw std::runtime_error{
         format_error_message(common.file.string(),
-                             "failed to generate expression code")};
+                             "failed to generate expression statement")};
     }
   }
 
@@ -601,7 +613,9 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
 
   llvm::Function* operator()(ast::nil) const
   {
-    BOOST_ASSERT(0);
+    throw std::runtime_error{format_error_message(
+      common.file.string(),
+      "a function was executed that did not predict execution")};
   }
 
   // Function declaration
@@ -815,7 +829,9 @@ codegen_common::typename_to_type(const id::type_name type, const bool is_ptr)
     tmp = {builder.getInt8Ty(), false};
     break;
   default:
-    BOOST_ASSERT(0);
+    throw std::runtime_error{
+      format_error_message(file.string(),
+                           "tried to get type from undefined type name")};
   }
 
   if (is_ptr) {
