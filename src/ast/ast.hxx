@@ -138,6 +138,10 @@ struct variable_def_statement : x3::position_tagged {
   variable_def_statement();
 };
 
+struct break_statement : x3::position_tagged {
+  std::string tmp; // To distinguish from nil.
+};
+
 struct if_statement;
 struct for_statement;
 
@@ -145,6 +149,7 @@ using statement = boost::variant<nil,
                                  expression,
                                  return_statement,
                                  variable_def_statement,
+                                 break_statement,
                                  boost::recursive_wrapper<if_statement>,
                                  boost::recursive_wrapper<for_statement>>;
 

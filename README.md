@@ -31,11 +31,10 @@
   - [Definition](#definition-1)
   - [Mutable variables](#mutable-variables)
 - [Statements](#statements)
-  - [Expression statement](#expression-statement)
-  - [Compound statement](#compound-statement)
-  - [Selection statement](#selection-statement)
-  - [Iteration statement](#iteration-statement)
-  - [Jump statement](#jump-statement)
+  - [If-else statement](#if-else-statement)
+  - [For statement](#for-statement)
+  - [Break statement](#break-statement)
+  - [Return statement](#return-statement)
 - [Example](#example)
   - [First 40 fibonacci numbers](#first-40-fibonacci-numbers)
 - [References](#references)
@@ -243,7 +242,7 @@ func twice(n: i32) -> i32
 ```
 
 ### Mutable parameters
-In this language, parameters are constant by default.<br/>
+In this language, parameters are immutable by default.<br/>
 To make them mutable, use the "mut" qualifier.
 ```rust
 func f(n: i32) -> i32
@@ -281,7 +280,7 @@ let b: i32 = 48;
 ```
 
 ### Mutable variables
-In this language, variables are constant by default.<br/>
+In this language, variables are immutable by default.<br/>
 To make them mutable, use the "mut" qualifier.
 ```rust
 let i: i32 = 48; // Constant.
@@ -294,33 +293,40 @@ let mut k: i32; // Mutable.
 k = 4810; // OK
 ```
 
-
 ## Statements
-### Expression statement
-```peg
-expression? ';'
+### If-else statement
+```rust
+let cond: bool = true;
+if (cond) {
+}
+else
+  ;
 ```
 
-### Compound statement
-```peg
-'{' *statement '}'
+### For statement
+```rust
+let mut i: i32;
+for (i = 0; i != 10; i += 1) {
+}
+
+// infinite loop.
+for (;;)
+  ;
 ```
 
-### Selection statement
-```peg
-"if" '(' condition ')'
-  (compound-statement | statement)
+### Break statement
+The break statement terminates execution of the nearest loop.
+```rust
+let mut i: i32;
+for (i = 0; i != 4810; i += 1)
+  break;
+
+let f: bool = i == 0; // true
 ```
 
-### Iteration statement
-```peg
-"for" '(' expression? ';' condition? ';' expression? ')'
-  (compound-statement | statement)
+### Return statement
 ```
-
-### Jump statement
-```peg
-"ret" expression ';'
+ret 48 + 10;
 ```
 
 ## Example

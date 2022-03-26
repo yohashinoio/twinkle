@@ -394,9 +394,13 @@ const auto for_statement
   > x3::lit(';') >> -expression /* loop */ > x3::lit(')')
   > compound_statement_or_statement;
 
+const auto break_statement = x3::rule<struct break_statement_tag,
+                                      ast::break_statement>{"break statement"}
+= x3::string("break");
+
 const auto statement_def = x3::lit(';') /* null statements */ | return_statement
                            | variable_def_statement | if_statement
-                           | for_statement
+                           | for_statement | break_statement
                            | expression_statement; // TODO: support to block
 
 const auto compound_statement_def = x3::lit('{') > *statement > x3::lit('}');
@@ -608,6 +612,10 @@ struct if_statement_tag
   , annotate_position {};
 
 struct for_statement_tag
+  : with_error_handling
+  , annotate_position {};
+
+struct break_statement_tag
   : with_error_handling
   , annotate_position {};
 

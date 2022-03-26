@@ -242,6 +242,13 @@ assert 58 "func main() -> i32 {
 
   ret i;
 }"
+assert 0 "func main() -> i32 {
+  let mut i: i32 = 0;
+  for (;; i = i + 1) {
+    ret i;
+  }
+  ret 123;
+}"
 assert 58 "func main() -> i32 {
   let mut i: i32 = 0;
   for (;; i = i + 1) {
@@ -527,6 +534,41 @@ assert 0 "func main() -> i32 {
 assert 2 "func main() -> i32 {
   let f: bool = true;
   ret (f + false + true - false) as i32;
+}"
+
+# Break statement
+assert 58 "func main() -> i32 {
+  break;
+
+  let mut i: i32;
+  for (i = 0; i != 100000; i += 1) {
+    if (i == 58)
+      break;
+  }
+
+  ret i;
+}"
+
+assert 58 "func main() -> i32 {
+  let mut n: i32 = 0;
+
+  let mut i: i32;
+  let mut j: i32;
+  for (i = 0; i != 58; i += 1) {
+    for (j = 0; j != 100000; j += 1) {
+      n += 1;
+      break;
+    }
+  }
+
+  ret n;
+}"
+
+assert 0 "func main() -> i32 {
+  let mut i: i32;
+  for (i = 0; i != 100000; i += 1)
+    break;
+  ret i;
 }"
 
 echo OK
