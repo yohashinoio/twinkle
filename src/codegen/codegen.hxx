@@ -33,14 +33,15 @@ struct codegen_common {
   codegen_common(const std::filesystem::path& file,
                  const position_cache&        positions);
 
-  [[nodiscard]] llvm_type_info typename_to_type(const id::type_name type,
-                                                const bool is_ptr = false);
+  [[nodiscard]] std::optional<llvm_type_info>
+  typename_to_type(const id::type_name type, const bool is_ptr = false);
 
   [[nodiscard]] llvm::Value* i1_to_boolean(llvm::Value* value);
 
   [[nodiscard]] std::string
   format_error(const boost::iterator_range<input_iterator_type> pos,
-                       const std::string_view message);
+               const std::string_view                           message,
+               const bool with_code = true);
 
   std::unique_ptr<llvm::LLVMContext> context;
   std::unique_ptr<llvm::Module>      module;

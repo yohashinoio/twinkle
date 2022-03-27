@@ -83,14 +83,14 @@ function_call_expr::function_call_expr()
 {
 }
 
-cast_expr::cast_expr(const expression& rhs, const ast::type_info& as)
-  : rhs{rhs}
+cast_expr::cast_expr(const expression& lhs, const ast::type_info& as)
+  : lhs{lhs}
   , as{as}
 {
 }
 
 cast_expr::cast_expr()
-  : rhs{}
+  : lhs{}
   , as{}
 {
 }

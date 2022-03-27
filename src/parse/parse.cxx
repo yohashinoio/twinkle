@@ -74,33 +74,15 @@ const auto assign_attr_to_val = [](auto&& ctx) -> void {
   x3::_val(ctx) = std::move(x3::_attr(ctx));
 };
 
-const auto assign_unaryop_to_val = [](auto&& ctx) -> void {
-  x3::_val(ctx)
-    = ast::unary_op_expr{fusion::at_c<0>(x3::_attr(ctx)) /* operator */,
-                         fusion::at_c<1>(x3::_attr(ctx)) /* right hand side*/};
-};
-
 const auto assign_binop_to_val = [](auto&& ctx) -> void {
-  x3::_val(ctx) = ast::binary_op_expr{
-    x3::_val(ctx),
-    fusion::at_c<0>(x3::_attr(ctx)) /* operator */,
-    fusion::at_c<1>(x3::_attr(ctx)) /* right hand side */};
-};
+  ast::binary_op_expr ast{x3::_val(ctx),
+                          fusion::at_c<0>(x3::_attr(ctx)),
+                          fusion::at_c<1>(x3::_attr(ctx))};
 
-const auto assign_cast_to_val = [](auto&& ctx) -> void {
-  x3::_val(ctx)
-    = ast::cast_expr{fusion::at_c<0>(x3::_attr(ctx)) /* right hand side*/,
-                     fusion::at_c<1>(x3::_attr(ctx)) /* data type */};
-};
+  auto&& position_cache = x3::get<position_cache_tag>(ctx);
+  position_cache.annotate(ast, x3::_where(ctx).begin(), x3::_where(ctx).end());
 
-const auto assign_variable_to_val = [](auto&& ctx) -> void {
-  x3::_val(ctx) = ast::variable_expr{x3::_attr(ctx) /* name */};
-};
-
-const auto assign_function_call_to_val = [](auto&& ctx) -> void {
-  x3::_val(ctx)
-    = ast::function_call_expr{fusion::at_c<0>(x3::_attr(ctx)) /* callee */,
-                              fusion::at_c<1>(x3::_attr(ctx)) /* arguments */};
+  x3::_val(ctx) = ast;
 };
 
 const auto assign_compound_statement_to_val = [](auto&& ctx) -> void {
@@ -253,14 +235,19 @@ const auto string_literal
 //===----------------------------------------------------------------------===//
 
 const x3::rule<struct expression_tag, ast::expression> expression{"expression"};
-const x3::rule<struct assignment_tag, ast::expression> assignment{"assignment"};
-const x3::rule<struct equality_tag, ast::expression>   equality{"equality"};
-const x3::rule<struct relational_tag, ast::expression> relational{"relational"};
-const x3::rule<struct addition_tag, ast::expression>   addition{"addition"};
+const x3::rule<struct assignment_tag, ast::expression> assignment{
+  "assignment operation"};
+const x3::rule<struct equality_tag, ast::expression> equality{
+  "equality operation"};
+const x3::rule<struct relational_tag, ast::expression> relational{
+  "relational operation"};
+const x3::rule<struct addition_tag, ast::expression> addition{
+  "addition operation"};
 const x3::rule<struct multiplication_tag, ast::expression> multiplication{
-  "multiplication"};
-const x3::rule<struct cast_tag, ast::expression>    cast{"cast"};
-const x3::rule<struct unary_tag, ast::expression>   unary{"unary"};
+  "multiplication operation"};
+const x3::rule<struct conversion_tag, ast::expression> conversion{
+  "conversion operation"};
+const x3::rule<struct unary_tag, ast::expression>   unary{"unary operation"};
 const x3::rule<struct primary_tag, ast::expression> primary{"primary"};
 
 const auto assignment_operator
@@ -295,12 +282,18 @@ const auto argument_list
              std::vector<ast::expression>>{"argument list"}
 = -(expression >> *(x3::lit(',') > expression));
 
-const auto function_call
-  = x3::rule<struct function_call_tag, ast::function_call_expr>{"function call"}
+const auto function_call_operation
+  = x3::rule<struct function_call_operation_tag,
+             ast::function_call_expr>{"function call operation"}
 = identifier >> x3::lit("(") > argument_list > x3::lit(")");
 
-const auto unary_expr
-  = x3::rule<struct unary_expr_tag, ast::unary_op_expr>{"unary expression"}
+const auto conversion_operation
+  = x3::rule<struct conversion_operation_tag,
+             ast::cast_expr>{"conversion operation"}
+= unary >> x3::lit("as") > type_name;
+
+const auto unary_operation
+  = x3::rule<struct unary_operation_tag, ast::unary_op_expr>{"unary operation"}
 = unary_operator > primary;
 
 const auto expression_def = assignment;
@@ -322,18 +315,17 @@ const auto addition_def
     >> *(additive_operator > multiplication)[action::assign_binop_to_val];
 
 const auto multiplication_def
-  = cast[action::assign_attr_to_val]
-    >> *(multitive_operator > cast)[action::assign_binop_to_val];
+  = conversion[action::assign_attr_to_val]
+    >> *(multitive_operator > conversion)[action::assign_binop_to_val];
 
-const auto cast_def
-  = (unary >> x3::lit("as") > type_name)[action::assign_cast_to_val]
-    | unary[action::assign_attr_to_val];
+const auto conversion_def = conversion_operation | unary;
 
-const auto unary_def = unary_expr | primary;
+const auto unary_def = unary_operation | primary;
 
 const auto primary_def = (x3::lit('(') > expression > x3::lit(')'))
                          | unsigned_integer | signed_integer | boolean_literal
-                         | string_literal | function_call | variable_identifier;
+                         | string_literal | function_call_operation
+                         | variable_identifier;
 
 BOOST_SPIRIT_DEFINE(expression,
                     assignment,
@@ -341,7 +333,7 @@ BOOST_SPIRIT_DEFINE(expression,
                     relational,
                     addition,
                     multiplication,
-                    cast,
+                    conversion,
                     unary,
                     primary)
 
@@ -536,11 +528,15 @@ struct argument_list_tag
   : with_error_handling
   , annotate_position {};
 
-struct function_call_tag
+struct function_call_operation_tag
   : with_error_handling
   , annotate_position {};
 
-struct unary_expr_tag
+struct conversion_operation_tag
+  : with_error_handling
+  , annotate_position {};
+
+struct unary_operation_tag
   : with_error_handling
   , annotate_position {};
 
@@ -568,7 +564,7 @@ struct multiplication_tag
   : with_error_handling
   , annotate_position {};
 
-struct cast_tag
+struct conversion_tag
   : with_error_handling
   , annotate_position {};
 

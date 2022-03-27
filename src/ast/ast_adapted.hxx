@@ -51,7 +51,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   miko::ast::cast_expr,
-  (miko::ast::expression, rhs)
+  (miko::ast::expression, lhs)
   (miko::ast::type_info, as)
 )
 

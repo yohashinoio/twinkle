@@ -81,7 +81,8 @@ struct unary_op_expr : x3::position_tagged {
   unary_op_expr();
 };
 
-struct binary_op_expr { // Cannot annotate position with parging.
+struct binary_op_expr : x3::position_tagged { // Cannot annotate position with
+                                              // parging.
   expression  lhs;
   std::string op;
   expression  rhs;
@@ -104,10 +105,10 @@ struct function_call_expr : x3::position_tagged {
 };
 
 struct cast_expr : x3::position_tagged {
-  expression rhs;
+  expression lhs;
   type_info  as;
 
-  cast_expr(const expression& rhs, const type_info& as);
+  cast_expr(const expression& lhs, const type_info& as);
 
   cast_expr();
 };

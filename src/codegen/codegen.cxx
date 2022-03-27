@@ -122,9 +122,9 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     auto rhs = boost::apply_visitor(*this, node.rhs);
 
     if (!rhs) {
-      throw std::runtime_error{common.format_error(
-        common.positions.position_of(node),
-        "failed to generate right-hand side of unary operator")};
+      throw std::runtime_error{
+        common.format_error(common.positions.position_of(node),
+                            "failed to generate right hand side")};
     }
 
     if (node.op == "+")
@@ -153,19 +153,27 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
         auto&& lhs_node = boost::get<ast::variable_expr>(node.lhs);
 
         auto rhs = boost::apply_visitor(*this, node.rhs);
-        if (!rhs)
-          return nullptr;
+
+        if (!rhs) {
+          throw std::runtime_error{
+            common.format_error(common.positions.position_of(lhs_node),
+                                "failed to generate right hand side")};
+        }
 
         auto var_info = scope[lhs_node.name];
 
         if (!var_info) {
           // Unknown variable name.
-          return nullptr;
+          throw std::runtime_error{common.format_error(
+            common.positions.position_of(lhs_node),
+            format("unknown variable name '%s'", lhs_node.name))};
         }
 
         if (!var_info->is_mutable) {
           // Assignment of read-only variable.
-          return nullptr;
+          throw std::runtime_error{common.format_error(
+            common.positions.position_of(lhs_node),
+            format("assignment of read-only variable '%s'", lhs_node.name))};
         }
 
         if (node.op == "=")
@@ -206,14 +214,29 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
       }
       catch (const boost::bad_get&) {
         // Left hand side was not a variable.
-        return nullptr;
+        throw std::runtime_error{
+          common.format_error(common.positions.position_of(node),
+                              "left hand side was not as variable",
+                              false)};
       }
     }
 
     auto lhs = boost::apply_visitor(*this, node.lhs);
     auto rhs = boost::apply_visitor(*this, node.rhs);
-    if (!lhs || !rhs)
-      return nullptr;
+
+    if (!lhs) {
+      throw std::runtime_error{
+        common.format_error(common.positions.position_of(node),
+                            "failed to generate left hand side",
+                            false)};
+    }
+
+    if (!rhs) {
+      throw std::runtime_error{
+        common.format_error(common.positions.position_of(node),
+                            "failed to generate right hand side",
+                            false)};
+    }
 
     // addition
     if (node.op == "+")
@@ -272,7 +295,10 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     }
 
     // Unsupported binary operators detected.
-    return nullptr;
+    throw std::runtime_error{common.format_error(
+      common.positions.position_of(node),
+      format("unsupported binary operator '%s' detected", node.op),
+      false)};
   }
 
   llvm::Value* operator()(const ast::variable_expr& node) const
@@ -322,19 +348,25 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
 
   llvm::Value* operator()(const ast::cast_expr& node) const
   {
-    auto rhs = boost::apply_visitor(*this, node.rhs);
+    auto lhs = boost::apply_visitor(*this, node.lhs);
 
-    if (!rhs) {
+    if (!lhs) {
       throw std::runtime_error{common.format_error(
         common.positions.position_of(node),
-        "failed to generate right-hand side of cast operator")};
+        "failed to generate left hand side of cast operator")};
     }
 
     auto as = common.typename_to_type(node.as.id, node.as.is_ptr);
 
-    return common.builder.CreateIntCast(rhs, as.type, as.is_signed);
+    if (!as) {
+      throw std::runtime_error{
+        common.format_error(common.positions.position_of(node),
+                            "conversion to undefined type")};
+    }
 
-    return rhs;
+    return common.builder.CreateIntCast(lhs, as->type, as->is_signed);
+
+    return lhs;
   }
 
 private:
@@ -421,7 +453,13 @@ struct statement_visitor : public boost::static_visitor<void> {
 
     auto type_info = common.typename_to_type(node.type.id, node.type.is_ptr);
 
-    auto inst = create_entry_block_alloca(function, node.name, type_info.type);
+    if (!type_info) {
+      throw std::runtime_error{
+        common.format_error(common.positions.position_of(node),
+                            "variables of undefined type cannot be defined")};
+    }
+
+    auto inst = create_entry_block_alloca(function, node.name, type_info->type);
 
     if (node.initializer) {
       auto initializer = boost::apply_visitor(expression_visitor{common, scope},
@@ -438,11 +476,11 @@ struct statement_visitor : public boost::static_visitor<void> {
 
     if (!node.qualifier) {
       // consttant variable.
-      scope.regist(node.name, {inst, false, type_info.is_signed});
+      scope.regist(node.name, {inst, false, type_info->is_signed});
     }
     else if (*node.qualifier == id::variable_qualifier::mutable_) {
       // mutable variable.
-      scope.regist(node.name, {inst, true, type_info.is_signed});
+      scope.regist(node.name, {inst, true, type_info->is_signed});
     }
   }
 
@@ -461,8 +499,9 @@ struct statement_visitor : public boost::static_visitor<void> {
     condition_value = common.builder.CreateICmp(
       llvm::ICmpInst::ICMP_NE,
       condition_value,
-      llvm::ConstantInt::get(common.typename_to_type(id::type_name::bool_).type,
-                             0));
+      llvm::ConstantInt::get(
+        common.typename_to_type(id::type_name::bool_)->type,
+        0));
 
     auto function = common.builder.GetInsertBlock()->getParent();
 
@@ -546,7 +585,7 @@ struct statement_visitor : public boost::static_visitor<void> {
         llvm::ICmpInst::ICMP_NE,
         cond_value,
         llvm::ConstantInt::get(
-          common.typename_to_type(id::type_name::bool_).type,
+          common.typename_to_type(id::type_name::bool_)->type,
           0));
 
       common.builder.CreateCondBr(cond_value, body_bb, for_end_bb);
@@ -675,11 +714,11 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
     for (std::size_t i = 0, last = param_types.size(); i != last; ++i) {
       const auto& param_info = node.params[i].type;
       param_types[i]
-        = common.typename_to_type(param_info.id, param_info.is_ptr).type;
+        = common.typename_to_type(param_info.id, param_info.is_ptr)->type;
     }
 
     auto function_type = llvm::FunctionType::get(
-      common.typename_to_type(node.return_type.id).type,
+      common.typename_to_type(node.return_type.id)->type,
       param_types,
       false);
 
@@ -729,12 +768,19 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
     for (auto& arg : function->args()) {
       const auto& param_node = node.decl.params[arg.getArgNo()];
 
+      auto arg_type
+        = common.typename_to_type(param_node.type.id, param_node.type.is_ptr);
+
+      if (!arg_type) {
+        throw std::runtime_error{common.format_error(
+          common.positions.position_of(node),
+          "arguments of undefined types cannot be declared")};
+      }
+
       // Create an alloca for this variable.
-      auto inst = create_entry_block_alloca(
-        function,
-        arg.getName().str(),
-        common.typename_to_type(param_node.type.id, param_node.type.is_ptr)
-          .type);
+      auto inst = create_entry_block_alloca(function,
+                                            arg.getName().str(),
+                                            arg_type->type);
 
       // Store the initial value into the alloca.
       common.builder.CreateStore(&arg, inst);
@@ -750,18 +796,22 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
       }
     }
 
+    auto return_type = common.typename_to_type(node.decl.return_type.id,
+                                               node.decl.return_type.is_ptr);
+
+    if (!return_type) {
+      throw std::runtime_error{
+        common.format_error(common.positions.position_of(node),
+                            "return type cannot be an undefined type")};
+    }
+
     // Used to combine returns into one.
     auto end_bb = llvm::BasicBlock::Create(*common.context);
     // TODO: refactoring
-    auto retvar = node.decl.return_type.id == id::type_name::void_
-                    ? nullptr
-                    : create_entry_block_alloca(
-                      function,
-                      "",
-                      common
-                        .typename_to_type(node.decl.return_type.id,
-                                          node.decl.return_type.is_ptr)
-                        .type);
+    auto retvar
+      = node.decl.return_type.id == id::type_name::void_
+          ? nullptr
+          : create_entry_block_alloca(function, "", return_type->type);
 
     codegen_compound_statement(node.body,
                                argument_values,
@@ -843,7 +893,7 @@ codegen_common::codegen_common(const std::filesystem::path& file,
 {
 }
 
-[[nodiscard]] llvm_type_info
+[[nodiscard]] std::optional<llvm_type_info>
 codegen_common::typename_to_type(const id::type_name type, const bool is_ptr)
 {
   llvm_type_info tmp;
@@ -881,9 +931,7 @@ codegen_common::typename_to_type(const id::type_name type, const bool is_ptr)
     tmp = {builder.getInt8Ty(), false};
     break;
   default:
-    throw std::runtime_error{
-      format_error_message(file.string(),
-                           "tried to get type from undefined type name")};
+    return std::nullopt;
   }
 
   if (is_ptr) {
@@ -898,34 +946,50 @@ codegen_common::typename_to_type(const id::type_name type, const bool is_ptr)
 {
   auto as = typename_to_type(id::type_name::bool_);
 
+  if (!as)
+    BOOST_ASSERT(0);
+
   return llvm::CastInst::CreateIntegerCast(value,
-                                           as.type,
-                                           as.is_signed,
+                                           as->type,
+                                           as->is_signed,
                                            "",
                                            builder.GetInsertBlock());
 }
 
 [[nodiscard]] std::string codegen_common::format_error(
   const boost::iterator_range<input_iterator_type> pos,
-  const std::string_view                           message)
+  const std::string_view                           message,
+  const bool                                       with_code)
 {
-  std::distance(pos.begin(), pos.end());
+  // Calculate line numbers.
+  std::size_t rows = 0;
+  for (auto iter = pos.begin();; --iter) {
+    if (*iter == '\n')
+      ++rows;
+
+    if (iter == positions.first()) {
+      ++rows;
+      break;
+    }
+  }
 
   std::ostringstream ss;
 
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
   if (isatty(fileno(stdout))) {
-    ss << "In file " << file.string() << ":" << '\n'
+    ss << "In file " << file.string() << ", line " << rows << ":\n"
        << COLOR_RED "error: " COLOR_DEFAULT << message << '\n';
   }
 #else
-  ss << "In file " << file.string() << ":" << '\n'
+  ss << "In file " << file.string() << ", line " << line << ":\n"
      << "error: " << message << '\n';
 #endif
 
-  std::for_each(pos.begin(), pos.end(), [&](auto&& ch) { ss << ch; });
+  if (with_code) {
+    std::for_each(pos.begin(), pos.end(), [&](auto&& ch) { ss << ch; });
 
-  ss << "\n^_";
+    ss << "\n^_";
+  }
 
   return ss.str();
 }
