@@ -82,7 +82,7 @@ const auto assign_binop_to_val = [](auto&& ctx) -> void {
   auto&& position_cache = x3::get<position_cache_tag>(ctx);
   position_cache.annotate(ast, x3::_where(ctx).begin(), x3::_where(ctx).end());
 
-  x3::_val(ctx) = ast;
+  x3::_val(ctx) = std::move(ast);
 };
 
 const auto assign_compound_statement_to_val = [](auto&& ctx) -> void {
@@ -187,7 +187,7 @@ const auto variable_identifier
 = identifier;
 
 const auto type_name
-  = x3::rule<struct pointer_type_name_tag, ast::type_info>{"pointer type name"}
+  = x3::rule<struct type_name_tag, ast::type_info>{"pointer type name"}
 = (-x3::char_('*') >> type_name_symbols)[([](auto&& ctx) {
     if (fusion::at_c<0>(x3::_attr(ctx))) {
       // pointer
@@ -231,24 +231,8 @@ const auto string_literal
              > x3::lit('"')];
 
 //===----------------------------------------------------------------------===//
-// Expression rules
+// Operator rules
 //===----------------------------------------------------------------------===//
-
-const x3::rule<struct expression_tag, ast::expression> expression{"expression"};
-const x3::rule<struct assignment_tag, ast::expression> assignment{
-  "assignment operation"};
-const x3::rule<struct equality_tag, ast::expression> equality{
-  "equality operation"};
-const x3::rule<struct relational_tag, ast::expression> relational{
-  "relational operation"};
-const x3::rule<struct addition_tag, ast::expression> addition{
-  "addition operation"};
-const x3::rule<struct multiplication_tag, ast::expression> multiplication{
-  "multiplication operation"};
-const x3::rule<struct conversion_tag, ast::expression> conversion{
-  "conversion operation"};
-const x3::rule<struct unary_tag, ast::expression>   unary{"unary operation"};
-const x3::rule<struct primary_tag, ast::expression> primary{"primary"};
 
 const auto assignment_operator
   = x3::rule<struct assignment_operator_tag, std::string>{"assignment operator"}
@@ -277,24 +261,37 @@ const auto unary_operator
   = x3::rule<struct unary_operator_tag, std::string>{"unary operator"}
 = x3::char_("+-")[action::char_to_string];
 
-const auto argument_list
-  = x3::rule<struct argument_list_tag,
-             std::vector<ast::expression>>{"argument list"}
-= -(expression >> *(x3::lit(',') > expression));
+//===----------------------------------------------------------------------===//
+// Expression rules
+//===----------------------------------------------------------------------===//
 
-const auto function_call_operation
-  = x3::rule<struct function_call_operation_tag,
-             ast::function_call_expr>{"function call operation"}
-= identifier >> x3::lit("(") > argument_list > x3::lit(")");
+const x3::rule<struct expression_tag, ast::expression> expression{"expression"};
+const x3::rule<struct assignment_tag, ast::expression> assignment{
+  "assignment operation"};
+const x3::rule<struct equality_tag, ast::expression> equality{
+  "equality operation"};
+const x3::rule<struct relational_tag, ast::expression> relational{
+  "relational operation"};
+const x3::rule<struct addition_tag, ast::expression> addition{
+  "addition operation"};
+const x3::rule<struct multiplication_tag, ast::expression> multiplication{
+  "multiplication operation"};
+const x3::rule<struct unary_tag, ast::expression>   unary{"unary operation"};
+const x3::rule<struct primary_tag, ast::expression> primary{"primary"};
 
-const auto conversion_operation
-  = x3::rule<struct conversion_operation_tag,
-             ast::cast_expr>{"conversion operation"}
-= unary >> x3::lit("as") > type_name;
+const x3::rule<struct argument_list_tag, std::vector<ast::expression>>
+  argument_list{"argument list"};
+const x3::rule<struct function_call_operation_tag, ast::function_call_expr>
+  function_call_operation{"function call operation"};
+const x3::rule<struct cast_operation_tag, ast::cast_expr> cast_operation{
+  "conversion operation"};
 
-const auto unary_operation
-  = x3::rule<struct unary_operation_tag, ast::unary_op_expr>{"unary operation"}
-= unary_operator > primary;
+const auto argument_list_def = -(expression >> *(x3::lit(',') > expression));
+
+const auto function_call_operation_def
+  = identifier >> x3::lit("(") > argument_list > x3::lit(")");
+
+const auto cast_operation_def = primary >> x3::lit("as") > type_name;
 
 const auto expression_def = assignment;
 
@@ -315,17 +312,16 @@ const auto addition_def
     >> *(additive_operator > multiplication)[action::assign_binop_to_val];
 
 const auto multiplication_def
-  = conversion[action::assign_attr_to_val]
-    >> *(multitive_operator > conversion)[action::assign_binop_to_val];
+  = unary[action::assign_attr_to_val]
+    >> *(multitive_operator > unary)[action::assign_binop_to_val];
 
-const auto conversion_def = conversion_operation | unary;
-
-const auto unary_def = unary_operation | primary;
+const auto unary_def = cast_operation
+                       | (unary_operator > primary) /* unary operation */
+                       | function_call_operation | primary;
 
 const auto primary_def = (x3::lit('(') > expression > x3::lit(')'))
                          | unsigned_integer | signed_integer | boolean_literal
-                         | string_literal | function_call_operation
-                         | variable_identifier;
+                         | string_literal | variable_identifier;
 
 BOOST_SPIRIT_DEFINE(expression,
                     assignment,
@@ -333,38 +329,41 @@ BOOST_SPIRIT_DEFINE(expression,
                     relational,
                     addition,
                     multiplication,
-                    conversion,
                     unary,
-                    primary)
+                    primary,
+                    argument_list,
+                    function_call_operation,
+                    cast_operation)
 
 //===----------------------------------------------------------------------===//
 // Statement rules
 //===----------------------------------------------------------------------===//
 
-const x3::rule<struct statement_tag, ast::statement> statement{"statement"};
-
+const x3::rule<struct expression_statement_tag, ast::expression>
+  expression_statement{"expression statement"};
+const x3::rule<struct variable_def_statement_tag, ast::variable_def_statement>
+  variable_def_statement{"variable definition"};
+const x3::rule<struct return_statement_tag, ast::return_statement>
+  return_statement{"return statement"};
+const x3::rule<struct if_statement_tag, ast::if_statement> if_statement{
+  "if else statement"};
+const x3::rule<struct for_statement_tag, ast::for_statement> for_statement{
+  "for statement"};
 const x3::rule<struct compound_statement_tag, ast::compound_statement>
   compound_statement{"compound statement"};
+const x3::rule<struct statement_tag, ast::statement> statement{"statement"};
 
-const auto expression_statement
-  = x3::rule<struct expression_statement_tag,
-             ast::expression>{"expression statement"}
-= expression > x3::lit(';');
+const auto expression_statement_def = expression > x3::lit(';');
 
 const auto variable_type
   = x3::rule<struct variable_type_tag, ast::type_info>{"variable type"}
 = type_name - x3::lit("void");
 
-const auto variable_def_statement
-  = x3::rule<struct variable_def_statement_tag,
-             ast::variable_def_statement>{"variable definition"}
-= x3::lit("let") > -variable_qualifier > identifier > x3::lit(':')
-  > variable_type > -(x3::lit('=') > expression) > x3::lit(';');
+const auto variable_def_statement_def
+  = x3::lit("let") > -variable_qualifier > identifier > x3::lit(':')
+    > variable_type > -(x3::lit('=') > expression) > x3::lit(';');
 
-const auto return_statement
-  = x3::rule<struct return_statement_tag,
-             ast::return_statement>{"return statement"}
-= x3::lit("ret") > -expression > x3::lit(';');
+const auto return_statement_def = x3::lit("ret") > -expression > x3::lit(';');
 
 const auto compound_statement_or_statement
   = x3::rule<struct compound_statement_or_statement_tag,
@@ -372,19 +371,17 @@ const auto compound_statement_or_statement
 = compound_statement[action::assign_compound_statement_to_val]
   | statement[action::assign_compound_statement_to_val];
 
-const auto if_statement
-  = x3::rule<struct if_statement_tag, ast::if_statement>{"if else statement"}
-= x3::lit("if") > x3::lit('(') > expression > x3::lit(')')
-  > compound_statement_or_statement
-  > -(x3::lit("else") > compound_statement_or_statement);
+const auto if_statement_def
+  = x3::lit("if") > x3::lit('(') > expression > x3::lit(')')
+    > compound_statement_or_statement
+    > -(x3::lit("else") > compound_statement_or_statement);
 
-const auto for_statement
-  = x3::rule<struct for_statement_tag, ast::for_statement>{"for statement"}
-= x3::lit("for") > x3::lit('(')
-  > -expression /* TODO: support to statement */ > x3::lit(';')
-  > -expression /* cond */
-  > x3::lit(';') >> -expression /* loop */ > x3::lit(')')
-  > compound_statement_or_statement;
+const auto for_statement_def
+  = x3::lit("for") > x3::lit('(')
+    > -expression /* TODO: support to statement */ > x3::lit(';')
+    > -expression /* cond */
+    > x3::lit(';') >> -expression /* loop */ > x3::lit(')')
+    > compound_statement_or_statement;
 
 const auto break_statement = x3::rule<struct break_statement_tag,
                                       ast::break_statement>{"break statement"}
@@ -402,7 +399,13 @@ const auto statement_def
 
 const auto compound_statement_def = x3::lit('{') > *statement > x3::lit('}');
 
-BOOST_SPIRIT_DEFINE(compound_statement, statement)
+BOOST_SPIRIT_DEFINE(expression_statement,
+                    compound_statement,
+                    statement,
+                    variable_def_statement,
+                    return_statement,
+                    if_statement,
+                    for_statement)
 
 //===----------------------------------------------------------------------===//
 // Top level rules
@@ -476,45 +479,7 @@ const auto program = x3::rule<struct program_tag, ast::program>{"program"}
 // Common tags
 //===----------------------------------------------------------------------===//
 
-struct identifier_tag
-  : with_error_handling
-  , annotate_position {};
-
-struct variable_identifier_tag
-  : with_error_handling
-  , annotate_position {};
-
-struct keyword_tag
-  : with_error_handling
-  , annotate_position {};
-
-struct type_name_tag
-  : with_error_handling
-  , annotate_position {};
-
-struct variable_qualifier_tag
-  : with_error_handling
-  , annotate_position {};
-
-struct function_linkage_tag
-  : with_error_handling
-  , annotate_position {};
-
-struct unsigned_integer_tag
-  : with_error_handling
-  , annotate_position {};
-
-struct signed_integer_tag
-  : with_error_handling
-  , annotate_position {};
-
-struct boolean_literal_tag
-  : with_error_handling
-  , annotate_position {};
-
-struct escape_character_tag
-  : with_error_handling
-  , annotate_position {};
+struct variable_identifier_tag : annotate_position {};
 
 struct string_literal_tag
   : with_error_handling
@@ -523,22 +488,6 @@ struct string_literal_tag
 //===----------------------------------------------------------------------===//
 // Expression tags
 //===----------------------------------------------------------------------===//
-
-struct argument_list_tag
-  : with_error_handling
-  , annotate_position {};
-
-struct function_call_operation_tag
-  : with_error_handling
-  , annotate_position {};
-
-struct conversion_operation_tag
-  : with_error_handling
-  , annotate_position {};
-
-struct unary_operation_tag
-  : with_error_handling
-  , annotate_position {};
 
 struct assignment_tag
   : with_error_handling
@@ -564,7 +513,13 @@ struct multiplication_tag
   : with_error_handling
   , annotate_position {};
 
-struct conversion_tag
+struct argument_list_tag : with_error_handling {};
+
+struct function_call_operation_tag
+  : with_error_handling
+  , annotate_position {};
+
+struct cast_operation_tag
   : with_error_handling
   , annotate_position {};
 
@@ -585,10 +540,6 @@ struct statement_tag
   , annotate_position {};
 
 struct compound_statement_tag
-  : with_error_handling
-  , annotate_position {};
-
-struct variable_type_tag
   : with_error_handling
   , annotate_position {};
 
