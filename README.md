@@ -34,6 +34,7 @@
   - [If-else statement](#if-else-statement)
   - [For statement](#for-statement)
   - [Break statement](#break-statement)
+  - [Continue statement](#continue-statement)
   - [Return statement](#return-statement)
 - [Example](#example)
   - [First 40 fibonacci numbers](#first-40-fibonacci-numbers)
@@ -317,11 +318,16 @@ for (;;)
 ### Break statement
 The break statement terminates execution of the nearest loop.
 ```rust
-let mut i: i32;
-for (i = 0; i != 4810; i += 1)
+for (;;) {
   break;
+}
+```
 
-let f: bool = i == 0; // true
+### Continue statement
+```rust
+for (;;) {
+  continue;
+}
 ```
 
 ### Return statement

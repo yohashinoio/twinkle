@@ -571,4 +571,38 @@ assert 0 "func main() -> i32 {
   ret i;
 }"
 
+# Continue statement
+assert 58 "func main() -> i32 {
+  let mut i: i32;
+  for (i = 0; i != 58; i += 1) {
+    continue;
+    ret 123;
+  }
+  ret i;
+}"
+
+assert 58 "func main() -> i32 {
+  let mut i: i32;
+  for (i = 0; i != 1000; i += 1) {
+    if (i == 58)
+      ret i;
+    else
+      continue;
+    ret 123;
+  }
+  ret i;
+}"
+
+assert 58 "func main() -> i32 {
+  let mut i: i32;
+  let mut j: i32;
+  for (i = 0; i != 10; i += 1) {
+    for (j = 0; j != 10; j += 1) {
+      continue;
+      i += 1;
+    }
+  }
+  ret i + 48;
+}"
+
 echo OK

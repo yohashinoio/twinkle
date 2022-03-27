@@ -354,7 +354,9 @@ void codegen_compound_statement(
   llvm::AllocaInst*              retvar,
   llvm::BasicBlock*              end_bb,
   llvm::BasicBlock*
-    loop_end_bb /* Set when calling this function from within loop. */);
+    loop_end_bb, /* Set when calling this function from within loop. */
+  llvm::BasicBlock*
+    loop_loop_bb /* set when calling this function from within loop. */);
 
 struct statement_visitor : public boost::static_visitor<void> {
   statement_visitor(
@@ -362,14 +364,16 @@ struct statement_visitor : public boost::static_visitor<void> {
     symbol_table&     scope,
     llvm::AllocaInst* retvar,
     llvm::BasicBlock* end_bb,
-    llvm::BasicBlock* loop_end_bb
-    = nullptr /* Set when calling this function from within loop. */
-    )
+    llvm::BasicBlock*
+      loop_end_bb, /* Set when calling this function from within loop. */
+    llvm::BasicBlock*
+      loop_loop_bb /* Set when calling this function from within loop. */)
     : common{common}
     , scope{scope}
     , retvar{retvar}
     , end_bb{end_bb}
     , loop_end_bb{loop_end_bb}
+    , loop_loop_bb{loop_loop_bb}
   {
   }
 
@@ -477,7 +481,8 @@ struct statement_visitor : public boost::static_visitor<void> {
                                common,
                                retvar,
                                end_bb,
-                               loop_end_bb);
+                               loop_end_bb,
+                               loop_loop_bb);
 
     if (!common.builder.GetInsertBlock()->getTerminator())
       common.builder.CreateBr(merge_bb);
@@ -492,7 +497,8 @@ struct statement_visitor : public boost::static_visitor<void> {
                                  common,
                                  retvar,
                                  end_bb,
-                                 loop_end_bb);
+                                 loop_end_bb,
+                                 loop_loop_bb);
     }
 
     if (!common.builder.GetInsertBlock()->getTerminator())
@@ -561,7 +567,8 @@ struct statement_visitor : public boost::static_visitor<void> {
                                common,
                                retvar,
                                end_bb,
-                               for_end_bb);
+                               for_end_bb,
+                               loop_bb);
 
     if (!common.builder.GetInsertBlock()->getTerminator())
       common.builder.CreateBr(loop_bb);
@@ -593,6 +600,13 @@ struct statement_visitor : public boost::static_visitor<void> {
       common.builder.CreateBr(loop_end_bb);
   }
 
+  void operator()(ast::continue_statement) const
+  {
+    // Whether in a loop.
+    if (loop_loop_bb)
+      common.builder.CreateBr(loop_loop_bb);
+  }
+
 private:
   codegen_common& common;
 
@@ -604,6 +618,7 @@ private:
 
   // If not in loop, nullptr.
   llvm::BasicBlock* loop_end_bb;
+  llvm::BasicBlock* loop_loop_bb;
 };
 
 void codegen_compound_statement(
@@ -613,7 +628,9 @@ void codegen_compound_statement(
   llvm::AllocaInst*              retvar,
   llvm::BasicBlock*              end_bb,
   llvm::BasicBlock*
-    loop_end_bb /* Set when calling this function from within loop. */)
+    loop_end_bb, /* Set when calling this function from within loop. */
+  llvm::BasicBlock*
+    loop_loop_bb /* Set when calling this function from within loop. */)
 {
   symbol_table new_scope = scope;
 
@@ -622,9 +639,13 @@ void codegen_compound_statement(
     if (common.builder.GetInsertBlock()->getTerminator())
       break;
 
-    boost::apply_visitor(
-      statement_visitor{common, new_scope, retvar, end_bb, loop_end_bb},
-      statement);
+    boost::apply_visitor(statement_visitor{common,
+                                           new_scope,
+                                           retvar,
+                                           end_bb,
+                                           loop_end_bb,
+                                           loop_loop_bb},
+                         statement);
   }
 }
 
@@ -747,6 +768,7 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
                                common,
                                retvar,
                                end_bb,
+                               nullptr,
                                nullptr);
 
     // If there is no return, returns undef.

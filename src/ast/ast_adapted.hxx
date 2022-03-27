@@ -78,6 +78,11 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
+  miko::ast::continue_statement,
+  (std::string, tmp)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
   miko::ast::if_statement,
   (miko::ast::expression, condition)
   (miko::ast::compound_statement, then_statement)

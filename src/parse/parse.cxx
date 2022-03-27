@@ -398,10 +398,15 @@ const auto break_statement = x3::rule<struct break_statement_tag,
                                       ast::break_statement>{"break statement"}
 = x3::string("break");
 
-const auto statement_def = x3::lit(';') /* null statements */ | return_statement
-                           | variable_def_statement | if_statement
-                           | for_statement | break_statement
-                           | expression_statement; // TODO: support to block
+const auto continue_statement
+  = x3::rule<struct continue_statement_tag,
+             ast::continue_statement>{"continue statement"}
+= x3::string("continue");
+
+const auto statement_def
+  = x3::lit(';') /* null statements */ | return_statement
+    | variable_def_statement | if_statement | for_statement | break_statement
+    | continue_statement | expression_statement; // TODO: support to block
 
 const auto compound_statement_def = x3::lit('{') > *statement > x3::lit('}');
 
@@ -616,6 +621,10 @@ struct for_statement_tag
   , annotate_position {};
 
 struct break_statement_tag
+  : with_error_handling
+  , annotate_position {};
+
+struct continue_statement_tag
   : with_error_handling
   , annotate_position {};
 
