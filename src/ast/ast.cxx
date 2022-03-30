@@ -95,6 +95,16 @@ cast_expr::cast_expr()
 {
 }
 
+address_of_expr::address_of_expr(const expression& lhs)
+  : lhs{lhs}
+{
+}
+
+address_of_expr::address_of_expr()
+  : lhs{}
+{
+}
+
 //===----------------------------------------------------------------------===//
 // Statement abstract syntax tree
 //===----------------------------------------------------------------------===//
@@ -128,10 +138,9 @@ return_statement::return_statement()
 {
 }
 
-if_statement::if_statement(
-  const expression&                        condition,
-  const compound_statement&                then_statement,
-  const std::optional<compound_statement>& else_statement)
+if_statement::if_statement(const expression&               condition,
+                           const statement&                then_statement,
+                           const std::optional<statement>& else_statement)
   : condition{condition}
   , then_statement{then_statement}
   , else_statement{else_statement}
@@ -148,7 +157,7 @@ if_statement::if_statement()
 for_statement::for_statement(const std::optional<expression>& init_expression,
                              const std::optional<expression>& cond_expression,
                              const std::optional<expression>& loop_expression,
-                             const compound_statement&        body)
+                             const statement&                 body)
   : init_expression{init_expression}
   , cond_expression{cond_expression}
   , loop_expression{loop_expression}
@@ -204,8 +213,8 @@ function_declare::function_declare()
 {
 }
 
-function_define::function_define(const function_declare&   decl,
-                                 const compound_statement& body)
+function_define::function_define(const function_declare& decl,
+                                 const statement&        body)
   : decl{decl}
   , body{body}
 {

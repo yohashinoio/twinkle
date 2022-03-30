@@ -605,4 +605,33 @@ assert 58 "func main() -> i32 {
   ret i + 48;
 }"
 
+# Address-of operator
+assert 58 "func main() -> i32 {
+  let a: i8;
+  let a_p: *i8 = &a;
+
+  let b: i16;
+  let b_p: *i16 = &b;
+
+  let c: i32 = 4810;
+  let c_p: *i32 = &c;
+
+  let d: i64;
+  let d_p: *i64 = &d;
+
+  ret 58;
+}"
+
+# Block
+assert 58 "func main() -> i32 {
+  let a: i32 = 4810;
+  {
+    let b: i32 = 48 + 10;
+    ret b;
+  }
+  ret a;
+}"
+
+assert 58 "func main() -> i32 ret 58;"
+
 echo OK

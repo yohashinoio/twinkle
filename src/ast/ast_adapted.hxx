@@ -55,6 +55,11 @@ BOOST_FUSION_ADAPT_STRUCT(
   (miko::ast::type_info, as)
 )
 
+BOOST_FUSION_ADAPT_STRUCT(
+  miko::ast::address_of_expr,
+  (miko::ast::expression, lhs)
+)
+
 //===----------------------------------------------------------------------===//
 // Statement abstract syntax tree adapt
 //===----------------------------------------------------------------------===//
@@ -85,8 +90,8 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   miko::ast::if_statement,
   (miko::ast::expression, condition)
-  (miko::ast::compound_statement, then_statement)
-  (std::optional<miko::ast::compound_statement>, else_statement)
+  (miko::ast::statement, then_statement)
+  (std::optional<miko::ast::statement>, else_statement)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -94,7 +99,7 @@ BOOST_FUSION_ADAPT_STRUCT(
   (std::optional<miko::ast::expression>, init_expression)
   (std::optional<miko::ast::expression>, cond_expression)
   (std::optional<miko::ast::expression>, loop_expression)
-  (miko::ast::compound_statement, body)
+  (miko::ast::statement, body)
 )
 
 //===----------------------------------------------------------------------===//
@@ -119,7 +124,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   miko::ast::function_define,
 	(miko::ast::function_declare, decl)
-  (miko::ast::compound_statement, body)
+  (miko::ast::statement, body)
 )
 
 // clang-format on

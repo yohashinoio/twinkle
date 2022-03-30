@@ -285,6 +285,8 @@ const x3::rule<struct function_call_operation_tag, ast::function_call_expr>
   function_call_operation{"function call operation"};
 const x3::rule<struct cast_operation_tag, ast::cast_expr> cast_operation{
   "conversion operation"};
+const x3::rule<struct address_of_operation, ast::address_of_expr>
+  address_of_operation{"address-of operation"};
 
 const auto argument_list_def = -(expression >> *(x3::lit(',') > expression));
 
@@ -292,6 +294,8 @@ const auto function_call_operation_def
   = identifier >> x3::lit("(") > argument_list > x3::lit(")");
 
 const auto cast_operation_def = primary >> x3::lit("as") > type_name;
+
+const auto address_of_operation_def = x3::lit('&') > expression;
 
 const auto expression_def = assignment;
 
@@ -321,7 +325,8 @@ const auto unary_def = cast_operation
 
 const auto primary_def = (x3::lit('(') > expression > x3::lit(')'))
                          | unsigned_integer | signed_integer | boolean_literal
-                         | string_literal | variable_identifier;
+                         | string_literal | address_of_operation
+                         | variable_identifier;
 
 BOOST_SPIRIT_DEFINE(expression,
                     assignment,
@@ -333,7 +338,8 @@ BOOST_SPIRIT_DEFINE(expression,
                     primary,
                     argument_list,
                     function_call_operation,
-                    cast_operation)
+                    cast_operation,
+                    address_of_operation)
 
 //===----------------------------------------------------------------------===//
 // Statement rules
@@ -349,8 +355,6 @@ const x3::rule<struct if_statement_tag, ast::if_statement> if_statement{
   "if else statement"};
 const x3::rule<struct for_statement_tag, ast::for_statement> for_statement{
   "for statement"};
-const x3::rule<struct compound_statement_tag, ast::compound_statement>
-  compound_statement{"compound statement"};
 const x3::rule<struct statement_tag, ast::statement> statement{"statement"};
 
 const auto expression_statement_def = expression > x3::lit(';');
@@ -365,23 +369,15 @@ const auto variable_def_statement_def
 
 const auto return_statement_def = x3::lit("ret") > -expression > x3::lit(';');
 
-const auto compound_statement_or_statement
-  = x3::rule<struct compound_statement_or_statement_tag,
-             ast::compound_statement>{"compound statement or statement"}
-= compound_statement[action::assign_compound_statement_to_val]
-  | statement[action::assign_compound_statement_to_val];
-
-const auto if_statement_def
-  = x3::lit("if") > x3::lit('(') > expression > x3::lit(')')
-    > compound_statement_or_statement
-    > -(x3::lit("else") > compound_statement_or_statement);
+const auto if_statement_def = x3::lit("if") > x3::lit('(') > expression
+                              > x3::lit(')') > statement
+                              > -(x3::lit("else") > statement);
 
 const auto for_statement_def
   = x3::lit("for") > x3::lit('(')
     > -expression /* TODO: support to statement */ > x3::lit(';')
     > -expression /* cond */
-    > x3::lit(';') >> -expression /* loop */ > x3::lit(')')
-    > compound_statement_or_statement;
+    > x3::lit(';') >> -expression /* loop */ > x3::lit(')') > statement;
 
 const auto break_statement = x3::rule<struct break_statement_tag,
                                       ast::break_statement>{"break statement"}
@@ -393,14 +389,12 @@ const auto continue_statement
 = x3::string("continue");
 
 const auto statement_def
-  = x3::lit(';') /* null statements */ | return_statement
-    | variable_def_statement | if_statement | for_statement | break_statement
-    | continue_statement | expression_statement; // TODO: support to block
-
-const auto compound_statement_def = x3::lit('{') > *statement > x3::lit('}');
+  = x3::lit(';')                               /* null statements */
+    | x3::lit('{') > *statement > x3::lit('}') /* compound statement (block) */
+    | return_statement | variable_def_statement | if_statement | for_statement
+    | break_statement | continue_statement | expression_statement;
 
 BOOST_SPIRIT_DEFINE(expression_statement,
-                    compound_statement,
                     statement,
                     variable_def_statement,
                     return_statement,
@@ -434,7 +428,7 @@ const auto function_declare
 const auto function_define
   = x3::rule<struct function_define_tag,
              ast::function_define>{"function definition"}
-= x3::lit("func") > function_proto > compound_statement;
+= x3::lit("func") > function_proto > statement;
 
 const auto top_level_stmt = x3::rule<struct top_level_stmt_tag,
                                      ast::top_level_stmt>{"top level statement"}
@@ -523,6 +517,10 @@ struct cast_operation_tag
   : with_error_handling
   , annotate_position {};
 
+struct address_of_operation
+  : with_error_handling
+  , annotate_position {};
+
 struct unary_tag
   : with_error_handling
   , annotate_position {};
@@ -536,14 +534,6 @@ struct primary_tag
 //===----------------------------------------------------------------------===//
 
 struct statement_tag
-  : with_error_handling
-  , annotate_position {};
-
-struct compound_statement_tag
-  : with_error_handling
-  , annotate_position {};
-
-struct compound_statement_or_statement_tag
   : with_error_handling
   , annotate_position {};
 

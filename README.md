@@ -13,6 +13,7 @@
   - [Arithmetic operators](#arithmetic-operators)
   - [Comparison operators / Relational operators](#comparison-operators--relational-operators)
   - [Assignment operators](#assignment-operators)
+  - [Pointer operators](#pointer-operators)
   - [Other operators](#other-operators)
 - [Fundamental (Built-in) Types](#fundamental-built-in-types)
   - [Integer types](#integer-types)
@@ -147,6 +148,11 @@ $ mikoc --help
 | Division assignment	      | a /= b |
 | Modulo assignment         | a %= b |
 
+### Pointer operators
+| Operator name | Syntax |
+| ------------- | ------ |
+| Address-of    | &a     |
+
 ### Other operators
 | Operator name | Syntax    |
 | ------------- | --------- |
@@ -212,6 +218,9 @@ Note that the meaning is equivalent to that of a C pointer,<br/>
 but the position of the * is opposite.
 ```rust
 let p: *i8 = "hello, world";
+
+let n: i32 = 4810;
+let p_n: *i32 = &n;
 ```
 
 ## Comments

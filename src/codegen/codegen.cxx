@@ -353,7 +353,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     if (!lhs) {
       throw std::runtime_error{common.format_error(
         common.positions.position_of(node),
-        "failed to generate left hand side of cast operator")};
+        "failed to generate left hand side of conversion operation")};
     }
 
     auto as = common.typename_to_type(node.as.id, node.as.is_ptr);
@@ -369,6 +369,19 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     return lhs;
   }
 
+  llvm::Value* operator()(const ast::address_of_expr& node) const
+  {
+    auto lhs = boost::apply_visitor(*this, node.lhs);
+
+    if (!lhs) {
+      throw std::runtime_error{common.format_error(
+        common.positions.position_of(node),
+        "failed to generate left hand side of address of operation")};
+    }
+
+    return llvm::getPointerOperand(lhs);
+  }
+
 private:
   codegen_common& common;
 
@@ -379,12 +392,12 @@ private:
 // Statement visitor
 //===----------------------------------------------------------------------===//
 
-void codegen_compound_statement(
-  const ast::compound_statement& statements,
-  const symbol_table&            scope,
-  codegen_common&                common,
-  llvm::AllocaInst*              retvar,
-  llvm::BasicBlock*              end_bb,
+void codegen_statement(
+  const ast::statement& statement,
+  const symbol_table&   scope,
+  codegen_common&       common,
+  llvm::AllocaInst*     retvar,
+  llvm::BasicBlock*     end_bb,
   llvm::BasicBlock*
     loop_end_bb, /* Set when calling this function from within loop. */
   llvm::BasicBlock*
@@ -412,6 +425,18 @@ struct statement_visitor : public boost::static_visitor<void> {
   void operator()(ast::nil) const
   {
     // Empty statement, so not processed.
+  }
+
+  // Block
+  void operator()(const ast::compound_statement& node) const
+  {
+    codegen_statement(node,
+                      scope,
+                      common,
+                      retvar,
+                      end_bb,
+                      loop_end_bb,
+                      loop_loop_bb);
   }
 
   void operator()(const ast::expression& node) const
@@ -515,13 +540,13 @@ struct statement_visitor : public boost::static_visitor<void> {
     // then statement codegen.
     common.builder.SetInsertPoint(then_bb);
 
-    codegen_compound_statement(node.then_statement,
-                               scope,
-                               common,
-                               retvar,
-                               end_bb,
-                               loop_end_bb,
-                               loop_loop_bb);
+    codegen_statement(node.then_statement,
+                      scope,
+                      common,
+                      retvar,
+                      end_bb,
+                      loop_end_bb,
+                      loop_loop_bb);
 
     if (!common.builder.GetInsertBlock()->getTerminator())
       common.builder.CreateBr(merge_bb);
@@ -531,13 +556,13 @@ struct statement_visitor : public boost::static_visitor<void> {
     common.builder.SetInsertPoint(else_bb);
 
     if (node.else_statement) {
-      codegen_compound_statement(*node.else_statement,
-                                 scope,
-                                 common,
-                                 retvar,
-                                 end_bb,
-                                 loop_end_bb,
-                                 loop_loop_bb);
+      codegen_statement(*node.else_statement,
+                        scope,
+                        common,
+                        retvar,
+                        end_bb,
+                        loop_end_bb,
+                        loop_loop_bb);
     }
 
     if (!common.builder.GetInsertBlock()->getTerminator())
@@ -601,13 +626,13 @@ struct statement_visitor : public boost::static_visitor<void> {
     function->getBasicBlockList().push_back(body_bb);
     common.builder.SetInsertPoint(body_bb);
 
-    codegen_compound_statement(node.body,
-                               scope,
-                               common,
-                               retvar,
-                               end_bb,
-                               for_end_bb,
-                               loop_bb);
+    codegen_statement(node.body,
+                      scope,
+                      common,
+                      retvar,
+                      end_bb,
+                      for_end_bb,
+                      loop_bb);
 
     if (!common.builder.GetInsertBlock()->getTerminator())
       common.builder.CreateBr(loop_bb);
@@ -660,12 +685,12 @@ private:
   llvm::BasicBlock* loop_loop_bb;
 };
 
-void codegen_compound_statement(
-  const ast::compound_statement& statements,
-  const symbol_table&            scope,
-  codegen_common&                common,
-  llvm::AllocaInst*              retvar,
-  llvm::BasicBlock*              end_bb,
+void codegen_statement(
+  const ast::statement& statement,
+  const symbol_table&   scope,
+  codegen_common&       common,
+  llvm::AllocaInst*     retvar,
+  llvm::BasicBlock*     end_bb,
   llvm::BasicBlock*
     loop_end_bb, /* Set when calling this function from within loop. */
   llvm::BasicBlock*
@@ -673,19 +698,35 @@ void codegen_compound_statement(
 {
   symbol_table new_scope = scope;
 
-  for (auto&& statement : statements) {
-    // If a terminator is present, subsequent code generation is terminated.
-    if (common.builder.GetInsertBlock()->getTerminator())
-      break;
+  // Compound statement
+  if (statement.type() == typeid(ast::compound_statement)) {
+    auto statements = boost::get<ast::compound_statement>(statement);
 
-    boost::apply_visitor(statement_visitor{common,
-                                           new_scope,
-                                           retvar,
-                                           end_bb,
-                                           loop_end_bb,
-                                           loop_loop_bb},
-                         statement);
+    for (auto&& stmt : statements) {
+      boost::apply_visitor(statement_visitor{common,
+                                             new_scope,
+                                             retvar,
+                                             end_bb,
+                                             loop_end_bb,
+                                             loop_loop_bb},
+                           stmt);
+
+      // If a terminator is present, subsequent code generation is terminated.
+      if (common.builder.GetInsertBlock()->getTerminator())
+        break;
+    }
+
+    return;
   }
+
+  // Other than compound statement
+  boost::apply_visitor(statement_visitor{common,
+                                         new_scope,
+                                         retvar,
+                                         end_bb,
+                                         loop_end_bb,
+                                         loop_loop_bb},
+                       statement);
 }
 
 //===----------------------------------------------------------------------===//
@@ -807,19 +848,18 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
 
     // Used to combine returns into one.
     auto end_bb = llvm::BasicBlock::Create(*common.context);
-    // TODO: refactoring
     auto retvar
       = node.decl.return_type.id == id::type_name::void_
           ? nullptr
           : create_entry_block_alloca(function, "", return_type->type);
 
-    codegen_compound_statement(node.body,
-                               argument_values,
-                               common,
-                               retvar,
-                               end_bb,
-                               nullptr,
-                               nullptr);
+    codegen_statement(node.body,
+                      argument_values,
+                      common,
+                      retvar,
+                      end_bb,
+                      nullptr,
+                      nullptr);
 
     // If there is no return, returns undef.
     if (!common.builder.GetInsertBlock()->getTerminator()

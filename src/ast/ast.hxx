@@ -60,6 +60,7 @@ struct unary_op_expr;
 struct binary_op_expr;
 struct function_call_expr;
 struct cast_expr;
+struct address_of_expr;
 
 using expression = boost::variant<nil,
                                   std::uint32_t, /* unsigned integer literals */
@@ -70,7 +71,8 @@ using expression = boost::variant<nil,
                                   boost::recursive_wrapper<unary_op_expr>,
                                   boost::recursive_wrapper<binary_op_expr>,
                                   boost::recursive_wrapper<function_call_expr>,
-                                  boost::recursive_wrapper<cast_expr>>;
+                                  boost::recursive_wrapper<cast_expr>,
+                                  boost::recursive_wrapper<address_of_expr>>;
 
 struct unary_op_expr : x3::position_tagged {
   std::string op;
@@ -112,6 +114,14 @@ struct cast_expr : x3::position_tagged {
   cast_expr();
 };
 
+struct address_of_expr : x3::position_tagged {
+  expression lhs;
+
+  address_of_expr(const expression& lhs);
+
+  address_of_expr();
+};
+
 //===----------------------------------------------------------------------===//
 // Statement abstract syntax tree
 //===----------------------------------------------------------------------===//
@@ -149,26 +159,27 @@ struct continue_statement : x3::position_tagged {
 struct if_statement;
 struct for_statement;
 
-using statement = boost::variant<nil,
-                                 expression,
-                                 return_statement,
-                                 variable_def_statement,
-                                 break_statement,
-                                 continue_statement,
-                                 boost::recursive_wrapper<if_statement>,
-                                 boost::recursive_wrapper<for_statement>>;
+using statement = boost::make_recursive_variant<
+  nil,
+  std::vector<boost::recursive_variant_>, // compound statement
+  expression,
+  return_statement,
+  variable_def_statement,
+  break_statement,
+  continue_statement,
+  boost::recursive_wrapper<if_statement>,
+  boost::recursive_wrapper<for_statement>>::type;
 
-// expression or { *(expression ';') }
 using compound_statement = std::vector<statement>;
 
 struct if_statement : x3::position_tagged {
-  expression                        condition;
-  compound_statement                then_statement;
-  std::optional<compound_statement> else_statement;
+  expression               condition;
+  statement                then_statement;
+  std::optional<statement> else_statement;
 
-  if_statement(const expression&                        condition,
-               const compound_statement&                then_statement,
-               const std::optional<compound_statement>& else_statement);
+  if_statement(const expression&               condition,
+               const statement&                then_statement,
+               const std::optional<statement>& else_statement);
 
   if_statement();
 };
@@ -177,12 +188,12 @@ struct for_statement : x3::position_tagged {
   std::optional<expression> init_expression;
   std::optional<expression> cond_expression;
   std::optional<expression> loop_expression;
-  compound_statement        body;
+  statement                 body;
 
   for_statement(const std::optional<expression>& init_expression,
                 const std::optional<expression>& cond_expression,
                 const std::optional<expression>& loop_expression,
-                const compound_statement&        body);
+                const statement&                 body);
 
   for_statement();
 };
@@ -218,10 +229,10 @@ struct function_declare : x3::position_tagged {
 };
 
 struct function_define : x3::position_tagged {
-  function_declare   decl;
-  compound_statement body;
+  function_declare decl;
+  statement        body;
 
-  function_define(const function_declare& decl, const compound_statement& body);
+  function_define(const function_declare& decl, const statement& body);
 
   function_define();
 };
