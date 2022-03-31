@@ -147,7 +147,7 @@ struct function_linkage_symbols_tag : x3::symbols<id::function_linkage> {
   }
 } function_linkage_symbols;
 
-struct escape_character_symbols_tag : x3::symbols<unsigned char> {
+struct escape_character_symbols_tag : x3::symbols<char> {
   escape_character_symbols_tag()
   {
     // clang-format off
@@ -217,12 +217,14 @@ const auto boolean_literal
 
 const auto escape_character
   = x3::rule<struct escape_character_tag, unsigned char>{"escape character"}
-= escape_character_symbols; // TODO: add \xFF
+= x3::lit("\\") >> x3::int_parser<char, 8, 1, 3>()     // Octal
+  | x3::lit("\\x") >> x3::int_parser<char, 16, 2, 2>() // Hexadecimal
+  | escape_character_symbols;
 
 const auto string_literal
   = x3::rule<struct string_literal_tag, ast::string_literal>{"string literal"}
 = x3::lexeme[x3::lit('"')
-             > *((x3::char_ - (x3::lit('"') | x3::eol | x3::lit('\\')))
+             > *(x3::char_ - (x3::lit('"') | x3::eol | x3::lit('\\'))
                  | escape_character)
              > x3::lit('"')];
 

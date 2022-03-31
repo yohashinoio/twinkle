@@ -634,4 +634,11 @@ assert 58 "func main() -> i32 {
 
 assert 58 "func main() -> i32 ret 58;"
 
+# Octal and hexadecimal escape sequences
+assert 58 'func main() -> i32 {
+  let yoha: *i8 = "\x1b[33mYO\033[32mHA";
+  let io: *i8 = "\33[37mI\x1b[41mO\033[49m";
+  ret 58;
+}'
+
 echo OK
