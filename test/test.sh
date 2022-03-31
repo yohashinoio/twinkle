@@ -661,4 +661,24 @@ assert 58 'func main() -> i32 {
     48 + 10;
 }'
 
+# Loop statement
+assert 58 'func main() -> i32 {
+  let mut yoha: i32 = 0;
+  loop {
+    if (yoha == 48)
+      break;
+    else {
+      yoha += 1;
+      continue;
+    }
+  }
+  let mut io: i32 = 0;
+  loop {
+    if (io == 10)
+      break;
+    io += 1;
+  }
+  ret yoha + io;
+}'
+
 echo OK

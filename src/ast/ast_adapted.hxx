@@ -95,6 +95,12 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
+  miko::ast::loop_statement,
+  (std::string, tmp)
+  (miko::ast::statement, body)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
   miko::ast::while_statement,
   (miko::ast::expression, cond_expr)
   (miko::ast::statement, body)

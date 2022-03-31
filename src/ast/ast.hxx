@@ -149,14 +149,15 @@ struct variable_def_statement : x3::position_tagged {
 };
 
 struct break_statement : x3::position_tagged {
-  std::string tmp; // To distinguish from nil.
+  std::string tmp;
 };
 
 struct continue_statement : x3::position_tagged {
-  std::string tmp; // To distinguish from nil.
+  std::string tmp;
 };
 
 struct if_statement;
+struct loop_statement;
 struct while_statement;
 struct for_statement;
 
@@ -169,6 +170,7 @@ using statement = boost::make_recursive_variant<
   break_statement,
   continue_statement,
   boost::recursive_wrapper<if_statement>,
+  boost::recursive_wrapper<loop_statement>,
   boost::recursive_wrapper<while_statement>,
   boost::recursive_wrapper<for_statement>>::type;
 
@@ -184,6 +186,15 @@ struct if_statement : x3::position_tagged {
                const std::optional<statement>& else_statement);
 
   if_statement();
+};
+
+struct loop_statement : x3::position_tagged {
+  std::string tmp;
+  statement   body;
+
+  explicit loop_statement(const std::string& tmp, const statement& body);
+
+  loop_statement();
 };
 
 struct while_statement : x3::position_tagged {

@@ -351,6 +351,8 @@ const x3::rule<struct return_statement_tag, ast::return_statement>
   return_statement{"return statement"};
 const x3::rule<struct if_statement_tag, ast::if_statement> if_statement{
   "if else statement"};
+const x3::rule<struct loop_statement_tag, ast::loop_statement> loop_statement{
+  "loop statement"};
 const x3::rule<struct while_statement_tag, ast::while_statement>
   while_statement{"while statement"};
 const x3::rule<struct for_statement_tag, ast::for_statement> for_statement{
@@ -373,36 +375,39 @@ const auto if_statement_def = x3::lit("if") > x3::lit('(') > expression
                               > x3::lit(')') > statement
                               > -(x3::lit("else") > statement);
 
+const auto loop_statement_def = x3::string("loop") > statement;
+
 const auto while_statement_def = x3::lit("while") > x3::lit('(')
-                                 > expression /* cond */
+                                 > expression /* condition */
                                  > x3::lit(')') > statement;
 
 const auto for_statement_def
   = x3::lit("for") > x3::lit('(')
     > -expression /* TODO: support to statement */ > x3::lit(';')
-    > -expression /* cond */
+    > -expression /* condition */
     > x3::lit(';') >> -expression /* loop */ > x3::lit(')') > statement;
 
 const auto break_statement = x3::rule<struct break_statement_tag,
                                       ast::break_statement>{"break statement"}
-= x3::string("break");
+= x3::string("break") > x3::lit(';');
 
 const auto continue_statement
   = x3::rule<struct continue_statement_tag,
              ast::continue_statement>{"continue statement"}
-= x3::string("continue");
+= x3::string("continue") > x3::lit(';');
 
 const auto statement_def
-  = x3::lit(';')                               /* null statements */
+  = x3::lit(';')                               /* null statement */
     | x3::lit('{') > *statement > x3::lit('}') /* compound statement (block) */
-    | return_statement | variable_def_statement | if_statement
-    | while_statement_def | for_statement | break_statement | continue_statement
-    | expression_statement;
+    | loop_statement_def | while_statement_def | for_statement | break_statement
+    | continue_statement | return_statement | variable_def_statement
+    | if_statement | expression_statement;
 
 BOOST_SPIRIT_DEFINE(expression_statement,
                     variable_def_statement,
                     return_statement,
                     if_statement,
+                    loop_statement,
                     while_statement,
                     for_statement,
                     statement)
@@ -556,6 +561,10 @@ struct return_statement_tag
   , annotate_position {};
 
 struct if_statement_tag
+  : with_error_handling
+  , annotate_position {};
+
+struct loop_statement_tag
   : with_error_handling
   , annotate_position {};
 

@@ -97,6 +97,15 @@ address_of_expr::address_of_expr()
 // Statement abstract syntax tree
 //===----------------------------------------------------------------------===//
 
+return_statement::return_statement(const std::optional<expression>& rhs)
+  : rhs{rhs}
+{
+}
+
+return_statement::return_statement()
+{
+}
+
 variable_def_statement::variable_def_statement(
   const std::optional<id::variable_qualifier>& qualifier,
   const std::string&                           name,
@@ -113,15 +122,6 @@ variable_def_statement::variable_def_statement()
 {
 }
 
-return_statement::return_statement(const std::optional<expression>& rhs)
-  : rhs{rhs}
-{
-}
-
-return_statement::return_statement()
-{
-}
-
 if_statement::if_statement(const expression&               condition,
                            const statement&                then_statement,
                            const std::optional<statement>& else_statement)
@@ -135,7 +135,18 @@ if_statement::if_statement()
 {
 }
 
-while_statement::while_statement(const expression& cond_expr, const statement& body)
+loop_statement::loop_statement(const std::string& tmp, const statement& body)
+  : tmp{tmp}
+  , body{body}
+{
+}
+
+loop_statement::loop_statement()
+{
+}
+
+while_statement::while_statement(const expression& cond_expr,
+                                 const statement&  body)
   : cond_expr{cond_expr}
   , body{body}
 {
