@@ -572,11 +572,59 @@ struct statement_visitor : public boost::static_visitor<void> {
     common.builder.SetInsertPoint(merge_bb);
   }
 
+  void operator()(const ast::while_statement& node) const
+  {
+    auto function = common.builder.GetInsertBlock()->getParent();
+
+    auto cond_bb = llvm::BasicBlock::Create(*common.context, "", function);
+    auto body_bb = llvm::BasicBlock::Create(*common.context);
+
+    auto for_end_bb = llvm::BasicBlock::Create(*common.context);
+
+    common.builder.CreateBr(cond_bb);
+    common.builder.SetInsertPoint(cond_bb);
+
+    auto cond_value
+      = boost::apply_visitor(expression_visitor{common, scope}, node.cond_expr);
+
+    if (!cond_value) {
+      throw std::runtime_error{common.format_error(
+        common.positions.position_of(node),
+        "failed to generate condition expression in for statement")};
+    }
+
+    cond_value = common.builder.CreateICmp(
+      llvm::ICmpInst::ICMP_NE,
+      cond_value,
+      llvm::ConstantInt::get(
+        common.typename_to_type(id::type_name::bool_)->type,
+        0));
+
+    common.builder.CreateCondBr(cond_value, body_bb, for_end_bb);
+
+    function->getBasicBlockList().push_back(body_bb);
+    common.builder.SetInsertPoint(body_bb);
+
+    codegen_statement(node.body,
+                      scope,
+                      common,
+                      retvar,
+                      end_bb,
+                      for_end_bb,
+                      cond_bb);
+
+    if (!common.builder.GetInsertBlock()->getTerminator())
+      common.builder.CreateBr(cond_bb);
+
+    function->getBasicBlockList().push_back(for_end_bb);
+    common.builder.SetInsertPoint(for_end_bb);
+  }
+
   void operator()(const ast::for_statement& node) const
   {
-    if (node.init_expression) {
+    if (node.init_expr) {
       auto init_value = boost::apply_visitor(expression_visitor{common, scope},
-                                             *node.init_expression);
+                                             *node.init_expr);
 
       if (!init_value) {
         throw std::runtime_error{common.format_error(
@@ -596,9 +644,9 @@ struct statement_visitor : public boost::static_visitor<void> {
     common.builder.CreateBr(cond_bb);
     common.builder.SetInsertPoint(cond_bb);
 
-    if (node.cond_expression) {
+    if (node.cond_expr) {
       auto cond_value = boost::apply_visitor(expression_visitor{common, scope},
-                                             *node.cond_expression);
+                                             *node.cond_expr);
 
       if (!cond_value) {
         throw std::runtime_error{common.format_error(
@@ -640,9 +688,9 @@ struct statement_visitor : public boost::static_visitor<void> {
     function->getBasicBlockList().push_back(loop_bb);
     common.builder.SetInsertPoint(loop_bb);
 
-    if (node.loop_expression) {
+    if (node.loop_expr) {
       auto loop_value = boost::apply_visitor(expression_visitor{common, scope},
-                                             *node.loop_expression);
+                                             *node.loop_expr);
 
       if (!loop_value) {
         throw std::runtime_error{common.format_error(

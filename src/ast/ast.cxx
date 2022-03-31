@@ -28,7 +28,6 @@ string_literal::string_literal(const std::string& str)
 }
 
 string_literal::string_literal()
-  : str{}
 {
 }
 
@@ -39,8 +38,6 @@ unary_op_expr::unary_op_expr(const std::string& op, const expression& rhs)
 }
 
 unary_op_expr::unary_op_expr()
-  : op{}
-  , rhs{}
 {
 }
 
@@ -54,9 +51,6 @@ binary_op_expr::binary_op_expr(const expression&  lhs,
 }
 
 binary_op_expr::binary_op_expr()
-  : lhs{}
-  , op{}
-  , rhs{}
 {
 }
 
@@ -66,7 +60,6 @@ variable_expr::variable_expr(const std::string& name)
 }
 
 variable_expr::variable_expr()
-  : name{}
 {
 }
 
@@ -78,8 +71,6 @@ function_call_expr::function_call_expr(const std::string&             callee,
 }
 
 function_call_expr::function_call_expr()
-  : callee{}
-  , args{}
 {
 }
 
@@ -90,8 +81,6 @@ cast_expr::cast_expr(const expression& lhs, const ast::type_info& as)
 }
 
 cast_expr::cast_expr()
-  : lhs{}
-  , as{}
 {
 }
 
@@ -101,7 +90,6 @@ address_of_expr::address_of_expr(const expression& lhs)
 }
 
 address_of_expr::address_of_expr()
-  : lhs{}
 {
 }
 
@@ -122,9 +110,6 @@ variable_def_statement::variable_def_statement(
 }
 
 variable_def_statement::variable_def_statement()
-  : qualifier{}
-  , name{}
-  , initializer{}
 {
 }
 
@@ -134,7 +119,6 @@ return_statement::return_statement(const std::optional<expression>& rhs)
 }
 
 return_statement::return_statement()
-  : rhs{}
 {
 }
 
@@ -148,28 +132,31 @@ if_statement::if_statement(const expression&               condition,
 }
 
 if_statement::if_statement()
-  : condition{}
-  , then_statement{}
-  , else_statement{}
 {
 }
 
-for_statement::for_statement(const std::optional<expression>& init_expression,
-                             const std::optional<expression>& cond_expression,
-                             const std::optional<expression>& loop_expression,
+while_statement::while_statement(const expression& cond_expr, const statement& body)
+  : cond_expr{cond_expr}
+  , body{body}
+{
+}
+
+while_statement::while_statement()
+{
+}
+
+for_statement::for_statement(const std::optional<expression>& init_expr,
+                             const std::optional<expression>& cond_expr,
+                             const std::optional<expression>& loop_expr,
                              const statement&                 body)
-  : init_expression{init_expression}
-  , cond_expression{cond_expression}
-  , loop_expression{loop_expression}
+  : init_expr{init_expr}
+  , cond_expr{cond_expr}
+  , loop_expr{loop_expr}
   , body{body}
 {
 }
 
 for_statement::for_statement()
-  : init_expression{}
-  , cond_expression{}
-  , loop_expression{}
-  , body{}
 {
 }
 
@@ -187,9 +174,6 @@ parameter::parameter(const std::optional<id::variable_qualifier>& qualifier,
 }
 
 parameter::parameter()
-  : qualifier{}
-  , name{}
-  , type{}
 {
 }
 
@@ -206,10 +190,6 @@ function_declare::function_declare(
 }
 
 function_declare::function_declare()
-  : linkage{}
-  , name{}
-  , params{}
-  , return_type{}
 {
 }
 
@@ -221,8 +201,6 @@ function_define::function_define(const function_declare& decl,
 }
 
 function_define::function_define()
-  : decl{}
-  , body{}
 {
 }
 

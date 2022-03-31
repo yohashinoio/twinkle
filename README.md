@@ -35,6 +35,7 @@
   - [Expression statements](#expression-statements)
   - [Compound Statement (Block)](#compound-statement-block)
   - [If-else statement](#if-else-statement)
+  - [While statement](#while-statement)
   - [For statement](#for-statement)
   - [Break statement](#break-statement)
   - [Continue statement](#continue-statement)
@@ -331,9 +332,22 @@ else
   ;
 ```
 
+### While statement
+```rust
+let mut i: i32 = 0;
+// Repeat 10 times.
+while (i != 10) {
+  i += 1;
+}
+
+while (/* Required */) // Error!
+  ;
+```
+
 ### For statement
 ```rust
 let mut i: i32;
+// Repeat 10 times.
 for (i = 0; i != 10; i += 1) {
 }
 

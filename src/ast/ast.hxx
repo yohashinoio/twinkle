@@ -157,6 +157,7 @@ struct continue_statement : x3::position_tagged {
 };
 
 struct if_statement;
+struct while_statement;
 struct for_statement;
 
 using statement = boost::make_recursive_variant<
@@ -168,6 +169,7 @@ using statement = boost::make_recursive_variant<
   break_statement,
   continue_statement,
   boost::recursive_wrapper<if_statement>,
+  boost::recursive_wrapper<while_statement>,
   boost::recursive_wrapper<for_statement>>::type;
 
 using compound_statement = std::vector<statement>;
@@ -184,15 +186,24 @@ struct if_statement : x3::position_tagged {
   if_statement();
 };
 
+struct while_statement : x3::position_tagged {
+  expression cond_expr;
+  statement  body;
+
+  while_statement(const expression& cond_expr, const statement& body);
+
+  while_statement();
+};
+
 struct for_statement : x3::position_tagged {
-  std::optional<expression> init_expression;
-  std::optional<expression> cond_expression;
-  std::optional<expression> loop_expression;
+  std::optional<expression> init_expr;
+  std::optional<expression> cond_expr;
+  std::optional<expression> loop_expr;
   statement                 body;
 
-  for_statement(const std::optional<expression>& init_expression,
-                const std::optional<expression>& cond_expression,
-                const std::optional<expression>& loop_expression,
+  for_statement(const std::optional<expression>& init_expr,
+                const std::optional<expression>& cond_expr,
+                const std::optional<expression>& loop_expr,
                 const statement&                 body);
 
   for_statement();

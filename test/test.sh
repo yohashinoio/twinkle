@@ -645,4 +645,20 @@ func main() -> i32 {
   }
 }'
 
+# While statement
+assert 58 'func main() -> i32 {
+  for (;;) {
+    let mut n: i32 = 0;
+    while (true) {
+      if (n == 58)
+        break;
+      n += 1;
+      continue;
+    }
+    ret n;
+  }
+  while (false)
+    48 + 10;
+}'
+
 echo OK
