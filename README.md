@@ -32,6 +32,8 @@
   - [Definition](#definition-1)
   - [Mutable variables](#mutable-variables)
 - [Statements](#statements)
+  - [Expression statements](#expression-statements)
+  - [Compound Statement (Block)](#compound-statement-block)
   - [If-else statement](#if-else-statement)
   - [For statement](#for-statement)
   - [Break statement](#break-statement)
@@ -304,6 +306,22 @@ k = 4810; // OK
 ```
 
 ## Statements
+### Expression statements
+```rust
+f();
+```
+```rust
+48 + 10;
+```
+
+### Compound Statement (Block)
+```rust
+{
+  f();
+  48 + 10;
+}
+```
+
 ### If-else statement
 ```rust
 let cond: bool = true;
