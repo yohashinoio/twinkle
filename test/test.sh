@@ -635,10 +635,14 @@ assert 58 "func main() -> i32 {
 assert 58 "func main() -> i32 ret 58;"
 
 # Octal and hexadecimal escape sequences
-assert 58 'func main() -> i32 {
+assert 58 'extern strcmp(s1: *i8, s2: *i8) -> i32;
+func main() -> i32 {
   let yoha: *i8 = "\x1b[33mYO\033[32mHA";
-  let io: *i8 = "\33[37mI\x1b[41mO\033[49m";
-  ret 58;
+  let io: *i8 = "\33[37mI\x1b[41mO";
+  if (strcmp(yoha, "\033[33mYO\x1b[32mHA") == 0) {
+    if (strcmp(io, "\x1b[37mI\33[41mO") == 0)
+      ret 58;
+  }
 }'
 
 echo OK
