@@ -85,10 +85,6 @@ const auto assign_binop_to_val = [](auto&& ctx) -> void {
   x3::_val(ctx) = std::move(ast);
 };
 
-const auto assign_compound_statement_to_val = [](auto&& ctx) -> void {
-  x3::_val(ctx) = ast::compound_statement{x3::_attr(ctx)};
-};
-
 const auto char_to_string = [](auto&& ctx) -> void {
   x3::_val(ctx) = std::string{x3::_attr(ctx)};
 };

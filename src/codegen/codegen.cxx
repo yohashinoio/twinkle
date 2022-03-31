@@ -53,7 +53,7 @@ struct symbol_table {
   // For debug.
   void print_symbols() const
   {
-    for (auto&& r : named_values)
+    for (const auto& r : named_values)
       std::cout << r.first << ' ';
     std::endl(std::cout);
   }
@@ -150,7 +150,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     if (node.op == "=" || node.op == "+=" || node.op == "-=" || node.op == "*="
         || node.op == "/=" || node.op == "%=") {
       try {
-        auto&& lhs_node = boost::get<ast::variable_expr>(node.lhs);
+        auto& lhs_node = boost::get<ast::variable_expr>(node.lhs);
 
         auto rhs = boost::apply_visitor(*this, node.rhs);
 
@@ -702,14 +702,14 @@ void codegen_statement(
   if (statement.type() == typeid(ast::compound_statement)) {
     auto statements = boost::get<ast::compound_statement>(statement);
 
-    for (auto&& stmt : statements) {
+    for (const auto& r : statements) {
       boost::apply_visitor(statement_visitor{common,
                                              new_scope,
                                              retvar,
                                              end_bb,
                                              loop_end_bb,
                                              loop_loop_bb},
-                           stmt);
+                           r);
 
       // If a terminator is present, subsequent code generation is terminated.
       if (common.builder.GetInsertBlock()->getTerminator())
@@ -1184,7 +1184,7 @@ void code_generator::write_object_code_to_file(const std::filesystem::path& out)
 
 void code_generator::codegen()
 {
-  for (auto&& node : ast)
+  for (const auto& node : ast)
     boost::apply_visitor(top_level_stmt_visitor{common, function_pm}, node);
 }
 
