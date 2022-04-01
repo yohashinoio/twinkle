@@ -91,11 +91,11 @@ $ make install
 ### Hello world
 ```rust
 // hello.txt
-extern puts(s: *i8) -> i32;
+extern printf(fmt: *i8, ...) -> i32;
 
 func main() -> i32
 {
-  puts("hello, world");
+  printf("hello, world\n");
 }
 ```
 
@@ -379,21 +379,7 @@ ret 48 + 10;
 ## Example
 ### First 40 fibonacci numbers
 ```rust
-extern putchar(ch: i32) -> i32;
-
-func printi(n: i32) -> void
-{
-  if (n != 0) {
-    printi(n / 10);
-    putchar(48 /* '0' */ + n % 10);
-  }
-}
-
-func puti(n: i32) -> void
-{
-  printi(n);
-  putchar(10); // '\n'
-}
+extern printf(fmt: *i8, ...) -> i32;
 
 func fib(n: i32) -> i32
 {
@@ -407,7 +393,7 @@ func main() -> i32
 {
   let mut i: i32;
   for (i = 1; i <= 40; i = i + 1)
-    puti(fib(i));
+    printf("%d\n", fib(i));
 }
 ```
 
