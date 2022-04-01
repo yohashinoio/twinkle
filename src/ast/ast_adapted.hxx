@@ -123,13 +123,19 @@ BOOST_FUSION_ADAPT_STRUCT(
   (std::optional<miko::id::variable_qualifier>, qualifier)
   (std::string, name)
   (miko::ast::type_info, type)
+  (bool, is_vararg)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+  miko::ast::parameter_list,
+  (std::vector<miko::ast::parameter>, params)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
   miko::ast::function_declare,
   (std::optional<miko::id::function_linkage>, linkage)
   (std::string, name)
-  (std::vector<miko::ast::parameter>, params)
+  (miko::ast::parameter_list, params)
   (miko::ast::type_info, return_type)
 )
 

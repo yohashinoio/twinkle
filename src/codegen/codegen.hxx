@@ -75,7 +75,7 @@ private:
 
   llvm::TargetMachine* target_machine;
 
-  llvm::legacy::FunctionPassManager function_pm;
+  llvm::legacy::FunctionPassManager fpm;
 
   const ast::program& ast;
 };

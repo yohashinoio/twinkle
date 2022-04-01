@@ -45,7 +45,7 @@ struct string_literal : x3::position_tagged {
 
   explicit string_literal(const std::string& str);
 
-  string_literal();
+  string_literal() noexcept;
 };
 
 struct variable_expr : x3::position_tagged {
@@ -53,7 +53,7 @@ struct variable_expr : x3::position_tagged {
 
   explicit variable_expr(const std::string& name);
 
-  variable_expr();
+  variable_expr() noexcept;
 };
 
 struct unary_op_expr;
@@ -80,7 +80,7 @@ struct unary_op_expr : x3::position_tagged {
 
   unary_op_expr(const std::string& op, const expression& rhs);
 
-  unary_op_expr();
+  unary_op_expr() noexcept;
 };
 
 struct binary_op_expr : x3::position_tagged {
@@ -92,7 +92,7 @@ struct binary_op_expr : x3::position_tagged {
                  const std::string& op,
                  const expression&  rhs);
 
-  binary_op_expr();
+  binary_op_expr() noexcept;
 };
 
 struct function_call_expr : x3::position_tagged {
@@ -102,7 +102,7 @@ struct function_call_expr : x3::position_tagged {
   function_call_expr(const std::string&             callee,
                      const std::vector<expression>& args);
 
-  function_call_expr();
+  function_call_expr() noexcept;
 };
 
 struct cast_expr : x3::position_tagged {
@@ -111,7 +111,7 @@ struct cast_expr : x3::position_tagged {
 
   cast_expr(const expression& lhs, const type_info& as);
 
-  cast_expr();
+  cast_expr() noexcept;
 };
 
 struct address_of_expr : x3::position_tagged {
@@ -119,7 +119,7 @@ struct address_of_expr : x3::position_tagged {
 
   address_of_expr(const expression& lhs);
 
-  address_of_expr();
+  address_of_expr() noexcept;
 };
 
 //===----------------------------------------------------------------------===//
@@ -131,7 +131,7 @@ struct return_statement : x3::position_tagged {
 
   explicit return_statement(const std::optional<expression>& rhs);
 
-  return_statement();
+  return_statement() noexcept;
 };
 
 struct variable_def_statement : x3::position_tagged {
@@ -145,7 +145,7 @@ struct variable_def_statement : x3::position_tagged {
                          const type_info&                             type,
                          const std::optional<expression>& initializer);
 
-  variable_def_statement();
+  variable_def_statement() noexcept;
 };
 
 struct break_statement : x3::position_tagged {
@@ -185,7 +185,7 @@ struct if_statement : x3::position_tagged {
                const statement&                then_statement,
                const std::optional<statement>& else_statement);
 
-  if_statement();
+  if_statement() noexcept;
 };
 
 struct loop_statement : x3::position_tagged {
@@ -194,7 +194,7 @@ struct loop_statement : x3::position_tagged {
 
   explicit loop_statement(const std::string& tmp, const statement& body);
 
-  loop_statement();
+  loop_statement() noexcept;
 };
 
 struct while_statement : x3::position_tagged {
@@ -203,7 +203,7 @@ struct while_statement : x3::position_tagged {
 
   while_statement(const expression& cond_expr, const statement& body);
 
-  while_statement();
+  while_statement() noexcept;
 };
 
 struct for_statement : x3::position_tagged {
@@ -217,7 +217,7 @@ struct for_statement : x3::position_tagged {
                 const std::optional<expression>& loop_expr,
                 const statement&                 body);
 
-  for_statement();
+  for_statement() noexcept;
 };
 
 //===----------------------------------------------------------------------===//
@@ -228,26 +228,42 @@ struct parameter : x3::position_tagged {
   std::optional<id::variable_qualifier> qualifier;
   std::string                           name;
   type_info                             type;
+  bool                                  is_vararg;
 
   parameter(const std::optional<id::variable_qualifier>& qualifier,
             const std::string&                           name,
-            const type_info&                             type);
+            const type_info&                             type,
+            bool                                         is_vararg);
 
-  parameter();
+  parameter() noexcept;
+};
+
+struct parameter_list : x3::position_tagged {
+  std::vector<parameter> params;
+
+  explicit parameter_list(const std::vector<parameter>& params);
+
+  parameter_list() noexcept;
+
+  const parameter& operator[](const std::size_t idx) const;
+
+  const std::vector<parameter>& operator*() const noexcept;
+
+  std::size_t length() const noexcept;
 };
 
 struct function_declare : x3::position_tagged {
   std::optional<id::function_linkage> linkage;
   std::string                         name;
-  std::vector<parameter>              params;
+  parameter_list                      params;
   type_info                           return_type;
 
   function_declare(const std::optional<id::function_linkage>& linkage,
                    const std::string&                         name,
-                   const std::vector<parameter>&              params,
+                   const parameter_list&                      params,
                    const type_info&                           return_type);
 
-  function_declare();
+  function_declare() noexcept;
 };
 
 struct function_define : x3::position_tagged {
@@ -256,7 +272,7 @@ struct function_define : x3::position_tagged {
 
   function_define(const function_declare& decl, const statement& body);
 
-  function_define();
+  function_define() noexcept;
 };
 
 using top_level_stmt = boost::variant<nil, function_declare, function_define>;

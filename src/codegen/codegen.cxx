@@ -326,7 +326,8 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
         format("unknown function '%s' referenced", node.callee))};
     }
 
-    if (callee_function->arg_size() != node.args.size()) {
+    if (!callee_function->isVarArg()
+        && callee_function->arg_size() != node.args.size()) {
       throw std::runtime_error{
         common.format_error(common.positions.position_of(node),
                             format("incorrect arguments passed"))};
@@ -797,9 +798,9 @@ void codegen_statement(const ast::statement& statement,
 
 struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
   top_level_stmt_visitor(codegen_common&                    common,
-                         llvm::legacy::FunctionPassManager& function_pm)
+                         llvm::legacy::FunctionPassManager& fpm)
     : common{common}
-    , function_pm{function_pm}
+    , fpm{fpm}
   {
   }
 
@@ -813,17 +814,41 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
   // Function declaration
   llvm::Function* operator()(const ast::function_declare& node) const
   {
-    std::vector<llvm::Type*> param_types(node.params.size());
-    for (std::size_t i = 0, last = param_types.size(); i != last; ++i) {
+    auto&& ps = *node.params;
+
+    if (ps.size() && ps.at(0).is_vararg) {
+      throw std::runtime_error{
+        common.format_error(common.positions.position_of(node),
+                            "requires a named argument before '...'")};
+    }
+
+    bool is_vararg = false;
+    for (const auto& r : ps) {
+      if (r.is_vararg) {
+        if (is_vararg) {
+          throw std::runtime_error{
+            common.format_error(common.positions.position_of(node),
+                                "cannot have multiple variable arguments")};
+        }
+        else
+          is_vararg = true;
+      }
+    }
+
+    const auto named_params_length
+      = is_vararg ? node.params.length() - 1 : node.params.length();
+    std::vector<llvm::Type*> param_types(named_params_length);
+
+    for (std::size_t i = 0; i != named_params_length; ++i) {
       const auto& param_info = node.params[i].type;
-      param_types[i]
+      param_types.at(i)
         = common.typename_to_type(param_info.id, param_info.is_ptr)->type;
     }
 
     auto function_type = llvm::FunctionType::get(
       common.typename_to_type(node.return_type.id)->type,
       param_types,
-      false);
+      is_vararg);
 
     llvm::Function* function;
     if (!node.linkage) {
@@ -970,7 +995,7 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
         common.format_error(common.positions.position_of(node), os.str())};
     }
 
-    function_pm.run(*function);
+    fpm.run(*function);
 
     return function;
   }
@@ -978,7 +1003,7 @@ struct top_level_stmt_visitor : public boost::static_visitor<llvm::Function*> {
 private:
   codegen_common& common;
 
-  llvm::legacy::FunctionPassManager& function_pm;
+  llvm::legacy::FunctionPassManager& fpm;
 };
 
 //===----------------------------------------------------------------------===//
@@ -1090,7 +1115,8 @@ codegen_common::typename_to_type(const id::type_name type, const bool is_ptr)
   if (with_code) {
     std::for_each(pos.begin(), pos.end(), [&](auto&& ch) { ss << ch; });
 
-    ss << "\n^_";
+    // TODO:
+    // ss << "\n^_";
   }
 
   return ss.str();
@@ -1103,7 +1129,7 @@ code_generator::code_generator(const std::string_view       program_name,
                                const bool                   optimize)
   : program_name{program_name}
   , common{file, positions}
-  , function_pm{common.module.get()}
+  , fpm{common.module.get()}
   , ast{ast}
 {
   llvm::InitializeAllTargetInfos();
@@ -1114,22 +1140,22 @@ code_generator::code_generator(const std::string_view       program_name,
 
   if (optimize) {
     // Do simple "peephole" optimizations and bit-twiddling optzns.
-    function_pm.add(llvm::createInstructionCombiningPass());
+    fpm.add(llvm::createInstructionCombiningPass());
     // Reassociate expressions.
-    function_pm.add(llvm::createReassociatePass());
+    fpm.add(llvm::createReassociatePass());
     // Eliminate Common SubExpressions.
-    function_pm.add(llvm::createGVNPass());
+    fpm.add(llvm::createGVNPass());
     // Simplify the control flow graph (deleting unreachable blocks, etc).
-    function_pm.add(llvm::createCFGSimplificationPass());
+    fpm.add(llvm::createCFGSimplificationPass());
     // Promote allocas to registers.
-    function_pm.add(llvm::createPromoteMemoryToRegisterPass());
+    fpm.add(llvm::createPromoteMemoryToRegisterPass());
     // Do simple "peephole" optimizations and bit-twiddling optzns.
-    function_pm.add(llvm::createInstructionCombiningPass());
+    fpm.add(llvm::createInstructionCombiningPass());
     // Reassociate expressions.
-    function_pm.add(llvm::createReassociatePass());
+    fpm.add(llvm::createReassociatePass());
   }
 
-  function_pm.doInitialization();
+  fpm.doInitialization();
 
   // Set target triple and data layout to module
   const auto target_triple = llvm::sys::getDefaultTargetTriple();
@@ -1247,7 +1273,7 @@ void code_generator::write_object_code_to_file(const std::filesystem::path& out)
 void code_generator::codegen()
 {
   for (const auto& node : ast)
-    boost::apply_visitor(top_level_stmt_visitor{common, function_pm}, node);
+    boost::apply_visitor(top_level_stmt_visitor{common, fpm}, node);
 }
 
 } // namespace miko::codegen

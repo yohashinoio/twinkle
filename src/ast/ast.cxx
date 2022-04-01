@@ -27,7 +27,7 @@ string_literal::string_literal(const std::string& str)
 {
 }
 
-string_literal::string_literal()
+string_literal::string_literal() noexcept
 {
 }
 
@@ -37,7 +37,7 @@ unary_op_expr::unary_op_expr(const std::string& op, const expression& rhs)
 {
 }
 
-unary_op_expr::unary_op_expr()
+unary_op_expr::unary_op_expr() noexcept
 {
 }
 
@@ -50,7 +50,7 @@ binary_op_expr::binary_op_expr(const expression&  lhs,
 {
 }
 
-binary_op_expr::binary_op_expr()
+binary_op_expr::binary_op_expr() noexcept
 {
 }
 
@@ -59,7 +59,7 @@ variable_expr::variable_expr(const std::string& name)
 {
 }
 
-variable_expr::variable_expr()
+variable_expr::variable_expr() noexcept
 {
 }
 
@@ -70,7 +70,7 @@ function_call_expr::function_call_expr(const std::string&             callee,
 {
 }
 
-function_call_expr::function_call_expr()
+function_call_expr::function_call_expr() noexcept
 {
 }
 
@@ -80,7 +80,7 @@ cast_expr::cast_expr(const expression& lhs, const ast::type_info& as)
 {
 }
 
-cast_expr::cast_expr()
+cast_expr::cast_expr() noexcept
 {
 }
 
@@ -89,7 +89,7 @@ address_of_expr::address_of_expr(const expression& lhs)
 {
 }
 
-address_of_expr::address_of_expr()
+address_of_expr::address_of_expr() noexcept
 {
 }
 
@@ -102,7 +102,7 @@ return_statement::return_statement(const std::optional<expression>& rhs)
 {
 }
 
-return_statement::return_statement()
+return_statement::return_statement() noexcept
 {
 }
 
@@ -118,7 +118,7 @@ variable_def_statement::variable_def_statement(
 {
 }
 
-variable_def_statement::variable_def_statement()
+variable_def_statement::variable_def_statement() noexcept
 {
 }
 
@@ -131,7 +131,7 @@ if_statement::if_statement(const expression&               condition,
 {
 }
 
-if_statement::if_statement()
+if_statement::if_statement() noexcept
 {
 }
 
@@ -141,7 +141,7 @@ loop_statement::loop_statement(const std::string& tmp, const statement& body)
 {
 }
 
-loop_statement::loop_statement()
+loop_statement::loop_statement() noexcept
 {
 }
 
@@ -152,7 +152,7 @@ while_statement::while_statement(const expression& cond_expr,
 {
 }
 
-while_statement::while_statement()
+while_statement::while_statement() noexcept
 {
 }
 
@@ -167,7 +167,7 @@ for_statement::for_statement(const std::optional<expression>& init_expr,
 {
 }
 
-for_statement::for_statement()
+for_statement::for_statement() noexcept
 {
 }
 
@@ -177,21 +177,48 @@ for_statement::for_statement()
 
 parameter::parameter(const std::optional<id::variable_qualifier>& qualifier,
                      const std::string&                           name,
-                     const ast::type_info&                        type)
+                     const ast::type_info&                        type,
+                     bool                                         is_vararg)
   : qualifier{qualifier}
   , name{name}
   , type{type}
+  , is_vararg{is_vararg}
 {
 }
 
-parameter::parameter()
+parameter::parameter() noexcept
 {
+}
+
+parameter_list::parameter_list(const std::vector<parameter>& params)
+  : params{params}
+{
+}
+
+parameter_list::parameter_list() noexcept
+{
+}
+
+const parameter&
+parameter_list::operator[](const std::size_t idx) const
+{
+  return params.at(idx);
+}
+
+const std::vector<parameter>& parameter_list::operator*() const noexcept
+{
+  return params;
+}
+
+std::size_t parameter_list::length() const noexcept
+{
+  return params.size();
 }
 
 function_declare::function_declare(
   const std::optional<id::function_linkage>& linkage,
   const std::string&                         name,
-  const std::vector<parameter>&              params,
+  const parameter_list&                      params,
   const ast::type_info&                      return_type)
   : linkage{linkage}
   , name{name}
@@ -200,7 +227,7 @@ function_declare::function_declare(
 {
 }
 
-function_declare::function_declare()
+function_declare::function_declare() noexcept
 {
 }
 
@@ -211,7 +238,7 @@ function_define::function_define(const function_declare& decl,
 {
 }
 
-function_define::function_define()
+function_define::function_define() noexcept
 {
 }
 

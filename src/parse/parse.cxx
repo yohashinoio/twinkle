@@ -418,7 +418,9 @@ BOOST_SPIRIT_DEFINE(expression_statement,
 
 const auto parameter
   = x3::rule<struct parameter_tag, ast::parameter>{"parameter"}
-= -variable_qualifier >> identifier > x3::lit(':') > type_name;
+= (-variable_qualifier >> identifier > x3::lit(':') > type_name
+   > x3::attr(false))
+  | x3::lit("...") >> x3::attr(ast::parameter{std::nullopt, "", {}, true});
 
 const auto parameter_list
   = x3::rule<struct parameter_list_tag,

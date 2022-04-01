@@ -681,4 +681,18 @@ assert 58 'func main() -> i32 {
   ret yoha + io;
 }'
 
+# Variable arguments
+assert 58 'extern printf(fmt: *i8, ...) -> i32;
+func f(n: i32, ...) -> i32 {
+  ret n;
+}
+func main() -> i32 {
+  printf("hello, %s\n", "Yoha and Io");
+
+  let n: i32 = 4810;
+  printf("The address of variable n is: %p\n", &n);
+
+  ret f(58);
+}'
+
 echo OK
