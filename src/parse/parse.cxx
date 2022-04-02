@@ -281,7 +281,7 @@ const x3::rule<struct argument_list_tag, std::vector<ast::expression>>
   argument_list{"argument list"};
 const x3::rule<struct function_call_operation_tag, ast::function_call_expr>
   function_call_operation{"function call operation"};
-const x3::rule<struct cast_operation_tag, ast::conv_expr> conv_operation{
+const x3::rule<struct conv_operation_tag, ast::conv_expr> conv_operation{
   "conversion operation"};
 const x3::rule<struct address_of_operation_tag, ast::addr_of_expr>
   address_of_operation{"address-of operation"};
@@ -531,7 +531,7 @@ struct function_call_operation_tag
   : with_error_handling
   , annotate_position {};
 
-struct cast_operation_tag
+struct conv_operation_tag
   : with_error_handling
   , annotate_position {};
 

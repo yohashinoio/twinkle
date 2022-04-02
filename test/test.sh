@@ -695,4 +695,19 @@ func main() -> i32 {
   ret f(58);
 }'
 
+# Indirection operator
+assert 58 "func main() -> i32 {
+  let n: i32 = 58;
+  let p: *i32 = &n;
+  ret *p;
+}"
+
+assert 58 "func get_ptr(n: i32) -> *i32 {
+  ret &n;
+}
+func main() -> i32 {
+  let n: i32 = 58;
+  ret *f(n);
+}"
+
 echo OK

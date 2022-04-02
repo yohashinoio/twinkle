@@ -515,7 +515,8 @@ struct statement_visitor : public boost::static_visitor<void> {
 
     auto const func = common.builder.GetInsertBlock()->getParent();
 
-    const auto type_info = common.typename_to_type(node.type.id, node.type.is_ptr);
+    const auto type_info
+      = common.typename_to_type(node.type.id, node.type.is_ptr);
 
     if (!type_info) {
       throw std::runtime_error{
@@ -527,8 +528,9 @@ struct statement_visitor : public boost::static_visitor<void> {
       = create_entry_block_alloca(func, node.name, type_info->type);
 
     if (node.initializer) {
-      auto const initializer = boost::apply_visitor(expression_visitor{common, scope},
-                                              *node.initializer);
+      auto const initializer
+        = boost::apply_visitor(expression_visitor{common, scope},
+                               *node.initializer);
 
       if (!initializer) {
         throw std::runtime_error{common.format_error(
@@ -893,7 +895,8 @@ struct top_level_visitor : public boost::static_visitor<llvm::Function*> {
     }
 
     auto const func_type = llvm::FunctionType::get(
-      common.typename_to_type(node.return_type.id)->type,
+      common.typename_to_type(node.return_type.id, node.return_type.is_ptr)
+        ->type,
       param_types,
       is_vararg);
 
@@ -1296,7 +1299,7 @@ void code_generator::write_object_code_to_file(const std::filesystem::path& out)
                            "Symbol main could not be found")};
   }
 
-  auto symbol = *symbol_expected;
+  auto       symbol = *symbol_expected;
   auto const main_addr
     = reinterpret_cast<int (*)(/* TODO: command line arguments */)>(
       symbol.getAddress());
