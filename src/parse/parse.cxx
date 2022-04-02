@@ -75,9 +75,9 @@ const auto assign_attr_to_val = [](auto&& ctx) -> void {
 };
 
 const auto assign_binop_to_val = [](auto&& ctx) -> void {
-  ast::bin_operation ast{std::move(x3::_val(ctx)),
-                          std::move(fusion::at_c<0>(x3::_attr(ctx))),
-                          std::move(fusion::at_c<1>(x3::_attr(ctx)))};
+  ast::bin_op_expr ast{std::move(x3::_val(ctx)),
+                       std::move(fusion::at_c<0>(x3::_attr(ctx))),
+                       std::move(fusion::at_c<1>(x3::_attr(ctx)))};
 
   auto&& position_cache = x3::get<position_cache_tag>(ctx);
   position_cache.annotate(ast, x3::_where(ctx).begin(), x3::_where(ctx).end());
@@ -279,11 +279,11 @@ const x3::rule<struct primary_tag, ast::expression> primary{"primary"};
 
 const x3::rule<struct argument_list_tag, std::vector<ast::expression>>
   argument_list{"argument list"};
-const x3::rule<struct function_call_operation_tag, ast::func_call_operation>
+const x3::rule<struct function_call_operation_tag, ast::function_call_expr>
   function_call_operation{"function call operation"};
-const x3::rule<struct cast_operation_tag, ast::conv_operation> cast_operation{
+const x3::rule<struct cast_operation_tag, ast::conv_expr> cast_operation{
   "conversion operation"};
-const x3::rule<struct address_of_operation, ast::address_of_operation>
+const x3::rule<struct address_of_operation, ast::addr_of_expr>
   address_of_operation{"address-of operation"};
 
 const auto argument_list_def = -(expression >> *(x3::lit(',') > expression));
@@ -416,13 +416,15 @@ BOOST_SPIRIT_DEFINE(expression_statement,
 // Top level rules
 //===----------------------------------------------------------------------===//
 
-const auto parameter = x3::rule<struct parameter_tag, ast::param>{"parameter"}
+const auto parameter
+  = x3::rule<struct parameter_tag, ast::parameter>{"parameter"}
 = (-variable_qualifier >> identifier > x3::lit(':') > type_name
    > x3::attr(false))
-  | x3::lit("...") >> x3::attr(ast::param{std::nullopt, "", {}, true});
+  | x3::lit("...") >> x3::attr(ast::parameter{std::nullopt, "", {}, true});
 
-const auto parameter_list = x3::rule<struct parameter_list_tag,
-                                     std::vector<ast::param>>{"parameter list"}
+const auto parameter_list
+  = x3::rule<struct parameter_list_tag,
+             std::vector<ast::parameter>>{"parameter list"}
 = -(parameter > *(x3::lit(',') > parameter));
 
 const auto function_proto
@@ -441,8 +443,8 @@ const auto function_define
              ast::function_define>{"function definition"}
 = x3::lit("func") > function_proto > statement;
 
-const auto top_level_stmt = x3::rule<struct top_level_stmt_tag,
-                                     ast::top_level_stmt>{"top level statement"}
+const auto top_level
+  = x3::rule<struct top_level_tag, ast::top_level>{"top level statement"}
 = function_declare | function_define;
 
 //===----------------------------------------------------------------------===//
@@ -476,7 +478,7 @@ const auto skipper = x3::rule<struct skipper_tag>{"skipper"}
 //===----------------------------------------------------------------------===//
 
 const auto program = x3::rule<struct program_tag, ast::program>{"program"}
-= *top_level_stmt > x3::eoi;
+= *top_level > x3::eoi;
 
 #pragma clang diagnostic pop
 
@@ -608,7 +610,7 @@ struct function_define_tag
   : with_error_handling
   , annotate_position {};
 
-struct top_level_stmt_tag
+struct top_level_tag
   : with_error_handling
   , annotate_position {};
 

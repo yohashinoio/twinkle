@@ -48,58 +48,57 @@ struct variable_ref : x3::position_tagged {
   std::string name;
 };
 
-struct unary_operation;
-struct bin_operation;
-struct func_call_operation;
-struct conv_operation;
-struct address_of_operation;
+struct unary_op_expr;
+struct bin_op_expr;
+struct function_call_expr;
+struct conv_expr;
+struct addr_of_expr;
 
-using expression
-  = boost::variant<nil,
-                   std::uint32_t, /* Unsigned integer literals */
-                   std::int32_t,  /* Signed integer literals */
-                   bool,          /* Boolean literals */
-                   string_literal,
-                   variable_ref,
-                   boost::recursive_wrapper<unary_operation>,
-                   boost::recursive_wrapper<bin_operation>,
-                   boost::recursive_wrapper<func_call_operation>,
-                   boost::recursive_wrapper<conv_operation>,
-                   boost::recursive_wrapper<address_of_operation>>;
+using expression = boost::variant<nil,
+                                  std::uint32_t, /* Unsigned integer literals */
+                                  std::int32_t,  /* Signed integer literals */
+                                  bool,          /* Boolean literals */
+                                  string_literal,
+                                  variable_ref,
+                                  boost::recursive_wrapper<unary_op_expr>,
+                                  boost::recursive_wrapper<bin_op_expr>,
+                                  boost::recursive_wrapper<function_call_expr>,
+                                  boost::recursive_wrapper<conv_expr>,
+                                  boost::recursive_wrapper<addr_of_expr>>;
 
-struct unary_operation : x3::position_tagged {
+struct unary_op_expr : x3::position_tagged {
   std::string op;
   expression  rhs;
 };
 
-struct bin_operation : x3::position_tagged {
+struct bin_op_expr : x3::position_tagged {
   expression  lhs;
   std::string op;
   expression  rhs;
 
-  bin_operation(decltype(lhs)&& lhs, decltype(op)&& op, decltype(rhs)&& rhs)
+  bin_op_expr(decltype(lhs)&& lhs, decltype(op)&& op, decltype(rhs)&& rhs)
     : lhs{std::move(lhs)}
     , op{std::move(op)}
     , rhs{std::move(rhs)}
   {
   }
 
-  bin_operation() noexcept
+  bin_op_expr() noexcept
   {
   }
 };
 
-struct func_call_operation : x3::position_tagged {
+struct function_call_expr : x3::position_tagged {
   std::string             callee;
   std::vector<expression> args;
 };
 
-struct conv_operation : x3::position_tagged {
+struct conv_expr : x3::position_tagged {
   expression lhs;
   type_info  as;
 };
 
-struct address_of_operation : x3::position_tagged {
+struct addr_of_expr : x3::position_tagged {
   expression lhs;
 };
 
@@ -173,16 +172,16 @@ struct for_statement : x3::position_tagged {
 // Top level abstract syntax tree
 //===----------------------------------------------------------------------===//
 
-struct param : x3::position_tagged {
+struct parameter : x3::position_tagged {
   std::optional<id::variable_qualifier> qualifier;
   std::string                           name;
   type_info                             type;
   bool                                  is_vararg;
 
-  param(decltype(qualifier)&&     qualifier,
-        decltype(name)&&          name,
-        const decltype(type)&     type,
-        const decltype(is_vararg) is_vararg)
+  parameter(decltype(qualifier)&&     qualifier,
+            decltype(name)&&          name,
+            const decltype(type)&     type,
+            const decltype(is_vararg) is_vararg)
     : qualifier{qualifier}
     , name{name}
     , type{type}
@@ -190,20 +189,20 @@ struct param : x3::position_tagged {
   {
   }
 
-  param() noexcept
+  parameter() noexcept
   {
   }
 };
 
-struct param_list : x3::position_tagged {
-  std::vector<param> params;
+struct parameter_list : x3::position_tagged {
+  std::vector<parameter> params;
 
-  const param& operator[](const std::size_t idx) const
+  const parameter& operator[](const std::size_t idx) const
   {
     return params.at(idx);
   }
 
-  const std::vector<param>& operator*() const noexcept
+  const std::vector<parameter>& operator*() const noexcept
   {
     return params;
   }
@@ -217,7 +216,7 @@ struct param_list : x3::position_tagged {
 struct function_declare : x3::position_tagged {
   std::optional<id::function_linkage> linkage;
   std::string                         name;
-  param_list                          params;
+  parameter_list                      params;
   type_info                           return_type;
 };
 
@@ -226,9 +225,9 @@ struct function_define : x3::position_tagged {
   statement        body;
 };
 
-using top_level_stmt = boost::variant<nil, function_declare, function_define>;
+using top_level = boost::variant<nil, function_declare, function_define>;
 
-using program = std::vector<top_level_stmt>;
+using program = std::vector<top_level>;
 
 } // namespace ast
 } // namespace miko
