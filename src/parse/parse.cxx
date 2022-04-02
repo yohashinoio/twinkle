@@ -281,19 +281,23 @@ const x3::rule<struct argument_list_tag, std::vector<ast::expression>>
   argument_list{"argument list"};
 const x3::rule<struct function_call_operation_tag, ast::function_call_expr>
   function_call_operation{"function call operation"};
-const x3::rule<struct cast_operation_tag, ast::conv_expr> cast_operation{
+const x3::rule<struct cast_operation_tag, ast::conv_expr> conv_operation{
   "conversion operation"};
-const x3::rule<struct address_of_operation, ast::addr_of_expr>
+const x3::rule<struct address_of_operation_tag, ast::addr_of_expr>
   address_of_operation{"address-of operation"};
+const x3::rule<struct indirection_operation_tag, ast::indirection_expr>
+  indirection_operation{"indirection operation"};
 
 const auto argument_list_def = -(expression >> *(x3::lit(',') > expression));
 
 const auto function_call_operation_def
   = identifier >> x3::lit("(") > argument_list > x3::lit(")");
 
-const auto cast_operation_def = primary >> x3::lit("as") > type_name;
+const auto conv_operation_def = primary >> x3::lit("as") > type_name;
 
 const auto address_of_operation_def = x3::lit('&') > expression;
+
+const auto indirection_operation_def = x3::lit('*') > expression;
 
 const auto expression_def = assignment;
 
@@ -317,14 +321,14 @@ const auto multiplication_def
   = unary[action::assign_attr_to_val]
     >> *(multitive_operator > unary)[action::assign_binop_to_val];
 
-const auto unary_def = cast_operation
+const auto unary_def = conv_operation
                        | (unary_operator > primary) /* unary operation */
                        | function_call_operation | primary;
 
 const auto primary_def = (x3::lit('(') > expression > x3::lit(')'))
                          | unsigned_integer | signed_integer | boolean_literal
                          | string_literal | address_of_operation
-                         | variable_identifier;
+                         | indirection_operation | variable_identifier;
 
 BOOST_SPIRIT_DEFINE(expression,
                     assignment,
@@ -336,8 +340,9 @@ BOOST_SPIRIT_DEFINE(expression,
                     primary,
                     argument_list,
                     function_call_operation,
-                    cast_operation,
-                    address_of_operation)
+                    conv_operation,
+                    address_of_operation,
+                    indirection_operation)
 
 //===----------------------------------------------------------------------===//
 // Statement rules
@@ -530,7 +535,11 @@ struct cast_operation_tag
   : with_error_handling
   , annotate_position {};
 
-struct address_of_operation
+struct address_of_operation_tag
+  : with_error_handling
+  , annotate_position {};
+
+struct indirection_operation_tag
   : with_error_handling
   , annotate_position {};
 

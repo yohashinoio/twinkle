@@ -60,6 +60,11 @@ BOOST_FUSION_ADAPT_STRUCT(
   (miko::ast::expression, lhs)
 )
 
+BOOST_FUSION_ADAPT_STRUCT(
+  miko::ast::indirection_expr,
+  (miko::ast::expression, lhs)
+)
+
 //===----------------------------------------------------------------------===//
 // Statement abstract syntax tree adapt
 //===----------------------------------------------------------------------===//

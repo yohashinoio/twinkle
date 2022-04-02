@@ -53,6 +53,7 @@ struct bin_op_expr;
 struct function_call_expr;
 struct conv_expr;
 struct addr_of_expr;
+struct indirection_expr;
 
 using expression = boost::variant<nil,
                                   std::uint32_t, /* Unsigned integer literals */
@@ -64,7 +65,8 @@ using expression = boost::variant<nil,
                                   boost::recursive_wrapper<bin_op_expr>,
                                   boost::recursive_wrapper<function_call_expr>,
                                   boost::recursive_wrapper<conv_expr>,
-                                  boost::recursive_wrapper<addr_of_expr>>;
+                                  boost::recursive_wrapper<addr_of_expr>,
+                                  boost::recursive_wrapper<indirection_expr>>;
 
 struct unary_op_expr : x3::position_tagged {
   std::string op;
@@ -99,6 +101,10 @@ struct conv_expr : x3::position_tagged {
 };
 
 struct addr_of_expr : x3::position_tagged {
+  expression lhs;
+};
+
+struct indirection_expr : x3::position_tagged {
   expression lhs;
 };
 
