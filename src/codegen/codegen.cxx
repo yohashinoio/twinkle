@@ -397,35 +397,17 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
 
   llvm::Value* operator()(const ast::indirection_expr& node) const
   {
-    if (node.lhs.type() != typeid(ast::variable_ref)) {
+    auto const lhs = boost::apply_visitor(*this, node.lhs);
+
+    auto const lhs_type = lhs->getType();
+
+    if (!lhs_type->isPointerTy()) {
       throw std::runtime_error{
         common.format_error(common.positions.position_of(node),
                             "indirection requires pointer operand")};
     }
 
-    auto& var = boost::get<ast::variable_ref>(node.lhs);
-
-    auto var_info = scope[var.name];
-
-    auto const var_type           = var_info->inst->getType();
-    auto const var_allocated_type = var_info->inst->getAllocatedType();
-
-    if (!var_allocated_type->isPointerTy()) {
-      throw std::runtime_error{
-        common.format_error(common.positions.position_of(node),
-                            "indirection requires pointer operand")};
-    }
-
-    if (!var_info) {
-      throw std::runtime_error{common.format_error(
-        common.positions.position_of(node),
-        format("unknown variable '%s' referenced", var.name))};
-    }
-
-    return common.builder.CreateLoad(
-      var_allocated_type->getPointerElementType(),
-      common.builder.CreateLoad(var_type->getPointerElementType(),
-                                var_info->inst));
+    return common.builder.CreateLoad(lhs_type->getPointerElementType(), lhs);
   }
 
 private:

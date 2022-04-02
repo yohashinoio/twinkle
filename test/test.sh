@@ -707,7 +707,7 @@ assert 58 "func get_ptr(n: i32) -> *i32 {
 }
 func main() -> i32 {
   let n: i32 = 58;
-  ret *f(n);
+  ret *get_ptr(n);
 }"
 
 echo OK
