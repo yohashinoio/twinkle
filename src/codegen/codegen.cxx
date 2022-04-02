@@ -202,16 +202,20 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
 
         // Division assignment.
         if (node.op == "/=") {
-          // TODO: unsigned
-          common.builder.CreateStore(common.builder.CreateSDiv(lhs, rhs),
-                                     var_info->inst);
+          auto const assign_value = var_info->is_signed
+                                      ? common.builder.CreateSDiv(lhs, rhs)
+                                      : common.builder.CreateUDiv(lhs, rhs);
+
+          common.builder.CreateStore(assign_value, var_info->inst);
         }
 
         // Modulo assignment.
         if (node.op == "%=") {
-          // TODO: unsigned
-          common.builder.CreateStore(common.builder.CreateSRem(lhs, rhs),
-                                     var_info->inst);
+          auto const assign_value = var_info->is_signed
+                                      ? common.builder.CreateSRem(lhs, rhs)
+                                      : common.builder.CreateURem(lhs, rhs);
+
+          common.builder.CreateStore(assign_value, var_info->inst);
         }
 
         return common.builder.CreateLoad(var_info->inst->getAllocatedType(),
