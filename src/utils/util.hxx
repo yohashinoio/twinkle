@@ -47,15 +47,15 @@ format_error_message_without_filename(const std::string_view message,
 load_file_to_string(const std::string_view       program_name,
                     const std::filesystem::path& path);
 
-program_options::options_description create_options_description();
+[[nodiscard]] program_options::options_description create_options_description();
 
-program_options::variables_map
+[[nodiscard]] program_options::variables_map
 get_variable_map(const program_options::options_description& desc,
                  const int                                   argc,
                  const char* const* const                    argv);
 
 // If no input files are passed, std::runtime_error is thrown.
-std::vector<std::string>
+[[nodiscard]] std::vector<std::string>
 get_input_files(const std::string_view                program_name,
                 const program_options::variables_map& vm);
 

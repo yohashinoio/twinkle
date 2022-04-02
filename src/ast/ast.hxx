@@ -197,17 +197,17 @@ struct parameter : x3::position_tagged {
 struct parameter_list : x3::position_tagged {
   std::vector<parameter> params;
 
-  const parameter& operator[](const std::size_t idx) const
+  [[nodiscard]] const parameter& operator[](const std::size_t idx) const
   {
     return params.at(idx);
   }
 
-  const std::vector<parameter>& operator*() const noexcept
+  [[nodiscard]] const std::vector<parameter>& operator*() const noexcept
   {
     return params;
   }
 
-  std::size_t length() const noexcept
+  [[nodiscard]] std::size_t length() const noexcept
   {
     return params.size();
   }
