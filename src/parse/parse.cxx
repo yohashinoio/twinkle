@@ -75,9 +75,9 @@ const auto assign_attr_to_val = [](auto&& ctx) -> void {
 };
 
 const auto assign_binop_to_val = [](auto&& ctx) -> void {
-  ast::binary_op_expr ast{x3::_val(ctx),
-                          fusion::at_c<0>(x3::_attr(ctx)),
-                          fusion::at_c<1>(x3::_attr(ctx))};
+  ast::bin_operation ast{std::move(x3::_val(ctx)),
+                          std::move(fusion::at_c<0>(x3::_attr(ctx))),
+                          std::move(fusion::at_c<1>(x3::_attr(ctx)))};
 
   auto&& position_cache = x3::get<position_cache_tag>(ctx);
   position_cache.annotate(ast, x3::_where(ctx).begin(), x3::_where(ctx).end());
@@ -179,7 +179,7 @@ const auto identifier
 
 const auto variable_identifier
   = x3::rule<struct variable_identifier_tag,
-             ast::variable_expr>{"variable identifier"}
+             ast::variable_ref>{"variable identifier"}
 = identifier;
 
 const auto type_name
@@ -279,11 +279,11 @@ const x3::rule<struct primary_tag, ast::expression> primary{"primary"};
 
 const x3::rule<struct argument_list_tag, std::vector<ast::expression>>
   argument_list{"argument list"};
-const x3::rule<struct function_call_operation_tag, ast::function_call_expr>
+const x3::rule<struct function_call_operation_tag, ast::func_call_operation>
   function_call_operation{"function call operation"};
-const x3::rule<struct cast_operation_tag, ast::cast_expr> cast_operation{
+const x3::rule<struct cast_operation_tag, ast::conv_operation> cast_operation{
   "conversion operation"};
-const x3::rule<struct address_of_operation, ast::address_of_expr>
+const x3::rule<struct address_of_operation, ast::address_of_operation>
   address_of_operation{"address-of operation"};
 
 const auto argument_list_def = -(expression >> *(x3::lit(',') > expression));
@@ -416,15 +416,13 @@ BOOST_SPIRIT_DEFINE(expression_statement,
 // Top level rules
 //===----------------------------------------------------------------------===//
 
-const auto parameter
-  = x3::rule<struct parameter_tag, ast::parameter>{"parameter"}
+const auto parameter = x3::rule<struct parameter_tag, ast::param>{"parameter"}
 = (-variable_qualifier >> identifier > x3::lit(':') > type_name
    > x3::attr(false))
-  | x3::lit("...") >> x3::attr(ast::parameter{std::nullopt, "", {}, true});
+  | x3::lit("...") >> x3::attr(ast::param{std::nullopt, "", {}, true});
 
-const auto parameter_list
-  = x3::rule<struct parameter_list_tag,
-             std::vector<ast::parameter>>{"parameter list"}
+const auto parameter_list = x3::rule<struct parameter_list_tag,
+                                     std::vector<ast::param>>{"parameter list"}
 = -(parameter > *(x3::lit(',') > parameter));
 
 const auto function_proto

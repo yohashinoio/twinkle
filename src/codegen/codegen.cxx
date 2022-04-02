@@ -117,7 +117,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     return common.builder.CreateGlobalStringPtr(node.str);
   }
 
-  llvm::Value* operator()(const ast::unary_op_expr& node) const
+  llvm::Value* operator()(const ast::unary_operation& node) const
   {
     auto rhs = boost::apply_visitor(*this, node.rhs);
 
@@ -143,14 +143,14 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
 
   // Binary operator ast returns nullptr on failure because it cannot get a
   // position.
-  llvm::Value* operator()(const ast::binary_op_expr& node) const
+  llvm::Value* operator()(const ast::bin_operation& node) const
   {
     // Special case assignment because we don't want to emit the
     // left-hand-side as an expression.
     if (node.op == "=" || node.op == "+=" || node.op == "-=" || node.op == "*="
         || node.op == "/=" || node.op == "%=") {
       try {
-        auto& lhs_node = boost::get<ast::variable_expr>(node.lhs);
+        auto& lhs_node = boost::get<ast::variable_ref>(node.lhs);
 
         auto rhs = boost::apply_visitor(*this, node.rhs);
 
@@ -301,7 +301,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
       false)};
   }
 
-  llvm::Value* operator()(const ast::variable_expr& node) const
+  llvm::Value* operator()(const ast::variable_ref& node) const
   {
     auto var_info = scope[node.name];
 
@@ -316,7 +316,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
                                      node.name.c_str());
   }
 
-  llvm::Value* operator()(const ast::function_call_expr& node) const
+  llvm::Value* operator()(const ast::func_call_operation& node) const
   {
     auto callee_function = common.module->getFunction(node.callee);
 
@@ -347,7 +347,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     return common.builder.CreateCall(callee_function, args_value);
   }
 
-  llvm::Value* operator()(const ast::cast_expr& node) const
+  llvm::Value* operator()(const ast::conv_operation& node) const
   {
     auto lhs = boost::apply_visitor(*this, node.lhs);
 
@@ -370,7 +370,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     return lhs;
   }
 
-  llvm::Value* operator()(const ast::address_of_expr& node) const
+  llvm::Value* operator()(const ast::address_of_operation& node) const
   {
     auto lhs = boost::apply_visitor(*this, node.lhs);
 

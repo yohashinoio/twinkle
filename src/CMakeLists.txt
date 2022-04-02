@@ -41,7 +41,6 @@ add_executable(
 
 target_precompile_headers(${CMAKE_PROJECT_NAME} PRIVATE pch/pch.hxx)
 
-add_subdirectory(ast)
 add_subdirectory(codegen)
 add_subdirectory(jit)
 add_subdirectory(parse)
@@ -53,7 +52,6 @@ target_link_libraries(
   Threads::Threads
   ${Boost_LIBRARIES}
   ${CONFIG_OUTPUT}
-  ast
   codegen
   jit
   parse

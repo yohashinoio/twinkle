@@ -42,84 +42,65 @@ struct nil {};
 
 struct string_literal : x3::position_tagged {
   std::string str;
-
-  explicit string_literal(const std::string& str);
-
-  string_literal() noexcept;
 };
 
-struct variable_expr : x3::position_tagged {
+struct variable_ref : x3::position_tagged {
   std::string name;
-
-  explicit variable_expr(const std::string& name);
-
-  variable_expr() noexcept;
 };
 
-struct unary_op_expr;
-struct binary_op_expr;
-struct function_call_expr;
-struct cast_expr;
-struct address_of_expr;
+struct unary_operation;
+struct bin_operation;
+struct func_call_operation;
+struct conv_operation;
+struct address_of_operation;
 
-using expression = boost::variant<nil,
-                                  std::uint32_t, /* unsigned integer literals */
-                                  std::int32_t,  /* signed integer literals */
-                                  bool,          /* boolean literals */
-                                  string_literal,
-                                  variable_expr,
-                                  boost::recursive_wrapper<unary_op_expr>,
-                                  boost::recursive_wrapper<binary_op_expr>,
-                                  boost::recursive_wrapper<function_call_expr>,
-                                  boost::recursive_wrapper<cast_expr>,
-                                  boost::recursive_wrapper<address_of_expr>>;
+using expression
+  = boost::variant<nil,
+                   std::uint32_t, /* Unsigned integer literals */
+                   std::int32_t,  /* Signed integer literals */
+                   bool,          /* Boolean literals */
+                   string_literal,
+                   variable_ref,
+                   boost::recursive_wrapper<unary_operation>,
+                   boost::recursive_wrapper<bin_operation>,
+                   boost::recursive_wrapper<func_call_operation>,
+                   boost::recursive_wrapper<conv_operation>,
+                   boost::recursive_wrapper<address_of_operation>>;
 
-struct unary_op_expr : x3::position_tagged {
+struct unary_operation : x3::position_tagged {
   std::string op;
   expression  rhs;
-
-  unary_op_expr(const std::string& op, const expression& rhs);
-
-  unary_op_expr() noexcept;
 };
 
-struct binary_op_expr : x3::position_tagged {
+struct bin_operation : x3::position_tagged {
   expression  lhs;
   std::string op;
   expression  rhs;
 
-  binary_op_expr(const expression&  lhs,
-                 const std::string& op,
-                 const expression&  rhs);
+  bin_operation(decltype(lhs)&& lhs, decltype(op)&& op, decltype(rhs)&& rhs)
+    : lhs{std::move(lhs)}
+    , op{std::move(op)}
+    , rhs{std::move(rhs)}
+  {
+  }
 
-  binary_op_expr() noexcept;
+  bin_operation() noexcept
+  {
+  }
 };
 
-struct function_call_expr : x3::position_tagged {
+struct func_call_operation : x3::position_tagged {
   std::string             callee;
   std::vector<expression> args;
-
-  function_call_expr(const std::string&             callee,
-                     const std::vector<expression>& args);
-
-  function_call_expr() noexcept;
 };
 
-struct cast_expr : x3::position_tagged {
+struct conv_operation : x3::position_tagged {
   expression lhs;
   type_info  as;
-
-  cast_expr(const expression& lhs, const type_info& as);
-
-  cast_expr() noexcept;
 };
 
-struct address_of_expr : x3::position_tagged {
+struct address_of_operation : x3::position_tagged {
   expression lhs;
-
-  address_of_expr(const expression& lhs);
-
-  address_of_expr() noexcept;
 };
 
 //===----------------------------------------------------------------------===//
@@ -128,10 +109,6 @@ struct address_of_expr : x3::position_tagged {
 
 struct return_statement : x3::position_tagged {
   std::optional<expression> rhs;
-
-  explicit return_statement(const std::optional<expression>& rhs);
-
-  return_statement() noexcept;
 };
 
 struct variable_def_statement : x3::position_tagged {
@@ -139,13 +116,6 @@ struct variable_def_statement : x3::position_tagged {
   std::string                           name;
   type_info                             type;
   std::optional<expression>             initializer;
-
-  variable_def_statement(const std::optional<id::variable_qualifier>& qualifier,
-                         const std::string&                           name,
-                         const type_info&                             type,
-                         const std::optional<expression>& initializer);
-
-  variable_def_statement() noexcept;
 };
 
 struct break_statement : x3::position_tagged {
@@ -180,30 +150,16 @@ struct if_statement : x3::position_tagged {
   expression               condition;
   statement                then_statement;
   std::optional<statement> else_statement;
-
-  if_statement(const expression&               condition,
-               const statement&                then_statement,
-               const std::optional<statement>& else_statement);
-
-  if_statement() noexcept;
 };
 
 struct loop_statement : x3::position_tagged {
   std::string tmp;
   statement   body;
-
-  explicit loop_statement(const std::string& tmp, const statement& body);
-
-  loop_statement() noexcept;
 };
 
 struct while_statement : x3::position_tagged {
   expression cond_expr;
   statement  body;
-
-  while_statement(const expression& cond_expr, const statement& body);
-
-  while_statement() noexcept;
 };
 
 struct for_statement : x3::position_tagged {
@@ -211,68 +167,63 @@ struct for_statement : x3::position_tagged {
   std::optional<expression> cond_expr;
   std::optional<expression> loop_expr;
   statement                 body;
-
-  for_statement(const std::optional<expression>& init_expr,
-                const std::optional<expression>& cond_expr,
-                const std::optional<expression>& loop_expr,
-                const statement&                 body);
-
-  for_statement() noexcept;
 };
 
 //===----------------------------------------------------------------------===//
 // Top level abstract syntax tree
 //===----------------------------------------------------------------------===//
 
-struct parameter : x3::position_tagged {
+struct param : x3::position_tagged {
   std::optional<id::variable_qualifier> qualifier;
   std::string                           name;
   type_info                             type;
   bool                                  is_vararg;
 
-  parameter(const std::optional<id::variable_qualifier>& qualifier,
-            const std::string&                           name,
-            const type_info&                             type,
-            bool                                         is_vararg);
+  param(decltype(qualifier)&&     qualifier,
+        decltype(name)&&          name,
+        const decltype(type)&     type,
+        const decltype(is_vararg) is_vararg)
+    : qualifier{qualifier}
+    , name{name}
+    , type{type}
+    , is_vararg{is_vararg}
+  {
+  }
 
-  parameter() noexcept;
+  param() noexcept
+  {
+  }
 };
 
-struct parameter_list : x3::position_tagged {
-  std::vector<parameter> params;
+struct param_list : x3::position_tagged {
+  std::vector<param> params;
 
-  explicit parameter_list(const std::vector<parameter>& params);
+  const param& operator[](const std::size_t idx) const
+  {
+    return params.at(idx);
+  }
 
-  parameter_list() noexcept;
+  const std::vector<param>& operator*() const noexcept
+  {
+    return params;
+  }
 
-  const parameter& operator[](const std::size_t idx) const;
-
-  const std::vector<parameter>& operator*() const noexcept;
-
-  std::size_t length() const noexcept;
+  std::size_t length() const noexcept
+  {
+    return params.size();
+  }
 };
 
 struct function_declare : x3::position_tagged {
   std::optional<id::function_linkage> linkage;
   std::string                         name;
-  parameter_list                      params;
+  param_list                          params;
   type_info                           return_type;
-
-  function_declare(const std::optional<id::function_linkage>& linkage,
-                   const std::string&                         name,
-                   const parameter_list&                      params,
-                   const type_info&                           return_type);
-
-  function_declare() noexcept;
 };
 
 struct function_define : x3::position_tagged {
   function_declare decl;
   statement        body;
-
-  function_define(const function_declare& decl, const statement& body);
-
-  function_define() noexcept;
 };
 
 using top_level_stmt = boost::variant<nil, function_declare, function_define>;
