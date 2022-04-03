@@ -710,4 +710,12 @@ func main() -> i32 {
   ret *get_ptr(n);
 }"
 
+# Character literal
+assert 58 "func main() -> i32 {
+  'a';
+  '0';
+  '\n';
+  ret ':' as i32;
+}"
+
 echo OK

@@ -224,9 +224,15 @@ const auto escape_character
 const auto string_literal
   = x3::rule<struct string_literal_tag, ast::string_literal>{"string literal"}
 = x3::lexeme[x3::lit('"')
-             > *(x3::char_ - (x3::lit('"') | x3::eol | x3::lit('\\'))
-                 | escape_character)
+             >> *(x3::char_ - (x3::lit('"') | x3::eol | x3::lit('\\'))
+                  | escape_character)
              > x3::lit('"')];
+
+const auto char_literal
+  = x3::rule<struct char_literal_tag, ast::char_literal>{"character literal"}
+= x3::lit('\'')
+  >> (x3::char_ - (x3::lit('\'') | x3::eol | x3::lit('\\')) | escape_character)
+  > x3::lit('\'');
 
 //===----------------------------------------------------------------------===//
 // Operator rules
@@ -327,7 +333,7 @@ const auto unary_def = conv_operation
 
 const auto primary_def = (x3::lit('(') > expression > x3::lit(')'))
                          | unsigned_integer | signed_integer | boolean_literal
-                         | string_literal | address_of_operation
+                         | string_literal | char_literal | address_of_operation
                          | indirection_operation | variable_identifier;
 
 BOOST_SPIRIT_DEFINE(expression,
@@ -494,6 +500,10 @@ const auto program = x3::rule<struct program_tag, ast::program>{"program"}
 struct variable_identifier_tag : annotate_position {};
 
 struct string_literal_tag
+  : with_error_handling
+  , annotate_position {};
+
+struct char_literal_tag
   : with_error_handling
   , annotate_position {};
 

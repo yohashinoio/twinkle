@@ -44,6 +44,10 @@ struct string_literal : x3::position_tagged {
   std::string str;
 };
 
+struct char_literal : x3::position_tagged {
+  unsigned char ch;
+};
+
 struct variable_ref : x3::position_tagged {
   std::string name;
 };
@@ -60,6 +64,7 @@ using expression = boost::variant<nil,
                                   std::int32_t,  /* Signed integer literals */
                                   bool,          /* Boolean literals */
                                   string_literal,
+                                  char_literal,
                                   variable_ref,
                                   boost::recursive_wrapper<unary_op_expr>,
                                   boost::recursive_wrapper<bin_op_expr>,

@@ -26,6 +26,11 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
+  miko::ast::char_literal,
+  (unsigned char, ch)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
   miko::ast::unary_op_expr,
   (std::string, op)
   (miko::ast::expression, rhs)

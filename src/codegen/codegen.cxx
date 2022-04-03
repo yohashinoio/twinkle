@@ -115,6 +115,11 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     return common.builder.CreateGlobalStringPtr(node.str);
   }
 
+  llvm::Value* operator()(const ast::char_literal& node) const
+  {
+    return llvm::ConstantInt::get(common.builder.getInt8Ty(), node.ch);
+  }
+
   llvm::Value* operator()(const ast::unary_op_expr& node) const
   {
     auto const rhs = boost::apply_visitor(*this, node.rhs);
@@ -358,6 +363,16 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
       }
     }
 
+    // Verify arguments
+    std::size_t idx = 0;
+    for (auto&& arg : callee_func->args()) {
+      if (args_value[idx++]->getType() != arg.getType()) {
+        throw std::runtime_error{common.format_error(
+          common.positions.position_of(node),
+          "passing the type that is incompatible with the parameter type")};
+      }
+    }
+
     return common.builder.CreateCall(callee_func, args_value);
   }
 
@@ -487,7 +502,7 @@ struct statement_visitor : public boost::static_visitor<void> {
           != retval->getType()) {
         throw std::runtime_error{common.format_error(
           common.positions.position_of(node),
-          "returning a value that is incompatible with the result type")};
+          "returning the type that is incompatible with the result type")};
       }
 
       if (!retval) {
