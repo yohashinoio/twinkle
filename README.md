@@ -155,6 +155,7 @@ $ mikoc --help
 | Operator name | Syntax |
 | ------------- | ------ |
 | Address-of    | &a     |
+| Indirection   | *a     |
 
 ### Other operators
 | Operator name | Syntax    |
