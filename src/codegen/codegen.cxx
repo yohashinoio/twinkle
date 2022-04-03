@@ -127,7 +127,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     if (!rhs) {
       throw std::runtime_error{
         common.format_error(common.positions.position_of(node),
-                            "failed to generate right hand side")};
+                            "failed to generate right-hand side")};
     }
 
     if (node.op == "+")
@@ -139,9 +139,9 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
         rhs);
     }
 
-    throw std::runtime_error{common.format_error(
-      common.positions.position_of(node),
-      format("unsupported unary operator '%s' detected", node.op))};
+    throw std::runtime_error{
+      common.format_error(common.positions.position_of(node),
+                          format("unknown operator '%s' detected", node.op))};
   }
 
   llvm::Value* operator()(const ast::bin_op_expr& node) const
@@ -158,7 +158,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
         if (!rhs) {
           throw std::runtime_error{
             common.format_error(common.positions.position_of(lhs_node),
-                                "failed to generate right hand side")};
+                                "failed to generate right-hand side")};
         }
 
         auto var_info = scope[lhs_node.name];
@@ -228,7 +228,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
         // Left hand side was not a variable.
         throw std::runtime_error{
           common.format_error(common.positions.position_of(node),
-                              "left hand side was not as variable",
+                              "left-hand side was not as variable",
                               false)};
       }
     }
@@ -239,14 +239,14 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     if (!lhs) {
       throw std::runtime_error{
         common.format_error(common.positions.position_of(node),
-                            "failed to generate left hand side",
+                            "failed to generate left-hand side",
                             false)};
     }
 
     if (!rhs) {
       throw std::runtime_error{
         common.format_error(common.positions.position_of(node),
-                            "failed to generate right hand side",
+                            "failed to generate right-hand side",
                             false)};
     }
 
@@ -315,10 +315,10 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     }
 
     // Unsupported binary operators detected.
-    throw std::runtime_error{common.format_error(
-      common.positions.position_of(node),
-      format("unsupported binary operator '%s' detected", node.op),
-      false)};
+    throw std::runtime_error{
+      common.format_error(common.positions.position_of(node),
+                          format("unknown operator '%s' detected", node.op),
+                          false)};
   }
 
   llvm::Value* operator()(const ast::variable_ref& node) const
@@ -359,7 +359,8 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
       if (!args_value.back()) {
         throw std::runtime_error{common.format_error(
           common.positions.position_of(node),
-          format("argument set failed in call to function '%s'", node.callee))};
+          format("argument set failed in call to the function '%s'",
+                 node.callee))};
       }
     }
 
@@ -369,7 +370,9 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
       if (args_value[idx++]->getType() != arg.getType()) {
         throw std::runtime_error{common.format_error(
           common.positions.position_of(node),
-          "passing the type that is incompatible with the parameter type")};
+          format("incompatible type for argument %d of '%s'",
+                 idx + 1,
+                 node.callee))};
       }
     }
 
@@ -383,7 +386,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     if (!lhs) {
       throw std::runtime_error{
         common.format_error(common.positions.position_of(node),
-                            "failed to generate left hand side")};
+                            "failed to generate left-hand side")};
     }
 
     const auto as = common.typename_to_type(node.as.id, node.as.is_ptr);
@@ -391,7 +394,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     if (!as) {
       throw std::runtime_error{
         common.format_error(common.positions.position_of(node),
-                            "conversion to undefined type")};
+                            "conversion to an unknown type")};
     }
 
     return common.builder.CreateIntCast(lhs, as->type, as->is_signed);
@@ -406,7 +409,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     if (!lhs) {
       throw std::runtime_error{
         common.format_error(common.positions.position_of(node),
-                            "failed to generate right hand side")};
+                            "failed to generate right-hand side")};
     }
 
     return llvm::getPointerOperand(lhs);
@@ -419,7 +422,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     if (!lhs) {
       throw std::runtime_error{
         common.format_error(common.positions.position_of(node),
-                            "failed to generate right hand side")};
+                            "failed to generate right-hand side")};
     }
 
     auto const lhs_type = lhs->getType();
@@ -427,7 +430,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     if (!lhs_type->isPointerTy()) {
       throw std::runtime_error{
         common.format_error(common.positions.position_of(node),
-                            "indirection requires pointer operand")};
+                            "unary '*' requires pointer operand")};
     }
 
     return common.builder.CreateLoad(lhs_type->getPointerElementType(), lhs);
@@ -500,9 +503,9 @@ struct statement_visitor : public boost::static_visitor<void> {
 
       if (common.builder.GetInsertBlock()->getParent()->getReturnType()
           != retval->getType()) {
-        throw std::runtime_error{common.format_error(
-          common.positions.position_of(node),
-          "returning the type that is incompatible with the result type")};
+        throw std::runtime_error{
+          common.format_error(common.positions.position_of(node),
+                              "incompatible type for result type")};
       }
 
       if (!retval) {
@@ -547,7 +550,7 @@ struct statement_visitor : public boost::static_visitor<void> {
       if (!initializer) {
         throw std::runtime_error{common.format_error(
           common.positions.position_of(node),
-          format("initialization of variable %s failed", node.name))};
+          format("failed to generate initializer for '%s'", node.name))};
       }
 
       common.builder.CreateStore(initializer, inst);
@@ -668,9 +671,9 @@ struct statement_visitor : public boost::static_visitor<void> {
       = boost::apply_visitor(expression_visitor{common, scope}, node.cond_expr);
 
     if (!cond_value) {
-      throw std::runtime_error{common.format_error(
-        common.positions.position_of(node),
-        "failed to generate condition expression in for statement")};
+      throw std::runtime_error{
+        common.format_error(common.positions.position_of(node),
+                            "failed to generate condition expression")};
     }
 
     auto const cond = common.builder.CreateICmp(
@@ -708,9 +711,9 @@ struct statement_visitor : public boost::static_visitor<void> {
                                *node.init_expr);
 
       if (!init_value) {
-        throw std::runtime_error{common.format_error(
-          common.positions.position_of(node),
-          "failed to generate init expression in for statement")};
+        throw std::runtime_error{
+          common.format_error(common.positions.position_of(node),
+                              "failed to generate initialization expression")};
       }
     }
 
@@ -731,9 +734,9 @@ struct statement_visitor : public boost::static_visitor<void> {
                                *node.cond_expr);
 
       if (!cond_value) {
-        throw std::runtime_error{common.format_error(
-          common.positions.position_of(node),
-          "failed to generate condition expression in for statement")};
+        throw std::runtime_error{
+          common.format_error(common.positions.position_of(node),
+                              "failed to generate condition expression")};
       }
 
       auto const cond = common.builder.CreateICmp(
@@ -776,9 +779,9 @@ struct statement_visitor : public boost::static_visitor<void> {
                                *node.loop_expr);
 
       if (!loop_value) {
-        throw std::runtime_error{common.format_error(
-          common.positions.position_of(node),
-          "failed to generate loop expression in for statement")};
+        throw std::runtime_error{
+          common.format_error(common.positions.position_of(node),
+                              "failed to generate loop expression")};
       }
     }
 

@@ -70,8 +70,8 @@ $ sudo ln -s /usr/bin/llvm-config-xxx /usr/local/bin/llvm-config
 ### Installation
 First, clone.
 ```bash
-$ git clone <this project>
-$ cd <this project name>
+$ git clone https://github.com/GothicLoli/miko.git
+$ cd miko
 ```
 Next, create a build directory.
 ```bash
