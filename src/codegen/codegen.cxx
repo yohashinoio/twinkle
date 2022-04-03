@@ -479,6 +479,13 @@ struct statement_visitor : public boost::static_visitor<void> {
       auto const retval
         = boost::apply_visitor(expression_visitor{common, scope}, *node.rhs);
 
+      if (common.builder.GetInsertBlock()->getParent()->getReturnType()
+          != retval->getType()) {
+        throw std::runtime_error{common.format_error(
+          common.positions.position_of(node),
+          "returning a value that is incompatible with the result type")};
+      }
+
       if (!retval) {
         throw std::runtime_error{
           common.format_error(common.positions.position_of(node),
@@ -814,7 +821,8 @@ void codegen_statement(const ast::statement& statement,
                                              continue_bb},
                            r);
 
-      // If a terminator is present, subsequent code generation is terminated.
+      // If a terminator is present, subsequent code generation is
+      // terminated.
       if (common.builder.GetInsertBlock()->getTerminator())
         break;
     }
@@ -1000,7 +1008,8 @@ struct top_level_visitor : public boost::static_visitor<llvm::Function*> {
       }
     }
 
-    // Inserts a terminator if the function returning void does not have one.
+    // Inserts a terminator if the function returning void does not have
+    // one.
     if (node.decl.return_type.id == id::type_name::void_
         && !common.builder.GetInsertBlock()->getTerminator()) {
       common.builder.CreateBr(end_bb);
