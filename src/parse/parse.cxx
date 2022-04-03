@@ -184,7 +184,9 @@ const auto variable_identifier
 
 const auto type_name
   = x3::rule<struct type_name_tag, ast::type_info>{"pointer type name"}
-= (-x3::char_('*') >> type_name_symbols)[([](auto&& ctx) {
+= (-x3::char_('*')
+   >> type_name_symbols /* TODO: support double (recursion) ptr */)[(
+  [](auto&& ctx) {
     if (fusion::at_c<0>(x3::_attr(ctx))) {
       // pointer
       x3::_val(ctx) = ast::type_info{true, fusion::at_c<1>(x3::_attr(ctx))};
@@ -285,25 +287,13 @@ const x3::rule<struct primary_tag, ast::expression> primary{"primary"};
 
 const x3::rule<struct argument_list_tag, std::vector<ast::expression>>
   argument_list{"argument list"};
-const x3::rule<struct function_call_operation_tag, ast::function_call_expr>
-  function_call_operation{"function call operation"};
-const x3::rule<struct conv_operation_tag, ast::conv_expr> conv_operation{
-  "conversion operation"};
-const x3::rule<struct address_of_operation_tag, ast::addr_of_expr>
-  address_of_operation{"address-of operation"};
-const x3::rule<struct indirection_operation_tag, ast::indirection_expr>
-  indirection_operation{"indirection operation"};
-
-const auto argument_list_def = -(expression >> *(x3::lit(',') > expression));
-
-const auto function_call_operation_def
-  = identifier >> x3::lit("(") > argument_list > x3::lit(")");
-
-const auto conv_operation_def = primary >> x3::lit("as") > type_name;
-
-const auto address_of_operation_def = x3::lit('&') > expression;
-
-const auto indirection_operation_def = x3::lit('*') > expression;
+const x3::rule<struct function_call_tag, ast::function_call_expr> function_call{
+  "function call"};
+const x3::rule<struct conversion_tag, ast::conv_expr> conversion{"conversion"};
+const x3::rule<struct address_of_tag, ast::addr_of_expr> address_of{
+  "address-of"};
+const x3::rule<struct indirection_tag, ast::indirection_expr> indirection{
+  "indirection"};
 
 const auto expression_def = assignment;
 
@@ -327,14 +317,24 @@ const auto multiplication_def
   = unary[action::assign_attr_to_val]
     >> *(multitive_operator > unary)[action::assign_binop_to_val];
 
-const auto unary_def = conv_operation
-                       | (unary_operator > primary) /* unary operation */
-                       | function_call_operation | primary;
+const auto conversion_def = primary >> x3::lit("as") > type_name;
 
-const auto primary_def = (x3::lit('(') > expression > x3::lit(')'))
-                         | unsigned_integer | signed_integer | boolean_literal
-                         | string_literal | char_literal | address_of_operation
-                         | indirection_operation | variable_identifier;
+const auto address_of_def = x3::lit('&') > primary;
+
+const auto indirection_def = x3::lit('*') > primary;
+
+const auto unary_def = conversion | primary | (unary_operator > primary)
+                       | address_of | indirection;
+
+const auto argument_list_def = -(expression % x3::lit(','));
+
+const auto function_call_def
+  = identifier >> x3::lit("(") > argument_list > x3::lit(")");
+
+const auto primary_def = unsigned_integer | signed_integer | boolean_literal
+                         | string_literal | char_literal | function_call
+                         | variable_identifier
+                         | (x3::lit('(') > expression > x3::lit(')'));
 
 BOOST_SPIRIT_DEFINE(expression,
                     assignment,
@@ -345,10 +345,10 @@ BOOST_SPIRIT_DEFINE(expression,
                     unary,
                     primary,
                     argument_list,
-                    function_call_operation,
-                    conv_operation,
-                    address_of_operation,
-                    indirection_operation)
+                    function_call,
+                    conversion,
+                    address_of,
+                    indirection)
 
 //===----------------------------------------------------------------------===//
 // Statement rules
@@ -434,9 +434,8 @@ const auto parameter
   | x3::lit("...") >> x3::attr(ast::parameter{std::nullopt, "", {}, true});
 
 const auto parameter_list
-  = x3::rule<struct parameter_list_tag,
-             std::vector<ast::parameter>>{"parameter list"}
-= -(parameter > *(x3::lit(',') > parameter));
+  = x3::rule<struct parameter_list_tag, ast::parameter_list>{"parameter list"}
+= -(parameter % x3::lit(','));
 
 const auto function_proto
   = x3::rule<struct function_proto_tag,
@@ -537,19 +536,19 @@ struct multiplication_tag
 
 struct argument_list_tag : with_error_handling {};
 
-struct function_call_operation_tag
+struct function_call_tag
   : with_error_handling
   , annotate_position {};
 
-struct conv_operation_tag
+struct conversion_tag
   : with_error_handling
   , annotate_position {};
 
-struct address_of_operation_tag
+struct address_of_tag
   : with_error_handling
   , annotate_position {};
 
-struct indirection_operation_tag
+struct indirection_tag
   : with_error_handling
   , annotate_position {};
 

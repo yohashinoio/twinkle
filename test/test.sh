@@ -710,12 +710,33 @@ func main() -> i32 {
   ret *get_ptr(n);
 }"
 
+assert 58 "func f(mut p: *i32) -> void {
+  *p = 58;
+}
+func main() -> i32 {
+  let mut n: i32 = 0;
+  f(&n);
+  ret n;
+}"
+
 # Character literal
 assert 58 "func main() -> i32 {
   'a';
   '0';
   '\n';
   ret ':' as i32;
+}"
+
+# Indirection assignment
+assert 58 "func main() -> i32 {
+  let n: i32 = 0;
+  let p: *i32 = &n;
+  *p = 48;
+  *p += 10;
+  *p *= 2;
+  *p /= 2;
+  *p %= 4810;
+  ret *p;
 }"
 
 echo OK
