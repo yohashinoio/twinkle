@@ -87,9 +87,8 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
 
   llvm::Value* operator()(ast::nil) const
   {
-    throw std::runtime_error{format_error_message(
-      common.file.string(),
-      "a function was executed that did not predict execution")};
+    BOOST_ASSERT(0);
+    return nullptr;
   }
 
   // Unsigned integer literals.
@@ -111,7 +110,6 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
       llvm::ConstantInt::get(common.builder.getInt1Ty(), node));
   }
 
-  // String literals.
   llvm::Value* operator()(const ast::string_literal& node) const
   {
     return common.builder.CreateGlobalStringPtr(node.str);
@@ -368,9 +366,9 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     auto const lhs = boost::apply_visitor(*this, node.lhs);
 
     if (!lhs) {
-      throw std::runtime_error{common.format_error(
-        common.positions.position_of(node),
-        "failed to generate left hand side of conversion operation")};
+      throw std::runtime_error{
+        common.format_error(common.positions.position_of(node),
+                            "failed to generate left hand side")};
     }
 
     const auto as = common.typename_to_type(node.as.id, node.as.is_ptr);
@@ -391,9 +389,9 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     auto const lhs = boost::apply_visitor(*this, node.lhs);
 
     if (!lhs) {
-      throw std::runtime_error{common.format_error(
-        common.positions.position_of(node),
-        "failed to generate left hand side of address of operation")};
+      throw std::runtime_error{
+        common.format_error(common.positions.position_of(node),
+                            "failed to generate right hand side")};
     }
 
     return llvm::getPointerOperand(lhs);
@@ -402,6 +400,12 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
   llvm::Value* operator()(const ast::indirection_expr& node) const
   {
     auto const lhs = boost::apply_visitor(*this, node.lhs);
+
+    if (!lhs) {
+      throw std::runtime_error{
+        common.format_error(common.positions.position_of(node),
+                            "failed to generate right hand side")};
+    }
 
     auto const lhs_type = lhs->getType();
 
