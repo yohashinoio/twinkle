@@ -1,5 +1,5 @@
 /**
- * id.hxx
+ * id.hpp
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -17,7 +17,7 @@
 namespace miko::id
 {
 
-enum class type_name {
+enum class TypeName {
   void_,
   i8,
   u8,
@@ -30,11 +30,11 @@ enum class type_name {
   bool_,
 };
 
-enum class variable_qualifier {
+enum class VariableQualifier {
   mutable_,
 };
 
-enum class function_linkage {
+enum class FunctionLinkage {
   private_,
 };
 

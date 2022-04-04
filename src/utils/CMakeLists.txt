@@ -4,5 +4,5 @@
 
 add_library(
   utils OBJECT
-  util.cxx
+  util.cpp
 )

@@ -1,5 +1,5 @@
 /**
- * codegen.hxx
+ * codegen.hpp
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -14,32 +14,32 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <pch/pch.hxx>
-#include <ast/ast.hxx>
-#include <utils/util.hxx>
-#include <utils/typedef.hxx>
-#include <jit/jit.hxx>
+#include <pch/pch.hpp>
+#include <ast/ast.hpp>
+#include <utils/util.hpp>
+#include <utils/typedef.hpp>
+#include <jit/jit.hpp>
 
 namespace miko::codegen
 {
 
-struct llvm_type_info {
+struct LLVMTypeWithSign {
   llvm::Type* type;
   bool        is_signed;
 };
 
 // A structure that summarizes variables commonly needed by visitors.
-struct codegen_common {
-  codegen_common(const std::filesystem::path& file,
-                 const position_cache&        positions);
+struct CodegenCommon {
+  CodegenCommon(const std::filesystem::path& file,
+                const PositionCache&        positions);
 
-  [[nodiscard]] std::optional<llvm_type_info>
-  typename_to_type(const id::type_name type, const bool is_ptr = false);
+  [[nodiscard]] std::optional<LLVMTypeWithSign>
+  typename_to_type(const id::TypeName type, const bool is_ptr = false);
 
   [[nodiscard]] llvm::Value* i1_to_boolean(llvm::Value* value);
 
   [[nodiscard]] std::string
-  format_error(const boost::iterator_range<input_iterator_type> pos,
+  format_error(const boost::iterator_range<InputIterator> pos,
                const std::string_view                           message,
                const bool with_code = true);
 
@@ -49,13 +49,13 @@ struct codegen_common {
 
   std::filesystem::path file;
 
-  const position_cache& positions;
+  const PositionCache& positions;
 };
 
-struct code_generator {
-  code_generator(const std::string_view       program_name,
-                 const ast::program&          ast,
-                 const position_cache&        positions,
+struct CodeGenerator {
+  CodeGenerator(const std::string_view       program_name,
+                 const ast::Program&          ast,
+                 const PositionCache&        positions,
                  const std::filesystem::path& file_path,
                  const bool                   optimize);
 
@@ -71,13 +71,13 @@ private:
 
   const std::string_view program_name;
 
-  codegen_common common;
+  CodegenCommon common;
 
   llvm::TargetMachine* target_machine;
 
   llvm::legacy::FunctionPassManager fpm;
 
-  const ast::program& ast;
+  const ast::Program& ast;
 };
 
 } // namespace miko::codegen

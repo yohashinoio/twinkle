@@ -1,5 +1,5 @@
 /**
- * util.hxx
+ * util.hpp
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -14,7 +14,7 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <pch/pch.hxx>
+#include <pch/pch.hpp>
 
 namespace miko
 {
@@ -23,10 +23,10 @@ namespace miko
 // Using & Typedef
 //===----------------------------------------------------------------------===//
 
-using input_iterator_type = std::string::const_iterator;
+using InputIterator = std::string::const_iterator;
 
-using position_cache
-  = boost::spirit::x3::position_cache<std::vector<input_iterator_type>>;
+using PositionCache
+  = boost::spirit::x3::position_cache<std::vector<InputIterator>>;
 
 } // namespace miko
 

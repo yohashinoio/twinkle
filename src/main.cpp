@@ -1,5 +1,5 @@
 /**
- * main.cxx
+ * main.cpp
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -7,11 +7,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <codegen/codegen.hxx>
-#include <jit/jit.hxx>
-#include <parse/parse.hxx>
-#include <utils/util.hxx>
-#include <utils/format.hxx>
+#include <codegen/codegen.hpp>
+#include <jit/jit.hpp>
+#include <parse/parse.hpp>
+#include <utils/util.hpp>
+#include <utils/format.hpp>
 
 namespace program_options = boost::program_options;
 
@@ -33,7 +33,7 @@ bool is_back_newline(const char* str) noexcept
   }
 }
 
-void output_to_file(miko::codegen::code_generator& generator,
+void output_to_file(miko::codegen::CodeGenerator& generator,
                     const std::filesystem::path&   path,
                     const bool                     output_llvmir)
 {
@@ -71,10 +71,10 @@ try {
     std::string_view file_path = "a";
 
     // Parsing is performed as soon as the constructor is called.
-    miko::parse::parser parser{vm["input"].as<std::string>(), file_path};
+    miko::parse::Parser parser{vm["input"].as<std::string>(), file_path};
 
     // Code generation occurs as soon as the constructor is called.
-    miko::codegen::code_generator generator{*argv,
+    miko::codegen::CodeGenerator generator{*argv,
                                             parser.get_ast(),
                                             parser.get_positions(),
                                             file_path,
@@ -92,10 +92,10 @@ try {
       auto input = miko::load_file_to_string(*argv, file_path);
 
       // Parsing is performed as soon as the constructor is called.
-      miko::parse::parser parser{std::move(input), file_path};
+      miko::parse::Parser parser{std::move(input), file_path};
 
       // Code generation occurs as soon as the constructor is called.
-      miko::codegen::code_generator generator{*argv,
+      miko::codegen::CodeGenerator generator{*argv,
                                               parser.get_ast(),
                                               parser.get_positions(),
                                               file_path,

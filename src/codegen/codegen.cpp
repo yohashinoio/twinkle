@@ -1,5 +1,5 @@
 /**
- * codegen.cxx
+ * codegen.cpp
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -7,9 +7,9 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <codegen/codegen.hxx>
-#include <parse/id.hxx>
-#include <utils/format.hxx>
+#include <codegen/codegen.hpp>
+#include <parse/id.hpp>
+#include <utils/format.hpp>
 
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
 #include <unistd.h> // isatty
@@ -22,14 +22,14 @@ namespace miko::codegen
 // Utilities
 //===----------------------------------------------------------------------===//
 
-struct variable_info {
+struct VariableInfo {
   llvm::AllocaInst* inst;
   bool              is_mutable;
   bool              is_signed;
 };
 
-struct symbol_table {
-  [[nodiscard]] std::optional<variable_info>
+struct SymbolTable {
+  [[nodiscard]] std::optional<VariableInfo>
   operator[](const std::string& name) const noexcept
   try {
     return named_values.at(name);
@@ -39,7 +39,7 @@ struct symbol_table {
   }
 
   // Regist stands for register.
-  void regist(const std::string& name, variable_info info)
+  void regist(const std::string& name, VariableInfo info)
   {
     named_values.insert({name, info});
   }
@@ -59,7 +59,7 @@ struct symbol_table {
   }
 
 private:
-  std::unordered_map<std::string, variable_info> named_values;
+  std::unordered_map<std::string, VariableInfo> named_values;
 };
 
 // Create an alloca instruction in the entry block of
@@ -78,14 +78,14 @@ create_entry_block_alloca(llvm::Function*    func,
 // Expression visitor
 //===----------------------------------------------------------------------===//
 
-struct expression_visitor : public boost::static_visitor<llvm::Value*> {
-  expression_visitor(codegen_common& common, symbol_table& scope)
+struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
+  ExprVisitor(CodegenCommon& common, SymbolTable& scope)
     : common{common}
     , scope{scope}
   {
   }
 
-  llvm::Value* operator()(ast::nil) const
+  llvm::Value* operator()(ast::Nil) const
   {
     BOOST_ASSERT(0);
     return nullptr;
@@ -110,17 +110,17 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
       llvm::ConstantInt::get(common.builder.getInt1Ty(), node));
   }
 
-  llvm::Value* operator()(const ast::string_literal& node) const
+  llvm::Value* operator()(const ast::StringLiteral& node) const
   {
     return common.builder.CreateGlobalStringPtr(node.str);
   }
 
-  llvm::Value* operator()(const ast::char_literal& node) const
+  llvm::Value* operator()(const ast::CharLiteral& node) const
   {
     return llvm::ConstantInt::get(common.builder.getInt8Ty(), node.ch);
   }
 
-  llvm::Value* operator()(const ast::unary_op_expr& node) const
+  llvm::Value* operator()(const ast::UnaryOp& node) const
   {
     auto const rhs = boost::apply_visitor(*this, node.rhs);
 
@@ -144,7 +144,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
                           format("unknown operator '%s' detected", node.op))};
   }
 
-  llvm::Value* operator()(const ast::bin_op_expr& node) const
+  llvm::Value* operator()(const ast::BinOp& node) const
   {
     // Special case assignment because we don't want to emit the
     // left-hand-side as an expression.
@@ -152,8 +152,8 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
         || node.op == "/=" || node.op == "%=") {
       llvm::Value* lhs;
 
-      if (node.lhs.type() == typeid(ast::variable_ref)) {
-        auto& lhs_node = boost::get<ast::variable_ref>(node.lhs);
+      if (node.lhs.type() == typeid(ast::VariableRef)) {
+        auto& lhs_node = boost::get<ast::VariableRef>(node.lhs);
 
         auto var_info = scope[lhs_node.name];
 
@@ -173,8 +173,8 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
 
         lhs = var_info->inst;
       }
-      else if (node.lhs.type() == typeid(ast::indirection_expr)) {
-        auto const lhs_node = boost::get<ast::indirection_expr>(node.lhs);
+      else if (node.lhs.type() == typeid(ast::Indirection)) {
+        auto const lhs_node = boost::get<ast::Indirection>(node.lhs);
 
         lhs = boost::apply_visitor(*this, lhs_node.lhs);
       }
@@ -344,7 +344,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
                           false)};
   }
 
-  llvm::Value* operator()(const ast::variable_ref& node) const
+  llvm::Value* operator()(const ast::VariableRef& node) const
   {
     auto var_info = scope[node.name];
 
@@ -358,7 +358,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
                                      var_info->inst);
   }
 
-  llvm::Value* operator()(const ast::function_call_expr& node) const
+  llvm::Value* operator()(const ast::FunctionCall& node) const
   {
     auto const callee_func = common.module->getFunction(node.callee);
 
@@ -402,7 +402,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     return common.builder.CreateCall(callee_func, args_value);
   }
 
-  llvm::Value* operator()(const ast::conv_expr& node) const
+  llvm::Value* operator()(const ast::Conversion& node) const
   {
     auto const lhs = boost::apply_visitor(*this, node.lhs);
 
@@ -425,7 +425,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     return lhs;
   }
 
-  llvm::Value* operator()(const ast::addr_of_expr& node) const
+  llvm::Value* operator()(const ast::AddressOf& node) const
   {
     auto const lhs = boost::apply_visitor(*this, node.lhs);
 
@@ -438,7 +438,7 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
     return llvm::getPointerOperand(lhs);
   }
 
-  llvm::Value* operator()(const ast::indirection_expr& node) const
+  llvm::Value* operator()(const ast::Indirection& node) const
   {
     auto const lhs = boost::apply_visitor(*this, node.lhs);
 
@@ -460,30 +460,30 @@ struct expression_visitor : public boost::static_visitor<llvm::Value*> {
   }
 
 private:
-  codegen_common& common;
+  CodegenCommon& common;
 
-  symbol_table& scope;
+  SymbolTable& scope;
 };
 
 //===----------------------------------------------------------------------===//
 // Statement visitor
 //===----------------------------------------------------------------------===//
 
-void codegen_statement(const ast::statement& statement,
-                       const symbol_table&   scope,
-                       codegen_common&       common,
-                       llvm::AllocaInst*     retvar,
-                       llvm::BasicBlock*     end_bb,
-                       llvm::BasicBlock*     break_bb,
-                       llvm::BasicBlock*     continue_bb);
+void codegen_statement(const ast::Stmt&   statement,
+                       const SymbolTable& scope,
+                       CodegenCommon&     common,
+                       llvm::AllocaInst*  retvar,
+                       llvm::BasicBlock*  end_bb,
+                       llvm::BasicBlock*  break_bb,
+                       llvm::BasicBlock*  continue_bb);
 
-struct statement_visitor : public boost::static_visitor<void> {
-  statement_visitor(codegen_common&   common,
-                    symbol_table&     scope,
-                    llvm::AllocaInst* retvar,
-                    llvm::BasicBlock* end_bb,
-                    llvm::BasicBlock* break_bb,
-                    llvm::BasicBlock* continue_bb)
+struct StmtVisitor : public boost::static_visitor<void> {
+  StmtVisitor(CodegenCommon&    common,
+              SymbolTable&      scope,
+              llvm::AllocaInst* retvar,
+              llvm::BasicBlock* end_bb,
+              llvm::BasicBlock* break_bb,
+              llvm::BasicBlock* continue_bb)
     : common{common}
     , scope{scope}
     , retvar{retvar}
@@ -493,12 +493,12 @@ struct statement_visitor : public boost::static_visitor<void> {
   {
   }
 
-  void operator()(ast::nil) const
+  void operator()(ast::Nil) const
   {
     // Empty statement, so not processed.
   }
 
-  void operator()(const ast::compound_statement& node) const
+  void operator()(const ast::CompoundStmt& node) const
   {
     codegen_statement(node,
                       scope,
@@ -509,20 +509,20 @@ struct statement_visitor : public boost::static_visitor<void> {
                       continue_bb);
   }
 
-  void operator()(const ast::expression& node) const
+  void operator()(const ast::Expr& node) const
   {
-    if (!boost::apply_visitor(expression_visitor{common, scope}, node)) {
+    if (!boost::apply_visitor(ExprVisitor{common, scope}, node)) {
       throw std::runtime_error{
         format_error_message(common.file.string(),
                              "failed to generate expression statement")};
     }
   }
 
-  void operator()(const ast::return_statement& node) const
+  void operator()(const ast::Return& node) const
   {
     if (node.rhs) {
       auto const retval
-        = boost::apply_visitor(expression_visitor{common, scope}, *node.rhs);
+        = boost::apply_visitor(ExprVisitor{common, scope}, *node.rhs);
 
       if (common.builder.GetInsertBlock()->getParent()->getReturnType()
           != retval->getType()) {
@@ -543,7 +543,7 @@ struct statement_visitor : public boost::static_visitor<void> {
     common.builder.CreateBr(end_bb);
   }
 
-  void operator()(const ast::variable_def_statement& node) const
+  void operator()(const ast::VariableDef& node) const
   {
     if (scope.exists(node.name)) {
       throw std::runtime_error{
@@ -567,8 +567,7 @@ struct statement_visitor : public boost::static_visitor<void> {
 
     if (node.initializer) {
       auto const initializer
-        = boost::apply_visitor(expression_visitor{common, scope},
-                               *node.initializer);
+        = boost::apply_visitor(ExprVisitor{common, scope}, *node.initializer);
 
       if (!initializer) {
         throw std::runtime_error{common.format_error(
@@ -583,16 +582,16 @@ struct statement_visitor : public boost::static_visitor<void> {
       // Consttant variable.
       scope.regist(node.name, {inst, false, type_info->is_signed});
     }
-    else if (*node.qualifier == id::variable_qualifier::mutable_) {
+    else if (*node.qualifier == id::VariableQualifier::mutable_) {
       // Mutable variable.
       scope.regist(node.name, {inst, true, type_info->is_signed});
     }
   }
 
-  void operator()(const ast::if_statement& node) const
+  void operator()(const ast::If& node) const
   {
     auto const cond_value
-      = boost::apply_visitor(expression_visitor{common, scope}, node.condition);
+      = boost::apply_visitor(ExprVisitor{common, scope}, node.condition);
 
     if (!cond_value) {
       throw std::runtime_error{
@@ -604,9 +603,8 @@ struct statement_visitor : public boost::static_visitor<void> {
     auto const cond = common.builder.CreateICmp(
       llvm::ICmpInst::ICMP_NE,
       cond_value,
-      llvm::ConstantInt::get(
-        common.typename_to_type(id::type_name::bool_)->type,
-        0));
+      llvm::ConstantInt::get(common.typename_to_type(id::TypeName::bool_)->type,
+                             0));
 
     auto const func = common.builder.GetInsertBlock()->getParent();
 
@@ -652,7 +650,7 @@ struct statement_visitor : public boost::static_visitor<void> {
     common.builder.SetInsertPoint(merge_bb);
   }
 
-  void operator()(const ast::loop_statement& node) const
+  void operator()(const ast::Loop& node) const
   {
     auto const func = common.builder.GetInsertBlock()->getParent();
 
@@ -678,7 +676,7 @@ struct statement_visitor : public boost::static_visitor<void> {
     common.builder.SetInsertPoint(loop_end_bb);
   }
 
-  void operator()(const ast::while_statement& node) const
+  void operator()(const ast::While& node) const
   {
     auto const func = common.builder.GetInsertBlock()->getParent();
 
@@ -691,7 +689,7 @@ struct statement_visitor : public boost::static_visitor<void> {
     common.builder.SetInsertPoint(cond_bb);
 
     auto const cond_value
-      = boost::apply_visitor(expression_visitor{common, scope}, node.cond_expr);
+      = boost::apply_visitor(ExprVisitor{common, scope}, node.cond_expr);
 
     if (!cond_value) {
       throw std::runtime_error{
@@ -702,9 +700,8 @@ struct statement_visitor : public boost::static_visitor<void> {
     auto const cond = common.builder.CreateICmp(
       llvm::ICmpInst::ICMP_NE,
       cond_value,
-      llvm::ConstantInt::get(
-        common.typename_to_type(id::type_name::bool_)->type,
-        0));
+      llvm::ConstantInt::get(common.typename_to_type(id::TypeName::bool_)->type,
+                             0));
 
     common.builder.CreateCondBr(cond, body_bb, loop_end_bb);
 
@@ -726,12 +723,11 @@ struct statement_visitor : public boost::static_visitor<void> {
     common.builder.SetInsertPoint(loop_end_bb);
   }
 
-  void operator()(const ast::for_statement& node) const
+  void operator()(const ast::For& node) const
   {
     if (node.init_expr) {
       auto const init_value
-        = boost::apply_visitor(expression_visitor{common, scope},
-                               *node.init_expr);
+        = boost::apply_visitor(ExprVisitor{common, scope}, *node.init_expr);
 
       if (!init_value) {
         throw std::runtime_error{
@@ -753,8 +749,7 @@ struct statement_visitor : public boost::static_visitor<void> {
 
     if (node.cond_expr) {
       auto const cond_value
-        = boost::apply_visitor(expression_visitor{common, scope},
-                               *node.cond_expr);
+        = boost::apply_visitor(ExprVisitor{common, scope}, *node.cond_expr);
 
       if (!cond_value) {
         throw std::runtime_error{
@@ -766,7 +761,7 @@ struct statement_visitor : public boost::static_visitor<void> {
         llvm::ICmpInst::ICMP_NE,
         cond_value,
         llvm::ConstantInt::get(
-          common.typename_to_type(id::type_name::bool_)->type,
+          common.typename_to_type(id::TypeName::bool_)->type,
           0));
 
       common.builder.CreateCondBr(cond, body_bb, loop_end_bb);
@@ -798,8 +793,7 @@ struct statement_visitor : public boost::static_visitor<void> {
 
     if (node.loop_expr) {
       auto const loop_value
-        = boost::apply_visitor(expression_visitor{common, scope},
-                               *node.loop_expr);
+        = boost::apply_visitor(ExprVisitor{common, scope}, *node.loop_expr);
 
       if (!loop_value) {
         throw std::runtime_error{
@@ -814,14 +808,14 @@ struct statement_visitor : public boost::static_visitor<void> {
     common.builder.SetInsertPoint(loop_end_bb);
   }
 
-  void operator()(ast::break_statement) const
+  void operator()(ast::Break) const
   {
     // Whether in a loop.
     if (break_bb)
       common.builder.CreateBr(break_bb);
   }
 
-  void operator()(ast::continue_statement) const
+  void operator()(ast::Continue) const
   {
     // Whether in a loop.
     if (continue_bb)
@@ -829,9 +823,9 @@ struct statement_visitor : public boost::static_visitor<void> {
   }
 
 private:
-  codegen_common& common;
+  CodegenCommon& common;
 
-  symbol_table& scope;
+  SymbolTable& scope;
 
   // Used to combine returns into one.
   llvm::AllocaInst* retvar;
@@ -843,28 +837,24 @@ private:
     continue_bb; // Basic block transitioned by continue statement.
 };
 
-void codegen_statement(const ast::statement& statement,
-                       const symbol_table&   scope,
-                       codegen_common&       common,
-                       llvm::AllocaInst*     retvar,
-                       llvm::BasicBlock*     end_bb,
-                       llvm::BasicBlock*     break_bb,
-                       llvm::BasicBlock*     continue_bb)
+void codegen_statement(const ast::Stmt&   statement,
+                       const SymbolTable& scope,
+                       CodegenCommon&     common,
+                       llvm::AllocaInst*  retvar,
+                       llvm::BasicBlock*  end_bb,
+                       llvm::BasicBlock*  break_bb,
+                       llvm::BasicBlock*  continue_bb)
 {
-  symbol_table new_scope = scope;
+  SymbolTable new_scope = scope;
 
   // Compound statement
-  if (statement.type() == typeid(ast::compound_statement)) {
-    auto& statements = boost::get<ast::compound_statement>(statement);
+  if (statement.type() == typeid(ast::CompoundStmt)) {
+    auto& statements = boost::get<ast::CompoundStmt>(statement);
 
     for (const auto& r : statements) {
-      boost::apply_visitor(statement_visitor{common,
-                                             new_scope,
-                                             retvar,
-                                             end_bb,
-                                             break_bb,
-                                             continue_bb},
-                           r);
+      boost::apply_visitor(
+        StmtVisitor{common, new_scope, retvar, end_bb, break_bb, continue_bb},
+        r);
 
       // If a terminator is present, subsequent code generation is
       // terminated.
@@ -877,7 +867,7 @@ void codegen_statement(const ast::statement& statement,
 
   // Other than compound statement
   boost::apply_visitor(
-    statement_visitor{common, new_scope, retvar, end_bb, break_bb, continue_bb},
+    StmtVisitor{common, new_scope, retvar, end_bb, break_bb, continue_bb},
     statement);
 }
 
@@ -885,22 +875,21 @@ void codegen_statement(const ast::statement& statement,
 // Top level statement visitor
 //===----------------------------------------------------------------------===//
 
-struct top_level_visitor : public boost::static_visitor<llvm::Function*> {
-  top_level_visitor(codegen_common&                    common,
-                    llvm::legacy::FunctionPassManager& fpm)
+struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
+  TopLevelVisitor(CodegenCommon& common, llvm::legacy::FunctionPassManager& fpm)
     : common{common}
     , fpm{fpm}
   {
   }
 
-  llvm::Function* operator()(ast::nil) const
+  llvm::Function* operator()(ast::Nil) const
   {
     throw std::runtime_error{format_error_message(
       common.file.string(),
       "a function was executed that did not predict execution")};
   }
 
-  llvm::Function* operator()(const ast::function_declare& node) const
+  llvm::Function* operator()(const ast::FunctionDecl& node) const
   {
     auto&& ps = *node.params;
 
@@ -947,7 +936,7 @@ struct top_level_visitor : public boost::static_visitor<llvm::Function*> {
                                     node.name,
                                     *common.module);
     }
-    else if (node.linkage == id::function_linkage::private_) {
+    else if (node.linkage == id::FunctionLinkage::private_) {
       // Internal linkage.
       func = llvm::Function::Create(func_type,
                                     llvm::Function::InternalLinkage,
@@ -963,7 +952,7 @@ struct top_level_visitor : public boost::static_visitor<llvm::Function*> {
     return func;
   }
 
-  llvm::Function* operator()(const ast::function_define& node) const
+  llvm::Function* operator()(const ast::FunctionDef& node) const
   {
     auto func = common.module->getFunction(node.decl.name);
 
@@ -976,7 +965,7 @@ struct top_level_visitor : public boost::static_visitor<llvm::Function*> {
         format("failed to create function %s", node.decl.name))};
     }
 
-    symbol_table argument_values;
+    SymbolTable argument_values;
 
     auto const entry_bb = llvm::BasicBlock::Create(*common.context, "", func);
     common.builder.SetInsertPoint(entry_bb);
@@ -1005,7 +994,7 @@ struct top_level_visitor : public boost::static_visitor<llvm::Function*> {
         // consttant variable.
         argument_values.regist(arg.getName().str(), {inst, false});
       }
-      else if (*param_node.qualifier == id::variable_qualifier::mutable_) {
+      else if (*param_node.qualifier == id::VariableQualifier::mutable_) {
         // mutable variable.
         argument_values.regist(arg.getName().str(), {inst, true});
       }
@@ -1024,7 +1013,7 @@ struct top_level_visitor : public boost::static_visitor<llvm::Function*> {
     // Used to combine returns into one.
     auto const end_bb = llvm::BasicBlock::Create(*common.context);
     auto const retvar
-      = node.decl.return_type.id == id::type_name::void_
+      = node.decl.return_type.id == id::TypeName::void_
           ? nullptr
           : create_entry_block_alloca(func, "", return_type->type);
 
@@ -1038,7 +1027,7 @@ struct top_level_visitor : public boost::static_visitor<llvm::Function*> {
 
     // If there is no return, returns undef.
     if (!common.builder.GetInsertBlock()->getTerminator()
-        && node.decl.return_type.id != id::type_name::void_) {
+        && node.decl.return_type.id != id::TypeName::void_) {
       // Return 0 specially for main.
       if (node.decl.name == "main") {
         common.builder.CreateStore(
@@ -1055,7 +1044,7 @@ struct top_level_visitor : public boost::static_visitor<llvm::Function*> {
 
     // Inserts a terminator if the function returning void does not have
     // one.
-    if (node.decl.return_type.id == id::type_name::void_
+    if (node.decl.return_type.id == id::TypeName::void_
         && !common.builder.GetInsertBlock()->getTerminator()) {
       common.builder.CreateBr(end_bb);
     }
@@ -1089,7 +1078,7 @@ struct top_level_visitor : public boost::static_visitor<llvm::Function*> {
   }
 
 private:
-  codegen_common& common;
+  CodegenCommon& common;
 
   llvm::legacy::FunctionPassManager& fpm;
 };
@@ -1098,8 +1087,8 @@ private:
 // Code generator
 //===----------------------------------------------------------------------===//
 
-codegen_common::codegen_common(const std::filesystem::path& file,
-                               const position_cache&        positions)
+CodegenCommon::CodegenCommon(const std::filesystem::path& file,
+                             const PositionCache&         positions)
   : context{std::make_unique<llvm::LLVMContext>()}
   , module{std::make_unique<llvm::Module>(file.filename().string(), *context)}
   , builder{*context}
@@ -1108,40 +1097,40 @@ codegen_common::codegen_common(const std::filesystem::path& file,
 {
 }
 
-[[nodiscard]] std::optional<llvm_type_info>
-codegen_common::typename_to_type(const id::type_name type, const bool is_ptr)
+[[nodiscard]] std::optional<LLVMTypeWithSign>
+CodegenCommon::typename_to_type(const id::TypeName type, const bool is_ptr)
 {
-  llvm_type_info tmp;
+  LLVMTypeWithSign tmp;
 
   switch (type) {
-  case id::type_name::void_:
+  case id::TypeName::void_:
     tmp = {builder.getVoidTy(), false};
     break;
-  case id::type_name::i8:
+  case id::TypeName::i8:
     tmp = {builder.getInt8Ty(), true};
     break;
-  case id::type_name::u8:
+  case id::TypeName::u8:
     tmp = {builder.getInt8Ty(), false};
     break;
-  case id::type_name::i16:
+  case id::TypeName::i16:
     tmp = {builder.getInt16Ty(), true};
     break;
-  case id::type_name::u16:
+  case id::TypeName::u16:
     tmp = {builder.getInt16Ty(), false};
     break;
-  case id::type_name::i32:
+  case id::TypeName::i32:
     tmp = {builder.getInt32Ty(), true};
     break;
-  case id::type_name::u32:
+  case id::TypeName::u32:
     tmp = {builder.getInt32Ty(), false};
     break;
-  case id::type_name::i64:
+  case id::TypeName::i64:
     tmp = {builder.getInt64Ty(), true};
     break;
-  case id::type_name::u64:
+  case id::TypeName::u64:
     tmp = {builder.getInt64Ty(), false};
     break;
-  case id::type_name::bool_:
+  case id::TypeName::bool_:
     // We will represent boolean by u8 instead of i1.
     tmp = {builder.getInt8Ty(), false};
     break;
@@ -1157,9 +1146,9 @@ codegen_common::typename_to_type(const id::type_name type, const bool is_ptr)
   return tmp;
 }
 
-[[nodiscard]] llvm::Value* codegen_common::i1_to_boolean(llvm::Value* value)
+[[nodiscard]] llvm::Value* CodegenCommon::i1_to_boolean(llvm::Value* value)
 {
-  const auto as = typename_to_type(id::type_name::bool_);
+  const auto as = typename_to_type(id::TypeName::bool_);
 
   if (!as)
     BOOST_ASSERT(0);
@@ -1171,10 +1160,10 @@ codegen_common::typename_to_type(const id::type_name type, const bool is_ptr)
                                            builder.GetInsertBlock());
 }
 
-[[nodiscard]] std::string codegen_common::format_error(
-  const boost::iterator_range<input_iterator_type> pos,
-  const std::string_view                           message,
-  const bool                                       with_code)
+[[nodiscard]] std::string
+CodegenCommon::format_error(const boost::iterator_range<InputIterator> pos,
+                            const std::string_view                     message,
+                            const bool with_code)
 {
   // Calculate line numbers.
   std::size_t rows = 0;
@@ -1210,11 +1199,11 @@ codegen_common::typename_to_type(const id::type_name type, const bool is_ptr)
   return ss.str();
 }
 
-code_generator::code_generator(const std::string_view       program_name,
-                               const ast::program&          ast,
-                               const position_cache&        positions,
-                               const std::filesystem::path& file,
-                               const bool                   optimize)
+CodeGenerator::CodeGenerator(const std::string_view       program_name,
+                             const ast::Program&          ast,
+                             const PositionCache&         positions,
+                             const std::filesystem::path& file,
+                             const bool                   optimize)
   : program_name{program_name}
   , common{file, positions}
   , fpm{common.module.get()}
@@ -1269,7 +1258,7 @@ code_generator::code_generator(const std::string_view       program_name,
   codegen();
 }
 
-void code_generator::write_llvm_ir_to_file(
+void CodeGenerator::write_llvm_ir_to_file(
   const std::filesystem::path& out) const
 {
   std::error_code      ostream_ec;
@@ -1286,7 +1275,7 @@ void code_generator::write_llvm_ir_to_file(
   common.module->print(os, nullptr);
 }
 
-void code_generator::write_object_code_to_file(const std::filesystem::path& out)
+void CodeGenerator::write_object_code_to_file(const std::filesystem::path& out)
 {
   std::error_code      ostream_ec;
   llvm::raw_fd_ostream os{out.string(),
@@ -1314,9 +1303,9 @@ void code_generator::write_object_code_to_file(const std::filesystem::path& out)
 }
 
 // Returns the return value from the main function.
-[[nodiscard]] int code_generator::jit_compile()
+[[nodiscard]] int CodeGenerator::jit_compile()
 {
-  auto jit_expected = jit::jit_compiler::create();
+  auto jit_expected = jit::JitCompiler::create();
   if (auto err = jit_expected.takeError()) {
     throw std::runtime_error{
       format_error_message(common.file.string(),
@@ -1348,10 +1337,10 @@ void code_generator::write_object_code_to_file(const std::filesystem::path& out)
   return main_addr();
 }
 
-void code_generator::codegen()
+void CodeGenerator::codegen()
 {
   for (const auto& node : ast)
-    boost::apply_visitor(top_level_visitor{common, fpm}, node);
+    boost::apply_visitor(TopLevelVisitor{common, fpm}, node);
 }
 
 } // namespace miko::codegen

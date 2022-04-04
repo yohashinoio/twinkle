@@ -1,5 +1,5 @@
 /**
- * jit.hxx
+ * jit.hpp
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -14,19 +14,19 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <pch/pch.hxx>
+#include <pch/pch.hpp>
 
 namespace miko::jit
 {
 
-struct jit_compiler {
-  jit_compiler(std::unique_ptr<llvm::orc::ExecutionSession> exec_session,
-               llvm::orc::JITTargetMachineBuilder           jit_tmb,
-               llvm::DataLayout                             data_layout);
+struct JitCompiler {
+  JitCompiler(std::unique_ptr<llvm::orc::ExecutionSession> exec_session,
+              llvm::orc::JITTargetMachineBuilder           jit_tmb,
+              llvm::DataLayout                             data_layout);
 
-  ~jit_compiler();
+  ~JitCompiler();
 
-  static llvm::Expected<std::unique_ptr<jit_compiler>> create();
+  static llvm::Expected<std::unique_ptr<JitCompiler>> create();
 
   const llvm::DataLayout& get_data_layout() const;
 

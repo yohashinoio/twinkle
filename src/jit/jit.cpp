@@ -1,5 +1,5 @@
 /**
- * jit.cxx
+ * jit.cpp
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -7,12 +7,12 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <jit/jit.hxx>
+#include <jit/jit.hpp>
 
 namespace miko::jit
 {
 
-jit_compiler::jit_compiler(
+JitCompiler::JitCompiler(
   std::unique_ptr<llvm::orc::ExecutionSession> exec_session,
   llvm::orc::JITTargetMachineBuilder           jit_tmb,
   llvm::DataLayout                             data_layout)
@@ -34,13 +34,13 @@ jit_compiler::jit_compiler(
       data_layout.getGlobalPrefix())));
 }
 
-jit_compiler::~jit_compiler()
+JitCompiler::~JitCompiler()
 {
   if (auto&& err = exec_session->endSession())
     exec_session->reportError(std::move(err));
 }
 
-llvm::Expected<std::unique_ptr<jit_compiler>> jit_compiler::create()
+llvm::Expected<std::unique_ptr<JitCompiler>> JitCompiler::create()
 {
   auto epc = llvm::orc::SelfExecutorProcessControl::Create();
   if (!epc)
@@ -56,23 +56,23 @@ llvm::Expected<std::unique_ptr<jit_compiler>> jit_compiler::create()
   if (!data_layout)
     return data_layout.takeError();
 
-  return std::make_unique<jit_compiler>(std::move(exec_session),
+  return std::make_unique<JitCompiler>(std::move(exec_session),
                                         std::move(jit_tmb),
                                         std::move(*data_layout));
 }
 
-const llvm::DataLayout& jit_compiler::get_data_layout() const
+const llvm::DataLayout& JitCompiler::get_data_layout() const
 {
   return data_layout;
 }
 
-llvm::orc::JITDylib& jit_compiler::get_main_jit_dylib()
+llvm::orc::JITDylib& JitCompiler::get_main_jit_dylib()
 {
   return main_jd;
 }
 
 llvm::Error
-jit_compiler::add_module(llvm::orc::ThreadSafeModule  thread_safe_module,
+JitCompiler::add_module(llvm::orc::ThreadSafeModule  thread_safe_module,
                          llvm::orc::ResourceTrackerSP resource_tracker)
 {
   if (!resource_tracker)
@@ -81,7 +81,7 @@ jit_compiler::add_module(llvm::orc::ThreadSafeModule  thread_safe_module,
 }
 
 llvm::Expected<llvm::JITEvaluatedSymbol>
-jit_compiler::lookup(const llvm::StringRef name)
+JitCompiler::lookup(const llvm::StringRef name)
 {
   return exec_session->lookup({&main_jd}, mangle(name.str()));
 }

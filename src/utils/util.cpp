@@ -1,5 +1,5 @@
 /**
- * util.cxx
+ * util.cpp
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -7,9 +7,9 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <pch/pch.hxx>
-#include <utils/format.hxx>
-#include <utils/util.hxx>
+#include <pch/pch.hpp>
+#include <utils/format.hpp>
+#include <utils/util.hpp>
 #include <fstream>
 
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))

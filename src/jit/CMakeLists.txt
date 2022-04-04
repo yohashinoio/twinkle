@@ -4,5 +4,5 @@
 
 add_library(
   jit OBJECT
-  jit.cxx
+  jit.cpp
 )

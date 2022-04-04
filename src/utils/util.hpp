@@ -1,5 +1,5 @@
 /**
- * util.hxx
+ * util.hpp
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -14,7 +14,7 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <pch/pch.hxx>
+#include <pch/pch.hpp>
 
 namespace miko
 {
