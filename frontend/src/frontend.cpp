@@ -1,5 +1,5 @@
 /**
- * main.cpp
+ * frontend.cpp
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -7,6 +7,7 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
+#include <frontend.hpp>
 #include <codegen/codegen.hpp>
 #include <jit/jit.hpp>
 #include <parse/parse.hpp>
@@ -14,6 +15,9 @@
 #include <utils/format.hpp>
 
 namespace program_options = boost::program_options;
+
+namespace miko::frontend
+{
 
 std::ostream& output_help(std::ostream&          ostm,
                           const std::string_view exe_file_name,
@@ -34,8 +38,8 @@ bool is_back_newline(const char* str) noexcept
 }
 
 void output_to_file(miko::codegen::CodeGenerator& generator,
-                    const std::filesystem::path&   path,
-                    const bool                     output_llvmir)
+                    const std::filesystem::path&  path,
+                    const bool                    output_llvmir)
 {
   if (output_llvmir) {
     // test.xxx -> test.ll
@@ -47,77 +51,76 @@ void output_to_file(miko::codegen::CodeGenerator& generator,
   }
 }
 
-int main(const int argc, const char* const* const argv)
+CompileResult run_fe(const int argc, const char* const* const argv)
 try {
-  const auto desc = miko::create_options_description();
-  const auto vm   = miko::get_variable_map(desc, argc, argv);
+  const auto desc  = miko::create_options_description();
+  const auto v_map = miko::get_variable_map(desc, argc, argv);
 
   if (argc == 1) {
     output_help(std::cerr, *argv, desc);
     std::exit(EXIT_SUCCESS);
   }
-  if (vm.count("version")) {
+  if (v_map.count("version")) {
     miko::display_version();
     std::exit(EXIT_SUCCESS);
   }
-  else if (vm.count("help")) {
+  else if (v_map.count("help")) {
     output_help(std::cout, *argv, desc);
     std::exit(EXIT_SUCCESS);
   }
 
-  const auto optimize = vm["opt"].as<bool>();
+  const auto optimize = v_map["opt"].as<bool>();
 
-  if (vm.count("input")) {
+  if (v_map.count("input")) {
     std::string_view file_path = "a";
 
-    // Parsing is performed as soon as the constructor is called.
-    miko::parse::Parser parser{vm["input"].as<std::string>(), file_path};
+    miko::parse::Parser parser{v_map["input"].as<std::string>(), file_path};
 
-    // Code generation occurs as soon as the constructor is called.
     miko::codegen::CodeGenerator generator{*argv,
-                                            parser.get_ast(),
-                                            parser.get_positions(),
-                                            file_path,
-                                            optimize};
+                                           parser.get_ast(),
+                                           parser.get_positions(),
+                                           file_path,
+                                           optimize};
 
-    if (vm.count("jit"))
-      return generator.jit_compile();
+    if (v_map.count("jit"))
+      return {true, generator.jit_compile()};
     else
-      output_to_file(generator, file_path, vm.count("llvmir"));
+      output_to_file(generator, file_path, v_map.count("llvmir"));
   }
   else {
-    auto file_paths = miko::get_input_files(*argv, vm);
+    auto file_paths = miko::get_input_files(*argv, v_map);
 
     for (auto&& file_path : file_paths) {
       auto input = miko::load_file_to_string(*argv, file_path);
 
-      // Parsing is performed as soon as the constructor is called.
       miko::parse::Parser parser{std::move(input), file_path};
 
-      // Code generation occurs as soon as the constructor is called.
       miko::codegen::CodeGenerator generator{*argv,
-                                              parser.get_ast(),
-                                              parser.get_positions(),
-                                              file_path,
-                                              optimize};
+                                             parser.get_ast(),
+                                             parser.get_positions(),
+                                             file_path,
+                                             optimize};
 
-      if (vm.count("jit"))
-        return generator.jit_compile();
+      if (v_map.count("jit"))
+        return {true, generator.jit_compile()};
       else
-        output_to_file(generator, file_path, vm.count("llvmir"));
+        output_to_file(generator, file_path, v_map.count("llvmir"));
     }
   }
+
+  return {true, std::nullopt};
 }
 catch (const program_options::error& err) {
   // Error about command line options.
   std::cerr << miko::format_error_message(*argv, err.what(), true)
             << (is_back_newline(err.what()) ? "" : "\n")
             << "compilation terminated." << std::endl;
-  std::exit(EXIT_FAILURE);
+  return {false, std::nullopt};
 }
 catch (const std::runtime_error& err) {
-  // All compilation errors are caught here.
   std::cerr << err.what() << (is_back_newline(err.what()) ? "" : "\n")
             << "compilation terminated." << std::endl;
-  std::exit(EXIT_FAILURE);
+  return {false, std::nullopt};
 }
+
+} // namespace miko::frontend

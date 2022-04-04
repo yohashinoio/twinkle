@@ -1,13 +1,6 @@
-# These codes are licensed under Apache-2.0 License.
-# See the LICENSE for details.
-# Copyright (c) 2022 Hiramoto Ittou.
+set(LIB_NAME "frontend")
 
-set(CMAKE_CXX_STANDARD 20)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-
-include(GNUInstallDirs)
 
 # set(CMAKE_C_FLAGS_INIT "-fsanitize=undefined")
 # set(CMAKE_CXX_FLAGS_INIT "-fsanitize=undefined")
@@ -29,17 +22,18 @@ execute_process(COMMAND llvm-config --libs all
 string(REGEX REPLACE "[ \t]*[\r\n]+[ \t]*" ";" CONFIG_OUTPUT ${CONFIG_OUTPUT})
 
 include_directories(
-  ${CMAKE_SOURCE_DIR}/src
+  ${CMAKE_SOURCE_DIR}/frontend/include
   ${Boost_INCLUDE_DIRS}
   ${LLVM_INCLUDE_DIRS}
 )
 
-add_executable(
-  ${CMAKE_PROJECT_NAME}
-  main.cpp
+add_library(
+  ${LIB_NAME}
+  STATIC
+  frontend.cpp
 )
 
-target_precompile_headers(${CMAKE_PROJECT_NAME} PRIVATE pch/pch.hpp)
+target_precompile_headers(${LIB_NAME} PRIVATE ../include/pch/pch.hpp)
 
 add_subdirectory(codegen)
 add_subdirectory(jit)
@@ -47,7 +41,7 @@ add_subdirectory(parse)
 add_subdirectory(utils)
 
 target_link_libraries(
-  ${CMAKE_PROJECT_NAME}
+  ${LIB_NAME}
   PRIVATE
   Threads::Threads
   ${Boost_LIBRARIES}
@@ -59,15 +53,9 @@ target_link_libraries(
 )
 
 target_compile_options(
-  ${CMAKE_PROJECT_NAME}
+  ${LIB_NAME}
   PRIVATE
   -Wall
   -Wextra
   -DLLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING
-)
-
-install(
-  TARGETS ${CMAKE_PROJECT_NAME}
-  RUNTIME
-  DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
