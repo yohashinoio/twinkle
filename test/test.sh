@@ -710,4 +710,14 @@ assert 58 "func main() -> i32 {
   ret *p;
 }"
 
+# For init statement initialization
+assert 58 "func main() -> i32
+{
+  let mut n: i32 = 0;
+  for (let mut i: i32 = 0; i != 58; i += 1)
+    n += 1;
+
+  ret n;
+}"
+
 echo OK

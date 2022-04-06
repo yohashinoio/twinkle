@@ -725,7 +725,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
   void operator()(const ast::For& node) const
   {
     if (node.init_stmt)
-      (*this)(*node.init_stmt);
+      boost::apply_visitor(*this, *node.init_stmt);
 
     auto const func = common.builder.GetInsertBlock()->getParent();
 

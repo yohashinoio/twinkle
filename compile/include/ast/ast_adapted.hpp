@@ -19,55 +19,57 @@
 // Expression abstract syntax tree adapt
 //===----------------------------------------------------------------------===//
 
+using namespace miko::ast;
+using namespace miko::id;
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::StringLiteral,
+  StringLiteral,
   (std::string, str)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::CharLiteral,
+  CharLiteral,
   (unsigned char, ch)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::UnaryOp,
+  UnaryOp,
   (std::string, op)
-  (miko::ast::Expr, rhs)
+  (Expr, rhs)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::BinOp,
-  (miko::ast::Expr, lhs)
+  BinOp,
+  (Expr, lhs)
   (std::string, op)
-  (miko::ast::Expr, rhs)
+  (Expr, rhs)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::VariableRef,
+  VariableRef,
   (std::string, name)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::FunctionCall,
+  FunctionCall,
   (std::string, callee)
   (std::vector<miko::ast::Expr>, args)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::Conversion,
-  (miko::ast::Expr, lhs)
-  (miko::ast::TypeInfo, as)
+  Conversion,
+  (Expr, lhs)
+  (TypeInfo, as)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::AddressOf,
-  (miko::ast::Expr, lhs)
+  AddressOf,
+  (Expr, lhs)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::Indirection,
-  (miko::ast::Expr, lhs)
+  Indirection,
+  (Expr, lhs)
 )
 
 //===----------------------------------------------------------------------===//
@@ -75,60 +77,60 @@ BOOST_FUSION_ADAPT_STRUCT(
 //===----------------------------------------------------------------------===//
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::VariableDef,
-  (std::optional<miko::id::VariableQualifier>, qualifier)
+  VariableDef,
+  (std::optional<VariableQualifier>, qualifier)
   (std::string, name)
-  (miko::ast::TypeInfo, type)
-  (std::optional<miko::ast::Expr>, initializer)
+  (TypeInfo, type)
+  (std::optional<Expr>, initializer)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::Return,
-  (std::optional<miko::ast::Expr>, rhs)
+  Return,
+  (std::optional<Expr>, rhs)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::Assignment,
-  (miko::ast::Expr, lhs)
+  Assignment,
+  (Expr, lhs)
   (std::string, op)
-  (miko::ast::Expr, rhs)
+  (Expr, rhs)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::Break,
+  Break,
   (std::string, tmp)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::Continue,
+  Continue,
   (std::string, tmp)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::If,
-  (miko::ast::Expr, condition)
-  (miko::ast::Stmt, then_statement)
-  (std::optional<miko::ast::Stmt>, else_statement)
+  If,
+  (Expr, condition)
+  (Stmt, then_statement)
+  (std::optional<Stmt>, else_statement)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::Loop,
+  Loop,
   (std::string, tmp)
-  (miko::ast::Stmt, body)
+  (Stmt, body)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::While,
-  (miko::ast::Expr, cond_expr)
-  (miko::ast::Stmt, body)
+  While,
+  (Expr, cond_expr)
+  (Stmt, body)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::For,
-  (std::optional<miko::ast::Assignment>, init_stmt)
-  (std::optional<miko::ast::Expr>, cond_expr)
-  (std::optional<miko::ast::Assignment>, loop_stmt)
-  (miko::ast::Stmt, body)
+  For,
+  (std::optional<ForInit>, init_stmt)
+  (std::optional<Expr>, cond_expr)
+  (std::optional<Assignment>, loop_stmt)
+  (Stmt, body)
 )
 
 //===----------------------------------------------------------------------===//
@@ -136,30 +138,30 @@ BOOST_FUSION_ADAPT_STRUCT(
 //===----------------------------------------------------------------------===//
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::Parameter,
-  (std::optional<miko::id::VariableQualifier>, qualifier)
+  Parameter,
+  (std::optional<VariableQualifier>, qualifier)
   (std::string, name)
-  (miko::ast::TypeInfo, type)
+  (TypeInfo, type)
   (bool, is_vararg)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::ParameterList,
-  (std::vector<miko::ast::Parameter>, params)
+  ParameterList,
+  (std::vector<Parameter>, params)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::FunctionDecl,
-  (std::optional<miko::id::FunctionLinkage>, linkage)
+  FunctionDecl,
+  (std::optional<FunctionLinkage>, linkage)
   (std::string, name)
-  (miko::ast::ParameterList, params)
-  (miko::ast::TypeInfo, return_type)
+  (ParameterList, params)
+  (TypeInfo, return_type)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::FunctionDef,
-	(miko::ast::FunctionDecl, decl)
-  (miko::ast::Stmt, body)
+  FunctionDef,
+	(FunctionDecl, decl)
+  (Stmt, body)
 )
 
 // clang-format on

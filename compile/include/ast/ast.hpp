@@ -179,8 +179,10 @@ struct While : x3::position_tagged {
   Stmt body;
 };
 
+using ForInit = boost::variant<Assignment, VariableDef>;
+
 struct For : x3::position_tagged {
-  std::optional<Assignment> init_stmt;
+  std::optional<ForInit>    init_stmt;
   std::optional<Expr>       cond_expr;
   std::optional<Assignment> loop_stmt;
   Stmt                      body;

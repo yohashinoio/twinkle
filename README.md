@@ -347,9 +347,8 @@ while (/* Required */) // Error!
 
 ### For statement
 ```rust
-let mut i: i32;
 // Repeat 10 times.
-for (i = 0; i != 10; i += 1) {
+for (let mut i: i32 = 0; i != 10; i += 1) {
 }
 
 // infinite loop.
@@ -392,8 +391,7 @@ func fib(n: i32) -> i32
 
 func main() -> i32
 {
-  let mut i: i32;
-  for (i = 1; i <= 40; i = i + 1)
+  for (let mut i: i32 = 1; i <= 40; i = i + 1)
     printf("%d\n", fib(i));
 }
 ```
