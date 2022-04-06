@@ -23,6 +23,9 @@ namespace miko::parse
 // Error handling
 //===----------------------------------------------------------------------===//
 
+// It's only false when testing.
+static bool parsing_error_output = true;
+
 struct ErrorHandle {
   template <typename Iterator, typename Context>
   x3::error_handler_result on_error([[maybe_unused]] Iterator&       first,
@@ -32,10 +35,13 @@ struct ErrorHandle {
   {
     ++total_errors;
 
-    auto&& error_handler = x3::get<x3::error_handler_tag>(context).get();
-    error_handler(x.where(),
-                  format_error_message_without_filename(
-                    "expected: " + boost::core::demangle(x.which().c_str())));
+    if (parsing_error_output) {
+      auto&& error_handler = x3::get<x3::error_handler_tag>(context).get();
+      error_handler(x.where(),
+                    format_error_message_without_filename(
+                      "expected: " + boost::core::demangle(x.which().c_str())));
+    }
+
     return x3::error_handler_result::fail;
   }
 
@@ -271,7 +277,6 @@ const auto unary_operator
 //===----------------------------------------------------------------------===//
 
 const x3::rule<struct ExprTag, ast::Expr>     expr{"expression"};
-const x3::rule<struct AssignTag, ast::Expr>   assign{"assignment operation"};
 const x3::rule<struct EqualTag, ast::Expr>    equal{"equality operation"};
 const x3::rule<struct RelationTag, ast::Expr> relation{"relational operation"};
 const x3::rule<struct AddTag, ast::Expr>      add{"addition operation"};
@@ -288,11 +293,7 @@ const x3::rule<struct AddressOfTag, ast::AddressOf>   address_of{"address-of"};
 const x3::rule<struct IndirectionTag, ast::Indirection> indirection{
   "indirection"};
 
-const auto expr_def = assign;
-
-const auto assign_def
-  = equal[action::assign_attr_to_val]
-    >> *(assignment_operator > equal)[action::assign_binop_to_val];
+const auto expr_def = equal;
 
 const auto equal_def
   = relation[action::assign_attr_to_val]
@@ -329,7 +330,6 @@ const auto primary_def = unsigned_integer | signed_integer | boolean_literal
                          | (x3::lit('(') > expr > x3::lit(')'));
 
 BOOST_SPIRIT_DEFINE(expr,
-                    assign,
                     equal,
                     relation,
                     add,
@@ -349,6 +349,8 @@ BOOST_SPIRIT_DEFINE(expr,
 const x3::rule<struct ExprStmtTag, ast::Expr> expr_stmt{"expression statement"};
 const x3::rule<struct VariableDefTag, ast::VariableDef> variable_def{
   "variable definition"};
+const x3::rule<struct AssignTag, ast::Assignment> assignment{
+  "assignment statement"};
 const x3::rule<struct ReturnTag, ast::Return> _return{"return statement"};
 const x3::rule<struct IfTag, ast::If>         _if{"if else statement"};
 const x3::rule<struct LoopTag, ast::Loop>     _loop{"loop statement"};
@@ -356,7 +358,9 @@ const x3::rule<struct WhileTag, ast::While>   _while{"while statement"};
 const x3::rule<struct ForTag, ast::For>       _for{"for statement"};
 const x3::rule<struct StmtTag, ast::Stmt>     stmt{"statement"};
 
-const auto expr_stmt_def = expr > x3::lit(';');
+const auto expr_stmt_def = expr;
+
+const auto assignment_def = expr >> assignment_operator > expr;
 
 const auto variable_type
   = x3::rule<struct variable_type_tag, ast::TypeInfo>{"variable type"}
@@ -364,9 +368,9 @@ const auto variable_type
 
 const auto variable_def_def = x3::lit("let") > -variable_qualifier > identifier
                               > x3::lit(':') > variable_type
-                              > -(x3::lit('=') > expr) > x3::lit(';');
+                              > -(x3::lit('=') > expr);
 
-const auto _return_def = x3::lit("ret") > -expr > x3::lit(';');
+const auto _return_def = x3::lit("ret") > -expr;
 
 const auto _if_def = x3::lit("if") > x3::lit('(') > expr > x3::lit(')') > stmt
                      > -(x3::lit("else") > stmt);
@@ -378,25 +382,28 @@ const auto _while_def = x3::lit("while") > x3::lit('(') > expr /* Condition */
 
 const auto _for_def
   = x3::lit("for") > x3::lit('(')
-    > -expr /* Init */ /* TODO: support to statement */ > x3::lit(';')
+    > -assignment /* Init */ /* TODO: support to statement */ > x3::lit(';')
     > -expr /* Condition */
-    > x3::lit(';') >> -expr /* Loop */ > x3::lit(')') > stmt;
+    > x3::lit(';') >> -assignment /* Loop */ > x3::lit(')') > stmt;
 
 const auto _break = x3::rule<struct break_tag, ast::Break>{"break statement"}
-= x3::string("break") > x3::lit(';');
+= x3::string("break");
 
 const auto _continue
   = x3::rule<struct continue_tag, ast::Continue>{"continue statement"}
-= x3::string("continue") > x3::lit(';');
+= x3::string("continue");
 
 const auto stmt_def
   = x3::lit(';')                          /* Null statement */
     | x3::lit('{') > *stmt > x3::lit('}') /* Compound statement */
-    | _loop | _while | _for | _break | _continue | _return | variable_def | _if
-    | expr_stmt;
+    | _loop | _while | _for | _if | _break > x3::lit(';')
+    | _continue > x3::lit(';') | _return > x3::lit(';')
+    | assignment > x3::lit(';') | variable_def > x3::lit(';')
+    | expr_stmt > x3::lit(';');
 
 BOOST_SPIRIT_DEFINE(expr_stmt,
                     variable_def,
+                    assignment,
                     _return,
                     _if,
                     _loop,
@@ -620,23 +627,31 @@ struct ProgramTag
 
 } // namespace syntax
 
-Parser::Parser(std::string&& input, const std::filesystem::path& file_path)
+Parser::Parser(std::string&&                input,
+               const std::filesystem::path& file_path,
+               const bool                   error_output)
   : input{std::move(input)}
   , first{this->input.cbegin()}
   , last{this->input.cend()}
   , positions{first, last}
   , file_path{file_path}
 {
+  parsing_error_output = error_output;
+
   parse();
 }
 
-Parser::Parser(const std::string& input, const std::filesystem::path& file_path)
+Parser::Parser(const std::string&           input,
+               const std::filesystem::path& file_path,
+               const bool                   error_output)
   : input{input}
   , first{input.cbegin()}
   , last{input.cend()}
   , positions{first, last}
   , file_path{file_path}
 {
+  parsing_error_output = error_output;
+
   parse();
 }
 
@@ -653,9 +668,9 @@ Parser::Parser(const std::string& input, const std::filesystem::path& file_path)
 void Parser::parse()
 {
   x3::error_handler<InputIterator> error_handler{first,
-                                                       last,
-                                                       std::cerr,
-                                                       file_path.string()};
+                                                 last,
+                                                 std::cerr,
+                                                 file_path.string()};
 
   const auto parser = x3::with<x3::error_handler_tag>(std::ref(
     error_handler))[x3::with<PositionCacheTag>(positions)[syntax::program]];

@@ -1,5 +1,5 @@
 /**
- * frontend.cpp
+ * main.cpp
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -7,7 +7,7 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <frontend.hpp>
+#include <compile.hpp>
 #include <codegen/codegen.hpp>
 #include <jit/jit.hpp>
 #include <parse/parse.hpp>
@@ -16,7 +16,7 @@
 
 namespace program_options = boost::program_options;
 
-namespace miko::frontend
+namespace miko::compile
 {
 
 std::ostream& output_help(std::ostream&          ostm,
@@ -51,7 +51,8 @@ void output_to_file(miko::codegen::CodeGenerator& generator,
   }
 }
 
-CompileResult run_fe(const int argc, const char* const* const argv)
+CompileResult
+main(const int argc, const char* const* const argv, const bool error_output)
 try {
   const auto desc  = miko::create_options_description();
   const auto v_map = miko::get_variable_map(desc, argc, argv);
@@ -74,7 +75,9 @@ try {
   if (v_map.count("input")) {
     std::string_view file_path = "a";
 
-    miko::parse::Parser parser{v_map["input"].as<std::string>(), file_path};
+    miko::parse::Parser parser{v_map["input"].as<std::string>(),
+                               file_path,
+                               error_output};
 
     miko::codegen::CodeGenerator generator{*argv,
                                            parser.get_ast(),
@@ -93,7 +96,7 @@ try {
     for (auto&& file_path : file_paths) {
       auto input = miko::load_file_to_string(*argv, file_path);
 
-      miko::parse::Parser parser{std::move(input), file_path};
+      miko::parse::Parser parser{std::move(input), file_path, error_output};
 
       miko::codegen::CodeGenerator generator{*argv,
                                              parser.get_ast(),
@@ -111,16 +114,22 @@ try {
   return {true, std::nullopt};
 }
 catch (const program_options::error& err) {
-  // Error about command line options.
-  std::cerr << miko::format_error_message(*argv, err.what(), true)
-            << (is_back_newline(err.what()) ? "" : "\n")
-            << "compilation terminated." << std::endl;
+  if (error_output) {
+    // Error about command line options.
+    std::cerr << miko::format_error_message(*argv, err.what(), true)
+              << (is_back_newline(err.what()) ? "" : "\n")
+              << "compilation terminated." << std::endl;
+  }
+
   return {false, std::nullopt};
 }
 catch (const std::runtime_error& err) {
-  std::cerr << err.what() << (is_back_newline(err.what()) ? "" : "\n")
-            << "compilation terminated." << std::endl;
+  if (error_output) {
+    std::cerr << err.what() << (is_back_newline(err.what()) ? "" : "\n")
+              << "compilation terminated." << std::endl;
+  }
+
   return {false, std::nullopt};
 }
 
-} // namespace miko::frontend
+} // namespace miko::compile

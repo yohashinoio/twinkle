@@ -1,5 +1,5 @@
 /**
- * frontend.hpp
+ * compile.hpp
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -16,7 +16,7 @@
 
 #include <optional>
 
-namespace miko::frontend
+namespace miko::compile
 {
 
 struct CompileResult {
@@ -26,8 +26,10 @@ struct CompileResult {
 };
 
 // Run front-end.
-CompileResult run_fe(const int argc, const char* const* const argv);
+CompileResult main(const int                argc,
+                     const char* const* const argv,
+                     const bool               error_output = true);
 
-} // namespace miko::frontend
+} // namespace miko::compile
 
 #endif

@@ -146,109 +146,6 @@ struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
 
   llvm::Value* operator()(const ast::BinOp& node) const
   {
-    // Special case assignment because we don't want to emit the
-    // left-hand-side as an expression.
-    if (node.op == "=" || node.op == "+=" || node.op == "-=" || node.op == "*="
-        || node.op == "/=" || node.op == "%=") {
-      llvm::Value* lhs;
-
-      if (node.lhs.type() == typeid(ast::VariableRef)) {
-        auto& lhs_node = boost::get<ast::VariableRef>(node.lhs);
-
-        auto var_info = scope[lhs_node.name];
-
-        if (!var_info) {
-          // Unknown variable name.
-          throw std::runtime_error{common.format_error(
-            common.positions.position_of(lhs_node),
-            format("unknown variable name '%s'", lhs_node.name))};
-        }
-
-        if (!var_info->is_mutable) {
-          // Assignment of read-only variable.
-          throw std::runtime_error{common.format_error(
-            common.positions.position_of(lhs_node),
-            format("assignment of read-only variable '%s'", lhs_node.name))};
-        }
-
-        lhs = var_info->inst;
-      }
-      else if (node.lhs.type() == typeid(ast::Indirection)) {
-        auto const lhs_node = boost::get<ast::Indirection>(node.lhs);
-
-        lhs = boost::apply_visitor(*this, lhs_node.lhs);
-      }
-      else {
-        throw std::runtime_error{
-          common.format_error(common.positions.position_of(node),
-                              "invalid left-hand side",
-                              false)};
-      }
-
-      if (!lhs) {
-        throw std::runtime_error{
-          common.format_error(common.positions.position_of(node),
-                              "failed to generate left-hand side",
-                              false)};
-      }
-
-      auto const rhs = boost::apply_visitor(*this, node.rhs);
-
-      if (!rhs) {
-        throw std::runtime_error{
-          common.format_error(common.positions.position_of(node),
-                              "failed to generate right-hand side",
-                              false)};
-      }
-
-      auto const lhs_value
-        = common.builder.CreateLoad(lhs->getType()->getPointerElementType(),
-                                    lhs);
-
-      // Direct assignment.
-      if (node.op == "=")
-        common.builder.CreateStore(rhs, lhs);
-
-      // Addition assignment.
-      if (node.op == "+=") {
-        common.builder.CreateStore(common.builder.CreateAdd(lhs_value, rhs),
-                                   lhs);
-      }
-
-      // Subtraction assignment.
-      if (node.op == "-=") {
-        common.builder.CreateStore(common.builder.CreateSub(lhs_value, rhs),
-                                   lhs);
-      }
-
-      // Multiplication assignment.
-      if (node.op == "*=") {
-        common.builder.CreateStore(common.builder.CreateMul(lhs_value, rhs),
-                                   lhs);
-      }
-
-      // Division assignment.
-      if (node.op == "/=") {
-        auto const assign_value = true // TODO:
-                                    ? common.builder.CreateSDiv(lhs_value, rhs)
-                                    : common.builder.CreateUDiv(lhs_value, rhs);
-
-        common.builder.CreateStore(assign_value, lhs);
-      }
-
-      // Modulo assignment.
-      if (node.op == "%=") {
-        auto const assign_value = true /* TODO: var_info->is_signed */
-                                    ? common.builder.CreateSRem(lhs_value, rhs)
-                                    : common.builder.CreateURem(lhs_value, rhs);
-
-        common.builder.CreateStore(assign_value, lhs);
-      }
-
-      return common.builder.CreateLoad(lhs->getType()->getPointerElementType(),
-                                       lhs);
-    }
-
     auto const lhs = boost::apply_visitor(*this, node.lhs);
     auto const rhs = boost::apply_visitor(*this, node.rhs);
 
@@ -588,6 +485,108 @@ struct StmtVisitor : public boost::static_visitor<void> {
     }
   }
 
+  void operator()(const ast::Assignment& node) const
+  {
+    if (node.op == "=" || node.op == "+=" || node.op == "-=" || node.op == "*="
+        || node.op == "/=" || node.op == "%=") {
+      llvm::Value* lhs;
+
+      if (node.lhs.type() == typeid(ast::VariableRef)) {
+        auto& lhs_node = boost::get<ast::VariableRef>(node.lhs);
+
+        auto var_info = scope[lhs_node.name];
+
+        if (!var_info) {
+          // Unknown variable name.
+          throw std::runtime_error{common.format_error(
+            common.positions.position_of(node),
+            format("unknown variable name '%s'", lhs_node.name))};
+        }
+
+        if (!var_info->is_mutable) {
+          // Assignment of read-only variable.
+          throw std::runtime_error{common.format_error(
+            common.positions.position_of(node),
+            format("assignment of read-only variable '%s'", lhs_node.name))};
+        }
+
+        lhs = var_info->inst;
+      }
+      else if (node.lhs.type() == typeid(ast::Indirection)) {
+        auto const lhs_node = boost::get<ast::Indirection>(node.lhs);
+
+        lhs = boost::apply_visitor(ExprVisitor{common, scope}, lhs_node.lhs);
+      }
+      else
+        lhs = boost::apply_visitor(ExprVisitor{common, scope}, node.lhs);
+
+      if (!lhs) {
+        throw std::runtime_error{
+          common.format_error(common.positions.position_of(node),
+                              "failed to generate left-hand side")};
+      }
+
+      if (!lhs->getType()->isPointerTy()) {
+        throw std::runtime_error{
+          common.format_error(common.positions.position_of(node),
+                              "left-hand side requires assignable")};
+      }
+
+      auto const rhs
+        = boost::apply_visitor(ExprVisitor{common, scope}, node.rhs);
+
+      if (!rhs) {
+        throw std::runtime_error{
+          common.format_error(common.positions.position_of(node),
+                              "failed to generate right-hand side")};
+      }
+
+      auto const lhs_value
+        = common.builder.CreateLoad(lhs->getType()->getPointerElementType(),
+                                    lhs);
+
+      // Direct assignment.
+      if (node.op == "=")
+        common.builder.CreateStore(rhs, lhs);
+
+      // Addition assignment.
+      if (node.op == "+=") {
+        common.builder.CreateStore(common.builder.CreateAdd(lhs_value, rhs),
+                                   lhs);
+      }
+
+      // Subtraction assignment.
+      if (node.op == "-=") {
+        common.builder.CreateStore(common.builder.CreateSub(lhs_value, rhs),
+                                   lhs);
+      }
+
+      // Multiplication assignment.
+      if (node.op == "*=") {
+        common.builder.CreateStore(common.builder.CreateMul(lhs_value, rhs),
+                                   lhs);
+      }
+
+      // Division assignment.
+      if (node.op == "/=") {
+        auto const assign_value = true // TODO:
+                                    ? common.builder.CreateSDiv(lhs_value, rhs)
+                                    : common.builder.CreateUDiv(lhs_value, rhs);
+
+        common.builder.CreateStore(assign_value, lhs);
+      }
+
+      // Modulo assignment.
+      if (node.op == "%=") {
+        auto const assign_value = true /* TODO: var_info->is_signed */
+                                    ? common.builder.CreateSRem(lhs_value, rhs)
+                                    : common.builder.CreateURem(lhs_value, rhs);
+
+        common.builder.CreateStore(assign_value, lhs);
+      }
+    }
+  }
+
   void operator()(const ast::If& node) const
   {
     auto const cond_value
@@ -725,16 +724,8 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
   void operator()(const ast::For& node) const
   {
-    if (node.init_expr) {
-      auto const init_value
-        = boost::apply_visitor(ExprVisitor{common, scope}, *node.init_expr);
-
-      if (!init_value) {
-        throw std::runtime_error{
-          common.format_error(common.positions.position_of(node),
-                              "failed to generate initialization expression")};
-      }
-    }
+    if (node.init_stmt)
+      (*this)(*node.init_stmt);
 
     auto const func = common.builder.GetInsertBlock()->getParent();
 
@@ -791,16 +782,8 @@ struct StmtVisitor : public boost::static_visitor<void> {
     func->getBasicBlockList().push_back(loop_bb);
     common.builder.SetInsertPoint(loop_bb);
 
-    if (node.loop_expr) {
-      auto const loop_value
-        = boost::apply_visitor(ExprVisitor{common, scope}, *node.loop_expr);
-
-      if (!loop_value) {
-        throw std::runtime_error{
-          common.format_error(common.positions.position_of(node),
-                              "failed to generate loop expression")};
-      }
-    }
+    if (node.loop_stmt)
+      (*this)(*node.loop_stmt);
 
     common.builder.CreateBr(cond_bb);
 

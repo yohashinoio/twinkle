@@ -7,13 +7,13 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <frontend.hpp>
+#include <compile.hpp>
 
 int main(const int argc, const char* const* const argv)
 {
-  namespace frontend = miko::frontend;
+  namespace compile = miko::compile;
 
-  const auto c_result = frontend::run_fe(argc, argv);
+  const auto c_result = compile::main(argc, argv);
 
   if (!c_result.success) {
     // Failure.
@@ -24,6 +24,8 @@ int main(const int argc, const char* const* const argv)
     // JIT compiled.
     return *c_result.jit_result; // Return value from main.
   }
+
+  // TODO: link (ld)
 
   return EXIT_SUCCESS;
 }

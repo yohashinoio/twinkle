@@ -1,0 +1,14 @@
+func main() -> i32
+{
+  let mut a: i32;
+  let mut b: i32;
+  b = 24;
+  a = b;
+
+  let mut c: i32 = 5;
+  c = c * 2;
+
+  let result: i32 = a + b + c;
+
+  ret result * 2 / 2;
+}

@@ -30,7 +30,7 @@ namespace ast
 {
 
 struct TypeInfo {
-  bool          is_ptr;
+  bool         is_ptr;
   id::TypeName id;
 };
 
@@ -123,9 +123,15 @@ struct Return : x3::position_tagged {
 
 struct VariableDef : x3::position_tagged {
   std::optional<id::VariableQualifier> qualifier;
-  std::string                           name;
-  TypeInfo                              type;
-  std::optional<Expr>                   initializer;
+  std::string                          name;
+  TypeInfo                             type;
+  std::optional<Expr>                  initializer;
+};
+
+struct Assignment : x3::position_tagged {
+  Expr        lhs; // Only assignable.
+  std::string op;
+  Expr        rhs;
 };
 
 struct Break : x3::position_tagged {
@@ -147,6 +153,7 @@ using Stmt = boost::make_recursive_variant<
   Expr,
   Return,
   VariableDef,
+  Assignment,
   Break,
   Continue,
   boost::recursive_wrapper<If>,
@@ -173,10 +180,10 @@ struct While : x3::position_tagged {
 };
 
 struct For : x3::position_tagged {
-  std::optional<Expr> init_expr;
-  std::optional<Expr> cond_expr;
-  std::optional<Expr> loop_expr;
-  Stmt                body;
+  std::optional<Assignment> init_stmt;
+  std::optional<Expr>       cond_expr;
+  std::optional<Assignment> loop_stmt;
+  Stmt                      body;
 };
 
 //===----------------------------------------------------------------------===//
@@ -185,9 +192,9 @@ struct For : x3::position_tagged {
 
 struct Parameter : x3::position_tagged {
   std::optional<id::VariableQualifier> qualifier;
-  std::string                           name;
-  TypeInfo                              type;
-  bool                                  is_vararg;
+  std::string                          name;
+  TypeInfo                             type;
+  bool                                 is_vararg;
 
   Parameter(decltype(qualifier)&&     qualifier,
             decltype(name)&&          name,
@@ -226,9 +233,9 @@ struct ParameterList : x3::position_tagged {
 
 struct FunctionDecl : x3::position_tagged {
   std::optional<id::FunctionLinkage> linkage;
-  std::string                         name;
-  ParameterList                       params;
-  TypeInfo                            return_type;
+  std::string                        name;
+  ParameterList                      params;
+  TypeInfo                           return_type;
 };
 
 struct FunctionDef : x3::position_tagged {

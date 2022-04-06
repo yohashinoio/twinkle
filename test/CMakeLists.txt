@@ -1,8 +1,8 @@
-set(RUNTIME_NAME mikoc)
+set(RUNTIME_NAME tester)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-include(GNUInstallDirs)
+find_package(Threads REQUIRED)
 
 include_directories(
   ${CMAKE_SOURCE_DIR}/compile/include
@@ -10,12 +10,13 @@ include_directories(
 
 add_executable(
   ${RUNTIME_NAME}
-  main.cpp
+  test.cpp
 )
 
 target_link_libraries(
   ${RUNTIME_NAME}
   PRIVATE
+  Threads::Threads
   compile
 )
 
@@ -24,10 +25,4 @@ target_compile_options(
   PRIVATE
   -Wall
   -Wextra
-)
-
-install(
-  TARGETS ${RUNTIME_NAME}
-  RUNTIME
-  DESTINATION ${CMAKE_INSTALL_BINDIR}
 )

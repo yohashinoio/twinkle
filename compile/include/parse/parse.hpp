@@ -22,9 +22,13 @@ namespace miko::parse
 {
 
 struct Parser {
-  Parser(std::string&& input, const std::filesystem::path& file_path);
+  Parser(std::string&&                input,
+         const std::filesystem::path& file_path,
+         const bool                   error_output);
 
-  Parser(const std::string& input, const std::filesystem::path& file_path);
+  Parser(const std::string&           input,
+         const std::filesystem::path& file_path,
+         const bool                   error_output);
 
   [[nodiscard]] const ast::Program& get_ast() const noexcept;
 
@@ -33,11 +37,11 @@ struct Parser {
 private:
   void parse();
 
-  std::string               input;
+  std::string         input;
   InputIterator       first;
   const InputIterator last;
 
-  ast::Program   ast;
+  ast::Program  ast;
   PositionCache positions;
 
   const std::filesystem::path& file_path;

@@ -76,16 +76,12 @@ assert 58 "func main() -> i32 {ret 10 - -48;}"
 assert 58 "func main() -> i32 {ret +10 - -48;}"
 assert 48 "func main() -> i32 {ret +(-(48 * -(1 + 0)));}"
 
-# Comparison operators and relational operators
-assert  1 "func main() -> i32 {ret 1 + (48 == 10) as i32;}"
+# Relational operators
 assert  1 "func main() -> i32 {ret 1+(48==10)as i32;}"
-assert  2 "func main() -> i32 {ret 1 + (48 != 10) as i32;}"
 assert  2 "func main() -> i32 {ret 1+(48!=10)as i32;}"
 assert  1 "func main() -> i32 {ret 1 + (48 < 10) as i32;}"
 assert  1 "func main() -> i32 {ret 1+(48<10)as i32;}"
-assert  2 "func main() -> i32 {ret 1 + (48 > 10) as i32;}"
 assert  2 "func main() -> i32 {ret 1+(48>10)as i32;}"
-assert  2 "func main() -> i32 {ret 1 + (48 <= 48) as i32;}"
 assert  2 "func main() -> i32 {ret 1+(48<=48)as i32;}"
 assert  2 "func main() -> i32 {ret 1 + (10 >= 10) as i32;}"
 assert  2 "func main() -> i32 {ret 1+(10>=10)as i32;}"
@@ -337,7 +333,8 @@ func main() -> i32 {
 }"
 
 assert 58 "func f(mut a: i32) -> i32 {
-  ret a = 58;
+  a = 58;
+  ret a;
 }
 func main() -> i32 {
   let n: i32 = 4810;
@@ -467,22 +464,11 @@ assert 58 "func main() -> i32 {
   ret shino;
 }"
 
-assert 116 "func main() -> i32 {
-  let mut shino: i32 = 0;
-  shino += 48;
-  ret (shino += 10) * 2;
-}"
-
 # Subtraction assignment operator
 assert 58 "func main() -> i32 {
   let mut shino: i32 = 68;
   shino -= 10;
   ret shino;
-}"
-
-assert 116 "func main() -> i32 {
-  let mut shino: i32 = 68;
-  ret (shino -= 10) * 2;
 }"
 
 # Multiplication assignment operator
@@ -492,11 +478,6 @@ assert 58 "func main() -> i32 {
   ret shino;
 }"
 
-assert 116 "func main() -> i32 {
-  let mut shino: i32 = 29;
-  ret (shino *= 2) * 2;
-}"
-
 # Division assignment operator
 assert 58 "func main() -> i32 {
   let mut shino: i32 = 116;
@@ -504,21 +485,11 @@ assert 58 "func main() -> i32 {
   ret shino;
 }"
 
-assert 116 "func main() -> i32 {
-  let mut shino: i32 = 116;
-  ret (shino /= 2) * 2;
-}"
-
 # Modulo assignment operator
 assert 1 "func main() -> i32 {
   let mut shino: i32 = 4810;
   shino %= 3;
   ret 1;
-}"
-
-assert 58 "func main() -> i32 {
-  let mut shino: i32 = 4810;
-  ret (shino %= 58) + 4;
 }"
 
 # Boolean literals

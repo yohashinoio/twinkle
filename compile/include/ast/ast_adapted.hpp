@@ -88,6 +88,13 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
+  miko::ast::Assignment,
+  (miko::ast::Expr, lhs)
+  (std::string, op)
+  (miko::ast::Expr, rhs)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
   miko::ast::Break,
   (std::string, tmp)
 )
@@ -118,9 +125,9 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   miko::ast::For,
-  (std::optional<miko::ast::Expr>, init_expr)
+  (std::optional<miko::ast::Assignment>, init_stmt)
   (std::optional<miko::ast::Expr>, cond_expr)
-  (std::optional<miko::ast::Expr>, loop_expr)
+  (std::optional<miko::ast::Assignment>, loop_stmt)
   (miko::ast::Stmt, body)
 )
 

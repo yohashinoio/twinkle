@@ -102,7 +102,7 @@ func main() -> i32
 ### AOT compile
 ```bash
 $ mikoc hello.txt
-$ cc hello.o
+$ cc -static hello.o
 $ ./a.out
 hello, world
 ```
