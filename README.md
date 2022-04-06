@@ -3,8 +3,8 @@
 </div>
 
 - [Getting Started](#getting-started)
-  - [Requirements](#requirements)
-  - [Installation](#installation)
+  - [Install dependencies](#install-dependencies)
+  - [Compile this project](#compile-this-project)
   - [Hello world](#hello-world)
   - [AOT compile](#aot-compile)
   - [JIT compile](#jit-compile)
@@ -46,7 +46,7 @@
 - [License](#license)
 
 ## Getting Started
-### Requirements
+### Install dependencies
 LLVM, Boost, CMake, Make (ninja), GCC (clang) must be installed.<br/>
 Here is how to install them in ubuntu.
 ```bash
@@ -67,7 +67,7 @@ Here is an example if /usr/bin/llvm-config-xxx.
 $ sudo ln -s /usr/bin/llvm-config-xxx /usr/local/bin/llvm-config
 ```
 
-### Installation
+### Compile this project
 First, clone.
 ```bash
 $ git clone https://github.com/GothicLoli/miko.git
