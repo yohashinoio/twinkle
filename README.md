@@ -31,6 +31,7 @@
 - [Variables](#variables)
   - [Definition](#definition-1)
   - [Mutable variables](#mutable-variables)
+  - [Type inference](#type-inference)
 - [Statements](#statements)
   - [Expression statements](#expression-statements)
   - [Compound Statement (Block)](#compound-statement-block)
@@ -290,7 +291,7 @@ func private thrice(n: i32) -> i32 // Internal linkage
 ```rust
 let a: i32;
 
-let b = 48; // Type inference by the initializer.
+let b = 48; // Type inference from the initializer.
 ```
 
 ### Mutable variables
@@ -305,6 +306,15 @@ j = 58; // OK
 
 let mut k: i32; // Mutable.
 k = 4810; // OK
+```
+
+### Type inference
+```rust
+let n = 4810; // i32
+
+let f = 1 as bool; // bool
+
+let s = "hello, world"; // *i8
 ```
 
 ## Statements
