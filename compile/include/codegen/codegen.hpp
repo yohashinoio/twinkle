@@ -29,9 +29,9 @@ struct LLVMTypeWithSign {
 };
 
 // A structure that summarizes variables commonly needed by visitors.
-struct CodegenCommon {
-  CodegenCommon(const std::filesystem::path& file,
-                const PositionCache&        positions);
+struct CodegenContext {
+  CodegenContext(const std::filesystem::path& file,
+                 const PositionCache&         positions);
 
   [[nodiscard]] std::optional<LLVMTypeWithSign>
   typename_to_type(const id::TypeName type, const bool is_ptr = false);
@@ -40,8 +40,8 @@ struct CodegenCommon {
 
   [[nodiscard]] std::string
   format_error(const boost::iterator_range<InputIterator> pos,
-               const std::string_view                           message,
-               const bool with_code = true);
+               const std::string_view                     message,
+               const bool                                 with_code = true);
 
   std::unique_ptr<llvm::LLVMContext> context;
   std::unique_ptr<llvm::Module>      module;
@@ -54,10 +54,10 @@ struct CodegenCommon {
 
 struct CodeGenerator {
   CodeGenerator(const std::string_view       program_name,
-                 const ast::Program&          ast,
-                 const PositionCache&        positions,
-                 const std::filesystem::path& file_path,
-                 const bool                   optimize);
+                const ast::Program&          ast,
+                const PositionCache&         positions,
+                const std::filesystem::path& file_path,
+                const bool                   optimize);
 
   void write_llvm_ir_to_file(const std::filesystem::path& out) const;
 
@@ -71,7 +71,7 @@ private:
 
   const std::string_view program_name;
 
-  CodegenCommon common;
+  CodegenContext common;
 
   llvm::TargetMachine* target_machine;
 

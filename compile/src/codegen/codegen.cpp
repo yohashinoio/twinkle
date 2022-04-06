@@ -79,7 +79,7 @@ create_entry_block_alloca(llvm::Function*    func,
 //===----------------------------------------------------------------------===//
 
 struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
-  ExprVisitor(CodegenCommon& common, SymbolTable& scope)
+  ExprVisitor(CodegenContext& common, SymbolTable& scope)
     : common{common}
     , scope{scope}
   {
@@ -357,7 +357,7 @@ struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
   }
 
 private:
-  CodegenCommon& common;
+  CodegenContext& common;
 
   SymbolTable& scope;
 };
@@ -368,14 +368,14 @@ private:
 
 void codegen_statement(const ast::Stmt&   statement,
                        const SymbolTable& scope,
-                       CodegenCommon&     common,
+                       CodegenContext&     common,
                        llvm::AllocaInst*  retvar,
                        llvm::BasicBlock*  end_bb,
                        llvm::BasicBlock*  break_bb,
                        llvm::BasicBlock*  continue_bb);
 
 struct StmtVisitor : public boost::static_visitor<void> {
-  StmtVisitor(CodegenCommon&    common,
+  StmtVisitor(CodegenContext&    common,
               SymbolTable&      scope,
               llvm::AllocaInst* retvar,
               llvm::BasicBlock* end_bb,
@@ -806,7 +806,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
   }
 
 private:
-  CodegenCommon& common;
+  CodegenContext& common;
 
   SymbolTable& scope;
 
@@ -822,7 +822,7 @@ private:
 
 void codegen_statement(const ast::Stmt&   statement,
                        const SymbolTable& scope,
-                       CodegenCommon&     common,
+                       CodegenContext&     common,
                        llvm::AllocaInst*  retvar,
                        llvm::BasicBlock*  end_bb,
                        llvm::BasicBlock*  break_bb,
@@ -859,7 +859,7 @@ void codegen_statement(const ast::Stmt&   statement,
 //===----------------------------------------------------------------------===//
 
 struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
-  TopLevelVisitor(CodegenCommon& common, llvm::legacy::FunctionPassManager& fpm)
+  TopLevelVisitor(CodegenContext& common, llvm::legacy::FunctionPassManager& fpm)
     : common{common}
     , fpm{fpm}
   {
@@ -1061,7 +1061,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
   }
 
 private:
-  CodegenCommon& common;
+  CodegenContext& common;
 
   llvm::legacy::FunctionPassManager& fpm;
 };
@@ -1070,7 +1070,7 @@ private:
 // Code generator
 //===----------------------------------------------------------------------===//
 
-CodegenCommon::CodegenCommon(const std::filesystem::path& file,
+CodegenContext::CodegenContext(const std::filesystem::path& file,
                              const PositionCache&         positions)
   : context{std::make_unique<llvm::LLVMContext>()}
   , module{std::make_unique<llvm::Module>(file.filename().string(), *context)}
@@ -1081,7 +1081,7 @@ CodegenCommon::CodegenCommon(const std::filesystem::path& file,
 }
 
 [[nodiscard]] std::optional<LLVMTypeWithSign>
-CodegenCommon::typename_to_type(const id::TypeName type, const bool is_ptr)
+CodegenContext::typename_to_type(const id::TypeName type, const bool is_ptr)
 {
   LLVMTypeWithSign tmp;
 
@@ -1129,7 +1129,7 @@ CodegenCommon::typename_to_type(const id::TypeName type, const bool is_ptr)
   return tmp;
 }
 
-[[nodiscard]] llvm::Value* CodegenCommon::i1_to_boolean(llvm::Value* value)
+[[nodiscard]] llvm::Value* CodegenContext::i1_to_boolean(llvm::Value* value)
 {
   const auto as = typename_to_type(id::TypeName::bool_);
 
@@ -1144,7 +1144,7 @@ CodegenCommon::typename_to_type(const id::TypeName type, const bool is_ptr)
 }
 
 [[nodiscard]] std::string
-CodegenCommon::format_error(const boost::iterator_range<InputIterator> pos,
+CodegenContext::format_error(const boost::iterator_range<InputIterator> pos,
                             const std::string_view                     message,
                             const bool with_code)
 {
