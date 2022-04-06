@@ -124,7 +124,7 @@ struct Return : x3::position_tagged {
 struct VariableDef : x3::position_tagged {
   std::optional<id::VariableQualifier> qualifier;
   std::string                          name;
-  TypeInfo                             type;
+  std::optional<TypeInfo>              type;
   std::optional<Expr>                  initializer;
 };
 

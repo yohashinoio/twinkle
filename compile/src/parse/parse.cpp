@@ -367,7 +367,7 @@ const auto variable_type
 = type_name - x3::lit("void");
 
 const auto variable_def_def = x3::lit("let") > -variable_qualifier > identifier
-                              > x3::lit(':') > variable_type
+                              > -(x3::lit(':') > variable_type)
                               > -(x3::lit('=') > expr);
 
 const auto _return_def = x3::lit("ret") > -expr;

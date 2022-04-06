@@ -94,6 +94,7 @@ int main(const int argc, const char* const* const argv)
     {         "character_literal",  58},
     {    "indirection_assignment",  58},
     {      "for_loop_declaration",  58},
+    {  "init_time_type_inference",  58},
   };
 
   std::size_t ok_c{};   // ok count.

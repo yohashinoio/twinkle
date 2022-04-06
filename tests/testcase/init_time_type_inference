@@ -1,0 +1,11 @@
+func main() -> i32
+{
+  let s = "hello";
+
+  let yoha = 48;
+
+  let mut io = 0;
+  io = 10;
+
+  ret yoha + io;
+}

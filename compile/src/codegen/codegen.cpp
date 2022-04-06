@@ -368,14 +368,14 @@ private:
 
 void codegen_statement(const ast::Stmt&   statement,
                        const SymbolTable& scope,
-                       CodegenContext&     common,
+                       CodegenContext&    common,
                        llvm::AllocaInst*  retvar,
                        llvm::BasicBlock*  end_bb,
                        llvm::BasicBlock*  break_bb,
                        llvm::BasicBlock*  continue_bb);
 
 struct StmtVisitor : public boost::static_visitor<void> {
-  StmtVisitor(CodegenContext&    common,
+  StmtVisitor(CodegenContext&   common,
               SymbolTable&      scope,
               llvm::AllocaInst* retvar,
               llvm::BasicBlock* end_bb,
@@ -442,6 +442,12 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
   void operator()(const ast::VariableDef& node) const
   {
+    if (!node.type.has_value() && !node.initializer.has_value()) {
+      throw std::runtime_error{
+        common.format_error(common.positions.position_of(node),
+                            "type inference requires an initializer")};
+    }
+
     if (scope.exists(node.name)) {
       throw std::runtime_error{
         common.format_error(common.positions.position_of(node),
@@ -450,38 +456,69 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
     auto const func = common.builder.GetInsertBlock()->getParent();
 
-    const auto type_info
-      = common.typename_to_type(node.type.id, node.type.is_ptr);
+    const auto regist
+      = [&](llvm::AllocaInst* const inst, const bool is_signed) {
+          if (!node.qualifier) {
+            // Consttant variable.
+            scope.regist(node.name, {inst, false, is_signed});
+          }
+          else if (*node.qualifier == id::VariableQualifier::mutable_) {
+            // Mutable variable.
+            scope.regist(node.name, {inst, true, is_signed});
+          }
+        };
 
-    if (!type_info) {
-      throw std::runtime_error{
-        common.format_error(common.positions.position_of(node),
-                            "variables of undefined type cannot be defined")};
+    if (node.type) {
+      const auto type_info
+        = common.typename_to_type(node.type->id, node.type->is_ptr);
+
+      if (!type_info) {
+        throw std::runtime_error{
+          common.format_error(common.positions.position_of(node),
+                              "variables of undefined type cannot be defined")};
+      }
+
+      auto const inst
+        = create_entry_block_alloca(func, node.name, type_info->type);
+
+      if (node.initializer) {
+        auto const init_value
+          = boost::apply_visitor(ExprVisitor{common, scope}, *node.initializer);
+
+        if (!init_value) {
+          throw std::runtime_error{common.format_error(
+            common.positions.position_of(node),
+            format("failed to generate initializer for '%s'", node.name))};
+        }
+
+        if (type_info->type != init_value->getType()) {
+          throw std::runtime_error{common.format_error(
+            common.positions.position_of(node),
+            "Initializer type and variable type are different")};
+        }
+
+        common.builder.CreateStore(init_value, inst);
+      }
+
+      regist(inst, type_info->is_signed);
     }
-
-    auto const inst
-      = create_entry_block_alloca(func, node.name, type_info->type);
-
-    if (node.initializer) {
-      auto const initializer
+    else {
+      // Type inference.
+      auto const init_value
         = boost::apply_visitor(ExprVisitor{common, scope}, *node.initializer);
 
-      if (!initializer) {
+      if (!init_value) {
         throw std::runtime_error{common.format_error(
           common.positions.position_of(node),
           format("failed to generate initializer for '%s'", node.name))};
       }
 
-      common.builder.CreateStore(initializer, inst);
-    }
+      auto const inst
+        = create_entry_block_alloca(func, node.name, init_value->getType());
 
-    if (!node.qualifier) {
-      // Consttant variable.
-      scope.regist(node.name, {inst, false, type_info->is_signed});
-    }
-    else if (*node.qualifier == id::VariableQualifier::mutable_) {
-      // Mutable variable.
-      scope.regist(node.name, {inst, true, type_info->is_signed});
+      common.builder.CreateStore(init_value, inst);
+
+      regist(inst, true); // TODO: sign
     }
   }
 
@@ -822,7 +859,7 @@ private:
 
 void codegen_statement(const ast::Stmt&   statement,
                        const SymbolTable& scope,
-                       CodegenContext&     common,
+                       CodegenContext&    common,
                        llvm::AllocaInst*  retvar,
                        llvm::BasicBlock*  end_bb,
                        llvm::BasicBlock*  break_bb,
@@ -859,7 +896,8 @@ void codegen_statement(const ast::Stmt&   statement,
 //===----------------------------------------------------------------------===//
 
 struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
-  TopLevelVisitor(CodegenContext& common, llvm::legacy::FunctionPassManager& fpm)
+  TopLevelVisitor(CodegenContext&                    common,
+                  llvm::legacy::FunctionPassManager& fpm)
     : common{common}
     , fpm{fpm}
   {
@@ -1071,7 +1109,7 @@ private:
 //===----------------------------------------------------------------------===//
 
 CodegenContext::CodegenContext(const std::filesystem::path& file,
-                             const PositionCache&         positions)
+                               const PositionCache&         positions)
   : context{std::make_unique<llvm::LLVMContext>()}
   , module{std::make_unique<llvm::Module>(file.filename().string(), *context)}
   , builder{*context}
@@ -1145,8 +1183,8 @@ CodegenContext::typename_to_type(const id::TypeName type, const bool is_ptr)
 
 [[nodiscard]] std::string
 CodegenContext::format_error(const boost::iterator_range<InputIterator> pos,
-                            const std::string_view                     message,
-                            const bool with_code)
+                             const std::string_view                     message,
+                             const bool with_code)
 {
   // Calculate line numbers.
   std::size_t rows = 0;

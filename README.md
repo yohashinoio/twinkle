@@ -290,17 +290,17 @@ func private thrice(n: i32) -> i32 // Internal linkage
 ```rust
 let a: i32;
 
-let b: i32 = 48;
+let b = 48; // Type inference by the initializer.
 ```
 
 ### Mutable variables
 In this language, variables are immutable by default.<br/>
 To make them mutable, use the "mut" qualifier.
 ```rust
-let i: i32 = 48; // Constant.
+let i = 48; // Constant.
 i = 58; // Error!
 
-let mut j: i32 = 48; // Mutable.
+let mut j = 48; // Mutable.
 j = 58; // OK
 
 let mut k: i32; // Mutable.
@@ -335,7 +335,7 @@ else
 
 ### While statement
 ```rust
-let mut i: i32 = 0;
+let mut i = 0;
 // Repeat 10 times.
 while (i != 10) {
   i += 1;
@@ -348,7 +348,7 @@ while (/* Required */) // Error!
 ### For statement
 ```rust
 // Repeat 10 times.
-for (let mut i: i32 = 0; i != 10; i += 1) {
+for (let mut i = 0; i != 10; i += 1) {
 }
 
 // infinite loop.
@@ -391,7 +391,7 @@ func fib(n: i32) -> i32
 
 func main() -> i32
 {
-  for (let mut i: i32 = 1; i <= 40; i = i + 1)
+  for (let mut i = 1; i <= 40; i = i + 1)
     printf("%d\n", fib(i));
 }
 ```

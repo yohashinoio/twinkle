@@ -77,7 +77,7 @@ BOOST_FUSION_ADAPT_STRUCT(
   miko::ast::VariableDef,
   (std::optional<miko::id::VariableQualifier>, qualifier)
   (std::string, name)
-  (miko::ast::TypeInfo, type)
+  (std::optional<miko::ast::TypeInfo>, type)
   (std::optional<miko::ast::Expr>, initializer)
 )
 
