@@ -1,0 +1,10 @@
+func main() -> i32
+{
+  // return abc;
+
+  /*
+  let 123;
+  */
+
+  ret 58;
+}

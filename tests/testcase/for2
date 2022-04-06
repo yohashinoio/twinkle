@@ -1,0 +1,8 @@
+func main() -> i32
+{
+  let i: i32 = 58;
+
+  for (; i < 10; ) ;
+
+  ret i;
+}

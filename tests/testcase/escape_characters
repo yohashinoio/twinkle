@@ -1,0 +1,14 @@
+func main() -> i32
+{
+  "hello\aworld";
+  "hello\bworld";
+  "hello\fworld";
+  "hello\nworld";
+  "hello\rworld";
+  "hello\tworld";
+  "hello\vworld";
+  "hello\0world";
+  "hello\\world";
+  "hello\"world";
+  ret 58;
+}

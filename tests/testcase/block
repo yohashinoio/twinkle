@@ -1,0 +1,11 @@
+func main() -> i32
+{
+  let a: i32 = 4810;
+
+  {
+    let b: i32 = 48 + 10;
+    ret b;
+  }
+
+  ret a;
+}

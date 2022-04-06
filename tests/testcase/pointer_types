@@ -1,0 +1,15 @@
+func f(s: *i8) -> i32 {
+  let p1: *i16;
+  let p2: *u16;
+  let p3: *i64;
+  let p4: *u64;
+  ret 58;
+}
+
+func main() -> i32 {
+  let s1: *i8;
+  let mut s2: *u8;
+  let p1: *i32;
+  let mut p2: *u32;
+  ret f("hello, Yoha and Io!");
+}

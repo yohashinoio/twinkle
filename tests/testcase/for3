@@ -1,0 +1,9 @@
+func main() -> i32
+{
+  let mut i: i32 = 0;
+  for (;; i = i + 1) {
+    if (i == 58)
+      ret i;
+  }
+  ret 123;
+}

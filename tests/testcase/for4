@@ -1,0 +1,13 @@
+func main() -> i32
+{
+  let mut n: i32 = 0;
+
+  let mut i: i32;
+  for (i = 0; i < 10; i = i + 1) {
+    n = n + 1;
+    for (let mut j: i32 = 0; j < 10; j = j + 1)
+      n = n + 1;
+  }
+
+  ret n;
+}

@@ -1,0 +1,12 @@
+func main() -> i32
+{
+  break;
+
+  let mut i: i32;
+  for (i = 0; i != 100000; i += 1) {
+    if (i == 58)
+      break;
+  }
+
+  ret i;
+}

@@ -1,0 +1,16 @@
+func f(p: *i32) -> void
+{
+  *p = 58;
+  ret;
+  *p = 110;
+  ret;
+  *p = 4810;
+  ret;
+}
+
+func main() -> i32
+{
+  let mut n: i32;
+  f(&n);
+  ret n;
+}

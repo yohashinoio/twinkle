@@ -1,0 +1,11 @@
+func f(mut a: i32) -> i32
+{
+  a = 58;
+  ret a;
+}
+
+func main() -> i32
+{
+  let n: i32 = 4810;
+  ret f(n);
+}

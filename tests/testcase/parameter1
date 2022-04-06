@@ -1,0 +1,14 @@
+func equal(a: i32, b: i32) -> bool
+{
+  ret a == b;
+}
+
+func main() -> i32
+{
+  let a: i32 = 48;
+  let b: i32 = 10;
+  if (equal(a, b))
+    ret 0;
+  else
+    ret 58;
+}

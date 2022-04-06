@@ -1,0 +1,19 @@
+func main() -> i64
+{
+  let a: i8 = -58 as i8;
+  let b: u8 = 58 as u8;
+
+  let c: i16 = -4810 as i16;
+  let d: u16 = 4810 as u16;
+
+  let e: i32 = -48104810 as i32;
+  let f: u32 = 48104810 as u32;
+
+  let g: i64 = -48104810 as i64;
+  let h: u64 = 4148104810 as u64;
+
+  let k: bool = 1 as bool;
+  let l: bool = 0 as bool;
+
+  ret 58 as i64;
+}

@@ -1,0 +1,10 @@
+func get_ptr(n: i32) -> *i32
+{
+  ret &n;
+}
+
+func main() -> i32
+{
+  let n: i32 = 58;
+  ret *get_ptr(n);
+}
