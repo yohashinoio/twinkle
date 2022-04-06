@@ -1,0 +1,13 @@
+func main() -> i32
+{
+  let n: i32 = 4810;
+  if (n != 4810)
+    ret 0;
+  else if (n == 4810) {
+    if (0)
+      ret 1;
+    ret 58;
+  }
+  else
+    ret 123;
+}

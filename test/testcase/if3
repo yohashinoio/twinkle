@@ -1,0 +1,9 @@
+func main() -> i32
+{
+  let n: i32 = 58;
+  if (1) {
+  }
+  if (1)
+    ;
+  ret n;
+}

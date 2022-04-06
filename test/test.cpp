@@ -12,6 +12,10 @@
 #include <sstream>
 #include <iostream>
 #include <unordered_map>
+#include <vector>
+#include <thread>
+#include <mutex>
+#include <atomic>
 
 namespace fs      = std::filesystem;
 namespace compile = miko::compile;
@@ -50,41 +54,66 @@ int main(const int argc, const char* const* const argv)
     {                 "function", 58},
     {                 "variable", 58},
     {               "assignment", 58},
+    {                      "if1", 58},
+    {                      "if2", 58},
+    {                      "if3", 58},
   };
 
-  std::size_t ok_c{};   // ok count.
-  std::size_t fail_c{}; // fail count.
+  std::atomic<std::size_t> ok_c{};   // ok count.
+  std::atomic<std::size_t> fail_c{}; // fail count.
 
-  // TODO: multithread
+  std::vector<std::thread> threads;
+  std::mutex               mtx;
+
   for (const auto& r : fs::recursive_directory_iterator(argv[1])) {
-    const char* c_argv[] = {"test", "--jit", r.path().c_str()};
+    threads.emplace_back(
+      [&](auto file) {
+        const char* c_argv[] = {"test", "--jit", file.path().c_str()};
 
-    const auto result
-      = compile::main(std::extent_v<decltype(c_argv)>, c_argv, false);
+        const auto result
+          = compile::main(std::extent_v<decltype(c_argv)>, c_argv, false);
 
-    try {
-      const auto expect = expects.at(r.path().stem().string());
+        try {
+          const auto expect = expects.at(file.path().stem().string());
 
-      if (result.success) {
-        if (*result.jit_result == expect) {
-          std::cerr << r.path().stem().string() << " => " << *result.jit_result
-                    << " \x1b[32mOK!\x1b[39m\n";
-          ++ok_c;
+          if (result.success) {
+            if (*result.jit_result == expect) {
+              {
+                std::lock_guard<std::mutex> lock{mtx};
+                std::cerr << file.path().stem().string() << " => "
+                          << *result.jit_result << " \x1b[32mOK!\x1b[39m\n";
+              }
 
-          continue;
+              ++ok_c;
+
+              return;
+            }
+          }
+
+          {
+            std::lock_guard<std::mutex> lock{mtx};
+            std::cerr << file.path().stem().string() << " => "
+                      << *result.jit_result << " \x1b[31mFails!\x1b[39m "
+                      << expect << " expected\n";
+          }
+
+          ++fail_c;
         }
-      }
+        catch (std::out_of_range) {
+          {
+            std::lock_guard<std::mutex> lock{mtx};
+            std::cerr << "No expect is set: " << file.path().stem().string()
+                      << std::endl;
+          }
 
-      std::cerr << r.path().stem().string() << " => " << *result.jit_result
-                << " \x1b[31mFails!\x1b[39m " << expect << " expected\n";
-      ++fail_c;
-    }
-    catch (std::out_of_range) {
-      std::cerr << "No expect is set: " << r.path().stem().string()
-                << std::endl;
-      std::exit(EXIT_FAILURE);
-    }
+          std::exit(EXIT_FAILURE);
+        }
+      },
+      r);
   }
+
+  for (auto&& r : threads)
+    r.join();
 
   std::cerr << "--------------------\n";
   std::cerr << "| \x1b[31mFail\x1b[39m: " << std::setw(10) << fail_c << " |\n";
