@@ -190,10 +190,10 @@ struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
     }
 
     if (lhs->getType() != rhs->getType()) {
-      throw std::runtime_error{
-        common.format_error(common.positions.position_of(node),
-                            "both operands are not of the same type",
-                            false)};
+      throw std::runtime_error{common.format_error(
+        common.positions.position_of(node),
+        "both operands to a binary operator are not of the same type",
+        false)};
     }
 
     // Addition.
@@ -600,6 +600,12 @@ struct StmtVisitor : public boost::static_visitor<void> {
         throw std::runtime_error{
           common.format_error(common.positions.position_of(node),
                               "failed to generate right-hand side")};
+      }
+
+      if (lhs->getType()->getPointerElementType() != rhs->getType()) {
+        throw std::runtime_error{common.format_error(
+          common.positions.position_of(node),
+          "both operands to a binary operator are not of the same type")};
       }
 
       auto const lhs_value
