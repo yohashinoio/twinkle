@@ -32,6 +32,7 @@
   - [Definition](#definition-1)
   - [Mutable variables](#mutable-variables)
   - [Type inference](#type-inference)
+- [Implicit conversions](#implicit-conversions)
 - [Statements](#statements)
   - [Expression statements](#expression-statements)
   - [Compound Statement (Block)](#compound-statement-block)
@@ -315,6 +316,14 @@ let n = 4810; // i32
 let f = 1 as bool; // bool
 
 let s = "hello, world"; // *i8
+```
+
+## Implicit conversions
+In the case of numbers, operands with smaller bit widths are converted to larger bit widths.
+```rust
+let f: bool = true;
+
+let n = f + 57; // OK! type of n is i32.
 ```
 
 ## Statements

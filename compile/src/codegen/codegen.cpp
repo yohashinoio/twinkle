@@ -146,15 +146,8 @@ struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
 
   llvm::Value* operator()(const ast::BinOp& node) const
   {
-    auto const lhs = boost::apply_visitor(*this, node.lhs);
-    auto const rhs = boost::apply_visitor(*this, node.rhs);
-
-    if (lhs->getType() != rhs->getType()) {
-      throw std::runtime_error{
-        common.format_error(common.positions.position_of(node),
-                            "both operands are not of the same type",
-                            false)};
-    }
+    auto lhs = boost::apply_visitor(*this, node.lhs);
+    auto rhs = boost::apply_visitor(*this, node.rhs);
 
     if (!lhs) {
       throw std::runtime_error{
@@ -167,6 +160,27 @@ struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
       throw std::runtime_error{
         common.format_error(common.positions.position_of(node),
                             "failed to generate right-hand side",
+                            false)};
+    }
+
+    // Implicit conversions.
+    if (const auto lhs_bitwidth = lhs->getType()->getIntegerBitWidth(),
+        rhs_bitwidth            = rhs->getType()->getIntegerBitWidth();
+        lhs_bitwidth != rhs_bitwidth) {
+      const auto max_bitwidth = std::max(lhs_bitwidth, rhs_bitwidth);
+
+      const auto as = common.builder.getIntNTy(max_bitwidth);
+
+      if (lhs_bitwidth == max_bitwidth)
+        rhs = common.builder.CreateIntCast(rhs, as, true); // TODO: sign
+      else
+        lhs = common.builder.CreateIntCast(lhs, as, true); // TODO: sign
+    }
+
+    if (lhs->getType() != rhs->getType()) {
+      throw std::runtime_error{
+        common.format_error(common.positions.position_of(node),
+                            "both operands are not of the same type",
                             false)};
     }
 
@@ -318,8 +332,6 @@ struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
     }
 
     return common.builder.CreateIntCast(lhs, as->type, as->is_signed);
-
-    return lhs;
   }
 
   llvm::Value* operator()(const ast::AddressOf& node) const

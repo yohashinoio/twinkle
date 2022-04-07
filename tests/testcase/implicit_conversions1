@@ -1,0 +1,8 @@
+func main() -> i32
+{
+  let f: bool = true;
+
+  let n = f + 40;
+
+  ret n;
+}
