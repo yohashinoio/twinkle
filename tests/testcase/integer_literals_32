@@ -1,0 +1,21 @@
+func f() -> i32
+{
+  let n = -2147483648; // INT_MIN.
+  ret n;
+}
+
+func g() -> u32
+{
+  let n = 4294967295; // UINT_MAX.
+  ret n;
+}
+
+func main() -> i32
+{
+  let n = 2147483647; // INT_MAX.
+
+  if ((n + f()) == -1) {
+    g();
+    ret 58;
+  }
+}

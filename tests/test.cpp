@@ -97,6 +97,8 @@ int main(const int argc, const char* const* const argv)
     {  "init_time_type_inference",  58},
     {     "implicit_conversions1",  41},
     {     "implicit_conversions2",  58},
+    {       "integer_literals_32",  58},
+    {       "integer_literals_64",  58},
   };
 
   std::size_t ok_c{};   // ok count.

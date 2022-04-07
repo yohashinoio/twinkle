@@ -91,16 +91,28 @@ struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
     return nullptr;
   }
 
-  // Unsigned integer literals.
+  // 32bit unsigned integer literals.
   llvm::Value* operator()(const std::uint32_t node) const
   {
     return llvm::ConstantInt::get(common.builder.getInt32Ty(), node);
   }
 
-  // Signed integer literals.
+  // 32bit signed integer literals.
   llvm::Value* operator()(const std::int32_t node) const
   {
     return llvm::ConstantInt::getSigned(common.builder.getInt32Ty(), node);
+  }
+
+  // 64bit unsigned integer literals.
+  llvm::Value* operator()(const std::uint64_t node) const
+  {
+    return llvm::ConstantInt::get(common.builder.getInt64Ty(), node);
+  }
+
+  // 64bit signed integer literals.
+  llvm::Value* operator()(const std::int64_t node) const
+  {
+    return llvm::ConstantInt::getSigned(common.builder.getInt64Ty(), node);
   }
 
   // Boolean literals.

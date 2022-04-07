@@ -211,13 +211,21 @@ const auto function_linkage
   = x3::rule<struct FunctionLinkageTag, id::FunctionLinkage>{"function linkage"}
 = function_linkage_symbols;
 
-const auto unsigned_integer
-  = x3::rule<struct UnsignedIntegerTag, std::uint32_t>{"integral number"}
+const auto uint_32bit
+  = x3::rule<struct UnsignedInteger32Tag, std::uint32_t>{"integral number"}
 = x3::uint32;
 
-const auto signed_integer
-  = x3::rule<struct SignedIntegerTag, std::int32_t>{"integral number"}
+const auto int_32bit
+  = x3::rule<struct SignedInteger32Tag, std::int32_t>{"integral number"}
 = x3::int32;
+
+const auto uint_64bit = x3::rule<struct UnsignedInteger64Tag,
+                                 std::uint64_t>{"integral number (64bit)"}
+= x3::uint64;
+
+const auto int_64bit
+  = x3::rule<struct SignedInteger64Tag, std::int64_t>{"integral number (64bit)"}
+= x3::int64;
 
 const auto boolean_literal
   = x3::rule<struct BooleanLiteralTag, bool>{"boolean literal"} = x3::bool_;
@@ -324,9 +332,9 @@ const auto arg_list_def = -(expr % x3::lit(','));
 const auto function_call_def
   = identifier >> x3::lit("(") > arg_list > x3::lit(")");
 
-const auto primary_def = unsigned_integer | signed_integer | boolean_literal
-                         | string_literal | char_literal | function_call
-                         | variable_ident
+const auto primary_def = int_32bit | uint_32bit | int_64bit | uint_64bit
+                         | boolean_literal | string_literal | char_literal
+                         | function_call | variable_ident
                          | (x3::lit('(') > expr > x3::lit(')'));
 
 BOOST_SPIRIT_DEFINE(expr,

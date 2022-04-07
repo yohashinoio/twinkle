@@ -60,9 +60,11 @@ struct AddressOf;
 struct Indirection;
 
 using Expr = boost::variant<Nil,
-                            std::uint32_t, /* Unsigned integer literals */
-                            std::int32_t,  /* Signed integer literals */
-                            bool,          /* Boolean literals */
+                            std::uint32_t, // Unsigned integer literals (32bit)
+                            std::int32_t,  // Signed integer literals (32bit)
+                            std::uint64_t, // Unsinged integer litarals (64bit)
+                            std::int64_t,  // Singed integer litarals (64bit)
+                            bool,          // Boolean literals
                             StringLiteral,
                             CharLiteral,
                             VariableRef,
