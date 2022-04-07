@@ -319,7 +319,7 @@ let s = "hello, world"; // *i8
 ```
 
 ## Implicit conversions
-In the case of numbers, operands with smaller bit widths are converted to larger bit widths.
+In the case of numeric values, operands with smaller bit widths are converted to the larger bit width side.
 ```rust
 let f: bool = true;
 
