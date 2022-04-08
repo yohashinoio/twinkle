@@ -56,7 +56,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   miko::ast::Conversion,
   (miko::ast::Expr, lhs)
-  (miko::ast::TypeInfo, as)
+  (std::shared_ptr<miko::Type>, as)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -75,9 +75,9 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   miko::ast::VariableDef,
-  (std::optional<miko::id::VariableQualifier>, qualifier)
+  (std::optional<miko::VariableQual>, qualifier)
   (std::string, name)
-  (std::optional<miko::ast::TypeInfo>, type)
+  (std::optional<std::shared_ptr<miko::Type>>, type)
   (std::optional<miko::ast::Expr>, initializer)
 )
 
@@ -136,9 +136,9 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   miko::ast::Parameter,
-  (std::optional<miko::id::VariableQualifier>, qualifier)
+  (std::optional<miko::VariableQual>, qualifier)
   (std::string, name)
-  (miko::ast::TypeInfo, type)
+  (std::shared_ptr<miko::Type>, type)
   (bool, is_vararg)
 )
 
@@ -149,10 +149,10 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   miko::ast::FunctionDecl,
-  (std::optional<miko::id::FunctionLinkage>, linkage)
+  (std::optional<miko::Linkage>, linkage)
   (std::string, name)
   (miko::ast::ParameterList, params)
-  (miko::ast::TypeInfo, return_type)
+  (std::shared_ptr<miko::Type>, return_type)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

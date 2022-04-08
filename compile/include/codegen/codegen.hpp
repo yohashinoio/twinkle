@@ -33,8 +33,7 @@ struct CodegenContext {
   CodegenContext(const std::filesystem::path& file,
                  const PositionCache&         positions);
 
-  [[nodiscard]] std::optional<LLVMTypeWithSign>
-  typename_to_type(const id::TypeName type, const bool is_ptr = false);
+  [[nodiscard]] LLVMTypeWithSign kind_to_type(const Type& type);
 
   [[nodiscard]] llvm::Value* i1_to_boolean(llvm::Value* value);
 

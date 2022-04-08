@@ -8,7 +8,7 @@
  */
 
 #include <codegen/codegen.hpp>
-#include <parse/id.hpp>
+#include <utils/type.hpp>
 #include <utils/format.hpp>
 
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
@@ -47,11 +47,11 @@ struct SymbolTable {
   // Returns true if the variable is already registered, false otherwise.
   bool exists(const std::string& name)
   {
-    return named_values.count(name);
+    return named_values.contains(name);
   }
 
   // For debug.
-  void print_symbols() const
+  void print_table() const
   {
     for (const auto& r : named_values)
       std::cout << r.first << ' ';
@@ -62,16 +62,51 @@ private:
   std::unordered_map<std::string, VariableInfo> named_values;
 };
 
+struct SignTable {
+  [[nodiscard]] std::optional<bool>
+  operator[](llvm::Value* value) const noexcept
+  try {
+    return sign_table.at(value);
+  }
+  catch (const std::out_of_range&) {
+    return std::nullopt;
+  }
+
+  // Regist stands for register.
+  void regist(llvm::Value* value, bool is_signed)
+  {
+    sign_table.insert({value, is_signed});
+  }
+
+  // Returns true if the variable is already registered, false otherwise.
+  bool exists(llvm::Value* value)
+  {
+    return sign_table.contains(value);
+  }
+
+  // For debug.
+  void print_table() const
+  {
+    for (const auto& r : sign_table)
+      std::cout << r.first << ' ';
+    std::endl(std::cout);
+  }
+
+private:
+  std::unordered_map<llvm::Value*, bool> sign_table;
+};
+
 // Create an alloca instruction in the entry block of
-// the function. This is used for mutable variables etc.
+// the function.
+// This is used for variables etc.
 [[nodiscard]] llvm::AllocaInst*
 create_entry_block_alloca(llvm::Function*    func,
                           const std::string& var_name,
                           llvm::Type*        type)
 {
-  llvm::IRBuilder<> tmp(&func->getEntryBlock(), func->getEntryBlock().begin());
-
-  return tmp.CreateAlloca(type, nullptr, var_name);
+  return llvm::IRBuilder<>{&func->getEntryBlock(),
+                           func->getEntryBlock().begin()}
+    .CreateAlloca(type, nullptr, var_name);
 }
 
 //===----------------------------------------------------------------------===//
@@ -85,54 +120,54 @@ struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
   {
   }
 
-  llvm::Value* operator()(ast::Nil) const
+  [[nodiscard]] llvm::Value* operator()(ast::Nil) const
   {
     BOOST_ASSERT(0);
     return nullptr;
   }
 
   // 32bit unsigned integer literals.
-  llvm::Value* operator()(const std::uint32_t node) const
+  [[nodiscard]] llvm::Value* operator()(const std::uint32_t node) const
   {
     return llvm::ConstantInt::get(common.builder.getInt32Ty(), node);
   }
 
   // 32bit signed integer literals.
-  llvm::Value* operator()(const std::int32_t node) const
+  [[nodiscard]] llvm::Value* operator()(const std::int32_t node) const
   {
     return llvm::ConstantInt::getSigned(common.builder.getInt32Ty(), node);
   }
 
   // 64bit unsigned integer literals.
-  llvm::Value* operator()(const std::uint64_t node) const
+  [[nodiscard]] llvm::Value* operator()(const std::uint64_t node) const
   {
     return llvm::ConstantInt::get(common.builder.getInt64Ty(), node);
   }
 
   // 64bit signed integer literals.
-  llvm::Value* operator()(const std::int64_t node) const
+  [[nodiscard]] llvm::Value* operator()(const std::int64_t node) const
   {
     return llvm::ConstantInt::getSigned(common.builder.getInt64Ty(), node);
   }
 
   // Boolean literals.
-  llvm::Value* operator()(const bool node) const
+  [[nodiscard]] llvm::Value* operator()(const bool node) const
   {
     return common.i1_to_boolean(
       llvm::ConstantInt::get(common.builder.getInt1Ty(), node));
   }
 
-  llvm::Value* operator()(const ast::StringLiteral& node) const
+  [[nodiscard]] llvm::Value* operator()(const ast::StringLiteral& node) const
   {
     return common.builder.CreateGlobalStringPtr(node.str);
   }
 
-  llvm::Value* operator()(const ast::CharLiteral& node) const
+  [[nodiscard]] llvm::Value* operator()(const ast::CharLiteral& node) const
   {
     return llvm::ConstantInt::get(common.builder.getInt8Ty(), node.ch);
   }
 
-  llvm::Value* operator()(const ast::UnaryOp& node) const
+  [[nodiscard]] llvm::Value* operator()(const ast::UnaryOp& node) const
   {
     auto const rhs = boost::apply_visitor(*this, node.rhs);
 
@@ -156,7 +191,7 @@ struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
                           format("unknown operator '%s' detected", node.op))};
   }
 
-  llvm::Value* operator()(const ast::BinOp& node) const
+  [[nodiscard]] llvm::Value* operator()(const ast::BinOp& node) const
   {
     auto lhs = boost::apply_visitor(*this, node.lhs);
     auto rhs = boost::apply_visitor(*this, node.rhs);
@@ -267,7 +302,7 @@ struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
                           false)};
   }
 
-  llvm::Value* operator()(const ast::VariableRef& node) const
+  [[nodiscard]] llvm::Value* operator()(const ast::VariableRef& node) const
   {
     auto var_info = scope[node.name];
 
@@ -281,7 +316,7 @@ struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
                                      var_info->inst);
   }
 
-  llvm::Value* operator()(const ast::FunctionCall& node) const
+  [[nodiscard]] llvm::Value* operator()(const ast::FunctionCall& node) const
   {
     auto const callee_func = common.module->getFunction(node.callee);
 
@@ -311,8 +346,7 @@ struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
     }
 
     // Verify arguments
-    std::size_t idx = 0;
-    for (auto&& arg : callee_func->args()) {
+    for (std::size_t idx = 0; auto&& arg : callee_func->args()) {
       if (args_value[idx++]->getType() != arg.getType()) {
         throw std::runtime_error{common.format_error(
           common.positions.position_of(node),
@@ -325,7 +359,7 @@ struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
     return common.builder.CreateCall(callee_func, args_value);
   }
 
-  llvm::Value* operator()(const ast::Conversion& node) const
+  [[nodiscard]] llvm::Value* operator()(const ast::Conversion& node) const
   {
     auto const lhs = boost::apply_visitor(*this, node.lhs);
 
@@ -335,18 +369,12 @@ struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
                             "failed to generate left-hand side")};
     }
 
-    const auto as = common.typename_to_type(node.as.id, node.as.is_ptr);
+    const auto as = common.kind_to_type(*node.as);
 
-    if (!as) {
-      throw std::runtime_error{
-        common.format_error(common.positions.position_of(node),
-                            "conversion to an unknown type")};
-    }
-
-    return common.builder.CreateIntCast(lhs, as->type, as->is_signed);
+    return common.builder.CreateIntCast(lhs, as.type, as.is_signed);
   }
 
-  llvm::Value* operator()(const ast::AddressOf& node) const
+  [[nodiscard]] llvm::Value* operator()(const ast::AddressOf& node) const
   {
     auto const lhs = boost::apply_visitor(*this, node.lhs);
 
@@ -359,7 +387,7 @@ struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
     return llvm::getPointerOperand(lhs);
   }
 
-  llvm::Value* operator()(const ast::Indirection& node) const
+  [[nodiscard]] llvm::Value* operator()(const ast::Indirection& node) const
   {
     auto const lhs = boost::apply_visitor(*this, node.lhs);
 
@@ -486,24 +514,17 @@ struct StmtVisitor : public boost::static_visitor<void> {
             // Consttant variable.
             scope.regist(node.name, {inst, false, is_signed});
           }
-          else if (*node.qualifier == id::VariableQualifier::mutable_) {
+          else if (*node.qualifier == VariableQual::mutable_) {
             // Mutable variable.
             scope.regist(node.name, {inst, true, is_signed});
           }
         };
 
     if (node.type) {
-      const auto type_info
-        = common.typename_to_type(node.type->id, node.type->is_ptr);
-
-      if (!type_info) {
-        throw std::runtime_error{
-          common.format_error(common.positions.position_of(node),
-                              "variables of undefined type cannot be defined")};
-      }
+      const auto type_info = common.kind_to_type(**node.type);
 
       auto const inst
-        = create_entry_block_alloca(func, node.name, type_info->type);
+        = create_entry_block_alloca(func, node.name, type_info.type);
 
       if (node.initializer) {
         auto const init_value
@@ -515,7 +536,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
             format("failed to generate initializer for '%s'", node.name))};
         }
 
-        if (type_info->type != init_value->getType()) {
+        if (type_info.type != init_value->getType()) {
           throw std::runtime_error{common.format_error(
             common.positions.position_of(node),
             "Initializer type and variable type are different")};
@@ -524,7 +545,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
         common.builder.CreateStore(init_value, inst);
       }
 
-      regist(inst, type_info->is_signed);
+      regist(inst, type_info.is_signed);
     }
     else {
       // Type inference.
@@ -669,8 +690,9 @@ struct StmtVisitor : public boost::static_visitor<void> {
     auto const cond = common.builder.CreateICmp(
       llvm::ICmpInst::ICMP_NE,
       cond_value,
-      llvm::ConstantInt::get(common.typename_to_type(id::TypeName::bool_)->type,
-                             0));
+      llvm::ConstantInt::get(
+        common.kind_to_type(BuiltinType{BuiltinTypeKind::bool_}).type,
+        0));
 
     auto const func = common.builder.GetInsertBlock()->getParent();
 
@@ -766,8 +788,9 @@ struct StmtVisitor : public boost::static_visitor<void> {
     auto const cond = common.builder.CreateICmp(
       llvm::ICmpInst::ICMP_NE,
       cond_value,
-      llvm::ConstantInt::get(common.typename_to_type(id::TypeName::bool_)->type,
-                             0));
+      llvm::ConstantInt::get(
+        common.kind_to_type(BuiltinType{BuiltinTypeKind::bool_}).type,
+        0));
 
     common.builder.CreateCondBr(cond, body_bb, loop_end_bb);
 
@@ -819,7 +842,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
         llvm::ICmpInst::ICMP_NE,
         cond_value,
         llvm::ConstantInt::get(
-          common.typename_to_type(id::TypeName::bool_)->type,
+          common.kind_to_type(BuiltinType{BuiltinTypeKind::bool_}).type,
           0));
 
       common.builder.CreateCondBr(cond, body_bb, loop_end_bb);
@@ -968,16 +991,14 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     std::vector<llvm::Type*> param_types(named_params_length);
 
     for (std::size_t i = 0; i != named_params_length; ++i) {
-      const auto& param_info = node.params[i].type;
-      param_types.at(i)
-        = common.typename_to_type(param_info.id, param_info.is_ptr)->type;
+      const auto& param_type = node.params[i].type;
+      param_types.at(i)      = common.kind_to_type(*param_type).type;
     }
 
-    auto const func_type = llvm::FunctionType::get(
-      common.typename_to_type(node.return_type.id, node.return_type.is_ptr)
-        ->type,
-      param_types,
-      is_vararg);
+    auto const func_type
+      = llvm::FunctionType::get(common.kind_to_type(*node.return_type).type,
+                                param_types,
+                                is_vararg);
 
     llvm::Function* func;
     if (!node.linkage) {
@@ -987,7 +1008,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
                                     node.name,
                                     *common.module);
     }
-    else if (node.linkage == id::FunctionLinkage::private_) {
+    else if (node.linkage == Linkage::internal) {
       // Internal linkage.
       func = llvm::Function::Create(func_type,
                                     llvm::Function::InternalLinkage,
@@ -996,8 +1017,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     }
 
     // Set names for all arguments.
-    std::size_t idx = 0;
-    for (auto&& arg : func->args())
+    for (std::size_t idx = 0; auto&& arg : func->args())
       arg.setName(node.params[idx++].name);
 
     return func;
@@ -1024,18 +1044,11 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     for (auto&& arg : func->args()) {
       const auto& param_node = node.decl.params[arg.getArgNo()];
 
-      const auto arg_type
-        = common.typename_to_type(param_node.type.id, param_node.type.is_ptr);
-
-      if (!arg_type) {
-        throw std::runtime_error{common.format_error(
-          common.positions.position_of(node),
-          "arguments of undefined types cannot be declared")};
-      }
+      const auto arg_type = common.kind_to_type(*param_node.type);
 
       // Create an alloca for this variable.
       auto const inst
-        = create_entry_block_alloca(func, arg.getName().str(), arg_type->type);
+        = create_entry_block_alloca(func, arg.getName().str(), arg_type.type);
 
       // Store the initial value into the alloca.
       common.builder.CreateStore(&arg, inst);
@@ -1045,28 +1058,20 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
         // consttant variable.
         argument_values.regist(arg.getName().str(), {inst, false});
       }
-      else if (*param_node.qualifier == id::VariableQualifier::mutable_) {
+      else if (*param_node.qualifier == VariableQual::mutable_) {
         // mutable variable.
         argument_values.regist(arg.getName().str(), {inst, true});
       }
     }
 
-    const auto return_type
-      = common.typename_to_type(node.decl.return_type.id,
-                                node.decl.return_type.is_ptr);
-
-    if (!return_type) {
-      throw std::runtime_error{
-        common.format_error(common.positions.position_of(node),
-                            "return type cannot be an undefined type")};
-    }
+    const auto return_type = common.kind_to_type(*node.decl.return_type);
 
     // Used to combine returns into one.
     auto const end_bb = llvm::BasicBlock::Create(*common.context);
     auto const retvar
-      = node.decl.return_type.id == id::TypeName::void_
+      = node.decl.return_type->getKind() == BuiltinTypeKind::void_
           ? nullptr
-          : create_entry_block_alloca(func, "", return_type->type);
+          : create_entry_block_alloca(func, "", return_type.type);
 
     codegen_statement(node.body,
                       argument_values,
@@ -1078,7 +1083,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
     // If there is no return, returns undef.
     if (!common.builder.GetInsertBlock()->getTerminator()
-        && node.decl.return_type.id != id::TypeName::void_) {
+        && node.decl.return_type->getKind() != BuiltinTypeKind::void_) {
       // Return 0 specially for main.
       if (node.decl.name == "main") {
         common.builder.CreateStore(
@@ -1095,7 +1100,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
     // Inserts a terminator if the function returning void does not have
     // one.
-    if (node.decl.return_type.id == id::TypeName::void_
+    if (node.decl.return_type->getKind() == BuiltinTypeKind::void_
         && !common.builder.GetInsertBlock()->getTerminator()) {
       common.builder.CreateBr(end_bb);
     }
@@ -1148,65 +1153,18 @@ CodegenContext::CodegenContext(const std::filesystem::path& file,
 {
 }
 
-[[nodiscard]] std::optional<LLVMTypeWithSign>
-CodegenContext::typename_to_type(const id::TypeName type, const bool is_ptr)
+[[nodiscard]] LLVMTypeWithSign CodegenContext::kind_to_type(const Type& type)
 {
-  LLVMTypeWithSign tmp;
-
-  switch (type) {
-  case id::TypeName::void_:
-    tmp = {builder.getVoidTy(), false};
-    break;
-  case id::TypeName::i8:
-    tmp = {builder.getInt8Ty(), true};
-    break;
-  case id::TypeName::u8:
-    tmp = {builder.getInt8Ty(), false};
-    break;
-  case id::TypeName::i16:
-    tmp = {builder.getInt16Ty(), true};
-    break;
-  case id::TypeName::u16:
-    tmp = {builder.getInt16Ty(), false};
-    break;
-  case id::TypeName::i32:
-    tmp = {builder.getInt32Ty(), true};
-    break;
-  case id::TypeName::u32:
-    tmp = {builder.getInt32Ty(), false};
-    break;
-  case id::TypeName::i64:
-    tmp = {builder.getInt64Ty(), true};
-    break;
-  case id::TypeName::u64:
-    tmp = {builder.getInt64Ty(), false};
-    break;
-  case id::TypeName::bool_:
-    // We will represent boolean by u8 instead of i1.
-    tmp = {builder.getInt8Ty(), false};
-    break;
-  default:
-    return std::nullopt;
-  }
-
-  if (is_ptr) {
-    // Get pointer type.
-    tmp.type = llvm::PointerType::getUnqual(tmp.type);
-  }
-
-  return tmp;
+  return {type.getType(builder), type.isSigned()};
 }
 
 [[nodiscard]] llvm::Value* CodegenContext::i1_to_boolean(llvm::Value* value)
 {
-  const auto as = typename_to_type(id::TypeName::bool_);
-
-  if (!as)
-    BOOST_ASSERT(0);
+  const auto as = kind_to_type(BuiltinType{BuiltinTypeKind::bool_});
 
   return llvm::CastInst::CreateIntegerCast(value,
-                                           as->type,
-                                           as->is_signed,
+                                           as.type,
+                                           as.is_signed,
                                            "",
                                            builder.GetInsertBlock());
 }

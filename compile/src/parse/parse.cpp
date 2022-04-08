@@ -10,7 +10,7 @@
 #include <pch/pch.hpp>
 #include <ast/ast_adapted.hpp>
 #include <parse/parse.hpp>
-#include <parse/id.hpp>
+#include <utils/type.hpp>
 #include <utils/format.hpp>
 
 namespace x3     = boost::spirit::x3;
@@ -111,43 +111,43 @@ namespace syntax
 // Symbol table
 //===----------------------------------------------------------------------===//
 
-struct TypeNameSymbolsTag : x3::symbols<id::TypeName> {
-  TypeNameSymbolsTag()
+struct BuintinTypeSymbolsTag : x3::symbols<BuiltinTypeKind> {
+  BuintinTypeSymbolsTag()
   {
     // clang-format off
     add
-      ("void",   id::TypeName::void_)
-      (  "i8",      id::TypeName::i8)
-      (  "u8",      id::TypeName::u8)
-      ( "i16",     id::TypeName::i16)
-      ( "u16",     id::TypeName::u16)
-      ( "i32",     id::TypeName::i32)
-      ( "u32",     id::TypeName::u32)
-      ( "i64",     id::TypeName::i64)
-      ( "u64",     id::TypeName::u64)
-      ("bool",   id::TypeName::bool_)
+      ("void",   {BuiltinTypeKind::void_})
+      (  "i8",      {BuiltinTypeKind::i8})
+      (  "u8",      {BuiltinTypeKind::u8})
+      ( "i16",     {BuiltinTypeKind::i16})
+      ( "u16",     {BuiltinTypeKind::u16})
+      ( "i32",     {BuiltinTypeKind::i32})
+      ( "u32",     {BuiltinTypeKind::u32})
+      ( "i64",     {BuiltinTypeKind::i64})
+      ( "u64",     {BuiltinTypeKind::u64})
+      ("bool",   {BuiltinTypeKind::bool_})
     ;
     // clang-format on
   }
-} TypeNameSymbols;
+} builtin_type_symbols;
 
-struct VariableQualifierSymbolsTag : x3::symbols<id::VariableQualifier> {
+struct VariableQualifierSymbolsTag : x3::symbols<VariableQual> {
   VariableQualifierSymbolsTag()
   {
     // clang-format off
     add
-      ("mut", id::VariableQualifier::mutable_)
+      ("mut", VariableQual::mutable_)
     ;
     // clang-format on
   }
 } variable_qualifier_symbols;
 
-struct FunctionLinkageSymbolsTag : x3::symbols<id::FunctionLinkage> {
+struct FunctionLinkageSymbolsTag : x3::symbols<Linkage> {
   FunctionLinkageSymbolsTag()
   {
     // clang-format off
     add
-      ("private", id::FunctionLinkage::private_)
+      ("private", Linkage::internal)
     ;
     // clang-format on
   }
@@ -187,28 +187,28 @@ const auto variable_ident
   = x3::rule<struct VariableIdentTag, ast::VariableRef>{"variable identifier"}
 = identifier;
 
-const auto type_name
-  = x3::rule<struct TypeNameTag, ast::TypeInfo>{"pointer type name"}
+const auto type = x3::rule<struct TypeTag, std::shared_ptr<Type>>{"type"}
 = (-x3::char_('*')
-   >> TypeNameSymbols /* TODO: support double (recursion) ptr */)[(
+   >> builtin_type_symbols /* TODO: support double (recursion) ptr */)[(
   [](auto&& ctx) {
     if (fusion::at_c<0>(x3::_attr(ctx))) {
-      // Pointer.
-      x3::_val(ctx) = ast::TypeInfo{true, fusion::at_c<1>(x3::_attr(ctx))};
+      // Detected pointer type.
+      x3::_val(ctx) = std::make_shared<PointerType>(
+        BuiltinType{fusion::at_c<1>(x3::_attr(ctx))});
     }
     else {
-      // Not pointer.
-      x3::_val(ctx) = ast::TypeInfo{false, fusion::at_c<1>(x3::_attr(ctx))};
+      // Detected non-pointer type.
+      x3::_val(ctx)
+        = std::make_shared<BuiltinType>(fusion::at_c<1>(x3::_attr(ctx)));
     }
   })];
 
 const auto variable_qualifier
-  = x3::rule<struct VariableQualifierTag,
-             id::VariableQualifier>{"variable qualifier"}
+  = x3::rule<struct VariableQualifierTag, VariableQual>{"variable qualifier"}
 = variable_qualifier_symbols;
 
 const auto function_linkage
-  = x3::rule<struct FunctionLinkageTag, id::FunctionLinkage>{"function linkage"}
+  = x3::rule<struct FunctionLinkageTag, Linkage>{"function linkage"}
 = function_linkage_symbols;
 
 const auto uint_32bit
@@ -318,7 +318,7 @@ const auto mul_def
   = unary[action::assign_attr_to_val]
     >> *(multitive_operator > unary)[action::assign_binop_to_val];
 
-const auto conversion_def = primary >> x3::lit("as") > type_name;
+const auto conversion_def = primary >> x3::lit("as") > type;
 
 const auto address_of_def = x3::lit('&') > primary;
 
@@ -371,8 +371,8 @@ const auto expr_stmt_def = expr;
 const auto assignment_def = expr >> assignment_operator > expr;
 
 const auto variable_type
-  = x3::rule<struct variable_type_tag, ast::TypeInfo>{"variable type"}
-= type_name - x3::lit("void");
+  = x3::rule<struct variable_type_tag, std::shared_ptr<Type>>{"variable type"}
+= type - x3::lit("void");
 
 const auto variable_def_def = x3::lit("let") > -variable_qualifier > identifier
                               > -(x3::lit(':') > variable_type)
@@ -424,8 +424,7 @@ BOOST_SPIRIT_DEFINE(expr_stmt,
 
 const auto parameter
   = x3::rule<struct ParameterTag, ast::Parameter>{"parameter"}
-= (-variable_qualifier >> identifier > x3::lit(':') > type_name
-   > x3::attr(false))
+= (-variable_qualifier >> identifier > x3::lit(':') > type > x3::attr(false))
   | x3::lit("...") >> x3::attr(ast::Parameter{std::nullopt, "", {}, true});
 
 const auto parameter_list
@@ -435,7 +434,7 @@ const auto parameter_list
 const auto function_proto
   = x3::rule<struct FunctionProtoTag, ast::FunctionDecl>{"function prototype"}
 = -function_linkage > identifier > x3::lit('(') > parameter_list > x3::lit(')')
-  > x3::lit("->") > type_name;
+  > x3::lit("->") > type;
 
 const auto function_decl
   = x3::rule<struct FunctionDeclTag, ast::FunctionDecl>{"function declaration"}

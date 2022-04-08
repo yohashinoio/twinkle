@@ -128,7 +128,7 @@ int main(const int argc, const char* const* const argv)
                 << " \x1b[31mFails!\x1b[39m " << expect << " expected\n";
       ++fail_c;
     }
-    catch (std::out_of_range) {
+    catch (const std::out_of_range&) {
       std::cerr << "No expect is set: " << r.path().stem().string()
                 << std::endl;
       std::exit(EXIT_FAILURE);

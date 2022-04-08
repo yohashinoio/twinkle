@@ -15,7 +15,7 @@
 #endif // _MSC_VER > 1000
 
 #include <pch/pch.hpp>
-#include <parse/id.hpp>
+#include <utils/type.hpp>
 
 namespace x3 = boost::spirit::x3;
 
@@ -28,11 +28,6 @@ namespace miko
 
 namespace ast
 {
-
-struct TypeInfo {
-  bool         is_ptr;
-  id::TypeName id;
-};
 
 struct Nil {};
 
@@ -103,8 +98,8 @@ struct FunctionCall : x3::position_tagged {
 };
 
 struct Conversion : x3::position_tagged {
-  Expr     lhs;
-  TypeInfo as;
+  Expr                  lhs;
+  std::shared_ptr<Type> as;
 };
 
 struct AddressOf : x3::position_tagged {
@@ -124,9 +119,9 @@ struct Return : x3::position_tagged {
 };
 
 struct VariableDef : x3::position_tagged {
-  std::optional<id::VariableQualifier> qualifier;
+  std::optional<VariableQual>          qualifier;
   std::string                          name;
-  std::optional<TypeInfo>              type;
+  std::optional<std::shared_ptr<Type>> type;
   std::optional<Expr>                  initializer;
 };
 
@@ -195,14 +190,14 @@ struct For : x3::position_tagged {
 //===----------------------------------------------------------------------===//
 
 struct Parameter : x3::position_tagged {
-  std::optional<id::VariableQualifier> qualifier;
-  std::string                          name;
-  TypeInfo                             type;
-  bool                                 is_vararg;
+  std::optional<VariableQual> qualifier;
+  std::string                 name;
+  std::shared_ptr<Type>       type;
+  bool                        is_vararg;
 
   Parameter(decltype(qualifier)&&     qualifier,
             decltype(name)&&          name,
-            const decltype(type)&     type,
+            decltype(type)            type,
             const decltype(is_vararg) is_vararg)
     : qualifier{qualifier}
     , name{name}
@@ -236,10 +231,10 @@ struct ParameterList : x3::position_tagged {
 };
 
 struct FunctionDecl : x3::position_tagged {
-  std::optional<id::FunctionLinkage> linkage;
-  std::string                        name;
-  ParameterList                      params;
-  TypeInfo                           return_type;
+  std::optional<Linkage> linkage;
+  std::string            name;
+  ParameterList          params;
+  std::shared_ptr<Type>  return_type;
 };
 
 struct FunctionDef : x3::position_tagged {
