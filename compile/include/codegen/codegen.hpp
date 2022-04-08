@@ -33,9 +33,7 @@ struct CodegenContext {
   CodegenContext(const std::filesystem::path& file,
                  const PositionCache&         positions);
 
-  [[nodiscard]] LLVMTypeWithSign kind_to_type(const Type& type);
-
-  [[nodiscard]] llvm::Value* i1_to_boolean(llvm::Value* value);
+  [[nodiscard]] llvm::Value* int1_to_bool(llvm::Value* value);
 
   [[nodiscard]] std::string
   format_error(const boost::iterator_range<InputIterator> pos,
