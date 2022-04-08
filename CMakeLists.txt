@@ -4,8 +4,8 @@ project(maple C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_subdirectory(compile)
+add_subdirectory(lib)
 
-add_subdirectory(driver)
+add_subdirectory(src)
 
-add_subdirectory(tests)
+add_subdirectory(test)

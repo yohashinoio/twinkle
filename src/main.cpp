@@ -7,7 +7,7 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <compile.hpp>
+#include <compile/main.hpp>
 
 int main(const int argc, const char* const* const argv)
 {

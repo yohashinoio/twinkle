@@ -1,11 +1,9 @@
 set(RUNTIME_NAME test)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-
 find_package(Threads REQUIRED)
 
 include_directories(
-  ${CMAKE_SOURCE_DIR}/compile/include
+  ${CMAKE_SOURCE_DIR}/lib/include
 )
 
 add_executable(
@@ -17,7 +15,7 @@ target_link_libraries(
   ${RUNTIME_NAME}
   PRIVATE
   Threads::Threads
-  compile
+  mplc
 )
 
 target_compile_options(

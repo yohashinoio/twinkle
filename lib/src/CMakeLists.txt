@@ -1,4 +1,4 @@
-set(LIB_NAME compile)
+set(LIB_NAME mplc)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
@@ -22,7 +22,7 @@ execute_process(COMMAND llvm-config --libs all
 string(REGEX REPLACE "[ \t]*[\r\n]+[ \t]*" ";" CONFIG_OUTPUT ${CONFIG_OUTPUT})
 
 include_directories(
-  ${CMAKE_SOURCE_DIR}/compile/include
+  ${CMAKE_SOURCE_DIR}/lib/include
   ${Boost_INCLUDE_DIRS}
   ${LLVM_INCLUDE_DIRS}
 )
@@ -30,7 +30,7 @@ include_directories(
 add_library(
   ${LIB_NAME}
   STATIC
-  main.cpp
+  compile/main.cpp
 )
 
 target_precompile_headers(${LIB_NAME} PRIVATE ../include/pch/pch.hpp)

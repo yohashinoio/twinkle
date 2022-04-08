@@ -7,7 +7,7 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <compile.hpp>
+#include <compile/main.hpp>
 #include <codegen/codegen.hpp>
 #include <jit/jit.hpp>
 #include <parse/parse.hpp>
