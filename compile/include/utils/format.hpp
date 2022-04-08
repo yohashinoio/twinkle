@@ -66,7 +66,7 @@ template <typename... Args>
 
 #pragma GCC diagnostic pop
 
-namespace miko
+namespace maple
 {
 
 // like c++20 std::format
@@ -76,6 +76,6 @@ template <typename... Args>
   return format_internal(fmt, conv_stdstr_to_cstr(std::forward<Args>(args))...);
 }
 
-} // namespace miko
+} // namespace maple
 
 #endif

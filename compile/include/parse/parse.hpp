@@ -18,7 +18,7 @@
 #include <utils/util.hpp>
 #include <utils/typedef.hpp>
 
-namespace miko::parse
+namespace maple::parse
 {
 
 struct Parser {
@@ -47,6 +47,6 @@ private:
   const std::filesystem::path& file_path;
 };
 
-} // namespace miko::parse
+} // namespace maple::parse
 
 #endif

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(miko C CXX)
+project(maple C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 

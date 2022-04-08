@@ -16,19 +16,7 @@
 
 namespace program_options = boost::program_options;
 
-namespace miko::compile
-{
-
-std::ostream& output_help(std::ostream&          ostm,
-                          const std::string_view exe_file_name,
-                          const program_options::options_description& desc)
-{
-  return ostm << miko::format("Usage: %s [options] file...\n",
-                              exe_file_name.data())
-              << desc;
-}
-
-bool is_back_newline(const char* str) noexcept
+static bool is_back_newline(const char* str) noexcept
 {
   for (;;) {
     if (*str == '\0')
@@ -37,86 +25,95 @@ bool is_back_newline(const char* str) noexcept
   }
 }
 
-void output_to_file(miko::codegen::CodeGenerator& generator,
-                    const std::filesystem::path&  path,
-                    const bool                    output_llvmir)
+static std::ostream&
+output_help(std::ostream&                               ostm,
+            const std::string_view                      command,
+            const program_options::options_description& desc)
 {
-  if (output_llvmir) {
-    // test.xxx -> test.ll
-    generator.write_llvm_ir_to_file(path.stem().string() + ".ll");
-  }
-  else {
-    // test.xxx -> test.o
-    generator.write_object_code_to_file(path.stem().string() + ".o");
-  }
+  return ostm << maple::format("Usage: %s [options] file...\n", command.data())
+              << desc;
 }
 
+static void output_to_file(maple::codegen::CodeGenerator& generator,
+                           const std::filesystem::path&   path,
+                           const bool                     output_llvmir)
+{
+  if (output_llvmir)
+    generator.write_llvm_ir_to_file(path.stem().string() + ".ll");
+  else
+    generator.write_object_code_to_file(path.stem().string() + ".o");
+}
+
+namespace maple::compile
+{
+
 CompileResult
-main(const int argc, const char* const* const argv, const bool error_output)
+main(const int argc, const char* const* const argv, const bool eout)
 try {
-  const auto desc  = miko::create_options_description();
-  const auto v_map = miko::get_variable_map(desc, argc, argv);
+  const auto desc = maple::create_options_description();
+
+  const auto vmap = maple::get_variable_map(desc, argc, argv);
 
   if (argc == 1) {
     output_help(std::cerr, *argv, desc);
     std::exit(EXIT_SUCCESS);
   }
-  if (v_map.count("version")) {
-    miko::display_version();
+  if (vmap.contains("version")) {
+    maple::display_version();
     std::exit(EXIT_SUCCESS);
   }
-  else if (v_map.count("help")) {
+  else if (vmap.contains("help")) {
     output_help(std::cout, *argv, desc);
     std::exit(EXIT_SUCCESS);
   }
 
-  const auto optimize = v_map["opt"].as<bool>();
+  const auto optimize = vmap["opt"].as<bool>();
 
-  if (v_map.count("input")) {
+  if (vmap.contains("input")) {
     std::string_view file_path = "a";
 
-    miko::parse::Parser parser{v_map["input"].as<std::string>(),
-                               file_path,
-                               error_output};
+    maple::parse::Parser parser{vmap["input"].as<std::string>(),
+                                file_path,
+                                eout};
 
-    miko::codegen::CodeGenerator generator{*argv,
-                                           parser.get_ast(),
-                                           parser.get_positions(),
-                                           file_path,
-                                           optimize};
+    maple::codegen::CodeGenerator generator{*argv,
+                                            parser.get_ast(),
+                                            parser.get_positions(),
+                                            file_path,
+                                            optimize};
 
-    if (v_map.count("jit"))
+    if (vmap.contains("jit"))
       return {true, generator.jit_compile()};
     else
-      output_to_file(generator, file_path, v_map.count("llvmir"));
+      output_to_file(generator, file_path, vmap.contains("llvmir"));
   }
   else {
-    auto file_paths = miko::get_input_files(*argv, v_map);
+    auto file_paths = maple::get_input_files(*argv, vmap);
 
     for (auto&& file_path : file_paths) {
-      auto input = miko::load_file_to_string(*argv, file_path);
+      auto input = maple::load_file_to_string(*argv, file_path);
 
-      miko::parse::Parser parser{std::move(input), file_path, error_output};
+      maple::parse::Parser parser{std::move(input), file_path, eout};
 
-      miko::codegen::CodeGenerator generator{*argv,
-                                             parser.get_ast(),
-                                             parser.get_positions(),
-                                             file_path,
-                                             optimize};
+      maple::codegen::CodeGenerator generator{*argv,
+                                              parser.get_ast(),
+                                              parser.get_positions(),
+                                              file_path,
+                                              optimize};
 
-      if (v_map.count("jit"))
+      if (vmap.contains("jit"))
         return {true, generator.jit_compile()};
       else
-        output_to_file(generator, file_path, v_map.count("llvmir"));
+        output_to_file(generator, file_path, vmap.contains("llvmir"));
     }
   }
 
   return {true, std::nullopt};
 }
 catch (const program_options::error& err) {
-  if (error_output) {
+  if (eout) {
     // Error about command line options.
-    std::cerr << miko::format_error_message(*argv, err.what(), true)
+    std::cerr << maple::format_error_message(*argv, err.what(), true)
               << (is_back_newline(err.what()) ? "" : "\n")
               << "compilation terminated." << std::endl;
   }
@@ -124,7 +121,7 @@ catch (const program_options::error& err) {
   return {false, std::nullopt};
 }
 catch (const std::runtime_error& err) {
-  if (error_output) {
+  if (eout) {
     std::cerr << err.what() << (is_back_newline(err.what()) ? "" : "\n")
               << "compilation terminated." << std::endl;
   }
@@ -132,4 +129,4 @@ catch (const std::runtime_error& err) {
   return {false, std::nullopt};
 }
 
-} // namespace miko::compile
+} // namespace maple::compile

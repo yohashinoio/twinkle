@@ -16,7 +16,7 @@
 
 #include <optional>
 
-namespace miko::compile
+namespace maple::compile
 {
 
 struct CompileResult {
@@ -25,11 +25,11 @@ struct CompileResult {
   std::optional<int> jit_result;
 };
 
-// Run front-end.
+// Compilation.
 CompileResult main(const int                argc,
-                     const char* const* const argv,
-                     const bool               error_output = true);
+                   const char* const* const argv,
+                   const bool               eout = true /* Error output */);
 
-} // namespace miko::compile
+} // namespace maple::compile
 
 #endif

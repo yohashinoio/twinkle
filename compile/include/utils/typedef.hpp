@@ -16,7 +16,7 @@
 
 #include <pch/pch.hpp>
 
-namespace miko
+namespace maple
 {
 
 //===----------------------------------------------------------------------===//
@@ -28,6 +28,6 @@ using InputIterator = std::string::const_iterator;
 using PositionCache
   = boost::spirit::x3::position_cache<std::vector<InputIterator>>;
 
-} // namespace miko
+} // namespace maple
 
 #endif

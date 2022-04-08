@@ -13,8 +13,7 @@
 #include <iostream>
 #include <unordered_map>
 
-namespace fs      = std::filesystem;
-namespace compile = miko::compile;
+namespace fs = std::filesystem;
 
 int main(const int argc, const char* const* const argv)
 {
@@ -110,7 +109,7 @@ int main(const int argc, const char* const* const argv)
     const char* c_argv[] = {"test", "--jit", r.path().c_str()};
 
     const auto result
-      = compile::main(std::extent_v<decltype(c_argv)>, c_argv, false);
+      = maple::compile::main(std::extent_v<decltype(c_argv)>, c_argv, false);
 
     try {
       const auto expect = expects.at(r.path().stem().string());

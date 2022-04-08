@@ -17,7 +17,7 @@
 #include <pch/pch.hpp>
 #include <utils/util.hpp>
 
-namespace miko
+namespace maple
 {
 
 enum class BuiltinTypeKind : unsigned char {
@@ -152,6 +152,6 @@ enum class Linkage : unsigned char {
   internal,
 };
 
-} // namespace miko
+} // namespace maple
 
 #endif

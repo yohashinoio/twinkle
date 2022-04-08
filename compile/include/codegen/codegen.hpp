@@ -20,7 +20,7 @@
 #include <utils/typedef.hpp>
 #include <jit/jit.hpp>
 
-namespace miko::codegen
+namespace maple::codegen
 {
 
 struct LLVMTypeWithSign {
@@ -77,6 +77,6 @@ private:
   const ast::Program& ast;
 };
 
-} // namespace miko::codegen
+} // namespace maple::codegen
 
 #endif

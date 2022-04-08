@@ -9,7 +9,7 @@
 
 #include <jit/jit.hpp>
 
-namespace miko::jit
+namespace maple::jit
 {
 
 JitCompiler::JitCompiler(
@@ -86,4 +86,4 @@ JitCompiler::lookup(const llvm::StringRef name)
   return exec_session->lookup({&main_jd}, mangle(name.str()));
 }
 
-} // namespace miko::jit
+} // namespace maple::jit

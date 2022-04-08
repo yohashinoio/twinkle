@@ -19,7 +19,7 @@
 
 namespace x3 = boost::spirit::x3;
 
-namespace miko
+namespace maple
 {
 
 //===----------------------------------------------------------------------===//
@@ -247,6 +247,6 @@ using TopLevel = boost::variant<Nil, FunctionDecl, FunctionDef>;
 using Program = std::vector<TopLevel>;
 
 } // namespace ast
-} // namespace miko
+} // namespace maple
 
 #endif

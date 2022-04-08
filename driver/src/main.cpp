@@ -11,9 +11,7 @@
 
 int main(const int argc, const char* const* const argv)
 {
-  namespace compile = miko::compile;
-
-  const auto c_result = compile::main(argc, argv);
+  const auto c_result = maple::compile::main(argc, argv);
 
   if (!c_result.success) {
     // Failure.

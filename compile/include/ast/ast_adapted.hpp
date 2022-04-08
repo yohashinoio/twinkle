@@ -20,53 +20,53 @@
 //===----------------------------------------------------------------------===//
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::StringLiteral,
+  maple::ast::StringLiteral,
   (std::string, str)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::CharLiteral,
+  maple::ast::CharLiteral,
   (unsigned char, ch)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::UnaryOp,
+  maple::ast::UnaryOp,
   (std::string, op)
-  (miko::ast::Expr, rhs)
+  (maple::ast::Expr, rhs)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::BinOp,
-  (miko::ast::Expr, lhs)
+  maple::ast::BinOp,
+  (maple::ast::Expr, lhs)
   (std::string, op)
-  (miko::ast::Expr, rhs)
+  (maple::ast::Expr, rhs)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::VariableRef,
+  maple::ast::VariableRef,
   (std::string, name)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::FunctionCall,
+  maple::ast::FunctionCall,
   (std::string, callee)
-  (std::vector<miko::ast::Expr>, args)
+  (std::vector<maple::ast::Expr>, args)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::Conversion,
-  (miko::ast::Expr, lhs)
-  (std::shared_ptr<miko::Type>, as)
+  maple::ast::Conversion,
+  (maple::ast::Expr, lhs)
+  (std::shared_ptr<maple::Type>, as)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::AddressOf,
-  (miko::ast::Expr, lhs)
+  maple::ast::AddressOf,
+  (maple::ast::Expr, lhs)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::Indirection,
-  (miko::ast::Expr, lhs)
+  maple::ast::Indirection,
+  (maple::ast::Expr, lhs)
 )
 
 //===----------------------------------------------------------------------===//
@@ -74,60 +74,60 @@ BOOST_FUSION_ADAPT_STRUCT(
 //===----------------------------------------------------------------------===//
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::VariableDef,
-  (std::optional<miko::VariableQual>, qualifier)
+  maple::ast::VariableDef,
+  (std::optional<maple::VariableQual>, qualifier)
   (std::string, name)
-  (std::optional<std::shared_ptr<miko::Type>>, type)
-  (std::optional<miko::ast::Expr>, initializer)
+  (std::optional<std::shared_ptr<maple::Type>>, type)
+  (std::optional<maple::ast::Expr>, initializer)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::Return,
-  (std::optional<miko::ast::Expr>, rhs)
+  maple::ast::Return,
+  (std::optional<maple::ast::Expr>, rhs)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::Assignment,
-  (miko::ast::Expr, lhs)
+  maple::ast::Assignment,
+  (maple::ast::Expr, lhs)
   (std::string, op)
-  (miko::ast::Expr, rhs)
+  (maple::ast::Expr, rhs)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::Break,
+  maple::ast::Break,
   (std::string, tmp)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::Continue,
+  maple::ast::Continue,
   (std::string, tmp)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::If,
-  (miko::ast::Expr, condition)
-  (miko::ast::Stmt, then_statement)
-  (std::optional<miko::ast::Stmt>, else_statement)
+  maple::ast::If,
+  (maple::ast::Expr, condition)
+  (maple::ast::Stmt, then_statement)
+  (std::optional<maple::ast::Stmt>, else_statement)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::Loop,
+  maple::ast::Loop,
   (std::string, tmp)
-  (miko::ast::Stmt, body)
+  (maple::ast::Stmt, body)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::While,
-  (miko::ast::Expr, cond_expr)
-  (miko::ast::Stmt, body)
+  maple::ast::While,
+  (maple::ast::Expr, cond_expr)
+  (maple::ast::Stmt, body)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::For,
-  (std::optional<miko::ast::ForInit>, init_stmt)
-  (std::optional<miko::ast::Expr>, cond_expr)
-  (std::optional<miko::ast::Assignment>, loop_stmt)
-  (miko::ast::Stmt, body)
+  maple::ast::For,
+  (std::optional<maple::ast::ForInit>, init_stmt)
+  (std::optional<maple::ast::Expr>, cond_expr)
+  (std::optional<maple::ast::Assignment>, loop_stmt)
+  (maple::ast::Stmt, body)
 )
 
 //===----------------------------------------------------------------------===//
@@ -135,30 +135,30 @@ BOOST_FUSION_ADAPT_STRUCT(
 //===----------------------------------------------------------------------===//
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::Parameter,
-  (std::optional<miko::VariableQual>, qualifier)
+  maple::ast::Parameter,
+  (std::optional<maple::VariableQual>, qualifier)
   (std::string, name)
-  (std::shared_ptr<miko::Type>, type)
+  (std::shared_ptr<maple::Type>, type)
   (bool, is_vararg)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::ParameterList,
-  (std::vector<miko::ast::Parameter>, params)
+  maple::ast::ParameterList,
+  (std::vector<maple::ast::Parameter>, params)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::FunctionDecl,
-  (std::optional<miko::Linkage>, linkage)
+  maple::ast::FunctionDecl,
+  (std::optional<maple::Linkage>, linkage)
   (std::string, name)
-  (miko::ast::ParameterList, params)
-  (std::shared_ptr<miko::Type>, return_type)
+  (maple::ast::ParameterList, params)
+  (std::shared_ptr<maple::Type>, return_type)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  miko::ast::FunctionDef,
-	(miko::ast::FunctionDecl, decl)
-  (miko::ast::Stmt, body)
+  maple::ast::FunctionDef,
+	(maple::ast::FunctionDecl, decl)
+  (maple::ast::Stmt, body)
 )
 
 // clang-format on

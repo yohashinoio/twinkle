@@ -1,5 +1,5 @@
 <div align="center">
-    <h1>The Miko Programming Language</h1>
+    <h1>The Maple Programming Language</h1>
 </div>
 
 - [Getting Started](#getting-started)
@@ -72,8 +72,8 @@ $ sudo ln -s /usr/bin/llvm-config-xxx /usr/local/bin/llvm-config
 ### Compile this project
 First, clone.
 ```bash
-$ git clone https://github.com/GothicLoli/miko.git
-$ cd miko
+$ git clone https://github.com/GothicLoli/maple.git
+$ cd maple
 ```
 Next, create a build directory.
 ```bash
@@ -103,7 +103,7 @@ func main() -> i32
 
 ### AOT compile
 ```bash
-$ mikoc hello.txt
+$ maplec hello.txt
 $ cc -static hello.o
 $ ./a.out
 hello, world
@@ -111,14 +111,14 @@ hello, world
 
 ### JIT compile
 ```bash
-$ mikoc --jit hello.txt
+$ maplec --jit hello.txt
 hello, world
 ```
 
 ### More compiler options
 Please see help.
 ```bash
-$ mikoc --help
+$ maplec --help
 ```
 
 ## Operators

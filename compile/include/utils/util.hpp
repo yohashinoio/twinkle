@@ -16,7 +16,7 @@
 
 #include <pch/pch.hpp>
 
-namespace miko
+namespace maple
 {
 
 //===----------------------------------------------------------------------===//
@@ -28,7 +28,7 @@ namespace program_options = boost::program_options;
 #define COLOR_DEFAULT "\x1b[0m"
 #define COLOR_RED     "\x1b[91m"
 
-constexpr unsigned int MIKO_VERSION = 100000;
+constexpr unsigned int MAPLE_VER = 100000;
 
 void display_version();
 
@@ -62,8 +62,8 @@ get_input_files(const std::string_view                program_name,
 [[noreturn]] void unreachable_internal(const std::size_t line,
                                        const char*       file);
 
-#define unreachable() ::miko::unreachable_internal(__LINE__, __FILE__)
+#define unreachable() ::maple::unreachable_internal(__LINE__, __FILE__)
 
-} // namespace miko
+} // namespace maple
 
 #endif

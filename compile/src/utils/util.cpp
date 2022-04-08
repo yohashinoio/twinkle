@@ -16,7 +16,7 @@
 #include <unistd.h> // isatty
 #endif
 
-namespace miko
+namespace maple
 {
 
 // Formatting and coloring.
@@ -130,19 +130,19 @@ get_variable_map(const program_options::options_description& desc,
 get_input_files(const std::string_view                program_name,
                 const program_options::variables_map& vm)
 {
-  if (vm.count("input-file"))
+  if (vm.contains("input-file"))
     return vm["input-file"].as<std::vector<std::string>>();
   else {
     throw std::runtime_error{
-      miko::format_error_message(program_name, "no input files", true)};
+      maple::format_error_message(program_name, "no input files", true)};
   }
 }
 
 void display_version()
 {
-  const auto major = MIKO_VERSION / 100000;
-  const auto minor = MIKO_VERSION / 100 % 1000;
-  const auto patch = MIKO_VERSION % 100;
+  const auto major = MAPLE_VER / 100000;
+  const auto minor = MAPLE_VER / 100 % 1000;
+  const auto patch = MAPLE_VER % 100;
 
   std::cout << major << '.' << minor << '.' << patch << '\n';
 }
@@ -163,4 +163,4 @@ void display_version()
 #endif
 }
 
-} // namespace miko
+} // namespace maple

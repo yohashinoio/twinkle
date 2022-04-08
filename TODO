@@ -1,4 +1,3 @@
-SignTable
 戻り値の型が合わない場合などは、何型が何型に合わないのか出力
 StatementVisitor用のStatementContextを用意しよう
 複数ファイルのJIT

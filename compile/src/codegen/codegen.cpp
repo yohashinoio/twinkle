@@ -15,7 +15,7 @@
 #include <unistd.h> // isatty
 #endif
 
-namespace miko::codegen
+namespace maple::codegen
 {
 
 //===----------------------------------------------------------------------===//
@@ -1416,4 +1416,4 @@ void CodeGenerator::codegen()
     boost::apply_visitor(TopLevelVisitor{common, fpm}, node);
 }
 
-} // namespace miko::codegen
+} // namespace maple::codegen

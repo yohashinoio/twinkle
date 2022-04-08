@@ -16,7 +16,7 @@
 
 #include <pch/pch.hpp>
 
-namespace miko::jit
+namespace maple::jit
 {
 
 struct JitCompiler {
@@ -50,6 +50,6 @@ private:
   llvm::orc::JITDylib& main_jd;
 };
 
-} // namespace miko::jit
+} // namespace maple::jit
 
 #endif
