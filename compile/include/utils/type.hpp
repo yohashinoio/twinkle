@@ -35,13 +35,19 @@ enum class BuiltinTypeKind : unsigned char {
 struct Type {
   virtual ~Type() = default;
 
-  virtual BuiltinTypeKind getKind() const noexcept = 0;
+  [[nodiscard]] virtual BuiltinTypeKind getKind() const noexcept = 0;
 
-  virtual bool isPointer() const noexcept = 0;
+  [[nodiscard]] virtual bool isPointer() const noexcept = 0;
 
-  virtual bool isSigned() const noexcept = 0;
+  [[nodiscard]] virtual bool isSigned() const noexcept = 0;
 
-  virtual llvm::Type* getType(llvm::IRBuilder<>& builder) const = 0;
+  [[nodiscard]] virtual bool isUnigned()
+  {
+    return !isSigned();
+  }
+
+  [[nodiscard]] virtual llvm::Type*
+  getType(llvm::IRBuilder<>& builder) const = 0;
 };
 
 struct BuiltinType : public Type {
@@ -50,17 +56,17 @@ struct BuiltinType : public Type {
   {
   }
 
-  BuiltinTypeKind getKind() const noexcept override
+  [[nodiscard]] BuiltinTypeKind getKind() const noexcept override
   {
     return kind;
   }
 
-  bool isPointer() const noexcept override
+  [[nodiscard]] bool isPointer() const noexcept override
   {
     return false;
   }
 
-  llvm::Type* getType(llvm::IRBuilder<>& builder) const override
+  [[nodiscard]] llvm::Type* getType(llvm::IRBuilder<>& builder) const override
   {
     switch (kind) {
     case BuiltinTypeKind::void_:
@@ -85,7 +91,7 @@ struct BuiltinType : public Type {
     llvm_unreachable("");
   }
 
-  bool isSigned() const noexcept override
+  [[nodiscard]] bool isSigned() const noexcept override
   {
     switch (kind) {
     case BuiltinTypeKind::i8:
@@ -100,11 +106,6 @@ struct BuiltinType : public Type {
     llvm_unreachable("");
   }
 
-  bool isUnsigned() const noexcept
-  {
-    return !isSigned();
-  }
-
 private:
   BuiltinTypeKind kind;
 };
@@ -115,22 +116,22 @@ struct PointerType : public Type {
   {
   }
 
-  BuiltinTypeKind getKind() const noexcept override
+  [[nodiscard]] BuiltinTypeKind getKind() const noexcept override
   {
     return pointee_type.getKind();
   }
 
-  bool isPointer() const noexcept override
+  [[nodiscard]] bool isPointer() const noexcept override
   {
     return true;
   }
 
-  llvm::Type* getType(llvm::IRBuilder<>& builder) const override
+  [[nodiscard]] llvm::Type* getType(llvm::IRBuilder<>& builder) const override
   {
     return llvm::PointerType::getUnqual(pointee_type.getType(builder));
   }
 
-  bool isSigned() const noexcept override
+  [[nodiscard]] bool isSigned() const noexcept override
   {
     return false;
   }

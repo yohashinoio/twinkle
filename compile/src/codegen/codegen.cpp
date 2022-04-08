@@ -1158,7 +1158,7 @@ CodegenContext::CodegenContext(const std::filesystem::path& file,
 
 [[nodiscard]] llvm::Value* CodegenContext::int1_to_bool(llvm::Value* value)
 {
-  const auto as = BuiltinType{BuiltinTypeKind::bool_};
+  const BuiltinType as{BuiltinTypeKind::bool_};
 
   return llvm::CastInst::CreateIntegerCast(value,
                                            as.getType(builder),
