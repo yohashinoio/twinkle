@@ -1,4 +1,5 @@
 build
+release
 .cache
 .vscode
 *.ll

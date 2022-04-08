@@ -147,4 +147,20 @@ void display_version()
   std::cout << major << '.' << minor << '.' << patch << '\n';
 }
 
+[[noreturn]] void unreachable_internal(const std::size_t line, const char* file)
+{
+#ifndef NDEBUG
+  if (file) {
+    std::cerr << "UNREACHABLE executed"
+              << " at " << file << ":" << line << '!' << std::endl;
+  }
+#endif
+
+#if defined(__GNUC__) // GCC, Clang, ICC
+  __builtin_unreachable();
+#elif define(_MSC_VER) // MSVC
+  __assume(false);
+#endif
+}
+
 } // namespace miko

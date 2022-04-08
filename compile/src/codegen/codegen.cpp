@@ -23,7 +23,7 @@ namespace miko::codegen
 //===----------------------------------------------------------------------===//
 
 struct VariableInfo {
-  llvm::AllocaInst* inst;
+  llvm::AllocaInst* alloca;
   bool              is_mutable;
   bool              is_signed;
 };
@@ -45,7 +45,7 @@ struct SymbolTable {
   }
 
   // Returns true if the variable is already registered, false otherwise.
-  bool exists(const std::string& name)
+  bool exists(const std::string& name) const
   {
     return named_values.contains(name);
   }
@@ -62,38 +62,46 @@ private:
   std::unordered_map<std::string, VariableInfo> named_values;
 };
 
-struct SignTable {
-  [[nodiscard]] std::optional<bool>
-  operator[](llvm::Value* value) const noexcept
-  try {
-    return sign_table.at(value);
-  }
-  catch (const std::out_of_range&) {
-    return std::nullopt;
+// Class that wraps llvm::Value.
+// Made to handle signs, etc.
+struct Value {
+  Value(llvm::Value* value, const bool is_signed) noexcept
+    : value{value}
+    , is_signed{is_signed}
+  {
   }
 
-  // Regist stands for register.
-  void regist(llvm::Value* value, bool is_signed)
+  explicit Value(llvm::Value* value) noexcept
+    : value{value}
+    , is_signed{false}
   {
-    sign_table.insert({value, is_signed});
   }
 
-  // Returns true if the variable is already registered, false otherwise.
-  bool exists(llvm::Value* value)
+  Value() noexcept = default;
+
+  [[nodiscard]] llvm::Value* getValue() const noexcept
   {
-    return sign_table.contains(value);
+    return value;
   }
 
-  // For debug.
-  void print_table() const
+  [[nodiscard]] bool isSigned() const noexcept
   {
-    for (const auto& r : sign_table)
-      std::cout << r.first << ' ';
-    std::endl(std::cout);
+    return is_signed;
+  }
+
+  [[nodiscard]] bool isInteger() const
+  {
+    return value->getType()->isIntegerTy();
+  }
+
+  [[nodiscard]] explicit operator bool() const noexcept
+  {
+    return value;
   }
 
 private:
-  std::unordered_map<llvm::Value*, bool> sign_table;
+  llvm::Value* value;
+  bool         is_signed;
 };
 
 // Create an alloca instruction in the entry block of
@@ -113,65 +121,68 @@ create_entry_block_alloca(llvm::Function*    func,
 // Expression visitor
 //===----------------------------------------------------------------------===//
 
-struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
+struct ExprVisitor : public boost::static_visitor<Value> {
   ExprVisitor(CodegenContext& common, SymbolTable& scope)
     : common{common}
     , scope{scope}
   {
   }
 
-  [[nodiscard]] llvm::Value* operator()(ast::Nil) const
+  [[nodiscard]] Value operator()(ast::Nil) const
   {
-    BOOST_ASSERT(0);
-    return nullptr;
+    unreachable();
   }
 
   // 32bit unsigned integer literals.
-  [[nodiscard]] llvm::Value* operator()(const std::uint32_t node) const
+  [[nodiscard]] Value operator()(const std::uint32_t node) const
   {
-    return llvm::ConstantInt::get(common.builder.getInt32Ty(), node);
+    return {llvm::ConstantInt::get(common.builder.getInt32Ty(), node), false};
   }
 
   // 32bit signed integer literals.
-  [[nodiscard]] llvm::Value* operator()(const std::int32_t node) const
+  [[nodiscard]] Value operator()(const std::int32_t node) const
   {
-    return llvm::ConstantInt::getSigned(common.builder.getInt32Ty(), node);
+    return {llvm::ConstantInt::getSigned(common.builder.getInt32Ty(), node),
+            true};
   }
 
   // 64bit unsigned integer literals.
-  [[nodiscard]] llvm::Value* operator()(const std::uint64_t node) const
+  [[nodiscard]] Value operator()(const std::uint64_t node) const
   {
-    return llvm::ConstantInt::get(common.builder.getInt64Ty(), node);
+    return {llvm::ConstantInt::get(common.builder.getInt64Ty(), node), false};
   }
 
   // 64bit signed integer literals.
-  [[nodiscard]] llvm::Value* operator()(const std::int64_t node) const
+  [[nodiscard]] Value operator()(const std::int64_t node) const
   {
-    return llvm::ConstantInt::getSigned(common.builder.getInt64Ty(), node);
+    return {llvm::ConstantInt::getSigned(common.builder.getInt64Ty(), node),
+            true};
   }
 
   // Boolean literals.
-  [[nodiscard]] llvm::Value* operator()(const bool node) const
+  [[nodiscard]] Value operator()(const bool node) const
   {
-    return common.int1_to_bool(
-      llvm::ConstantInt::get(common.builder.getInt1Ty(), node));
+    return {common.int1_to_bool(
+              llvm::ConstantInt::get(common.builder.getInt1Ty(), node)),
+            false};
   }
 
-  [[nodiscard]] llvm::Value* operator()(const ast::StringLiteral& node) const
+  [[nodiscard]] Value operator()(const ast::StringLiteral& node) const
   {
-    return common.builder.CreateGlobalStringPtr(node.str);
+    return Value{common.builder.CreateGlobalStringPtr(node.str)};
   }
 
-  [[nodiscard]] llvm::Value* operator()(const ast::CharLiteral& node) const
+  [[nodiscard]] Value operator()(const ast::CharLiteral& node) const
   {
-    return llvm::ConstantInt::get(common.builder.getInt8Ty(), node.ch);
+    // Char literal is u8.
+    return {llvm::ConstantInt::get(common.builder.getInt8Ty(), node.ch), false};
   }
 
-  [[nodiscard]] llvm::Value* operator()(const ast::UnaryOp& node) const
+  [[nodiscard]] Value operator()(const ast::UnaryOp& node) const
   {
     auto const rhs = boost::apply_visitor(*this, node.rhs);
 
-    if (!rhs) {
+    if (!rhs.getValue()) {
       throw std::runtime_error{
         common.format_error(common.positions.position_of(node),
                             "failed to generate right-hand side")};
@@ -181,9 +192,9 @@ struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
       return rhs;
     if (node.op == "-") {
       // -x to (0 - x).
-      return common.builder.CreateSub(
+      return Value{common.builder.CreateSub(
         llvm::ConstantInt::get(common.builder.getInt32Ty(), 0),
-        rhs);
+        rhs.getValue())};
     }
 
     throw std::runtime_error{
@@ -191,7 +202,7 @@ struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
                           format("unknown operator '%s' detected", node.op))};
   }
 
-  [[nodiscard]] llvm::Value* operator()(const ast::BinOp& node) const
+  [[nodiscard]] Value operator()(const ast::BinOp& node) const
   {
     auto lhs = boost::apply_visitor(*this, node.lhs);
     auto rhs = boost::apply_visitor(*this, node.rhs);
@@ -211,88 +222,126 @@ struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
     }
 
     // Implicit conversions.
-    if (const auto lhs_bitwidth = lhs->getType()->getIntegerBitWidth(),
-        rhs_bitwidth            = rhs->getType()->getIntegerBitWidth();
+    if (const auto lhs_bitwidth
+        = lhs.getValue()->getType()->getIntegerBitWidth(),
+        rhs_bitwidth = rhs.getValue()->getType()->getIntegerBitWidth();
         lhs_bitwidth != rhs_bitwidth) {
       const auto max_bitwidth = std::max(lhs_bitwidth, rhs_bitwidth);
 
       const auto as = common.builder.getIntNTy(max_bitwidth);
 
-      if (lhs_bitwidth == max_bitwidth)
-        rhs = common.builder.CreateIntCast(rhs, as, true); // TODO: sign
-      else
-        lhs = common.builder.CreateIntCast(lhs, as, true); // TODO: sign
+      const auto as_is_signed
+        = lhs_bitwidth == max_bitwidth ? lhs.isSigned() : rhs.isSigned();
+
+      if (lhs_bitwidth == max_bitwidth) {
+        rhs = {common.builder.CreateIntCast(rhs.getValue(), as, as_is_signed),
+               as_is_signed};
+      }
+      else {
+        lhs = {common.builder.CreateIntCast(lhs.getValue(), as, as_is_signed),
+               as_is_signed};
+      }
     }
 
-    if (lhs->getType() != rhs->getType()) {
+    if (lhs.getValue()->getType() != rhs.getValue()->getType()) {
       throw std::runtime_error{common.format_error(
         common.positions.position_of(node),
         "both operands to a binary operator are not of the same type",
         false)};
     }
 
+    // If either one of them is signed, the result is also signed.
+    const auto result_is_signed
+      = lhs.isSigned() || rhs.isSigned() ? true : false;
+
     // Addition.
-    if (node.op == "+")
-      return common.builder.CreateAdd(lhs, rhs);
+    if (node.op == "+") {
+      return {common.builder.CreateAdd(lhs.getValue(), rhs.getValue()),
+              result_is_signed};
+    }
 
     // Subtraction.
-    if (node.op == "-")
-      return common.builder.CreateSub(lhs, rhs);
+    if (node.op == "-") {
+      return {common.builder.CreateSub(lhs.getValue(), rhs.getValue()),
+              result_is_signed};
+    }
 
     // Multiplication.
-    if (node.op == "*")
-      return common.builder.CreateMul(lhs, rhs);
+    if (node.op == "*") {
+      return {common.builder.CreateMul(lhs.getValue(), rhs.getValue()),
+              result_is_signed};
+    }
 
     // Division.
     if (node.op == "/") {
-      // TODO: unsigned
-      return common.builder.CreateSDiv(lhs, rhs);
+      if (result_is_signed) {
+        return {common.builder.CreateSDiv(lhs.getValue(), rhs.getValue()),
+                result_is_signed};
+      }
+      else {
+        return {common.builder.CreateUDiv(lhs.getValue(), rhs.getValue()),
+                result_is_signed};
+      }
     }
 
     // Modulo.
     if (node.op == "%") {
-      // TODO: unsigned
-      return common.builder.CreateSRem(lhs, rhs);
+      if (result_is_signed) {
+        return {common.builder.CreateSRem(lhs.getValue(), rhs.getValue()),
+                result_is_signed};
+      }
+      else {
+        return {common.builder.CreateURem(lhs.getValue(), rhs.getValue()),
+                result_is_signed};
+      }
     }
 
     // Equal.
     if (node.op == "==") {
-      return common.int1_to_bool(
-        common.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ, lhs, rhs));
+      return Value{
+        common.int1_to_bool(common.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
+                                                      lhs.getValue(),
+                                                      rhs.getValue()))};
     }
 
     // Not equal.
     if (node.op == "!=") {
-      return common.int1_to_bool(
-        common.builder.CreateICmp(llvm::ICmpInst::ICMP_NE, lhs, rhs));
+      return Value{
+        common.int1_to_bool(common.builder.CreateICmp(llvm::ICmpInst::ICMP_NE,
+                                                      lhs.getValue(),
+                                                      rhs.getValue()))};
     }
 
     // Less than.
     if (node.op == "<") {
-      // TODO: unsigned
-      return common.int1_to_bool(
-        common.builder.CreateICmp(llvm::ICmpInst::ICMP_SLT, lhs, rhs));
+      return Value{common.int1_to_bool(common.builder.CreateICmp(
+        result_is_signed ? llvm::ICmpInst::ICMP_SLT : llvm::ICmpInst::ICMP_ULT,
+        lhs.getValue(),
+        rhs.getValue()))};
     }
 
     // Greater than.
     if (node.op == ">") {
-      // TODO: unsigned
-      return common.int1_to_bool(
-        common.builder.CreateICmp(llvm::ICmpInst::ICMP_SGT, lhs, rhs));
+      return Value{common.int1_to_bool(common.builder.CreateICmp(
+        result_is_signed ? llvm::ICmpInst::ICMP_SGT : llvm::ICmpInst::ICMP_UGT,
+        lhs.getValue(),
+        rhs.getValue()))};
     }
 
     // Less or equal.
     if (node.op == "<=") {
-      // TODO: unsigned
-      return common.int1_to_bool(
-        common.builder.CreateICmp(llvm::ICmpInst::ICMP_SLE, lhs, rhs));
+      return Value{common.int1_to_bool(common.builder.CreateICmp(
+        result_is_signed ? llvm::ICmpInst::ICMP_SLE : llvm::ICmpInst::ICMP_ULE,
+        lhs.getValue(),
+        rhs.getValue()))};
     }
 
     // Greater or equal.
     if (node.op == ">=") {
-      // TODO: unsigned
-      return common.int1_to_bool(
-        common.builder.CreateICmp(llvm::ICmpInst::ICMP_SGE, lhs, rhs));
+      return Value{common.int1_to_bool(common.builder.CreateICmp(
+        result_is_signed ? llvm::ICmpInst::ICMP_SGE : llvm::ICmpInst::ICMP_UGE,
+        lhs.getValue(),
+        rhs.getValue()))};
     }
 
     // Unsupported binary operators detected.
@@ -302,7 +351,7 @@ struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
                           false)};
   }
 
-  [[nodiscard]] llvm::Value* operator()(const ast::VariableRef& node) const
+  [[nodiscard]] Value operator()(const ast::VariableRef& node) const
   {
     auto var_info = scope[node.name];
 
@@ -312,11 +361,12 @@ struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
         format("unknown variable '%s' referenced", node.name))};
     }
 
-    return common.builder.CreateLoad(var_info->inst->getAllocatedType(),
-                                     var_info->inst);
+    return {common.builder.CreateLoad(var_info->alloca->getAllocatedType(),
+                                      var_info->alloca),
+            var_info->is_signed};
   }
 
-  [[nodiscard]] llvm::Value* operator()(const ast::FunctionCall& node) const
+  [[nodiscard]] Value operator()(const ast::FunctionCall& node) const
   {
     auto const callee_func = common.module->getFunction(node.callee);
 
@@ -335,7 +385,8 @@ struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
 
     std::vector<llvm::Value*> args_value;
     for (std::size_t i = 0, size = node.args.size(); i != size; ++i) {
-      args_value.push_back(boost::apply_visitor(*this, node.args[i]));
+      args_value.push_back(
+        boost::apply_visitor(*this, node.args[i]).getValue());
 
       if (!args_value.back()) {
         throw std::runtime_error{common.format_error(
@@ -356,10 +407,10 @@ struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
       }
     }
 
-    return common.builder.CreateCall(callee_func, args_value);
+    return Value{common.builder.CreateCall(callee_func, args_value)};
   }
 
-  [[nodiscard]] llvm::Value* operator()(const ast::Conversion& node) const
+  [[nodiscard]] Value operator()(const ast::Conversion& node) const
   {
     auto const lhs = boost::apply_visitor(*this, node.lhs);
 
@@ -369,12 +420,13 @@ struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
                             "failed to generate left-hand side")};
     }
 
-    return common.builder.CreateIntCast(lhs,
-                                        node.as->getType(common.builder),
-                                        node.as->isSigned());
+    return {common.builder.CreateIntCast(lhs.getValue(),
+                                         node.as->getType(common.builder),
+                                         node.as->isSigned()),
+            node.as->isSigned()};
   }
 
-  [[nodiscard]] llvm::Value* operator()(const ast::AddressOf& node) const
+  [[nodiscard]] Value operator()(const ast::AddressOf& node) const
   {
     auto const lhs = boost::apply_visitor(*this, node.lhs);
 
@@ -384,10 +436,10 @@ struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
                             "failed to generate right-hand side")};
     }
 
-    return llvm::getPointerOperand(lhs);
+    return Value{llvm::getPointerOperand(lhs.getValue())};
   }
 
-  [[nodiscard]] llvm::Value* operator()(const ast::Indirection& node) const
+  [[nodiscard]] Value operator()(const ast::Indirection& node) const
   {
     auto const lhs = boost::apply_visitor(*this, node.lhs);
 
@@ -397,7 +449,7 @@ struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
                             "failed to generate right-hand side")};
     }
 
-    auto const lhs_type = lhs->getType();
+    auto const lhs_type = lhs.getValue()->getType();
 
     if (!lhs_type->isPointerTy()) {
       throw std::runtime_error{
@@ -405,7 +457,9 @@ struct ExprVisitor : public boost::static_visitor<llvm::Value*> {
                             "unary '*' requires pointer operand")};
     }
 
-    return common.builder.CreateLoad(lhs_type->getPointerElementType(), lhs);
+    return {common.builder.CreateLoad(lhs_type->getPointerElementType(),
+                                      lhs.getValue()),
+            lhs.isSigned()};
   }
 
 private:
@@ -474,7 +528,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
         = boost::apply_visitor(ExprVisitor{common, scope}, *node.rhs);
 
       if (common.builder.GetInsertBlock()->getParent()->getReturnType()
-          != retval->getType()) {
+          != retval.getValue()->getType()) {
         throw std::runtime_error{
           common.format_error(common.positions.position_of(node),
                               "incompatible type for result type")};
@@ -486,7 +540,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
                               "failed to generate return value")};
       }
 
-      common.builder.CreateStore(retval, retvar);
+      common.builder.CreateStore(retval.getValue(), retvar);
     }
 
     common.builder.CreateBr(end_bb);
@@ -509,21 +563,21 @@ struct StmtVisitor : public boost::static_visitor<void> {
     auto const func = common.builder.GetInsertBlock()->getParent();
 
     const auto regist
-      = [&](llvm::AllocaInst* const inst, const bool is_signed) {
+      = [&](llvm::AllocaInst* const alloca, const bool is_signed) {
           if (!node.qualifier) {
             // Consttant variable.
-            scope.regist(node.name, {inst, false, is_signed});
+            scope.regist(node.name, {alloca, false, is_signed});
           }
           else if (*node.qualifier == VariableQual::mutable_) {
             // Mutable variable.
-            scope.regist(node.name, {inst, true, is_signed});
+            scope.regist(node.name, {alloca, true, is_signed});
           }
         };
 
     if (node.type) {
       const auto& type_info = **node.type;
 
-      auto const inst
+      auto const alloca
         = create_entry_block_alloca(func,
                                     node.name,
                                     type_info.getType(common.builder));
@@ -538,16 +592,17 @@ struct StmtVisitor : public boost::static_visitor<void> {
             format("failed to generate initializer for '%s'", node.name))};
         }
 
-        if (type_info.getType(common.builder) != init_value->getType()) {
+        if (type_info.getType(common.builder)
+            != init_value.getValue()->getType()) {
           throw std::runtime_error{common.format_error(
             common.positions.position_of(node),
             "Initializer type and variable type are different")};
         }
 
-        common.builder.CreateStore(init_value, inst);
+        common.builder.CreateStore(init_value.getValue(), alloca);
       }
 
-      regist(inst, type_info.isSigned());
+      regist(alloca, type_info.isSigned());
     }
     else {
       // Type inference.
@@ -560,12 +615,14 @@ struct StmtVisitor : public boost::static_visitor<void> {
           format("failed to generate initializer for '%s'", node.name))};
       }
 
-      auto const inst
-        = create_entry_block_alloca(func, node.name, init_value->getType());
+      auto const alloca
+        = create_entry_block_alloca(func,
+                                    node.name,
+                                    init_value.getValue()->getType());
 
-      common.builder.CreateStore(init_value, inst);
+      common.builder.CreateStore(init_value.getValue(), alloca);
 
-      regist(inst, true); // TODO: sign
+      regist(alloca, init_value.isSigned());
     }
   }
 
@@ -573,7 +630,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
   {
     if (node.op == "=" || node.op == "+=" || node.op == "-=" || node.op == "*="
         || node.op == "/=" || node.op == "%=") {
-      llvm::Value* lhs;
+      Value lhs;
 
       if (node.lhs.type() == typeid(ast::VariableRef)) {
         auto& lhs_node = boost::get<ast::VariableRef>(node.lhs);
@@ -594,7 +651,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
             format("assignment of read-only variable '%s'", lhs_node.name))};
         }
 
-        lhs = var_info->inst;
+        lhs = {var_info->alloca, var_info->is_signed};
       }
       else if (node.lhs.type() == typeid(ast::Indirection)) {
         auto const lhs_node = boost::get<ast::Indirection>(node.lhs);
@@ -610,7 +667,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
                               "failed to generate left-hand side")};
       }
 
-      if (!lhs->getType()->isPointerTy()) {
+      if (!lhs.getValue()->getType()->isPointerTy()) {
         throw std::runtime_error{
           common.format_error(common.positions.position_of(node),
                               "left-hand side requires assignable")};
@@ -625,54 +682,63 @@ struct StmtVisitor : public boost::static_visitor<void> {
                               "failed to generate right-hand side")};
       }
 
-      if (lhs->getType()->getPointerElementType() != rhs->getType()) {
+      if (lhs.getValue()->getType()->getPointerElementType()
+          != rhs.getValue()->getType()) {
         throw std::runtime_error{common.format_error(
           common.positions.position_of(node),
           "both operands to a binary operator are not of the same type")};
       }
 
-      auto const lhs_value
-        = common.builder.CreateLoad(lhs->getType()->getPointerElementType(),
-                                    lhs);
+      auto const lhs_value = common.builder.CreateLoad(
+        lhs.getValue()->getType()->getPointerElementType(),
+        lhs.getValue());
 
       // Direct assignment.
       if (node.op == "=")
-        common.builder.CreateStore(rhs, lhs);
+        common.builder.CreateStore(rhs.getValue(), lhs.getValue());
 
       // Addition assignment.
       if (node.op == "+=") {
-        common.builder.CreateStore(common.builder.CreateAdd(lhs_value, rhs),
-                                   lhs);
+        common.builder.CreateStore(
+          common.builder.CreateAdd(lhs_value, rhs.getValue()),
+          lhs.getValue());
       }
 
       // Subtraction assignment.
       if (node.op == "-=") {
-        common.builder.CreateStore(common.builder.CreateSub(lhs_value, rhs),
-                                   lhs);
+        common.builder.CreateStore(
+          common.builder.CreateSub(lhs_value, rhs.getValue()),
+          lhs.getValue());
       }
 
       // Multiplication assignment.
       if (node.op == "*=") {
-        common.builder.CreateStore(common.builder.CreateMul(lhs_value, rhs),
-                                   lhs);
+        common.builder.CreateStore(
+          common.builder.CreateMul(lhs_value, rhs.getValue()),
+          lhs.getValue());
       }
+
+      const auto result_is_signed
+        = rhs.isSigned() || lhs.isSigned() ? true : false;
 
       // Division assignment.
       if (node.op == "/=") {
-        auto const assign_value = true // TODO:
-                                    ? common.builder.CreateSDiv(lhs_value, rhs)
-                                    : common.builder.CreateUDiv(lhs_value, rhs);
+        auto const assign_value
+          = result_is_signed
+              ? common.builder.CreateSDiv(lhs_value, rhs.getValue())
+              : common.builder.CreateUDiv(lhs_value, rhs.getValue());
 
-        common.builder.CreateStore(assign_value, lhs);
+        common.builder.CreateStore(assign_value, lhs.getValue());
       }
 
       // Modulo assignment.
       if (node.op == "%=") {
-        auto const assign_value = true /* TODO: var_info->is_signed */
-                                    ? common.builder.CreateSRem(lhs_value, rhs)
-                                    : common.builder.CreateURem(lhs_value, rhs);
+        auto const assign_value
+          = result_is_signed
+              ? common.builder.CreateSRem(lhs_value, rhs.getValue())
+              : common.builder.CreateURem(lhs_value, rhs.getValue());
 
-        common.builder.CreateStore(assign_value, lhs);
+        common.builder.CreateStore(assign_value, lhs.getValue());
       }
     }
   }
@@ -691,7 +757,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
     // Convert condition to a bool by comparing non-equal to 0.
     auto const cond = common.builder.CreateICmp(
       llvm::ICmpInst::ICMP_NE,
-      cond_value,
+      cond_value.getValue(),
       llvm::ConstantInt::get(
         BuiltinType{BuiltinTypeKind::bool_}.getType(common.builder),
         0));
@@ -789,7 +855,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
     auto const cond = common.builder.CreateICmp(
       llvm::ICmpInst::ICMP_NE,
-      cond_value,
+      cond_value.getValue(),
       llvm::ConstantInt::get(
         BuiltinType{BuiltinTypeKind::bool_}.getType(common.builder),
         0));
@@ -842,7 +908,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
       auto const cond = common.builder.CreateICmp(
         llvm::ICmpInst::ICMP_NE,
-        cond_value,
+        cond_value.getValue(),
         llvm::ConstantInt::get(
           BuiltinType{BuiltinTypeKind::bool_}.getType(common.builder),
           0));
@@ -1047,22 +1113,22 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
       const auto& param_node = node.decl.params[arg.getArgNo()];
 
       // Create an alloca for this variable.
-      auto const inst
+      auto const alloca
         = create_entry_block_alloca(func,
                                     arg.getName().str(),
                                     param_node.type->getType(common.builder));
 
       // Store the initial value into the alloca.
-      common.builder.CreateStore(&arg, inst);
+      common.builder.CreateStore(&arg, alloca);
 
       // Add arguments to variable symbol table.
       if (!param_node.qualifier) {
         // consttant variable.
-        argument_values.regist(arg.getName().str(), {inst, false});
+        argument_values.regist(arg.getName().str(), {alloca, false});
       }
       else if (*param_node.qualifier == VariableQual::mutable_) {
         // mutable variable.
-        argument_values.regist(arg.getName().str(), {inst, true});
+        argument_values.regist(arg.getName().str(), {alloca, true});
       }
     }
 

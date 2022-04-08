@@ -15,6 +15,7 @@
 #endif // _MSC_VER > 1000
 
 #include <pch/pch.hpp>
+#include <utils/util.hpp>
 
 namespace miko
 {
@@ -88,7 +89,7 @@ struct BuiltinType : public Type {
       return builder.getInt8Ty();
     }
 
-    llvm_unreachable("");
+    unreachable();
   }
 
   [[nodiscard]] bool isSigned() const noexcept override
@@ -103,7 +104,7 @@ struct BuiltinType : public Type {
       return false;
     }
 
-    llvm_unreachable("");
+    unreachable();
   }
 
 private:

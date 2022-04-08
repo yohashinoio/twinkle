@@ -1,0 +1,13 @@
+func main() -> i32
+{
+  let mut n = 0;
+  n -= 1;
+
+  if (n == -1) {
+    let a = 58 / -1;
+    let b = 58 * -2;
+
+    if (a * 2 == b)
+      ret -a;
+  }
+}

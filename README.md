@@ -81,12 +81,12 @@ $ mkdir build && cd $_
 ```
 Finally, build. (It may take a few minutes)
 ```bash
-$ cmake ..
+$ cmake .. -DCMAKE_BUILD_TYPE=Release
 $ sudo make install
 ```
 If you want to specify where to install.
 ```bash
-$ cmake .. -DCMAKE_INSTALL_PREFIX="path/to/install"
+$ cmake .. -DCMAKE_INSTALL_PREFIX="path/to/install" -DCMAKE_BUILD_TYPE=Release
 $ make install
 ```
 

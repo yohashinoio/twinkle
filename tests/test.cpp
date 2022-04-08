@@ -99,6 +99,7 @@ int main(const int argc, const char* const* const argv)
     {     "implicit_conversions2",  58},
     {       "integer_literals_32",  58},
     {       "integer_literals_64",  58},
+    {                      "sign",  58},
   };
 
   std::size_t ok_c{};   // ok count.
