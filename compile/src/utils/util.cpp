@@ -151,7 +151,7 @@ void display_version()
 {
 #ifndef NDEBUG
   if (file) {
-    std::cerr << "UNREACHABLE executed"
+    std::cerr << "Unreachable executed"
               << " at " << file << ":" << line << '!' << std::endl;
   }
 #endif
