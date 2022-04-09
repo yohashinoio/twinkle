@@ -417,7 +417,7 @@ func fib(n: i32) -> i32
 
 func main() -> i32
 {
-  for (let mut i = 1; i <= 40; i = i + 1)
+  for (let mut i = 1; i <= 40; i += 1)
     printf("%d\n", fib(i));
 }
 ```
