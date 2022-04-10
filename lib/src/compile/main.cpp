@@ -90,7 +90,7 @@ try {
                                      opt,
                                      relocation_model};
 
-    if (vmap.contains("jit"))
+    if (vmap.contains("JIT"))
       return {true, generator.do_JIT()};
     else
       emit_file(generator, file_path, vmap);

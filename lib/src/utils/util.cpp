@@ -98,7 +98,7 @@ load_file_to_string(const std::string_view       program_name,
     ("emit", program_options::value<std::string>(),
       "Set a compilation target. Assembly file is 'asm', "
       "object file is 'obj', LLVM IR is 'llvm'.")
-    ("jit", "Perform Just-in-time(JIT) compilation.")
+    ("JIT", "Perform Just-in-time(JIT) compilation.")
     ("opt", program_options::value<bool>()->default_value(true),
       "With or without optimization.")
     ("relocation-model",
