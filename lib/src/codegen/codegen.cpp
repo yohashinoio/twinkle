@@ -169,7 +169,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::StringLiteral& node) const
   {
-    return Value{common.builder.CreateGlobalStringPtr(node.str)};
+    return Value{common.builder.CreateGlobalStringPtr(node.str, ".str")};
   }
 
   [[nodiscard]] Value operator()(const ast::CharLiteral& node) const
@@ -1320,12 +1320,13 @@ CodeGenerator::CodeGenerator(const std::string_view       program_name,
 
   llvm::TargetOptions target_options;
 
-  target_machine = target->createTargetMachine(
-    target_triple,
-    "generic",
-    "",
-    target_options,
-    llvm::Optional<llvm::Reloc::Model>(relocation_model));
+  target_machine
+    = target->createTargetMachine(target_triple,
+                                  "generic",
+                                  "",
+                                  target_options,
+                                  llvm::Optional<llvm::Reloc::Model>(
+                                    relocation_model)); // Set relocation model.
 
   common.module->setTargetTriple(target_triple);
   common.module->setDataLayout(target_machine->createDataLayout());

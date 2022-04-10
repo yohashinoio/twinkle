@@ -5,4 +5,5 @@ StatementVisitor用のStatementContextを用意しよう
 配列
 構造体
 アセンブリを出力
+前置インクリメント
 JITコンパイルのチュートリアルを進める
