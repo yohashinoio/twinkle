@@ -94,9 +94,10 @@ load_file_to_string(const std::string_view       program_name,
   // clang-format off
   desc.add_options()
     ("help,h", "Display this information.")
-    ("version,v", "Display compiler version.")
+    ("version,v", "Display version.")
+    ("S,S", "Stop after the stage of compilation proper; do not assemble.")
     ("input", program_options::value<std::string>(), "Input instead of files.")
-    ("llvmir", "Output LLVM IR instead of Object code.")
+    ("emit-llvm", "Compile to LLVM IR.")
     ("jit", "Perform jit compilation.")
     ("opt", program_options::value<bool>()->default_value(true),
       "With or without optimization.")

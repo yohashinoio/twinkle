@@ -57,15 +57,20 @@ struct CodeGenerator {
                 const bool                   opt,
                 const llvm::Reloc::Model     relocation_model);
 
-  void write_llvm_ir_to_file(const std::filesystem::path& out) const;
+  void write_llvm_ir_to_file(const std::filesystem::path& path) const;
 
-  void write_object_code_to_file(const std::filesystem::path& out);
+  void write_object_code_to_file(const std::filesystem::path& path);
+
+  void write_assembly_to_file(const std::filesystem::path& path);
 
   // Returns the return value from the main function.
   [[nodiscard]] int jit_compile();
 
 private:
   void codegen();
+
+  void emit_file(const std::filesystem::path& path,
+                 const llvm::CodeGenFileType  cgft);
 
   const std::string_view program_name;
 

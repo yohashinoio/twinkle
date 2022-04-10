@@ -34,12 +34,14 @@ output_help(std::ostream&                               ostm,
               << desc;
 }
 
-static void output_to_file(maple::codegen::CodeGenerator& generator,
-                           const std::filesystem::path&   path,
-                           const bool                     output_llvmir)
+static void output_to_file(maple::codegen::CodeGenerator&        generator,
+                           const std::filesystem::path&          path,
+                           const program_options::variables_map& vmap)
 {
-  if (output_llvmir)
+  if (vmap.contains("emit-llvm"))
     generator.write_llvm_ir_to_file(path.stem().string() + ".ll");
+  else if (vmap.contains("S"))
+    generator.write_assembly_to_file(path.stem().string() + ".s");
   else
     generator.write_object_code_to_file(path.stem().string() + ".o");
 }
@@ -88,7 +90,7 @@ try {
     if (vmap.contains("jit"))
       return {true, generator.jit_compile()};
     else
-      output_to_file(generator, file_path, vmap.contains("llvmir"));
+      output_to_file(generator, file_path, vmap);
   }
   else {
     auto file_paths = get_input_files(*argv, vmap);
@@ -108,7 +110,7 @@ try {
       if (vmap.contains("jit"))
         return {true, generator.jit_compile()};
       else
-        output_to_file(generator, file_path, vmap.contains("llvmir"));
+        output_to_file(generator, file_path, vmap);
     }
   }
 

@@ -1335,48 +1335,30 @@ CodeGenerator::CodeGenerator(const std::string_view       program_name,
 }
 
 void CodeGenerator::write_llvm_ir_to_file(
-  const std::filesystem::path& out) const
+  const std::filesystem::path& path) const
 {
   std::error_code      ostream_ec;
-  llvm::raw_fd_ostream os{out.string(),
+  llvm::raw_fd_ostream os{path.string(),
                           ostream_ec,
                           llvm::sys::fs::OpenFlags::OF_None};
 
   if (ostream_ec) {
     throw std::runtime_error{format_error_message(
       program_name,
-      format("%s: %s", out.string(), ostream_ec.message()))};
+      format("%s: %s", path.string(), ostream_ec.message()))};
   }
 
   common.module->print(os, nullptr);
 }
 
-void CodeGenerator::write_object_code_to_file(const std::filesystem::path& out)
+void CodeGenerator::write_assembly_to_file(const std::filesystem::path& path)
 {
-  std::error_code      ostream_ec;
-  llvm::raw_fd_ostream os{out.string(),
-                          ostream_ec,
-                          llvm::sys::fs::OpenFlags::OF_None};
-  if (ostream_ec) {
-    throw std::runtime_error{format_error_message(
-      program_name,
-      format("%s: %s\n", out.string(), ostream_ec.message()))};
-  }
+  emit_file(path, llvm::CGFT_AssemblyFile);
+}
 
-  llvm::legacy::PassManager pmanager;
-
-  if (target_machine->addPassesToEmitFile(pmanager,
-                                          os,
-                                          nullptr,
-                                          llvm::CGFT_ObjectFile)) {
-    throw std::runtime_error{
-      format_error_message(program_name,
-                           "targetMachine can't emit a file of this types",
-                           true)};
-  }
-
-  pmanager.run(*common.module);
-  os.flush();
+void CodeGenerator::write_object_code_to_file(const std::filesystem::path& path)
+{
+  emit_file(path, llvm::CGFT_ObjectFile);
 }
 
 // Returns the return value from the main function.
@@ -1418,6 +1400,30 @@ void CodeGenerator::codegen()
 {
   for (const auto& node : ast)
     boost::apply_visitor(TopLevelVisitor{common, fp_manager}, node);
+}
+
+void CodeGenerator::emit_file(const std::filesystem::path& path,
+                              const llvm::CodeGenFileType  cgft)
+{
+  std::error_code      ostream_ec;
+  llvm::raw_fd_ostream os{path.string(),
+                          ostream_ec,
+                          llvm::sys::fs::OpenFlags::OF_None};
+  if (ostream_ec) {
+    throw std::runtime_error{format_error_message(
+      program_name,
+      format("%s: %s\n", path.string(), ostream_ec.message()))};
+  }
+
+  llvm::legacy::PassManager pmanager;
+
+  if (target_machine->addPassesToEmitFile(pmanager, os, nullptr, cgft)) {
+    throw std::runtime_error{
+      format_error_message(program_name, "failed to emit a file", true)};
+  }
+
+  pmanager.run(*common.module);
+  os.flush();
 }
 
 } // namespace maple::codegen
