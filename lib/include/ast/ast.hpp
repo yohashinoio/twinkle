@@ -131,6 +131,11 @@ struct Assignment : x3::position_tagged {
   Expr        rhs;
 };
 
+struct PrefixIncAndDec : x3::position_tagged {
+  std::string op;
+  Expr        rhs; // Only assignable.
+};
+
 struct Break : x3::position_tagged {
   std::string tmp;
 };
@@ -151,6 +156,7 @@ using Stmt = boost::make_recursive_variant<
   Return,
   VariableDef,
   Assignment,
+  PrefixIncAndDec,
   Break,
   Continue,
   boost::recursive_wrapper<If>,
@@ -176,13 +182,14 @@ struct While : x3::position_tagged {
   Stmt body;
 };
 
-using ForInit = boost::variant<Assignment, VariableDef>;
+using ForInitVariant = boost::variant<Assignment, VariableDef>;
+using ForLoopVariant = boost::variant<PrefixIncAndDec, Assignment>;
 
 struct For : x3::position_tagged {
-  std::optional<ForInit>    init_stmt;
-  std::optional<Expr>       cond_expr;
-  std::optional<Assignment> loop_stmt;
-  Stmt                      body;
+  std::optional<ForInitVariant> init_stmt;
+  std::optional<Expr>           cond_expr;
+  std::optional<ForLoopVariant> loop_stmt;
+  Stmt                          body;
 };
 
 //===----------------------------------------------------------------------===//

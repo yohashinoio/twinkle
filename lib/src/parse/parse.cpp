@@ -359,6 +359,8 @@ const x3::rule<struct VariableDefTag, ast::VariableDef> variable_def{
   "variable definition"};
 const x3::rule<struct AssignTag, ast::Assignment> assignment{
   "assignment statement"};
+const x3::rule<struct PrefixIncOrDec, ast::PrefixIncAndDec> prefix_inc_or_dec{
+  "prefix increment or decrement"};
 const x3::rule<struct ReturnTag, ast::Return> _return{"return statement"};
 const x3::rule<struct IfTag, ast::If>         _if{"if else statement"};
 const x3::rule<struct LoopTag, ast::Loop>     _loop{"loop statement"};
@@ -369,6 +371,8 @@ const x3::rule<struct StmtTag, ast::Stmt>     stmt{"statement"};
 const auto expr_stmt_def = expr;
 
 const auto assignment_def = expr >> assignment_operator > expr;
+
+const auto prefix_inc_or_dec_def = (x3::string("++") | x3::string("--")) > expr;
 
 const auto variable_type
   = x3::rule<struct variable_type_tag, std::shared_ptr<Type>>{"variable type"}
@@ -391,7 +395,8 @@ const auto _while_def = x3::lit("while") > x3::lit('(') > expr /* Condition */
 const auto _for_def
   = x3::lit("for") > x3::lit('(') > -(assignment | variable_def) /* Init */
     > x3::lit(';') > -expr                                       /* Condition */
-    > x3::lit(';') >> -assignment /* Loop */ > x3::lit(')') > stmt;
+    > x3::lit(';') > -(prefix_inc_or_dec | assignment) /* FIXME */ /* Loop */
+    > x3::lit(')') > stmt;
 
 const auto _break = x3::rule<struct break_tag, ast::Break>{"break statement"}
 = x3::string("break");
@@ -405,12 +410,13 @@ const auto stmt_def
     | x3::lit('{') > *stmt > x3::lit('}') /* Compound statement */
     | _loop | _while | _for | _if | _break > x3::lit(';')
     | _continue > x3::lit(';') | _return > x3::lit(';')
-    | assignment > x3::lit(';') | variable_def > x3::lit(';')
-    | expr_stmt > x3::lit(';');
+    | prefix_inc_or_dec > x3::lit(';') | assignment > x3::lit(';')
+    | variable_def > x3::lit(';') | expr_stmt > x3::lit(';');
 
 BOOST_SPIRIT_DEFINE(expr_stmt,
                     variable_def,
                     assignment,
+                    prefix_inc_or_dec,
                     _return,
                     _if,
                     _loop,
@@ -501,10 +507,6 @@ struct CharLiteralTag
 // Expression tags
 //===----------------------------------------------------------------------===//
 
-struct AssignTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
 struct ExprTag
   : ErrorHandle
   , AnnotatePosition {};
@@ -564,6 +566,18 @@ struct ExprStmtTag
   , AnnotatePosition {};
 
 struct VariableDefTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct AssignTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct PrefixIncOrDec
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct PrefixDecrement
   : ErrorHandle
   , AnnotatePosition {};
 

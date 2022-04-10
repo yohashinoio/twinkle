@@ -12,7 +12,7 @@
 - [Operators](#operators)
   - [Arithmetic operators](#arithmetic-operators)
   - [Comparison operators / Relational operators](#comparison-operators--relational-operators)
-  - [Assignment operators](#assignment-operators)
+  - [Assignment operators (Statement)](#assignment-operators-statement)
   - [Pointer operators](#pointer-operators)
   - [Other operators](#other-operators)
 - [Fundamental (Built-in) Types](#fundamental-built-in-types)
@@ -123,15 +123,15 @@ $ maplec --help
 
 ## Operators
 ### Arithmetic operators
-| Operator name  | Syntax |
-| -------------- | ------ |
-| Addition       | a + b  |
-| Subtraction    | a - b  |
-| Multiplication | a * b  |
-| Division       | a / b  |
-| Modulo         | a % b  |
-| Unary plus     | +a     |
-| Unary minus    | -a     |
+| Operator name                | Syntax |
+| ---------------------------- | ------ |
+| Addition                     | a + b  |
+| Subtraction                  | a - b  |
+| Multiplication               | a * b  |
+| Division                     | a / b  |
+| Modulo                       | a % b  |
+| Unary plus                   | +a     |
+| Unary minus                  | -a     |
 
 ### Comparison operators / Relational operators
 | Operator name            | Syntax  |
@@ -143,7 +143,7 @@ $ maplec --help
 | Greater than or equal to | a >= b  |
 | Less than or equal to    | a <= b  |
 
-### Assignment operators
+### Assignment operators (Statement)
 | Operator name             | Syntax |
 | ------------------------- | ------ |
 | Direct assignment         | a = b  |
@@ -151,7 +151,9 @@ $ maplec --help
 | Subtraction assignment	  | a -= b |
 | Multiplication assignment	| a *= b |
 | Division assignment	      | a /= b |
-| Modulo assignment         | a %= b |
+| Prefix increment          | ++a    |
+| Prefix decrement          | --a    |
+No postfix increment and decrement.
 
 ### Pointer operators
 | Operator name | Syntax |
@@ -364,7 +366,7 @@ else
 let mut i = 0;
 // Repeat 10 times.
 while (i != 10) {
-  i += 1;
+  ++i;
 }
 
 while (/* Required */) // Error!
@@ -374,7 +376,7 @@ while (/* Required */) // Error!
 ### For statement
 ```rust
 // Repeat 10 times.
-for (let mut i = 0; i != 10; i += 1) {
+for (let mut i = 0; i != 10; ++i) {
 }
 
 // infinite loop.
@@ -417,7 +419,7 @@ func fib(n: i32) -> i32
 
 func main() -> i32
 {
-  for (let mut i = 1; i <= 40; i += 1)
+  for (let mut i = 1; i <= 40; ++i)
     printf("%d\n", fib(i));
 }
 ```

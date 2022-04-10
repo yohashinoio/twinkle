@@ -1,0 +1,7 @@
+func main() -> i32
+{
+  let mut n = 0;
+  for (let mut i = 58; i != 0; --i)
+    ++n;
+  ret n;
+}

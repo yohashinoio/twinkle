@@ -94,6 +94,12 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
+  maple::ast::PrefixIncAndDec,
+  (std::string, op)
+  (maple::ast::Expr, rhs)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::Break,
   (std::string, tmp)
 )
@@ -124,9 +130,9 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::For,
-  (std::optional<maple::ast::ForInit>, init_stmt)
+  (std::optional<maple::ast::ForInitVariant>, init_stmt)
   (std::optional<maple::ast::Expr>, cond_expr)
-  (std::optional<maple::ast::Assignment>, loop_stmt)
+  (std::optional<maple::ast::ForLoopVariant>, loop_stmt)
   (maple::ast::Stmt, body)
 )
 

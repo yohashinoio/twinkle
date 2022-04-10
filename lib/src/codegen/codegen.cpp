@@ -630,48 +630,9 @@ struct StmtVisitor : public boost::static_visitor<void> {
   {
     if (node.op == "=" || node.op == "+=" || node.op == "-=" || node.op == "*="
         || node.op == "/=" || node.op == "%=") {
-      Value lhs;
-
-      if (node.lhs.type() == typeid(ast::VariableRef)) {
-        auto& lhs_node = boost::get<ast::VariableRef>(node.lhs);
-
-        auto var_info = scope[lhs_node.name];
-
-        if (!var_info) {
-          // Unknown variable name.
-          throw std::runtime_error{common.format_error(
-            common.positions.position_of(node),
-            format("unknown variable name '%s'", lhs_node.name))};
-        }
-
-        if (!var_info->is_mutable) {
-          // Assignment of read-only variable.
-          throw std::runtime_error{common.format_error(
-            common.positions.position_of(node),
-            format("assignment of read-only variable '%s'", lhs_node.name))};
-        }
-
-        lhs = {var_info->alloca, var_info->is_signed};
-      }
-      else if (node.lhs.type() == typeid(ast::Indirection)) {
-        auto const lhs_node = boost::get<ast::Indirection>(node.lhs);
-
-        lhs = boost::apply_visitor(ExprVisitor{common, scope}, lhs_node.lhs);
-      }
-      else
-        lhs = boost::apply_visitor(ExprVisitor{common, scope}, node.lhs);
-
-      if (!lhs) {
-        throw std::runtime_error{
-          common.format_error(common.positions.position_of(node),
-                              "failed to generate left-hand side")};
-      }
-
-      if (!lhs.getValue()->getType()->isPointerTy()) {
-        throw std::runtime_error{
-          common.format_error(common.positions.position_of(node),
-                              "left-hand side requires assignable")};
-      }
+      const auto lhs
+        = gen_assignable_value_from_expr(node.lhs,
+                                         common.positions.position_of(node));
 
       auto const rhs
         = boost::apply_visitor(ExprVisitor{common, scope}, node.rhs);
@@ -740,6 +701,33 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
         common.builder.CreateStore(assign_value, lhs.getValue());
       }
+    }
+  }
+
+  void operator()(const ast::PrefixIncAndDec& node) const
+  {
+    const auto rhs
+      = gen_assignable_value_from_expr(node.rhs,
+                                       common.positions.position_of(node));
+
+    auto const rhs_value = common.builder.CreateLoad(
+      rhs.getValue()->getType()->getPointerElementType(),
+      rhs.getValue());
+
+    if (node.op == "++") {
+      common.builder.CreateStore(
+        common.builder.CreateAdd(
+          rhs_value,
+          llvm::ConstantInt::get(rhs_value->getType(), 1)),
+        rhs.getValue());
+    }
+
+    if (node.op == "--") {
+      common.builder.CreateStore(
+        common.builder.CreateSub(
+          rhs_value,
+          llvm::ConstantInt::get(rhs_value->getType(), 1)),
+        rhs.getValue());
     }
   }
 
@@ -940,8 +928,14 @@ struct StmtVisitor : public boost::static_visitor<void> {
     func->getBasicBlockList().push_back(loop_bb);
     common.builder.SetInsertPoint(loop_bb);
 
-    if (node.loop_stmt)
-      (*this)(*node.loop_stmt);
+    // Generate loop statement.
+    if (node.loop_stmt) {
+      // Since variables will not declared, there is no need to create a new
+      // scope.
+      boost::apply_visitor(
+        StmtVisitor{common, scope, retvar, end_bb, loop_end_bb, loop_bb},
+        *node.loop_stmt);
+    }
 
     common.builder.CreateBr(cond_bb);
 
@@ -964,6 +958,55 @@ struct StmtVisitor : public boost::static_visitor<void> {
   }
 
 private:
+  Value gen_assignable_value_from_expr(
+    const ast::Expr&                                  node,
+    const boost::iterator_range<maple::InputIterator> position) const
+  {
+    Value value;
+
+    if (node.type() == typeid(ast::VariableRef)) {
+      auto& var_ref_node = boost::get<ast::VariableRef>(node);
+
+      auto var_info = scope[var_ref_node.name];
+
+      if (!var_info) {
+        // Unknown variable name.
+        throw std::runtime_error{common.format_error(
+          position,
+          format("unknown variable name '%s'", var_ref_node.name))};
+      }
+
+      if (!var_info->is_mutable) {
+        // Assignment of read-only variable.
+        throw std::runtime_error{common.format_error(
+          position,
+          format("assignment of read-only variable '%s'", var_ref_node.name))};
+      }
+
+      value = {var_info->alloca, var_info->is_signed};
+    }
+    else if (node.type() == typeid(ast::Indirection)) {
+      auto const indirection_node = boost::get<ast::Indirection>(node);
+
+      value = boost::apply_visitor(ExprVisitor{common, scope},
+                                   indirection_node.lhs);
+    }
+    else
+      value = boost::apply_visitor(ExprVisitor{common, scope}, node);
+
+    if (!value) {
+      throw std::runtime_error{
+        common.format_error(position, "failed to generate left-hand side")};
+    }
+
+    if (!value.getValue()->getType()->isPointerTy()) {
+      throw std::runtime_error{
+        common.format_error(position, "left-hand side requires assignable")};
+    }
+
+    return value;
+  }
+
   CodegenContext& common;
 
   SymbolTable& scope;

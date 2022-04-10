@@ -99,6 +99,10 @@ int main(const int argc, const char* const* const argv)
     {       "integer_literals_32",  58},
     {       "integer_literals_64",  58},
     {                      "sign",  58},
+    {          "prefix_increment",  58},
+    {          "prefix_decrement",  58},
+    {        "for_loop_increment",  58},
+    {        "for_loop_decrement",  58},
   };
 
   std::size_t ok_c{};   // ok count.

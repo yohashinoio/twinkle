@@ -119,7 +119,7 @@ try {
 catch (const program_options::error& err) {
   if (eout) {
     // Error about command line options.
-    std::cerr << maple::format_error_message(*argv, err.what(), true)
+    std::cerr << format_error_message(*argv, err.what(), true)
               << (is_back_newline(err.what()) ? "" : "\n")
               << "compilation terminated." << std::endl;
   }
