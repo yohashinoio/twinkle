@@ -59,6 +59,12 @@ get_variable_map(const program_options::options_description& desc,
 get_input_files(const std::string_view                program_name,
                 const program_options::variables_map& vm);
 
+[[nodiscard]] std::string string_to_lower(const std::string& str);
+
+[[nodiscard]] llvm::Reloc::Model
+get_relocation_model(const std::string_view                program_name,
+                     const program_options::variables_map& vm);
+
 [[noreturn]] void unreachable_internal(const std::size_t line,
                                        const char*       file);
 

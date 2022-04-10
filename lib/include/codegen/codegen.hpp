@@ -54,7 +54,8 @@ struct CodeGenerator {
                 const ast::Program&          ast,
                 const PositionCache&         positions,
                 const std::filesystem::path& file_path,
-                const bool                   optimize);
+                const bool                   opt,
+                const llvm::Reloc::Model     relocation_model);
 
   void write_llvm_ir_to_file(const std::filesystem::path& out) const;
 
@@ -72,7 +73,7 @@ private:
 
   llvm::TargetMachine* target_machine;
 
-  llvm::legacy::FunctionPassManager fpm;
+  llvm::legacy::FunctionPassManager fp_manager;
 
   const ast::Program& ast;
 };

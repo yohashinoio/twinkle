@@ -50,9 +50,9 @@ namespace maple::compile
 CompileResult
 main(const int argc, const char* const* const argv, const bool eout)
 try {
-  const auto desc = maple::create_options_description();
+  const auto desc = create_options_description();
 
-  const auto vmap = maple::get_variable_map(desc, argc, argv);
+  const auto vmap = get_variable_map(desc, argc, argv);
 
   if (argc == 1) {
     output_help(std::cerr, *argv, desc);
@@ -67,10 +67,12 @@ try {
     std::exit(EXIT_SUCCESS);
   }
 
-  const auto optimize = vmap["opt"].as<bool>();
+  const auto opt = vmap["opt"].as<bool>();
+
+  const auto relocation_model = get_relocation_model(*argv, vmap);
 
   if (vmap.contains("input")) {
-    std::string_view file_path = "a";
+    std::string_view file_path = "input";
 
     maple::parse::Parser parser{vmap["input"].as<std::string>(),
                                 file_path,
@@ -80,7 +82,8 @@ try {
                                             parser.get_ast(),
                                             parser.get_positions(),
                                             file_path,
-                                            optimize};
+                                            opt,
+                                            relocation_model};
 
     if (vmap.contains("jit"))
       return {true, generator.jit_compile()};
@@ -88,18 +91,19 @@ try {
       output_to_file(generator, file_path, vmap.contains("llvmir"));
   }
   else {
-    auto file_paths = maple::get_input_files(*argv, vmap);
+    auto file_paths = get_input_files(*argv, vmap);
 
     for (auto&& file_path : file_paths) {
-      auto input = maple::load_file_to_string(*argv, file_path);
+      auto input = load_file_to_string(*argv, file_path);
 
-      maple::parse::Parser parser{std::move(input), file_path, eout};
+      parse::Parser parser{std::move(input), file_path, eout};
 
-      maple::codegen::CodeGenerator generator{*argv,
-                                              parser.get_ast(),
-                                              parser.get_positions(),
-                                              file_path,
-                                              optimize};
+      codegen::CodeGenerator generator{*argv,
+                                       parser.get_ast(),
+                                       parser.get_positions(),
+                                       file_path,
+                                       opt,
+                                       relocation_model};
 
       if (vmap.contains("jit"))
         return {true, generator.jit_compile()};

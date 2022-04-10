@@ -98,7 +98,11 @@ load_file_to_string(const std::string_view       program_name,
     ("input", program_options::value<std::string>(), "Input instead of files.")
     ("llvmir", "Output LLVM IR instead of Object code.")
     ("jit", "Perform jit compilation.")
-    ("opt", program_options::value<bool>()->default_value(true), "With or without optimization.")
+    ("opt", program_options::value<bool>()->default_value(true),
+      "With or without optimization.")
+    ("relocation-model",
+      program_options::value<std::string>()->default_value("pic"),
+      "Set the relocation model. Possible values are 'static' or 'pic'.")
     ("input-file", program_options::value<std::vector<std::string>>(), "Input file.")
     ;
   // clang-format on
@@ -135,6 +139,39 @@ get_input_files(const std::string_view                program_name,
   else {
     throw std::runtime_error{
       maple::format_error_message(program_name, "no input files", true)};
+  }
+}
+
+[[nodiscard]] std::string string_to_lower(const std::string& str)
+{
+  std::string result;
+
+  // Relocation model string to lower.
+  std::transform(str.begin(),
+                 str.end(),
+                 std::back_inserter(result),
+                 [](auto&& ch) { return std::tolower(ch); });
+
+  return result;
+}
+
+[[nodiscard]] llvm::Reloc::Model
+get_relocation_model(const std::string_view                program_name,
+                     const program_options::variables_map& vm)
+{
+  const auto& rm_str = vm["relocation-model"].as<std::string>();
+
+  const auto rm_lower_str = string_to_lower(rm_str);
+
+  if (rm_lower_str == "static")
+    return llvm::Reloc::Model::Static;
+  else if (rm_lower_str == "pic")
+    return llvm::Reloc::Model::PIC_;
+  else {
+    throw std::runtime_error{maple::format_error_message(
+      program_name,
+      format("The value '%s' for --relocation-model is invalid!", rm_lower_str),
+      true)};
   }
 }
 

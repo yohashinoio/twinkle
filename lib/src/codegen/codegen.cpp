@@ -1018,9 +1018,9 @@ void codegen_statement(const ast::Stmt&   statement,
 
 struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
   TopLevelVisitor(CodegenContext&                    common,
-                  llvm::legacy::FunctionPassManager& fpm)
+                  llvm::legacy::FunctionPassManager& fp_manager)
     : common{common}
-    , fpm{fpm}
+    , fp_manager{fp_manager}
   {
   }
 
@@ -1197,7 +1197,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
         common.format_error(common.positions.position_of(node), os.str())};
     }
 
-    fpm.run(*func);
+    fp_manager.run(*func);
 
     return func;
   }
@@ -1205,7 +1205,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 private:
   CodegenContext& common;
 
-  llvm::legacy::FunctionPassManager& fpm;
+  llvm::legacy::FunctionPassManager& fp_manager;
 };
 
 //===----------------------------------------------------------------------===//
@@ -1276,10 +1276,11 @@ CodeGenerator::CodeGenerator(const std::string_view       program_name,
                              const ast::Program&          ast,
                              const PositionCache&         positions,
                              const std::filesystem::path& file,
-                             const bool                   optimize)
+                             const bool                   opt,
+                             const llvm::Reloc::Model     relocation_model)
   : program_name{program_name}
   , common{file, positions}
-  , fpm{common.module.get()}
+  , fp_manager{common.module.get()}
   , ast{ast}
 {
   llvm::InitializeAllTargetInfos();
@@ -1288,18 +1289,18 @@ CodeGenerator::CodeGenerator(const std::string_view       program_name,
   llvm::InitializeAllAsmParsers();
   llvm::InitializeAllAsmPrinters();
 
-  if (optimize) {
-    // Initialize path manager.
-    fpm.add(llvm::createInstructionCombiningPass());
-    fpm.add(llvm::createReassociatePass());
-    fpm.add(llvm::createGVNPass());
-    fpm.add(llvm::createCFGSimplificationPass());
-    fpm.add(llvm::createPromoteMemoryToRegisterPass());
-    fpm.add(llvm::createInstructionCombiningPass());
-    fpm.add(llvm::createReassociatePass());
+  if (opt) {
+    // Initialize pass manager.
+    fp_manager.add(llvm::createInstructionCombiningPass());
+    fp_manager.add(llvm::createReassociatePass());
+    fp_manager.add(llvm::createGVNPass());
+    fp_manager.add(llvm::createCFGSimplificationPass());
+    fp_manager.add(llvm::createPromoteMemoryToRegisterPass()); // mem2reg
+    fp_manager.add(llvm::createInstructionCombiningPass());
+    fp_manager.add(llvm::createReassociatePass());
   }
 
-  fpm.doInitialization();
+  fp_manager.doInitialization();
 
   // Set target triple and data layout to module.
   const auto target_triple = llvm::sys::getDefaultTargetTriple();
@@ -1318,12 +1319,13 @@ CodeGenerator::CodeGenerator(const std::string_view       program_name,
   }
 
   llvm::TargetOptions target_options;
-  target_machine
-    = target->createTargetMachine(target_triple,
-                                  "generic",
-                                  "",
-                                  target_options,
-                                  llvm::Optional<llvm::Reloc::Model>());
+
+  target_machine = target->createTargetMachine(
+    target_triple,
+    "generic",
+    "",
+    target_options,
+    llvm::Optional<llvm::Reloc::Model>(relocation_model));
 
   common.module->setTargetTriple(target_triple);
   common.module->setDataLayout(target_machine->createDataLayout());
@@ -1360,8 +1362,9 @@ void CodeGenerator::write_object_code_to_file(const std::filesystem::path& out)
       format("%s: %s\n", out.string(), ostream_ec.message()))};
   }
 
-  llvm::legacy::PassManager pm;
-  if (target_machine->addPassesToEmitFile(pm,
+  llvm::legacy::PassManager pmanager;
+
+  if (target_machine->addPassesToEmitFile(pmanager,
                                           os,
                                           nullptr,
                                           llvm::CGFT_ObjectFile)) {
@@ -1371,7 +1374,7 @@ void CodeGenerator::write_object_code_to_file(const std::filesystem::path& out)
                            true)};
   }
 
-  pm.run(*common.module);
+  pmanager.run(*common.module);
   os.flush();
 }
 
@@ -1413,7 +1416,7 @@ void CodeGenerator::write_object_code_to_file(const std::filesystem::path& out)
 void CodeGenerator::codegen()
 {
   for (const auto& node : ast)
-    boost::apply_visitor(TopLevelVisitor{common, fpm}, node);
+    boost::apply_visitor(TopLevelVisitor{common, fp_manager}, node);
 }
 
 } // namespace maple::codegen
