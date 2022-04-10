@@ -34,16 +34,19 @@ output_help(std::ostream&                               ostm,
               << desc;
 }
 
-static void output_to_file(maple::codegen::CodeGenerator&        generator,
-                           const std::filesystem::path&          path,
-                           const program_options::variables_map& vmap)
+// Emit object file without error even if target does not exist.
+static void emit_file(maple::codegen::CodeGenerator&        generator,
+                      const std::filesystem::path&          path,
+                      const program_options::variables_map& vmap)
 {
-  if (vmap.contains("emit-llvm"))
-    generator.write_llvm_ir_to_file(path.stem().string() + ".ll");
-  else if (vmap.contains("S"))
-    generator.write_assembly_to_file(path.stem().string() + ".s");
+  const std::string_view target = vmap["emit"].as<std::string>();
+
+  if (target == "llvm")
+    generator.emit_llvmIR_file(path.stem().string() + ".ll");
+  else if (target == "asm")
+    generator.emit_assembly_file(path.stem().string() + ".s");
   else
-    generator.write_object_code_to_file(path.stem().string() + ".o");
+    generator.emit_object_file(path.stem().string() + ".o");
 }
 
 namespace maple::compile
@@ -73,45 +76,24 @@ try {
 
   const auto relocation_model = get_relocation_model(*argv, vmap);
 
-  if (vmap.contains("input")) {
-    std::string_view file_path = "input";
+  auto file_paths = get_input_files(*argv, vmap);
 
-    maple::parse::Parser parser{vmap["input"].as<std::string>(),
-                                file_path,
-                                eout};
+  for (auto&& file_path : file_paths) {
+    auto input = load_file_to_string(*argv, file_path);
 
-    maple::codegen::CodeGenerator generator{*argv,
-                                            parser.get_ast(),
-                                            parser.get_positions(),
-                                            file_path,
-                                            opt,
-                                            relocation_model};
+    parse::Parser parser{std::move(input), file_path, eout};
+
+    codegen::CodeGenerator generator{*argv,
+                                     parser.get_ast(),
+                                     parser.get_positions(),
+                                     file_path,
+                                     opt,
+                                     relocation_model};
 
     if (vmap.contains("jit"))
-      return {true, generator.jit_compile()};
+      return {true, generator.do_JIT()};
     else
-      output_to_file(generator, file_path, vmap);
-  }
-  else {
-    auto file_paths = get_input_files(*argv, vmap);
-
-    for (auto&& file_path : file_paths) {
-      auto input = load_file_to_string(*argv, file_path);
-
-      parse::Parser parser{std::move(input), file_path, eout};
-
-      codegen::CodeGenerator generator{*argv,
-                                       parser.get_ast(),
-                                       parser.get_positions(),
-                                       file_path,
-                                       opt,
-                                       relocation_model};
-
-      if (vmap.contains("jit"))
-        return {true, generator.jit_compile()};
-      else
-        output_to_file(generator, file_path, vmap);
-    }
+      emit_file(generator, file_path, vmap);
   }
 
   return {true, std::nullopt};

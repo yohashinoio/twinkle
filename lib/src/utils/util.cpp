@@ -95,10 +95,10 @@ load_file_to_string(const std::string_view       program_name,
   desc.add_options()
     ("help,h", "Display this information.")
     ("version,v", "Display version.")
-    ("S,S", "Stop after the stage of compilation proper; do not assemble.")
-    ("input", program_options::value<std::string>(), "Input instead of files.")
-    ("emit-llvm", "Compile to LLVM IR.")
-    ("jit", "Perform jit compilation.")
+    ("emit", program_options::value<std::string>(),
+      "Set a compilation target. Assembly file is 'asm', "
+      "object file is 'obj', LLVM IR is 'llvm'.")
+    ("jit", "Perform Just-in-time(JIT) compilation.")
     ("opt", program_options::value<bool>()->default_value(true),
       "With or without optimization.")
     ("relocation-model",

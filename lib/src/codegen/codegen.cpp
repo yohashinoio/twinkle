@@ -1377,7 +1377,7 @@ CodeGenerator::CodeGenerator(const std::string_view       program_name,
   codegen();
 }
 
-void CodeGenerator::write_llvm_ir_to_file(
+void CodeGenerator::emit_llvmIR_file(
   const std::filesystem::path& path) const
 {
   std::error_code      ostream_ec;
@@ -1394,18 +1394,18 @@ void CodeGenerator::write_llvm_ir_to_file(
   common.module->print(os, nullptr);
 }
 
-void CodeGenerator::write_assembly_to_file(const std::filesystem::path& path)
+void CodeGenerator::emit_assembly_file(const std::filesystem::path& path)
 {
   emit_file(path, llvm::CGFT_AssemblyFile);
 }
 
-void CodeGenerator::write_object_code_to_file(const std::filesystem::path& path)
+void CodeGenerator::emit_object_file(const std::filesystem::path& path)
 {
   emit_file(path, llvm::CGFT_ObjectFile);
 }
 
 // Returns the return value from the main function.
-[[nodiscard]] int CodeGenerator::jit_compile()
+[[nodiscard]] int CodeGenerator::do_JIT()
 {
   auto jit_expected = jit::JitCompiler::create();
   if (auto err = jit_expected.takeError()) {
