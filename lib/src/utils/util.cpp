@@ -133,17 +133,17 @@ get_variable_map(const program_options::options_description& desc,
 
 [[nodiscard]] std::vector<std::string>
 get_input_files(const std::string_view                program_name,
-                const program_options::variables_map& vm)
+                const program_options::variables_map& vmap)
 {
-  if (vm.contains("input-file"))
-    return vm["input-file"].as<std::vector<std::string>>();
+  if (vmap.contains("input-file"))
+    return vmap["input-file"].as<std::vector<std::string>>();
   else {
     throw std::runtime_error{
       maple::format_error_message(program_name, "no input files", true)};
   }
 }
 
-[[nodiscard]] std::string string_to_lower(const std::string& str)
+[[nodiscard]] std::string string_to_lower(const std::string_view str)
 {
   std::string result;
 
@@ -158,11 +158,10 @@ get_input_files(const std::string_view                program_name,
 
 [[nodiscard]] llvm::Reloc::Model
 get_relocation_model(const std::string_view                program_name,
-                     const program_options::variables_map& vm)
+                     const program_options::variables_map& vmap)
 {
-  const auto& rm_str = vm["relocation-model"].as<std::string>();
-
-  const auto rm_lower_str = string_to_lower(rm_str);
+  const auto rm_lower_str
+    = string_to_lower(vmap["relocation-model"].as<std::string>());
 
   if (rm_lower_str == "static")
     return llvm::Reloc::Model::Static;

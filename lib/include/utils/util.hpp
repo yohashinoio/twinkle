@@ -57,13 +57,13 @@ get_variable_map(const program_options::options_description& desc,
 // If no input files are passed, std::runtime_error is thrown.
 [[nodiscard]] std::vector<std::string>
 get_input_files(const std::string_view                program_name,
-                const program_options::variables_map& vm);
+                const program_options::variables_map& vmap);
 
-[[nodiscard]] std::string string_to_lower(const std::string& str);
+[[nodiscard]] std::string string_to_lower(const std::string_view str);
 
 [[nodiscard]] llvm::Reloc::Model
 get_relocation_model(const std::string_view                program_name,
-                     const program_options::variables_map& vm);
+                     const program_options::variables_map& vmap);
 
 [[noreturn]] void unreachable_internal(const std::size_t line,
                                        const char*       file);

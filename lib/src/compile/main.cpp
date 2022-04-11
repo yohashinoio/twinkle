@@ -39,14 +39,20 @@ static void emit_file(maple::codegen::CodeGenerator&        generator,
                       const std::filesystem::path&          path,
                       const program_options::variables_map& vmap)
 {
-  const std::string_view target = vmap["emit"].as<std::string>();
+  if (vmap.contains("emit")) {
+    const auto target = maple::string_to_lower(vmap["emit"].as<std::string>());
 
-  if (target == "llvm")
-    generator.emit_llvmIR_file(path.stem().string() + ".ll");
-  else if (target == "asm")
-    generator.emit_assembly_file(path.stem().string() + ".s");
-  else
-    generator.emit_object_file(path.stem().string() + ".o");
+    if (target == "llvm") {
+      generator.emit_llvmIR_file(path.stem().string() + ".ll");
+      return;
+    }
+    else if (target == "asm") {
+      generator.emit_assembly_file(path.stem().string() + ".s");
+      return;
+    }
+  }
+
+  generator.emit_object_file(path.stem().string() + ".o");
 }
 
 namespace maple::compile
