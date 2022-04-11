@@ -44,6 +44,7 @@
   - [Return statement](#return-statement)
 - [Example](#example)
   - [First 40 fibonacci numbers](#first-40-fibonacci-numbers)
+  - [Fizz buzz](#fizz-buzz)
 - [References](#references)
 - [License](#license)
 
@@ -421,6 +422,30 @@ func main() -> i32
 {
   for (let mut i = 1; i <= 40; ++i)
     printf("%d\n", fib(i));
+}
+```
+### Fizz buzz
+```rust
+extern printf(fmt: *i8, ...) -> i8;
+extern scanf(fmt: *i8, ...) -> i8;
+
+func main() -> i32
+{
+  let mut n: u32;
+  printf("> ");
+  if (scanf("%u", &n) != 1)
+    ret 1;
+
+  for (let mut i = 1; i <= n; ++i) {
+    if (i % 15 == 0)
+      printf("FizzBuzz\n");
+    else if (i % 3 == 0)
+      printf("Fizz\n");
+    else if (i % 5 == 0)
+      printf("Buzz\n");
+    else
+      printf("%d\n", i);
+  }
 }
 ```
 
