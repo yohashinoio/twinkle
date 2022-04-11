@@ -109,7 +109,7 @@ If multiple files are passed, they are not linked and each is compiled to the ta
 The target defaults to an object file, which can be changed using the emit option.<br/>
 See help for more details.<br/>
 
-Currently, this compiler does not support linking, so it must be linked in a separate program.<br/>
+Currently, this compiler does not support linking, so you must use another program to link.<br/>
 The following example uses cc to link with libc.
 ```bash
 $ maplec hello.txt
