@@ -1,10 +1,10 @@
 ## Table of Contents
 - [Table of Contents](#table-of-contents)
-  - [Hello world](#hello-world)
-  - [AOT compile](#aot-compile)
-  - [JIT compile](#jit-compile)
+- [Hello world](#hello-world)
+- [AOT compile](#aot-compile)
+- [JIT compile](#jit-compile)
 
-### Hello world
+## Hello world
 ```rust
 // hello.txt
 extern printf(fmt: *i8, ...) -> i32;
@@ -15,7 +15,7 @@ func main() -> i32
 }
 ```
 
-### AOT compile
+## AOT compile
 This is the standard compilation method for C, C++, etc.<br/>
 
 If multiple files are passed, they are not linked and each is compiled to the target.<br/>
@@ -31,7 +31,7 @@ $ ./a.out
 hello, world
 ```
 
-### JIT compile
+## JIT compile
 If multiple files are passed, they are linked and executed.<br/>
 Therefore, if the same symbol is defined, an error will occur.
 ```bash
