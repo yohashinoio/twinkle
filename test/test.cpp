@@ -109,7 +109,7 @@ int main(const int argc, const char* const* const argv)
   std::size_t fail_c{}; // fail count.
 
   for (const auto& r : fs::recursive_directory_iterator(argv[1])) {
-    const char* c_argv[] = {"test", "--jit", r.path().c_str()};
+    const char* c_argv[] = {"test", "--JIT", r.path().c_str()};
 
     const auto result
       = maple::compile::main(std::extent_v<decltype(c_argv)>, c_argv, false);
