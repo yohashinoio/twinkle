@@ -1,9 +1,9 @@
 <div align="center">
   <h1>The Maple Programming Language</h1>
 
-  [Getting Started](https://github.com/GothicLoli/maple/docs/getting_started.md) |
-  [Language Reference](https://github.com/GothicLoli/maple/docs/language_reference.md) |
-  [Examples](https://github.com/GothicLoli/maple/examples/)
+  [Getting Started](docs/getting_started.md) |
+  [Language Reference](docs/language_reference.md) |
+  [Examples](examples)
 </div>
 
 ## Key Features of Maple
