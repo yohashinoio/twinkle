@@ -1401,12 +1401,10 @@ void CodeGenerator::emit_object_files()
   for (auto it = results.begin() + 1, last = results.end(); it != last; ++it) {
     auto [module, file] = std::move(*it);
 
-    if (llvm::Linker::linkModules(*front_module,
-                                  std::move(module),
-                                  llvm::Linker::LinkOnlyNeeded)) {
+    if (llvm::Linker::linkModules(*front_module, std::move(module))) {
       throw std::runtime_error{
         format_error_message(argv_front,
-                             format("Could not link %s", file.string()))};
+                             format("%s: Could not link", file.string()))};
     }
   }
 
@@ -1419,7 +1417,7 @@ void CodeGenerator::emit_object_files()
   auto symbol_expected = jit->lookup("main");
   if (auto err = symbol_expected.takeError()) {
     throw std::runtime_error{
-      format_error_message(argv_front, "Symbol main could not be found")};
+      format_error_message(argv_front, "symbol main could not be found")};
   }
 
   auto       symbol = *symbol_expected;

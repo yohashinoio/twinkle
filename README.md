@@ -103,16 +103,26 @@ func main() -> i32
 ```
 
 ### AOT compile
+This is the standard compilation method for C, C++, etc.<br/>
+
+If multiple files are passed, they are not linked and each is compiled to the target.<br/>
+The target defaults to an object file, which can be changed using the emit option.<br/>
+See help for more details.<br/>
+
+Currently, this compiler does not support linking, so it must be linked in a separate program.<br/>
+The following example uses cc to link with libc.
 ```bash
 $ maplec hello.txt
-$ cc -static hello.o
+$ cc hello.o
 $ ./a.out
 hello, world
 ```
 
 ### JIT compile
+If multiple files are passed, they are linked and executed.<br/>
+Therefore, if the same symbol is defined, an error will occur.
 ```bash
-$ maplec --jit hello.txt
+$ maplec --JIT hello.txt
 hello, world
 ```
 
@@ -154,6 +164,7 @@ $ maplec --help
 | Division assignment	      | a /= b |
 | Prefix increment          | ++a    |
 | Prefix decrement          | --a    |
+
 No postfix increment and decrement.
 
 ### Pointer operators
