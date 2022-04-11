@@ -1,0 +1,15 @@
+extern printf(fmt: *i8, ...) -> i32;
+
+func fib(n: i32) -> i32
+{
+  if (n < 3)
+    ret 1;
+  else
+    ret fib(n - 1) + fib(n - 2);
+}
+
+func main() -> i32
+{
+  for (let mut i = 1; i <= 40; ++i)
+    printf("%d\n", fib(i));
+}
