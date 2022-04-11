@@ -108,7 +108,6 @@ int main(const int argc, const char* const* const argv)
   std::size_t ok_c{};   // ok count.
   std::size_t fail_c{}; // fail count.
 
-  // TODO: multithread
   for (const auto& r : fs::recursive_directory_iterator(argv[1])) {
     const char* c_argv[] = {"test", "--jit", r.path().c_str()};
 

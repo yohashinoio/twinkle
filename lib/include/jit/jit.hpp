@@ -26,17 +26,18 @@ struct JitCompiler {
 
   ~JitCompiler();
 
-  static llvm::Expected<std::unique_ptr<JitCompiler>> create();
+  [[nodiscard]] static llvm::Expected<std::unique_ptr<JitCompiler>> create();
 
-  const llvm::DataLayout& get_data_layout() const;
+  [[nodiscard]] const llvm::DataLayout& get_data_layout() const;
 
-  llvm::orc::JITDylib& get_main_jit_dylib();
+  [[nodiscard]] llvm::orc::JITDylib& get_main_jit_dylib();
 
-  llvm::Error add_module(llvm::orc::ThreadSafeModule  thread_safe_module,
-                         llvm::orc::ResourceTrackerSP resource_tracker
-                         = nullptr);
+  [[nodiscard]] llvm::Error
+  add_module(llvm::orc::ThreadSafeModule  thread_safe_module,
+             llvm::orc::ResourceTrackerSP resource_tracker = nullptr);
 
-  llvm::Expected<llvm::JITEvaluatedSymbol> lookup(const llvm::StringRef name);
+  [[nodiscard]] llvm::Expected<llvm::JITEvaluatedSymbol>
+  lookup(const llvm::StringRef name);
 
 private:
   std::unique_ptr<llvm::orc::ExecutionSession> exec_session;

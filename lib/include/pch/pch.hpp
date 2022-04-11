@@ -44,6 +44,7 @@
 #include <llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h>
 #include <llvm/ExecutionEngine/SectionMemoryManager.h>
 #include <llvm/IR/DataLayout.h>
+#include <llvm/Linker/Linker.h>
 
 #include <boost/spirit/home/x3.hpp>
 #include <boost/spirit/home/x3/support/ast/variant.hpp>

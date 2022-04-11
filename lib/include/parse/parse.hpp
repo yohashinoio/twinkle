@@ -30,9 +30,15 @@ struct Parser {
          const std::filesystem::path& file_path,
          const bool                   error_output);
 
-  [[nodiscard]] const ast::Program& get_ast() const noexcept;
+  [[nodiscard]] ast::Program move_ast() const noexcept
+  {
+    return std::move(ast);
+  }
 
-  [[nodiscard]] const PositionCache& get_positions() const noexcept;
+  [[nodiscard]] PositionCache move_positions() const noexcept
+  {
+    return std::move(positions);
+  }
 
 private:
   void parse();

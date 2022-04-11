@@ -395,7 +395,7 @@ const auto _while_def = x3::lit("while") > x3::lit('(') > expr /* Condition */
 const auto _for_def
   = x3::lit("for") > x3::lit('(') > -(assignment | variable_def) /* Init */
     > x3::lit(';') > -expr                                       /* Condition */
-    > x3::lit(';') > -(prefix_inc_or_dec | assignment) /* FIXME */ /* Loop */
+    > x3::lit(';') > -(prefix_inc_or_dec | assignment)           /* Loop */
     > x3::lit(')') > stmt;
 
 const auto _break = x3::rule<struct break_tag, ast::Break>{"break statement"}
@@ -673,16 +673,6 @@ Parser::Parser(const std::string&           input,
   parsing_error_output = error_output;
 
   parse();
-}
-
-[[nodiscard]] const ast::Program& Parser::get_ast() const noexcept
-{
-  return ast;
-}
-
-[[nodiscard]] const PositionCache& Parser::get_positions() const noexcept
-{
-  return positions;
 }
 
 void Parser::parse()

@@ -11,6 +11,7 @@
 #include <codegen/codegen.hpp>
 #include <jit/jit.hpp>
 #include <parse/parse.hpp>
+#include <parse/parse_typedef.hpp>
 #include <utils/util.hpp>
 #include <utils/format.hpp>
 
@@ -26,9 +27,9 @@ static bool is_back_newline(const char* str) noexcept
 }
 
 static std::ostream&
-output_help(std::ostream&                               ostm,
-            const std::string_view                      command,
-            const program_options::options_description& desc)
+print_help(std::ostream&                               ostm,
+           const std::string_view                      command,
+           const program_options::options_description& desc)
 {
   return ostm << maple::format("Usage: %s [options] file...\n", command.data())
               << desc;
@@ -36,23 +37,22 @@ output_help(std::ostream&                               ostm,
 
 // Emit object file without error even if target does not exist.
 static void emit_file(maple::codegen::CodeGenerator&        generator,
-                      const std::filesystem::path&          path,
                       const program_options::variables_map& vmap)
 {
   if (vmap.contains("emit")) {
     const auto target = maple::string_to_lower(vmap["emit"].as<std::string>());
 
     if (target == "llvm") {
-      generator.emit_llvmIR_file(path.stem().string() + ".ll");
+      generator.emit_llvmIR_files();
       return;
     }
     else if (target == "asm") {
-      generator.emit_assembly_file(path.stem().string() + ".s");
+      generator.emit_assembly_files();
       return;
     }
   }
 
-  generator.emit_object_file(path.stem().string() + ".o");
+  generator.emit_object_files();
 }
 
 namespace maple::compile
@@ -66,7 +66,7 @@ try {
   const auto vmap = get_variable_map(desc, argc, argv);
 
   if (argc == 1) {
-    output_help(std::cerr, *argv, desc);
+    print_help(std::cerr, *argv, desc);
     std::exit(EXIT_SUCCESS);
   }
   if (vmap.contains("version")) {
@@ -74,7 +74,7 @@ try {
     std::exit(EXIT_SUCCESS);
   }
   else if (vmap.contains("help")) {
-    output_help(std::cout, *argv, desc);
+    print_help(std::cout, *argv, desc);
     std::exit(EXIT_SUCCESS);
   }
 
@@ -84,32 +84,36 @@ try {
 
   auto file_paths = get_input_files(*argv, vmap);
 
-  for (auto&& file_path : file_paths) {
+  std::vector<parse::ParseResult> asts;
+
+  for (const auto& file_path : file_paths) {
     auto input = load_file_to_string(*argv, file_path);
 
     parse::Parser parser{std::move(input), file_path, eout};
 
-    codegen::CodeGenerator generator{*argv,
-                                     parser.get_ast(),
-                                     parser.get_positions(),
-                                     file_path,
-                                     opt,
-                                     relocation_model};
-
-    if (vmap.contains("JIT"))
-      return {true, generator.do_JIT()};
-    else
-      emit_file(generator, file_path, vmap);
+    asts.push_back({parser.move_ast(), parser.move_positions(), file_path});
   }
 
-  return {true, std::nullopt};
+  codegen::CodeGenerator generator{*argv,
+                                   std::move(asts),
+                                   opt,
+                                   relocation_model};
+
+  if (vmap.contains("JIT")) {
+    return {true, generator.do_JIT()};
+  }
+  else {
+    emit_file(generator, vmap);
+    return {true, std::nullopt};
+  }
+
+  unreachable();
 }
 catch (const program_options::error& err) {
   if (eout) {
     // Error about command line options.
     std::cerr << format_error_message(*argv, err.what(), true)
-              << (is_back_newline(err.what()) ? "" : "\n")
-              << "compilation terminated." << std::endl;
+              << (is_back_newline(err.what()) ? "" : "\n") << std::flush;
   }
 
   return {false, std::nullopt};
@@ -117,7 +121,7 @@ catch (const program_options::error& err) {
 catch (const std::runtime_error& err) {
   if (eout) {
     std::cerr << err.what() << (is_back_newline(err.what()) ? "" : "\n")
-              << "compilation terminated." << std::endl;
+              << std::flush;
   }
 
   return {false, std::nullopt};

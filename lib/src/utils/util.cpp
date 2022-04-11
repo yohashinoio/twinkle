@@ -95,16 +95,20 @@ load_file_to_string(const std::string_view       program_name,
   desc.add_options()
     ("help,h", "Display this information.")
     ("version,v", "Display version.")
+    ("JIT", "Perform Just-in-time(JIT) compilation.\n"
+      "If there are multiple input files, they are linked and executed.")
     ("emit", program_options::value<std::string>(),
       "Set a compilation target. Assembly file is 'asm', "
-      "object file is 'obj', LLVM IR is 'llvm'.")
-    ("JIT", "Perform Just-in-time(JIT) compilation.")
+      "object file is 'obj', LLVM IR is 'llvm'.\n"
+      "If there are multiple input files, compile each to the target. Not linked.")
     ("opt", program_options::value<bool>()->default_value(true),
       "With or without optimization.")
     ("relocation-model",
       program_options::value<std::string>()->default_value("pic"),
-      "Set the relocation model. Possible values are 'static' or 'pic'.")
-    ("input-file", program_options::value<std::vector<std::string>>(), "Input file.")
+      "Set the relocation model. Possible values are 'static' or 'pic'.\n"
+      "If llvm is specified for the emit option, this option is disabled.")
+    ("input-file", program_options::value<std::vector<std::string>>(),
+      "Input file. Non-optional arguments are equivalent to this")
     ;
   // clang-format on
 

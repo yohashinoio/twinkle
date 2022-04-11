@@ -8,6 +8,7 @@
  */
 
 #include <jit/jit.hpp>
+#include <utils/util.hpp>
 
 namespace maple::jit
 {
@@ -40,9 +41,10 @@ JitCompiler::~JitCompiler()
     exec_session->reportError(std::move(err));
 }
 
-llvm::Expected<std::unique_ptr<JitCompiler>> JitCompiler::create()
+[[nodiscard]] llvm::Expected<std::unique_ptr<JitCompiler>> JitCompiler::create()
 {
   auto epc = llvm::orc::SelfExecutorProcessControl::Create();
+
   if (!epc)
     return epc.takeError();
 
@@ -57,30 +59,31 @@ llvm::Expected<std::unique_ptr<JitCompiler>> JitCompiler::create()
     return data_layout.takeError();
 
   return std::make_unique<JitCompiler>(std::move(exec_session),
-                                        std::move(jit_tmb),
-                                        std::move(*data_layout));
+                                       std::move(jit_tmb),
+                                       std::move(*data_layout));
 }
 
-const llvm::DataLayout& JitCompiler::get_data_layout() const
+[[nodiscard]] const llvm::DataLayout& JitCompiler::get_data_layout() const
 {
   return data_layout;
 }
 
-llvm::orc::JITDylib& JitCompiler::get_main_jit_dylib()
+[[nodiscard]] llvm::orc::JITDylib& JitCompiler::get_main_jit_dylib()
 {
   return main_jd;
 }
 
-llvm::Error
+[[nodiscard]] llvm::Error
 JitCompiler::add_module(llvm::orc::ThreadSafeModule  thread_safe_module,
-                         llvm::orc::ResourceTrackerSP resource_tracker)
+                        llvm::orc::ResourceTrackerSP resource_tracker)
 {
   if (!resource_tracker)
     resource_tracker = main_jd.getDefaultResourceTracker();
+
   return compile_layer.add(resource_tracker, std::move(thread_safe_module));
 }
 
-llvm::Expected<llvm::JITEvaluatedSymbol>
+[[nodiscard]] llvm::Expected<llvm::JITEvaluatedSymbol>
 JitCompiler::lookup(const llvm::StringRef name)
 {
   return exec_session->lookup({&main_jd}, mangle(name.str()));

@@ -10,6 +10,7 @@
 #include <codegen/codegen.hpp>
 #include <utils/type.hpp>
 #include <utils/format.hpp>
+#include <cassert>
 
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
 #include <unistd.h> // isatty
@@ -122,8 +123,8 @@ create_entry_block_alloca(llvm::Function*    func,
 //===----------------------------------------------------------------------===//
 
 struct ExprVisitor : public boost::static_visitor<Value> {
-  ExprVisitor(CodegenContext& common, SymbolTable& scope)
-    : common{common}
+  ExprVisitor(CodegenContext& ctx, SymbolTable& scope)
+    : ctx{ctx}
     , scope{scope}
   {
   }
@@ -136,46 +137,44 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   // 32bit unsigned integer literals.
   [[nodiscard]] Value operator()(const std::uint32_t node) const
   {
-    return {llvm::ConstantInt::get(common.builder.getInt32Ty(), node), false};
+    return {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), node), false};
   }
 
   // 32bit signed integer literals.
   [[nodiscard]] Value operator()(const std::int32_t node) const
   {
-    return {llvm::ConstantInt::getSigned(common.builder.getInt32Ty(), node),
-            true};
+    return {llvm::ConstantInt::getSigned(ctx.builder.getInt32Ty(), node), true};
   }
 
   // 64bit unsigned integer literals.
   [[nodiscard]] Value operator()(const std::uint64_t node) const
   {
-    return {llvm::ConstantInt::get(common.builder.getInt64Ty(), node), false};
+    return {llvm::ConstantInt::get(ctx.builder.getInt64Ty(), node), false};
   }
 
   // 64bit signed integer literals.
   [[nodiscard]] Value operator()(const std::int64_t node) const
   {
-    return {llvm::ConstantInt::getSigned(common.builder.getInt64Ty(), node),
-            true};
+    return {llvm::ConstantInt::getSigned(ctx.builder.getInt64Ty(), node), true};
   }
 
   // Boolean literals.
   [[nodiscard]] Value operator()(const bool node) const
   {
-    return {common.int1_to_bool(
-              llvm::ConstantInt::get(common.builder.getInt1Ty(), node)),
-            false};
+    return {
+      ctx.int1_to_bool(llvm::ConstantInt::get(ctx.builder.getInt1Ty(), node)),
+      false};
   }
 
   [[nodiscard]] Value operator()(const ast::StringLiteral& node) const
   {
-    return Value{common.builder.CreateGlobalStringPtr(node.str, ".str")};
+    return Value{ctx.builder.CreateGlobalStringPtr(node.str, ".str")};
   }
 
   [[nodiscard]] Value operator()(const ast::CharLiteral& node) const
   {
     // Char literal is u8.
-    return {llvm::ConstantInt::get(common.builder.getInt8Ty(), node.ch), false};
+    return {llvm::ConstantInt::get(ctx.builder.getInt8Ty(), node.ch), false};
   }
 
   [[nodiscard]] Value operator()(const ast::UnaryOp& node) const
@@ -184,22 +183,22 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     if (!rhs.getValue()) {
       throw std::runtime_error{
-        common.format_error(common.positions.position_of(node),
-                            "failed to generate right-hand side")};
+        ctx.format_error(ctx.positions.position_of(node),
+                         "failed to generate right-hand side")};
     }
 
     if (node.op == "+")
       return rhs;
     if (node.op == "-") {
       // -x to (0 - x).
-      return Value{common.builder.CreateSub(
-        llvm::ConstantInt::get(common.builder.getInt32Ty(), 0),
+      return Value{ctx.builder.CreateSub(
+        llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 0),
         rhs.getValue())};
     }
 
     throw std::runtime_error{
-      common.format_error(common.positions.position_of(node),
-                          format("unknown operator '%s' detected", node.op))};
+      ctx.format_error(ctx.positions.position_of(node),
+                       format("unknown operator '%s' detected", node.op))};
   }
 
   [[nodiscard]] Value operator()(const ast::BinOp& node) const
@@ -209,16 +208,16 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     if (!lhs) {
       throw std::runtime_error{
-        common.format_error(common.positions.position_of(node),
-                            "failed to generate left-hand side",
-                            false)};
+        ctx.format_error(ctx.positions.position_of(node),
+                         "failed to generate left-hand side",
+                         false)};
     }
 
     if (!rhs) {
       throw std::runtime_error{
-        common.format_error(common.positions.position_of(node),
-                            "failed to generate right-hand side",
-                            false)};
+        ctx.format_error(ctx.positions.position_of(node),
+                         "failed to generate right-hand side",
+                         false)};
     }
 
     // Implicit conversions.
@@ -228,24 +227,24 @@ struct ExprVisitor : public boost::static_visitor<Value> {
         lhs_bitwidth != rhs_bitwidth) {
       const auto max_bitwidth = std::max(lhs_bitwidth, rhs_bitwidth);
 
-      const auto as = common.builder.getIntNTy(max_bitwidth);
+      const auto as = ctx.builder.getIntNTy(max_bitwidth);
 
       const auto as_is_signed
         = lhs_bitwidth == max_bitwidth ? lhs.isSigned() : rhs.isSigned();
 
       if (lhs_bitwidth == max_bitwidth) {
-        rhs = {common.builder.CreateIntCast(rhs.getValue(), as, as_is_signed),
+        rhs = {ctx.builder.CreateIntCast(rhs.getValue(), as, as_is_signed),
                as_is_signed};
       }
       else {
-        lhs = {common.builder.CreateIntCast(lhs.getValue(), as, as_is_signed),
+        lhs = {ctx.builder.CreateIntCast(lhs.getValue(), as, as_is_signed),
                as_is_signed};
       }
     }
 
     if (lhs.getValue()->getType() != rhs.getValue()->getType()) {
-      throw std::runtime_error{common.format_error(
-        common.positions.position_of(node),
+      throw std::runtime_error{ctx.format_error(
+        ctx.positions.position_of(node),
         "both operands to a binary operator are not of the same type",
         false)};
     }
@@ -256,30 +255,30 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     // Addition.
     if (node.op == "+") {
-      return {common.builder.CreateAdd(lhs.getValue(), rhs.getValue()),
+      return {ctx.builder.CreateAdd(lhs.getValue(), rhs.getValue()),
               result_is_signed};
     }
 
     // Subtraction.
     if (node.op == "-") {
-      return {common.builder.CreateSub(lhs.getValue(), rhs.getValue()),
+      return {ctx.builder.CreateSub(lhs.getValue(), rhs.getValue()),
               result_is_signed};
     }
 
     // Multiplication.
     if (node.op == "*") {
-      return {common.builder.CreateMul(lhs.getValue(), rhs.getValue()),
+      return {ctx.builder.CreateMul(lhs.getValue(), rhs.getValue()),
               result_is_signed};
     }
 
     // Division.
     if (node.op == "/") {
       if (result_is_signed) {
-        return {common.builder.CreateSDiv(lhs.getValue(), rhs.getValue()),
+        return {ctx.builder.CreateSDiv(lhs.getValue(), rhs.getValue()),
                 result_is_signed};
       }
       else {
-        return {common.builder.CreateUDiv(lhs.getValue(), rhs.getValue()),
+        return {ctx.builder.CreateUDiv(lhs.getValue(), rhs.getValue()),
                 result_is_signed};
       }
     }
@@ -287,11 +286,11 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     // Modulo.
     if (node.op == "%") {
       if (result_is_signed) {
-        return {common.builder.CreateSRem(lhs.getValue(), rhs.getValue()),
+        return {ctx.builder.CreateSRem(lhs.getValue(), rhs.getValue()),
                 result_is_signed};
       }
       else {
-        return {common.builder.CreateURem(lhs.getValue(), rhs.getValue()),
+        return {ctx.builder.CreateURem(lhs.getValue(), rhs.getValue()),
                 result_is_signed};
       }
     }
@@ -299,22 +298,22 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     // Equal.
     if (node.op == "==") {
       return Value{
-        common.int1_to_bool(common.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
-                                                      lhs.getValue(),
-                                                      rhs.getValue()))};
+        ctx.int1_to_bool(ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
+                                                lhs.getValue(),
+                                                rhs.getValue()))};
     }
 
     // Not equal.
     if (node.op == "!=") {
       return Value{
-        common.int1_to_bool(common.builder.CreateICmp(llvm::ICmpInst::ICMP_NE,
-                                                      lhs.getValue(),
-                                                      rhs.getValue()))};
+        ctx.int1_to_bool(ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_NE,
+                                                lhs.getValue(),
+                                                rhs.getValue()))};
     }
 
     // Less than.
     if (node.op == "<") {
-      return Value{common.int1_to_bool(common.builder.CreateICmp(
+      return Value{ctx.int1_to_bool(ctx.builder.CreateICmp(
         result_is_signed ? llvm::ICmpInst::ICMP_SLT : llvm::ICmpInst::ICMP_ULT,
         lhs.getValue(),
         rhs.getValue()))};
@@ -322,7 +321,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     // Greater than.
     if (node.op == ">") {
-      return Value{common.int1_to_bool(common.builder.CreateICmp(
+      return Value{ctx.int1_to_bool(ctx.builder.CreateICmp(
         result_is_signed ? llvm::ICmpInst::ICMP_SGT : llvm::ICmpInst::ICMP_UGT,
         lhs.getValue(),
         rhs.getValue()))};
@@ -330,7 +329,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     // Less or equal.
     if (node.op == "<=") {
-      return Value{common.int1_to_bool(common.builder.CreateICmp(
+      return Value{ctx.int1_to_bool(ctx.builder.CreateICmp(
         result_is_signed ? llvm::ICmpInst::ICMP_SLE : llvm::ICmpInst::ICMP_ULE,
         lhs.getValue(),
         rhs.getValue()))};
@@ -338,7 +337,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     // Greater or equal.
     if (node.op == ">=") {
-      return Value{common.int1_to_bool(common.builder.CreateICmp(
+      return Value{ctx.int1_to_bool(ctx.builder.CreateICmp(
         result_is_signed ? llvm::ICmpInst::ICMP_SGE : llvm::ICmpInst::ICMP_UGE,
         lhs.getValue(),
         rhs.getValue()))};
@@ -346,9 +345,9 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     // Unsupported binary operators detected.
     throw std::runtime_error{
-      common.format_error(common.positions.position_of(node),
-                          format("unknown operator '%s' detected", node.op),
-                          false)};
+      ctx.format_error(ctx.positions.position_of(node),
+                       format("unknown operator '%s' detected", node.op),
+                       false)};
   }
 
   [[nodiscard]] Value operator()(const ast::VariableRef& node) const
@@ -356,31 +355,31 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     auto var_info = scope[node.name];
 
     if (!var_info) {
-      throw std::runtime_error{common.format_error(
-        common.positions.position_of(node),
+      throw std::runtime_error{ctx.format_error(
+        ctx.positions.position_of(node),
         format("unknown variable '%s' referenced", node.name))};
     }
 
-    return {common.builder.CreateLoad(var_info->alloca->getAllocatedType(),
-                                      var_info->alloca),
+    return {ctx.builder.CreateLoad(var_info->alloca->getAllocatedType(),
+                                   var_info->alloca),
             var_info->is_signed};
   }
 
   [[nodiscard]] Value operator()(const ast::FunctionCall& node) const
   {
-    auto const callee_func = common.module->getFunction(node.callee);
+    auto const callee_func = ctx.module->getFunction(node.callee);
 
     if (!callee_func) {
-      throw std::runtime_error{common.format_error(
-        common.positions.position_of(node),
+      throw std::runtime_error{ctx.format_error(
+        ctx.positions.position_of(node),
         format("unknown function '%s' referenced", node.callee))};
     }
 
     if (!callee_func->isVarArg()
         && callee_func->arg_size() != node.args.size()) {
       throw std::runtime_error{
-        common.format_error(common.positions.position_of(node),
-                            format("incorrect arguments passed"))};
+        ctx.format_error(ctx.positions.position_of(node),
+                         format("incorrect arguments passed"))};
     }
 
     std::vector<llvm::Value*> args_value;
@@ -389,8 +388,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
         boost::apply_visitor(*this, node.args[i]).getValue());
 
       if (!args_value.back()) {
-        throw std::runtime_error{common.format_error(
-          common.positions.position_of(node),
+        throw std::runtime_error{ctx.format_error(
+          ctx.positions.position_of(node),
           format("argument set failed in call to the function '%s'",
                  node.callee))};
       }
@@ -399,15 +398,15 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     // Verify arguments
     for (std::size_t idx = 0; auto&& arg : callee_func->args()) {
       if (args_value[idx++]->getType() != arg.getType()) {
-        throw std::runtime_error{common.format_error(
-          common.positions.position_of(node),
-          format("incompatible type for argument %d of '%s'",
-                 idx + 1,
-                 node.callee))};
+        throw std::runtime_error{
+          ctx.format_error(ctx.positions.position_of(node),
+                           format("incompatible type for argument %d of '%s'",
+                                  idx + 1,
+                                  node.callee))};
       }
     }
 
-    return Value{common.builder.CreateCall(callee_func, args_value)};
+    return Value{ctx.builder.CreateCall(callee_func, args_value)};
   }
 
   [[nodiscard]] Value operator()(const ast::Conversion& node) const
@@ -416,13 +415,13 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     if (!lhs) {
       throw std::runtime_error{
-        common.format_error(common.positions.position_of(node),
-                            "failed to generate left-hand side")};
+        ctx.format_error(ctx.positions.position_of(node),
+                         "failed to generate left-hand side")};
     }
 
-    return {common.builder.CreateIntCast(lhs.getValue(),
-                                         node.as->getType(common.builder),
-                                         node.as->isSigned()),
+    return {ctx.builder.CreateIntCast(lhs.getValue(),
+                                      node.as->getType(ctx.builder),
+                                      node.as->isSigned()),
             node.as->isSigned()};
   }
 
@@ -432,8 +431,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     if (!lhs) {
       throw std::runtime_error{
-        common.format_error(common.positions.position_of(node),
-                            "failed to generate right-hand side")};
+        ctx.format_error(ctx.positions.position_of(node),
+                         "failed to generate right-hand side")};
     }
 
     return Value{llvm::getPointerOperand(lhs.getValue())};
@@ -445,25 +444,25 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     if (!lhs) {
       throw std::runtime_error{
-        common.format_error(common.positions.position_of(node),
-                            "failed to generate right-hand side")};
+        ctx.format_error(ctx.positions.position_of(node),
+                         "failed to generate right-hand side")};
     }
 
     auto const lhs_type = lhs.getValue()->getType();
 
     if (!lhs_type->isPointerTy()) {
       throw std::runtime_error{
-        common.format_error(common.positions.position_of(node),
-                            "unary '*' requires pointer operand")};
+        ctx.format_error(ctx.positions.position_of(node),
+                         "unary '*' requires pointer operand")};
     }
 
-    return {common.builder.CreateLoad(lhs_type->getPointerElementType(),
-                                      lhs.getValue()),
-            lhs.isSigned()};
+    return {
+      ctx.builder.CreateLoad(lhs_type->getPointerElementType(), lhs.getValue()),
+      lhs.isSigned()};
   }
 
 private:
-  CodegenContext& common;
+  CodegenContext& ctx;
 
   SymbolTable& scope;
 };
@@ -474,20 +473,20 @@ private:
 
 void codegen_statement(const ast::Stmt&   statement,
                        const SymbolTable& scope,
-                       CodegenContext&    common,
+                       CodegenContext&    ctx,
                        llvm::AllocaInst*  retvar,
                        llvm::BasicBlock*  end_bb,
                        llvm::BasicBlock*  break_bb,
                        llvm::BasicBlock*  continue_bb);
 
 struct StmtVisitor : public boost::static_visitor<void> {
-  StmtVisitor(CodegenContext&   common,
+  StmtVisitor(CodegenContext&   ctx,
               SymbolTable&      scope,
               llvm::AllocaInst* retvar,
               llvm::BasicBlock* end_bb,
               llvm::BasicBlock* break_bb,
               llvm::BasicBlock* continue_bb)
-    : common{common}
+    : ctx{ctx}
     , scope{scope}
     , retvar{retvar}
     , end_bb{end_bb}
@@ -503,20 +502,14 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
   void operator()(const ast::CompoundStmt& node) const
   {
-    codegen_statement(node,
-                      scope,
-                      common,
-                      retvar,
-                      end_bb,
-                      break_bb,
-                      continue_bb);
+    codegen_statement(node, scope, ctx, retvar, end_bb, break_bb, continue_bb);
   }
 
   void operator()(const ast::Expr& node) const
   {
-    if (!boost::apply_visitor(ExprVisitor{common, scope}, node)) {
+    if (!boost::apply_visitor(ExprVisitor{ctx, scope}, node)) {
       throw std::runtime_error{
-        format_error_message(common.file.string(),
+        format_error_message(ctx.file.string(),
                              "failed to generate expression statement")};
     }
   }
@@ -525,42 +518,42 @@ struct StmtVisitor : public boost::static_visitor<void> {
   {
     if (node.rhs) {
       auto const retval
-        = boost::apply_visitor(ExprVisitor{common, scope}, *node.rhs);
+        = boost::apply_visitor(ExprVisitor{ctx, scope}, *node.rhs);
 
-      if (common.builder.GetInsertBlock()->getParent()->getReturnType()
+      if (ctx.builder.GetInsertBlock()->getParent()->getReturnType()
           != retval.getValue()->getType()) {
         throw std::runtime_error{
-          common.format_error(common.positions.position_of(node),
-                              "incompatible type for result type")};
+          ctx.format_error(ctx.positions.position_of(node),
+                           "incompatible type for result type")};
       }
 
       if (!retval) {
         throw std::runtime_error{
-          common.format_error(common.positions.position_of(node),
-                              "failed to generate return value")};
+          ctx.format_error(ctx.positions.position_of(node),
+                           "failed to generate return value")};
       }
 
-      common.builder.CreateStore(retval.getValue(), retvar);
+      ctx.builder.CreateStore(retval.getValue(), retvar);
     }
 
-    common.builder.CreateBr(end_bb);
+    ctx.builder.CreateBr(end_bb);
   }
 
   void operator()(const ast::VariableDef& node) const
   {
     if (!node.type.has_value() && !node.initializer.has_value()) {
       throw std::runtime_error{
-        common.format_error(common.positions.position_of(node),
-                            "type inference requires an initializer")};
+        ctx.format_error(ctx.positions.position_of(node),
+                         "type inference requires an initializer")};
     }
 
     if (scope.exists(node.name)) {
       throw std::runtime_error{
-        common.format_error(common.positions.position_of(node),
-                            format("redefinition of '%s'", node.name))};
+        ctx.format_error(ctx.positions.position_of(node),
+                         format("redefinition of '%s'", node.name))};
     }
 
-    auto const func = common.builder.GetInsertBlock()->getParent();
+    auto const func = ctx.builder.GetInsertBlock()->getParent();
 
     const auto regist
       = [&](llvm::AllocaInst* const alloca, const bool is_signed) {
@@ -580,26 +573,26 @@ struct StmtVisitor : public boost::static_visitor<void> {
       auto const alloca
         = create_entry_block_alloca(func,
                                     node.name,
-                                    type_info.getType(common.builder));
+                                    type_info.getType(ctx.builder));
 
       if (node.initializer) {
         auto const init_value
-          = boost::apply_visitor(ExprVisitor{common, scope}, *node.initializer);
+          = boost::apply_visitor(ExprVisitor{ctx, scope}, *node.initializer);
 
         if (!init_value) {
-          throw std::runtime_error{common.format_error(
-            common.positions.position_of(node),
+          throw std::runtime_error{ctx.format_error(
+            ctx.positions.position_of(node),
             format("failed to generate initializer for '%s'", node.name))};
         }
 
-        if (type_info.getType(common.builder)
+        if (type_info.getType(ctx.builder)
             != init_value.getValue()->getType()) {
-          throw std::runtime_error{common.format_error(
-            common.positions.position_of(node),
+          throw std::runtime_error{ctx.format_error(
+            ctx.positions.position_of(node),
             "Initializer type and variable type are different")};
         }
 
-        common.builder.CreateStore(init_value.getValue(), alloca);
+        ctx.builder.CreateStore(init_value.getValue(), alloca);
       }
 
       regist(alloca, type_info.isSigned());
@@ -607,11 +600,11 @@ struct StmtVisitor : public boost::static_visitor<void> {
     else {
       // Type inference.
       auto const init_value
-        = boost::apply_visitor(ExprVisitor{common, scope}, *node.initializer);
+        = boost::apply_visitor(ExprVisitor{ctx, scope}, *node.initializer);
 
       if (!init_value) {
-        throw std::runtime_error{common.format_error(
-          common.positions.position_of(node),
+        throw std::runtime_error{ctx.format_error(
+          ctx.positions.position_of(node),
           format("failed to generate initializer for '%s'", node.name))};
       }
 
@@ -620,7 +613,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
                                     node.name,
                                     init_value.getValue()->getType());
 
-      common.builder.CreateStore(init_value.getValue(), alloca);
+      ctx.builder.CreateStore(init_value.getValue(), alloca);
 
       regist(alloca, init_value.isSigned());
     }
@@ -632,50 +625,49 @@ struct StmtVisitor : public boost::static_visitor<void> {
         || node.op == "/=" || node.op == "%=") {
       const auto lhs
         = gen_assignable_value_from_expr(node.lhs,
-                                         common.positions.position_of(node));
+                                         ctx.positions.position_of(node));
 
-      auto const rhs
-        = boost::apply_visitor(ExprVisitor{common, scope}, node.rhs);
+      auto const rhs = boost::apply_visitor(ExprVisitor{ctx, scope}, node.rhs);
 
       if (!rhs) {
         throw std::runtime_error{
-          common.format_error(common.positions.position_of(node),
-                              "failed to generate right-hand side")};
+          ctx.format_error(ctx.positions.position_of(node),
+                           "failed to generate right-hand side")};
       }
 
       if (lhs.getValue()->getType()->getPointerElementType()
           != rhs.getValue()->getType()) {
-        throw std::runtime_error{common.format_error(
-          common.positions.position_of(node),
+        throw std::runtime_error{ctx.format_error(
+          ctx.positions.position_of(node),
           "both operands to a binary operator are not of the same type")};
       }
 
-      auto const lhs_value = common.builder.CreateLoad(
+      auto const lhs_value = ctx.builder.CreateLoad(
         lhs.getValue()->getType()->getPointerElementType(),
         lhs.getValue());
 
       // Direct assignment.
       if (node.op == "=")
-        common.builder.CreateStore(rhs.getValue(), lhs.getValue());
+        ctx.builder.CreateStore(rhs.getValue(), lhs.getValue());
 
       // Addition assignment.
       if (node.op == "+=") {
-        common.builder.CreateStore(
-          common.builder.CreateAdd(lhs_value, rhs.getValue()),
+        ctx.builder.CreateStore(
+          ctx.builder.CreateAdd(lhs_value, rhs.getValue()),
           lhs.getValue());
       }
 
       // Subtraction assignment.
       if (node.op == "-=") {
-        common.builder.CreateStore(
-          common.builder.CreateSub(lhs_value, rhs.getValue()),
+        ctx.builder.CreateStore(
+          ctx.builder.CreateSub(lhs_value, rhs.getValue()),
           lhs.getValue());
       }
 
       // Multiplication assignment.
       if (node.op == "*=") {
-        common.builder.CreateStore(
-          common.builder.CreateMul(lhs_value, rhs.getValue()),
+        ctx.builder.CreateStore(
+          ctx.builder.CreateMul(lhs_value, rhs.getValue()),
           lhs.getValue());
       }
 
@@ -686,20 +678,20 @@ struct StmtVisitor : public boost::static_visitor<void> {
       if (node.op == "/=") {
         auto const assign_value
           = result_is_signed
-              ? common.builder.CreateSDiv(lhs_value, rhs.getValue())
-              : common.builder.CreateUDiv(lhs_value, rhs.getValue());
+              ? ctx.builder.CreateSDiv(lhs_value, rhs.getValue())
+              : ctx.builder.CreateUDiv(lhs_value, rhs.getValue());
 
-        common.builder.CreateStore(assign_value, lhs.getValue());
+        ctx.builder.CreateStore(assign_value, lhs.getValue());
       }
 
       // Modulo assignment.
       if (node.op == "%=") {
         auto const assign_value
           = result_is_signed
-              ? common.builder.CreateSRem(lhs_value, rhs.getValue())
-              : common.builder.CreateURem(lhs_value, rhs.getValue());
+              ? ctx.builder.CreateSRem(lhs_value, rhs.getValue())
+              : ctx.builder.CreateURem(lhs_value, rhs.getValue());
 
-        common.builder.CreateStore(assign_value, lhs.getValue());
+        ctx.builder.CreateStore(assign_value, lhs.getValue());
       }
     }
   }
@@ -708,25 +700,23 @@ struct StmtVisitor : public boost::static_visitor<void> {
   {
     const auto rhs
       = gen_assignable_value_from_expr(node.rhs,
-                                       common.positions.position_of(node));
+                                       ctx.positions.position_of(node));
 
-    auto const rhs_value = common.builder.CreateLoad(
+    auto const rhs_value = ctx.builder.CreateLoad(
       rhs.getValue()->getType()->getPointerElementType(),
       rhs.getValue());
 
     if (node.op == "++") {
-      common.builder.CreateStore(
-        common.builder.CreateAdd(
-          rhs_value,
-          llvm::ConstantInt::get(rhs_value->getType(), 1)),
+      ctx.builder.CreateStore(
+        ctx.builder.CreateAdd(rhs_value,
+                              llvm::ConstantInt::get(rhs_value->getType(), 1)),
         rhs.getValue());
     }
 
     if (node.op == "--") {
-      common.builder.CreateStore(
-        common.builder.CreateSub(
-          rhs_value,
-          llvm::ConstantInt::get(rhs_value->getType(), 1)),
+      ctx.builder.CreateStore(
+        ctx.builder.CreateSub(rhs_value,
+                              llvm::ConstantInt::get(rhs_value->getType(), 1)),
         rhs.getValue());
     }
   }
@@ -734,138 +724,138 @@ struct StmtVisitor : public boost::static_visitor<void> {
   void operator()(const ast::If& node) const
   {
     auto const cond_value
-      = boost::apply_visitor(ExprVisitor{common, scope}, node.condition);
+      = boost::apply_visitor(ExprVisitor{ctx, scope}, node.condition);
 
     if (!cond_value) {
       throw std::runtime_error{
-        common.format_error(common.positions.position_of(node),
-                            "invalid condition in if statement")};
+        ctx.format_error(ctx.positions.position_of(node),
+                         "invalid condition in if statement")};
     }
 
     // Convert condition to a bool by comparing non-equal to 0.
-    auto const cond = common.builder.CreateICmp(
+    auto const cond = ctx.builder.CreateICmp(
       llvm::ICmpInst::ICMP_NE,
       cond_value.getValue(),
       llvm::ConstantInt::get(
-        BuiltinType{BuiltinTypeKind::bool_}.getType(common.builder),
+        BuiltinType{BuiltinTypeKind::bool_}.getType(ctx.builder),
         0));
 
-    auto const func = common.builder.GetInsertBlock()->getParent();
+    auto const func = ctx.builder.GetInsertBlock()->getParent();
 
-    auto const then_bb = llvm::BasicBlock::Create(*common.context, "", func);
-    auto const else_bb = llvm::BasicBlock::Create(*common.context);
+    auto const then_bb = llvm::BasicBlock::Create(ctx.context, "", func);
+    auto const else_bb = llvm::BasicBlock::Create(ctx.context);
 
-    auto const merge_bb = llvm::BasicBlock::Create(*common.context);
+    auto const merge_bb = llvm::BasicBlock::Create(ctx.context);
 
-    common.builder.CreateCondBr(cond, then_bb, else_bb);
+    ctx.builder.CreateCondBr(cond, then_bb, else_bb);
 
     // Then statement codegen.
-    common.builder.SetInsertPoint(then_bb);
+    ctx.builder.SetInsertPoint(then_bb);
 
     codegen_statement(node.then_statement,
                       scope,
-                      common,
+                      ctx,
                       retvar,
                       end_bb,
                       break_bb,
                       continue_bb);
 
-    if (!common.builder.GetInsertBlock()->getTerminator())
-      common.builder.CreateBr(merge_bb);
+    if (!ctx.builder.GetInsertBlock()->getTerminator())
+      ctx.builder.CreateBr(merge_bb);
 
     // Else statement codegen.
     func->getBasicBlockList().push_back(else_bb);
-    common.builder.SetInsertPoint(else_bb);
+    ctx.builder.SetInsertPoint(else_bb);
 
     if (node.else_statement) {
       codegen_statement(*node.else_statement,
                         scope,
-                        common,
+                        ctx,
                         retvar,
                         end_bb,
                         break_bb,
                         continue_bb);
     }
 
-    if (!common.builder.GetInsertBlock()->getTerminator())
-      common.builder.CreateBr(merge_bb);
+    if (!ctx.builder.GetInsertBlock()->getTerminator())
+      ctx.builder.CreateBr(merge_bb);
 
     func->getBasicBlockList().push_back(merge_bb);
-    common.builder.SetInsertPoint(merge_bb);
+    ctx.builder.SetInsertPoint(merge_bb);
   }
 
   void operator()(const ast::Loop& node) const
   {
-    auto const func = common.builder.GetInsertBlock()->getParent();
+    auto const func = ctx.builder.GetInsertBlock()->getParent();
 
-    auto const body_bb = llvm::BasicBlock::Create(*common.context, "", func);
+    auto const body_bb = llvm::BasicBlock::Create(ctx.context, "", func);
 
-    auto const loop_end_bb = llvm::BasicBlock::Create(*common.context);
+    auto const loop_end_bb = llvm::BasicBlock::Create(ctx.context);
 
-    common.builder.CreateBr(body_bb);
-    common.builder.SetInsertPoint(body_bb);
+    ctx.builder.CreateBr(body_bb);
+    ctx.builder.SetInsertPoint(body_bb);
 
     codegen_statement(node.body,
                       scope,
-                      common,
+                      ctx,
                       retvar,
                       end_bb,
                       loop_end_bb,
                       body_bb);
 
-    if (!common.builder.GetInsertBlock()->getTerminator())
-      common.builder.CreateBr(body_bb);
+    if (!ctx.builder.GetInsertBlock()->getTerminator())
+      ctx.builder.CreateBr(body_bb);
 
     func->getBasicBlockList().push_back(loop_end_bb);
-    common.builder.SetInsertPoint(loop_end_bb);
+    ctx.builder.SetInsertPoint(loop_end_bb);
   }
 
   void operator()(const ast::While& node) const
   {
-    auto const func = common.builder.GetInsertBlock()->getParent();
+    auto const func = ctx.builder.GetInsertBlock()->getParent();
 
-    auto const cond_bb = llvm::BasicBlock::Create(*common.context, "", func);
-    auto const body_bb = llvm::BasicBlock::Create(*common.context);
+    auto const cond_bb = llvm::BasicBlock::Create(ctx.context, "", func);
+    auto const body_bb = llvm::BasicBlock::Create(ctx.context);
 
-    auto const loop_end_bb = llvm::BasicBlock::Create(*common.context);
+    auto const loop_end_bb = llvm::BasicBlock::Create(ctx.context);
 
-    common.builder.CreateBr(cond_bb);
-    common.builder.SetInsertPoint(cond_bb);
+    ctx.builder.CreateBr(cond_bb);
+    ctx.builder.SetInsertPoint(cond_bb);
 
     auto const cond_value
-      = boost::apply_visitor(ExprVisitor{common, scope}, node.cond_expr);
+      = boost::apply_visitor(ExprVisitor{ctx, scope}, node.cond_expr);
 
     if (!cond_value) {
       throw std::runtime_error{
-        common.format_error(common.positions.position_of(node),
-                            "failed to generate condition expression")};
+        ctx.format_error(ctx.positions.position_of(node),
+                         "failed to generate condition expression")};
     }
 
-    auto const cond = common.builder.CreateICmp(
+    auto const cond = ctx.builder.CreateICmp(
       llvm::ICmpInst::ICMP_NE,
       cond_value.getValue(),
       llvm::ConstantInt::get(
-        BuiltinType{BuiltinTypeKind::bool_}.getType(common.builder),
+        BuiltinType{BuiltinTypeKind::bool_}.getType(ctx.builder),
         0));
 
-    common.builder.CreateCondBr(cond, body_bb, loop_end_bb);
+    ctx.builder.CreateCondBr(cond, body_bb, loop_end_bb);
 
     func->getBasicBlockList().push_back(body_bb);
-    common.builder.SetInsertPoint(body_bb);
+    ctx.builder.SetInsertPoint(body_bb);
 
     codegen_statement(node.body,
                       scope,
-                      common,
+                      ctx,
                       retvar,
                       end_bb,
                       loop_end_bb,
                       cond_bb);
 
-    if (!common.builder.GetInsertBlock()->getTerminator())
-      common.builder.CreateBr(cond_bb);
+    if (!ctx.builder.GetInsertBlock()->getTerminator())
+      ctx.builder.CreateBr(cond_bb);
 
     func->getBasicBlockList().push_back(loop_end_bb);
-    common.builder.SetInsertPoint(loop_end_bb);
+    ctx.builder.SetInsertPoint(loop_end_bb);
   }
 
   void operator()(const ast::For& node) const
@@ -873,88 +863,88 @@ struct StmtVisitor : public boost::static_visitor<void> {
     if (node.init_stmt)
       boost::apply_visitor(*this, *node.init_stmt);
 
-    auto const func = common.builder.GetInsertBlock()->getParent();
+    auto const func = ctx.builder.GetInsertBlock()->getParent();
 
-    auto const cond_bb = llvm::BasicBlock::Create(*common.context, "", func);
-    auto const loop_bb = llvm::BasicBlock::Create(*common.context);
-    auto const body_bb = llvm::BasicBlock::Create(*common.context);
+    auto const cond_bb = llvm::BasicBlock::Create(ctx.context, "", func);
+    auto const loop_bb = llvm::BasicBlock::Create(ctx.context);
+    auto const body_bb = llvm::BasicBlock::Create(ctx.context);
 
-    auto const loop_end_bb = llvm::BasicBlock::Create(*common.context);
+    auto const loop_end_bb = llvm::BasicBlock::Create(ctx.context);
 
-    common.builder.CreateBr(cond_bb);
-    common.builder.SetInsertPoint(cond_bb);
+    ctx.builder.CreateBr(cond_bb);
+    ctx.builder.SetInsertPoint(cond_bb);
 
     if (node.cond_expr) {
       auto const cond_value
-        = boost::apply_visitor(ExprVisitor{common, scope}, *node.cond_expr);
+        = boost::apply_visitor(ExprVisitor{ctx, scope}, *node.cond_expr);
 
       if (!cond_value) {
         throw std::runtime_error{
-          common.format_error(common.positions.position_of(node),
-                              "failed to generate condition expression")};
+          ctx.format_error(ctx.positions.position_of(node),
+                           "failed to generate condition expression")};
       }
 
-      auto const cond = common.builder.CreateICmp(
+      auto const cond = ctx.builder.CreateICmp(
         llvm::ICmpInst::ICMP_NE,
         cond_value.getValue(),
         llvm::ConstantInt::get(
-          BuiltinType{BuiltinTypeKind::bool_}.getType(common.builder),
+          BuiltinType{BuiltinTypeKind::bool_}.getType(ctx.builder),
           0));
 
-      common.builder.CreateCondBr(cond, body_bb, loop_end_bb);
+      ctx.builder.CreateCondBr(cond, body_bb, loop_end_bb);
     }
     else {
       // If condition is absent, unconditionally true.
-      common.builder.CreateCondBr(
-        llvm::ConstantInt::get(common.builder.getInt1Ty(), true),
+      ctx.builder.CreateCondBr(
+        llvm::ConstantInt::get(ctx.builder.getInt1Ty(), true),
         body_bb,
         loop_end_bb);
     }
 
     func->getBasicBlockList().push_back(body_bb);
-    common.builder.SetInsertPoint(body_bb);
+    ctx.builder.SetInsertPoint(body_bb);
 
     codegen_statement(node.body,
                       scope,
-                      common,
+                      ctx,
                       retvar,
                       end_bb,
                       loop_end_bb,
                       loop_bb);
 
-    if (!common.builder.GetInsertBlock()->getTerminator())
-      common.builder.CreateBr(loop_bb);
+    if (!ctx.builder.GetInsertBlock()->getTerminator())
+      ctx.builder.CreateBr(loop_bb);
 
     func->getBasicBlockList().push_back(loop_bb);
-    common.builder.SetInsertPoint(loop_bb);
+    ctx.builder.SetInsertPoint(loop_bb);
 
     // Generate loop statement.
     if (node.loop_stmt) {
       // Since variables will not declared, there is no need to create a new
       // scope.
       boost::apply_visitor(
-        StmtVisitor{common, scope, retvar, end_bb, loop_end_bb, loop_bb},
+        StmtVisitor{ctx, scope, retvar, end_bb, loop_end_bb, loop_bb},
         *node.loop_stmt);
     }
 
-    common.builder.CreateBr(cond_bb);
+    ctx.builder.CreateBr(cond_bb);
 
     func->getBasicBlockList().push_back(loop_end_bb);
-    common.builder.SetInsertPoint(loop_end_bb);
+    ctx.builder.SetInsertPoint(loop_end_bb);
   }
 
   void operator()(ast::Break) const
   {
     // Whether in a loop.
     if (break_bb)
-      common.builder.CreateBr(break_bb);
+      ctx.builder.CreateBr(break_bb);
   }
 
   void operator()(ast::Continue) const
   {
     // Whether in a loop.
     if (continue_bb)
-      common.builder.CreateBr(continue_bb);
+      ctx.builder.CreateBr(continue_bb);
   }
 
 private:
@@ -971,14 +961,14 @@ private:
 
       if (!var_info) {
         // Unknown variable name.
-        throw std::runtime_error{common.format_error(
+        throw std::runtime_error{ctx.format_error(
           position,
           format("unknown variable name '%s'", var_ref_node.name))};
       }
 
       if (!var_info->is_mutable) {
         // Assignment of read-only variable.
-        throw std::runtime_error{common.format_error(
+        throw std::runtime_error{ctx.format_error(
           position,
           format("assignment of read-only variable '%s'", var_ref_node.name))};
       }
@@ -988,26 +978,26 @@ private:
     else if (node.type() == typeid(ast::Indirection)) {
       auto const indirection_node = boost::get<ast::Indirection>(node);
 
-      value = boost::apply_visitor(ExprVisitor{common, scope},
-                                   indirection_node.lhs);
+      value
+        = boost::apply_visitor(ExprVisitor{ctx, scope}, indirection_node.lhs);
     }
     else
-      value = boost::apply_visitor(ExprVisitor{common, scope}, node);
+      value = boost::apply_visitor(ExprVisitor{ctx, scope}, node);
 
     if (!value) {
       throw std::runtime_error{
-        common.format_error(position, "failed to generate left-hand side")};
+        ctx.format_error(position, "failed to generate left-hand side")};
     }
 
     if (!value.getValue()->getType()->isPointerTy()) {
       throw std::runtime_error{
-        common.format_error(position, "left-hand side requires assignable")};
+        ctx.format_error(position, "left-hand side requires assignable")};
     }
 
     return value;
   }
 
-  CodegenContext& common;
+  CodegenContext& ctx;
 
   SymbolTable& scope;
 
@@ -1023,7 +1013,7 @@ private:
 
 void codegen_statement(const ast::Stmt&   statement,
                        const SymbolTable& scope,
-                       CodegenContext&    common,
+                       CodegenContext&    ctx,
                        llvm::AllocaInst*  retvar,
                        llvm::BasicBlock*  end_bb,
                        llvm::BasicBlock*  break_bb,
@@ -1037,12 +1027,12 @@ void codegen_statement(const ast::Stmt&   statement,
 
     for (const auto& r : statements) {
       boost::apply_visitor(
-        StmtVisitor{common, new_scope, retvar, end_bb, break_bb, continue_bb},
+        StmtVisitor{ctx, new_scope, retvar, end_bb, break_bb, continue_bb},
         r);
 
       // If a terminator is present, subsequent code generation is
       // terminated.
-      if (common.builder.GetInsertBlock()->getTerminator())
+      if (ctx.builder.GetInsertBlock()->getTerminator())
         break;
     }
 
@@ -1051,7 +1041,7 @@ void codegen_statement(const ast::Stmt&   statement,
 
   // Other than compound statement
   boost::apply_visitor(
-    StmtVisitor{common, new_scope, retvar, end_bb, break_bb, continue_bb},
+    StmtVisitor{ctx, new_scope, retvar, end_bb, break_bb, continue_bb},
     statement);
 }
 
@@ -1060,9 +1050,9 @@ void codegen_statement(const ast::Stmt&   statement,
 //===----------------------------------------------------------------------===//
 
 struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
-  TopLevelVisitor(CodegenContext&                    common,
+  TopLevelVisitor(CodegenContext&                    ctx,
                   llvm::legacy::FunctionPassManager& fp_manager)
-    : common{common}
+    : ctx{ctx}
     , fp_manager{fp_manager}
   {
   }
@@ -1070,7 +1060,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
   llvm::Function* operator()(ast::Nil) const
   {
     throw std::runtime_error{format_error_message(
-      common.file.string(),
+      ctx.file.string(),
       "a function was executed that did not predict execution")};
   }
 
@@ -1080,8 +1070,8 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
     if (ps.size() && ps.at(0).is_vararg) {
       throw std::runtime_error{
-        common.format_error(common.positions.position_of(node),
-                            "requires a named argument before '...'")};
+        ctx.format_error(ctx.positions.position_of(node),
+                         "requires a named argument before '...'")};
     }
 
     bool is_vararg = false;
@@ -1089,8 +1079,8 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
       if (r.is_vararg) {
         if (is_vararg) {
           throw std::runtime_error{
-            common.format_error(common.positions.position_of(node),
-                                "cannot have multiple variable arguments")};
+            ctx.format_error(ctx.positions.position_of(node),
+                             "cannot have multiple variable arguments")};
         }
         else
           is_vararg = true;
@@ -1103,11 +1093,11 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
     for (std::size_t i = 0; i != named_params_length; ++i) {
       const auto& param_type = node.params[i].type;
-      param_types.at(i)      = param_type->getType(common.builder);
+      param_types.at(i)      = param_type->getType(ctx.builder);
     }
 
     auto const func_type
-      = llvm::FunctionType::get(node.return_type->getType(common.builder),
+      = llvm::FunctionType::get(node.return_type->getType(ctx.builder),
                                 param_types,
                                 is_vararg);
 
@@ -1117,14 +1107,14 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
       func = llvm::Function::Create(func_type,
                                     llvm::Function::ExternalLinkage,
                                     node.name,
-                                    *common.module);
+                                    *ctx.module);
     }
     else if (node.linkage == Linkage::internal) {
       // Internal linkage.
       func = llvm::Function::Create(func_type,
                                     llvm::Function::InternalLinkage,
                                     node.name,
-                                    *common.module);
+                                    *ctx.module);
     }
 
     // Set names for all arguments.
@@ -1136,21 +1126,21 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
   llvm::Function* operator()(const ast::FunctionDef& node) const
   {
-    auto func = common.module->getFunction(node.decl.name);
+    auto func = ctx.module->getFunction(node.decl.name);
 
     if (!func)
       func = this->operator()(node.decl);
 
     if (!func) {
-      throw std::runtime_error{common.format_error(
-        common.positions.position_of(node),
+      throw std::runtime_error{ctx.format_error(
+        ctx.positions.position_of(node),
         format("failed to create function %s", node.decl.name))};
     }
 
     SymbolTable argument_values;
 
-    auto const entry_bb = llvm::BasicBlock::Create(*common.context, "", func);
-    common.builder.SetInsertPoint(entry_bb);
+    auto const entry_bb = llvm::BasicBlock::Create(ctx.context, "", func);
+    ctx.builder.SetInsertPoint(entry_bb);
 
     for (auto&& arg : func->args()) {
       const auto& param_node = node.decl.params[arg.getArgNo()];
@@ -1159,10 +1149,10 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
       auto const alloca
         = create_entry_block_alloca(func,
                                     arg.getName().str(),
-                                    param_node.type->getType(common.builder));
+                                    param_node.type->getType(ctx.builder));
 
       // Store the initial value into the alloca.
-      common.builder.CreateStore(&arg, alloca);
+      ctx.builder.CreateStore(&arg, alloca);
 
       // Add arguments to variable symbol table.
       if (!param_node.qualifier) {
@@ -1176,59 +1166,59 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     }
 
     // Used to combine returns into one.
-    auto const end_bb = llvm::BasicBlock::Create(*common.context);
+    auto const end_bb = llvm::BasicBlock::Create(ctx.context);
     auto const retvar
       = node.decl.return_type->getKind() == BuiltinTypeKind::void_
           ? nullptr
           : create_entry_block_alloca(
             func,
             "",
-            node.decl.return_type->getType(common.builder));
+            node.decl.return_type->getType(ctx.builder));
 
     codegen_statement(node.body,
                       argument_values,
-                      common,
+                      ctx,
                       retvar,
                       end_bb,
                       nullptr,
                       nullptr);
 
     // If there is no return, returns undef.
-    if (!common.builder.GetInsertBlock()->getTerminator()
+    if (!ctx.builder.GetInsertBlock()->getTerminator()
         && node.decl.return_type->getKind() != BuiltinTypeKind::void_) {
       // Return 0 specially for main.
       if (node.decl.name == "main") {
-        common.builder.CreateStore(
+        ctx.builder.CreateStore(
           llvm::ConstantInt::getSigned(func->getReturnType(), 0),
           retvar);
-        common.builder.CreateBr(end_bb);
+        ctx.builder.CreateBr(end_bb);
       }
       else {
-        common.builder.CreateStore(llvm::UndefValue::get(func->getReturnType()),
-                                   retvar);
-        common.builder.CreateBr(end_bb);
+        ctx.builder.CreateStore(llvm::UndefValue::get(func->getReturnType()),
+                                retvar);
+        ctx.builder.CreateBr(end_bb);
       }
     }
 
     // Inserts a terminator if the function returning void does not have
     // one.
     if (node.decl.return_type->getKind() == BuiltinTypeKind::void_
-        && !common.builder.GetInsertBlock()->getTerminator()) {
-      common.builder.CreateBr(end_bb);
+        && !ctx.builder.GetInsertBlock()->getTerminator()) {
+      ctx.builder.CreateBr(end_bb);
     }
 
     // Return.
     func->getBasicBlockList().push_back(end_bb);
-    common.builder.SetInsertPoint(end_bb);
+    ctx.builder.SetInsertPoint(end_bb);
 
     if (retvar) {
       auto const retval
-        = common.builder.CreateLoad(retvar->getAllocatedType(), retvar);
-      common.builder.CreateRet(retval);
+        = ctx.builder.CreateLoad(retvar->getAllocatedType(), retvar);
+      ctx.builder.CreateRet(retval);
     }
     else {
       // Function that returns void.
-      common.builder.CreateRet(nullptr);
+      ctx.builder.CreateRet(nullptr);
     }
 
     std::string              em;
@@ -1237,7 +1227,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
       func->eraseFromParent();
 
       throw std::runtime_error{
-        common.format_error(common.positions.position_of(node), os.str())};
+        ctx.format_error(ctx.positions.position_of(node), os.str())};
     }
 
     fp_manager.run(*func);
@@ -1246,7 +1236,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
   }
 
 private:
-  CodegenContext& common;
+  CodegenContext& ctx;
 
   llvm::legacy::FunctionPassManager& fp_manager;
 };
@@ -1255,11 +1245,12 @@ private:
 // Code generator
 //===----------------------------------------------------------------------===//
 
-CodegenContext::CodegenContext(const std::filesystem::path& file,
+CodegenContext::CodegenContext(llvm::LLVMContext&           context,
+                               const std::filesystem::path& file,
                                const PositionCache&         positions)
-  : context{std::make_unique<llvm::LLVMContext>()}
-  , module{std::make_unique<llvm::Module>(file.filename().string(), *context)}
-  , builder{*context}
+  : context{context}
+  , module{std::make_unique<llvm::Module>(file.filename().string(), context)}
+  , builder{context}
   , file{file}
   , positions{positions}
 {
@@ -1315,38 +1306,181 @@ CodegenContext::format_error(const boost::iterator_range<InputIterator> pos,
   return ss.str();
 }
 
-CodeGenerator::CodeGenerator(const std::string_view       program_name,
-                             const ast::Program&          ast,
-                             const PositionCache&         positions,
-                             const std::filesystem::path& file,
-                             const bool                   opt,
-                             const llvm::Reloc::Model     relocation_model)
-  : program_name{program_name}
-  , common{file, positions}
-  , fp_manager{common.module.get()}
-  , ast{ast}
+CodeGenerator::CodeGenerator(const std::string_view            argv_front,
+                             std::vector<parse::ParseResult>&& asts,
+                             const bool                        opt,
+                             const llvm::Reloc::Model          relocation_model)
+  : argv_front{argv_front}
+  , context{std::make_unique<llvm::LLVMContext>()}
+  , relocation_model{relocation_model}
+  , asts{asts}
 {
+  results.reserve(asts.size());
+
   llvm::InitializeAllTargetInfos();
   llvm::InitializeAllTargets();
   llvm::InitializeAllTargetMCs();
   llvm::InitializeAllAsmParsers();
   llvm::InitializeAllAsmPrinters();
 
-  if (opt) {
-    // Initialize pass manager.
-    fp_manager.add(llvm::createInstructionCombiningPass());
-    fp_manager.add(llvm::createReassociatePass());
-    fp_manager.add(llvm::createGVNPass());
-    fp_manager.add(llvm::createCFGSimplificationPass());
-    fp_manager.add(llvm::createPromoteMemoryToRegisterPass()); // mem2reg
-    fp_manager.add(llvm::createInstructionCombiningPass());
-    fp_manager.add(llvm::createReassociatePass());
+  init_target_triple_and_machine();
+
+  for (auto [ast, positions, file] : asts) {
+    CodegenContext ctx{*context, file, positions};
+
+    llvm::legacy::FunctionPassManager fp_manager{ctx.module.get()};
+
+    if (opt) {
+      fp_manager.add(llvm::createInstructionCombiningPass());
+      fp_manager.add(llvm::createReassociatePass());
+      fp_manager.add(llvm::createGVNPass());
+      fp_manager.add(llvm::createCFGSimplificationPass());
+      fp_manager.add(llvm::createPromoteMemoryToRegisterPass());
+      fp_manager.add(llvm::createInstructionCombiningPass());
+      fp_manager.add(llvm::createReassociatePass());
+    }
+
+    fp_manager.doInitialization();
+
+    ctx.module->setTargetTriple(target_triple);
+    ctx.module->setDataLayout(target_machine->createDataLayout());
+
+    codegen(ast, ctx, fp_manager);
+
+    results.push_back({std::move(ctx.module), std::move(file)});
+  }
+}
+
+void CodeGenerator::emit_llvmIR_files()
+{
+  for (auto it = results.begin(), last = results.end(); it != last; ++it) {
+    const auto& file = std::get<std::filesystem::path>(*it);
+
+    std::error_code      ostream_ec;
+    llvm::raw_fd_ostream os{file.stem().string() + ".ll",
+                            ostream_ec,
+                            llvm::sys::fs::OpenFlags::OF_None};
+
+    if (ostream_ec) {
+      throw std::runtime_error{format_error_message(
+        argv_front,
+        format("%s: %s", file.string(), ostream_ec.message()))};
+    }
+
+    std::get<std::unique_ptr<llvm::Module>>(*it)->print(os, nullptr);
+  }
+}
+
+void CodeGenerator::emit_assembly_files()
+{
+  emit_files(llvm::CGFT_AssemblyFile);
+}
+
+void CodeGenerator::emit_object_files()
+{
+  emit_files(llvm::CGFT_ObjectFile);
+}
+
+[[nodiscard]] int CodeGenerator::do_JIT()
+{
+  assert(!jit_compiled);
+
+  jit_compiled = true;
+
+  auto jit_expected = jit::JitCompiler::create();
+  if (auto err = jit_expected.takeError()) {
+    throw std::runtime_error{
+      format_error_message(argv_front, llvm::toString(std::move(err)), true)};
   }
 
-  fp_manager.doInitialization();
+  auto jit = std::move(*jit_expected);
 
+  auto [front_module, file] = std::move(results.front());
+
+  // Link all modules.
+  for (auto it = results.begin() + 1, last = results.end(); it != last; ++it) {
+    auto [module, file] = std::move(*it);
+
+    if (llvm::Linker::linkModules(*front_module,
+                                  std::move(module),
+                                  llvm::Linker::LinkOnlyNeeded)) {
+      throw std::runtime_error{
+        format_error_message(argv_front,
+                             format("Could not link %s", file.string()))};
+    }
+  }
+
+  if (auto err
+      = jit->add_module({std::move(front_module), std::move(context)})) {
+    throw std::runtime_error{
+      format_error_message(file.string(), llvm::toString(std::move(err)))};
+  }
+
+  auto symbol_expected = jit->lookup("main");
+  if (auto err = symbol_expected.takeError()) {
+    throw std::runtime_error{
+      format_error_message(argv_front, "Symbol main could not be found")};
+  }
+
+  auto       symbol = *symbol_expected;
+  auto const main_addr
+    = reinterpret_cast<int (*)(/* TODO: command line arguments */)>(
+      symbol.getAddress());
+
+  // Run main.
+  return main_addr();
+}
+
+void CodeGenerator::codegen(const ast::Program&                ast,
+                            CodegenContext&                    ctx,
+                            llvm::legacy::FunctionPassManager& fp_manager)
+{
+  for (const auto& node : ast)
+    boost::apply_visitor(TopLevelVisitor{ctx, fp_manager}, node);
+}
+
+void CodeGenerator::emit_files(const llvm::CodeGenFileType cgft)
+{
+  static const std::unordered_map<llvm::CodeGenFileType, std::string>
+    extension_map = {
+      {llvm::CodeGenFileType::CGFT_AssemblyFile, "s"},
+      {  llvm::CodeGenFileType::CGFT_ObjectFile, "o"}
+  };
+
+  for (auto it = results.begin(), last = results.end(); it != last; ++it) {
+    const auto& file = std::get<std::filesystem::path>(*it);
+
+    std::error_code      ostream_ec;
+    llvm::raw_fd_ostream ostream{file.stem().string() + "."
+                                   + extension_map.at(cgft),
+                                 ostream_ec,
+                                 llvm::sys::fs::OpenFlags::OF_None};
+
+    if (ostream_ec) {
+      throw std::runtime_error{format_error_message(
+        argv_front,
+        format("%s: %s\n", file.string(), ostream_ec.message()))};
+    }
+
+    llvm::legacy::PassManager p_manager;
+
+    if (target_machine->addPassesToEmitFile(p_manager,
+                                            ostream,
+                                            nullptr,
+                                            cgft)) {
+      throw std::runtime_error{
+        format_error_message(argv_front, "failed to emit a file", true)};
+    }
+
+    p_manager.run(*std::get<std::unique_ptr<llvm::Module>>(*it));
+    ostream.flush();
+  }
+}
+
+void CodeGenerator::init_target_triple_and_machine()
+{
   // Set target triple and data layout to module.
-  const auto target_triple = llvm::sys::getDefaultTargetTriple();
+  target_triple = llvm::sys::getDefaultTargetTriple();
 
   std::string target_triple_error;
   auto const  target
@@ -1354,7 +1488,7 @@ CodeGenerator::CodeGenerator(const std::string_view       program_name,
 
   if (!target) {
     throw std::runtime_error{
-      format_error_message(program_name,
+      format_error_message(argv_front,
                            format("failed to lookup target %s: %s",
                                   target_triple,
                                   target_triple_error),
@@ -1370,103 +1504,6 @@ CodeGenerator::CodeGenerator(const std::string_view       program_name,
                                   target_options,
                                   llvm::Optional<llvm::Reloc::Model>(
                                     relocation_model)); // Set relocation model.
-
-  common.module->setTargetTriple(target_triple);
-  common.module->setDataLayout(target_machine->createDataLayout());
-
-  codegen();
-}
-
-void CodeGenerator::emit_llvmIR_file(
-  const std::filesystem::path& path) const
-{
-  std::error_code      ostream_ec;
-  llvm::raw_fd_ostream os{path.string(),
-                          ostream_ec,
-                          llvm::sys::fs::OpenFlags::OF_None};
-
-  if (ostream_ec) {
-    throw std::runtime_error{format_error_message(
-      program_name,
-      format("%s: %s", path.string(), ostream_ec.message()))};
-  }
-
-  common.module->print(os, nullptr);
-}
-
-void CodeGenerator::emit_assembly_file(const std::filesystem::path& path)
-{
-  emit_file(path, llvm::CGFT_AssemblyFile);
-}
-
-void CodeGenerator::emit_object_file(const std::filesystem::path& path)
-{
-  emit_file(path, llvm::CGFT_ObjectFile);
-}
-
-// Returns the return value from the main function.
-[[nodiscard]] int CodeGenerator::do_JIT()
-{
-  auto jit_expected = jit::JitCompiler::create();
-  if (auto err = jit_expected.takeError()) {
-    throw std::runtime_error{
-      format_error_message(common.file.string(),
-                           llvm::toString(std::move(err)),
-                           true)};
-  }
-
-  auto jit = std::move(*jit_expected);
-  if (auto err = jit->add_module(
-        {std::move(common.module), std::move(common.context)})) {
-    throw std::runtime_error{
-      format_error_message(common.file.string(),
-                           llvm::toString(std::move(err)))};
-  }
-
-  auto symbol_expected = jit->lookup("main");
-  if (auto err = symbol_expected.takeError()) {
-    throw std::runtime_error{
-      format_error_message(common.file.string(),
-                           "Symbol main could not be found")};
-  }
-
-  auto       symbol = *symbol_expected;
-  auto const main_addr
-    = reinterpret_cast<int (*)(/* TODO: command line arguments */)>(
-      symbol.getAddress());
-
-  // Run main.
-  return main_addr();
-}
-
-void CodeGenerator::codegen()
-{
-  for (const auto& node : ast)
-    boost::apply_visitor(TopLevelVisitor{common, fp_manager}, node);
-}
-
-void CodeGenerator::emit_file(const std::filesystem::path& path,
-                              const llvm::CodeGenFileType  cgft)
-{
-  std::error_code      ostream_ec;
-  llvm::raw_fd_ostream os{path.string(),
-                          ostream_ec,
-                          llvm::sys::fs::OpenFlags::OF_None};
-  if (ostream_ec) {
-    throw std::runtime_error{format_error_message(
-      program_name,
-      format("%s: %s\n", path.string(), ostream_ec.message()))};
-  }
-
-  llvm::legacy::PassManager pmanager;
-
-  if (target_machine->addPassesToEmitFile(pmanager, os, nullptr, cgft)) {
-    throw std::runtime_error{
-      format_error_message(program_name, "failed to emit a file", true)};
-  }
-
-  pmanager.run(*common.module);
-  os.flush();
 }
 
 } // namespace maple::codegen
