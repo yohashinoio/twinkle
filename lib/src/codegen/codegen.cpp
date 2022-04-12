@@ -445,10 +445,22 @@ struct ExprVisitor : public boost::static_visitor<Value> {
                         "failed to generate left-hand side")};
     }
 
-    return {ctx.builder.CreateIntCast(lhs.getValue(),
-                                      node.as->getType(ctx.builder),
-                                      node.as->isSigned()),
-            node.as->isSigned()};
+    // TODO: Support for non-integers and non-pointers.
+    if (node.as->getType(ctx.builder)->isIntegerTy()) {
+      return {ctx.builder.CreateIntCast(lhs.getValue(),
+                                        node.as->getType(ctx.builder),
+                                        node.as->isSigned()),
+              node.as->isSigned()};
+    }
+    else if (node.as->isPointer()) {
+      // FIXME: I would like to prohibit this in the regular cast because it is
+      // a dangerous cast.
+      return {ctx.builder.CreatePointerCast(lhs.getValue(),
+                                            node.as->getType(ctx.builder)),
+              node.as->isSigned()};
+    }
+
+    unreachable();
   }
 
   [[nodiscard]] Value operator()(const ast::AddressOf& node) const
@@ -615,7 +627,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
             != init_value.getValue()->getType()) {
           throw std::runtime_error{ctx.formatError(
             ctx.positions.position_of(node),
-            "Initializer type and variable type are different")};
+            "initializer type and variable type are different")};
         }
 
         ctx.builder.CreateStore(init_value.getValue(), alloca);
