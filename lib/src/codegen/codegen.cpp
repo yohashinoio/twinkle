@@ -459,6 +459,11 @@ struct ExprVisitor : public boost::static_visitor<Value> {
                                             node.as->getType(ctx.builder)),
               node.as->isSigned()};
     }
+    else {
+      throw std::runtime_error{
+        ctx.formatError(ctx.positions.position_of(node),
+                        "cannot be converted to the specified type")};
+    }
 
     unreachable();
   }
