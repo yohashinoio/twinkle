@@ -12,8 +12,14 @@
 - LLVM backend.
 
 ## Installing
-### Install dependencies
-LLVM, Boost, CMake, Make (ninja), GCC (clang) must be installed.<br/>
+### Dependency List
+- LLVM (Developed in 14.0.0)
+- Boost (Developed in 1.71.0)
+- CMake
+- Make (Of course, ninja will work)
+- C++ compiler (C++20. Developed with GCC 8.4.0 and clang 14.0.0)
+
+### Install dependencies (Ubuntu)
 Here is how to install them in ubuntu.
 ```bash
 $ sudo apt update -y
