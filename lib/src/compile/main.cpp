@@ -11,7 +11,6 @@
 #include <codegen/codegen.hpp>
 #include <jit/jit.hpp>
 #include <parse/parse.hpp>
-#include <parse/parse_typedef.hpp>
 #include <utils/util.hpp>
 #include <utils/format.hpp>
 
@@ -43,23 +42,22 @@ static void emit_file(maple::codegen::CodeGenerator&        generator,
     const auto target = maple::string_to_lower(vmap["emit"].as<std::string>());
 
     if (target == "llvm") {
-      generator.emit_llvmIR_files();
+      generator.emitLlvmIRFiles();
       return;
     }
     else if (target == "asm") {
-      generator.emit_assembly_files();
+      generator.emitAssemblyFiles();
       return;
     }
   }
 
-  generator.emit_object_files();
+  generator.emitObjectFiles();
 }
 
 namespace maple::compile
 {
 
-CompileResult
-main(const int argc, const char* const* const argv, const bool eout)
+CompileResult main(const int argc, const char* const* const argv)
 try {
   const auto desc = create_options_description();
 
@@ -84,14 +82,14 @@ try {
 
   auto file_paths = get_input_files(*argv, vmap);
 
-  std::vector<parse::ParseResult> asts;
+  std::vector<parse::Parser::Result> asts;
 
   for (const auto& file_path : file_paths) {
     auto input = load_file_to_string(*argv, file_path);
 
-    parse::Parser parser{std::move(input), file_path, eout};
+    parse::Parser parser{std::move(input), std::move(file_path)};
 
-    asts.push_back({parser.move_ast(), parser.move_positions(), file_path});
+    asts.push_back(parser.getResult());
   }
 
   codegen::CodeGenerator generator{*argv,
@@ -100,7 +98,7 @@ try {
                                    relocation_model};
 
   if (vmap.contains("JIT")) {
-    return {true, generator.do_JIT()};
+    return {true, generator.doJIT()};
   }
   else {
     emit_file(generator, vmap);
@@ -110,19 +108,15 @@ try {
   unreachable();
 }
 catch (const program_options::error& err) {
-  if (eout) {
-    // Error about command line options.
-    std::cerr << format_error_message(*argv, err.what(), true)
-              << (is_back_newline(err.what()) ? "" : "\n") << std::flush;
-  }
+  // Error about command line options.
+  std::cerr << format_error_message(*argv, err.what(), true)
+            << (is_back_newline(err.what()) ? "" : "\n") << std::flush;
 
   return {false, std::nullopt};
 }
 catch (const std::runtime_error& err) {
-  if (eout) {
-    std::cerr << err.what() << (is_back_newline(err.what()) ? "" : "\n")
-              << std::flush;
-  }
+  std::cerr << err.what() << (is_back_newline(err.what()) ? "" : "\n")
+            << std::flush;
 
   return {false, std::nullopt};
 }

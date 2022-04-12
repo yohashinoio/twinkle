@@ -23,9 +23,6 @@ namespace maple::parse
 // Error handling
 //===----------------------------------------------------------------------===//
 
-// It's only false when testing.
-static bool parsing_error_output = true;
-
 struct ErrorHandle {
   template <typename Iterator, typename Context>
   x3::error_handler_result on_error([[maybe_unused]] Iterator&       first,
@@ -35,12 +32,10 @@ struct ErrorHandle {
   {
     ++total_errors;
 
-    if (parsing_error_output) {
-      auto&& error_handler = x3::get<x3::error_handler_tag>(context).get();
-      error_handler(x.where(),
-                    format_error_message_without_filename(
-                      "expected: " + boost::core::demangle(x.which().c_str())));
-    }
+    auto&& error_handler = x3::get<x3::error_handler_tag>(context).get();
+    error_handler(x.where(),
+                  format_error_message_without_filename(
+                    "expected: " + boost::core::demangle(x.which().c_str())));
 
     return x3::error_handler_result::fail;
   }
@@ -54,7 +49,7 @@ std::size_t ErrorHandle::total_errors = 0;
 // Annotations
 //===----------------------------------------------------------------------===//
 
-// tag used to get the position cache from the context
+// Tag used to get the position cache from the context
 struct PositionCacheTag;
 
 struct AnnotatePosition {
@@ -647,31 +642,23 @@ struct ProgramTag
 
 } // namespace syntax
 
-Parser::Parser(std::string&&                input,
-               const std::filesystem::path& file_path,
-               const bool                   error_output)
+Parser::Parser(std::string&& input, std::filesystem::path&& file)
   : input{std::move(input)}
   , first{this->input.cbegin()}
   , last{this->input.cend()}
   , positions{first, last}
-  , file_path{file_path}
+  , file{std::move(file)}
 {
-  parsing_error_output = error_output;
-
   parse();
 }
 
-Parser::Parser(const std::string&           input,
-               const std::filesystem::path& file_path,
-               const bool                   error_output)
+Parser::Parser(const std::string& input, std::filesystem::path&& file)
   : input{input}
   , first{input.cbegin()}
   , last{input.cend()}
   , positions{first, last}
-  , file_path{file_path}
+  , file{std::move(file)}
 {
-  parsing_error_output = error_output;
-
   parse();
 }
 
@@ -680,7 +667,7 @@ void Parser::parse()
   x3::error_handler<InputIterator> error_handler{first,
                                                  last,
                                                  std::cerr,
-                                                 file_path.string()};
+                                                 file.string()};
 
   const auto parser = x3::with<x3::error_handler_tag>(std::ref(
     error_handler))[x3::with<PositionCacheTag>(positions)[syntax::program]];

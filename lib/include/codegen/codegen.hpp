@@ -19,56 +19,58 @@
 #include <utils/util.hpp>
 #include <utils/typedef.hpp>
 #include <jit/jit.hpp>
-#include <parse/parse_typedef.hpp>
-#include <codegen/codegen_typedef.hpp>
+#include <parse/parse.hpp>
 
 namespace maple::codegen
 {
 
-struct CodegenContext {
-  CodegenContext(llvm::LLVMContext&           context,
-                 const std::filesystem::path& file,
-                 const PositionCache&         positions);
-
-  [[nodiscard]] llvm::Value* int1_to_bool(llvm::Value* value);
-
-  [[nodiscard]] std::string
-  format_error(const boost::iterator_range<InputIterator> pos,
-               const std::string_view                     message,
-               const bool                                 with_code = true);
-
-  llvm::LLVMContext&            context;
-  std::unique_ptr<llvm::Module> module;
-  llvm::IRBuilder<>             builder;
-
-  std::filesystem::path file;
-
-  const PositionCache& positions;
-};
-
 struct CodeGenerator {
-  CodeGenerator(const std::string_view            program_name,
-                std::vector<parse::ParseResult>&& ast,
-                const bool                        opt,
-                const llvm::Reloc::Model          relocation_model);
+  struct Context {
+    Context(llvm::LLVMContext&           context,
+            const std::filesystem::path& file,
+            const PositionCache&         positions);
 
-  void emit_llvmIR_files();
+    [[nodiscard]] llvm::Value* int1ToBool(llvm::Value* value);
 
-  void emit_object_files();
+    [[nodiscard]] std::string
+    formatError(const boost::iterator_range<InputIterator> pos,
+                const std::string_view                     message,
+                const bool                                 with_code = true);
 
-  void emit_assembly_files();
+    llvm::LLVMContext&            context;
+    std::unique_ptr<llvm::Module> module;
+    llvm::IRBuilder<>             builder;
+
+    std::filesystem::path file;
+
+    const PositionCache& positions;
+  };
+
+  CodeGenerator(const std::string_view               program_name,
+                std::vector<parse::Parser::Result>&& ast,
+                const bool                           opt,
+                const llvm::Reloc::Model             relocation_model);
+
+  void emitLlvmIRFiles();
+
+  void emitObjectFiles();
+
+  void emitAssemblyFiles();
 
   // Returns the return value from the main function.
-  [[nodiscard]] int do_JIT();
+  [[nodiscard]] int doJIT();
 
 private:
+  using Result
+    = std::tuple<std::unique_ptr<llvm::Module>, std::filesystem::path>;
+
   void codegen(const ast::Program&                ast,
-               CodegenContext&                    ctx,
+               Context&                           ctx,
                llvm::legacy::FunctionPassManager& fp_manager);
 
-  void emit_files(const llvm::CodeGenFileType cgft);
+  void emitFiles(const llvm::CodeGenFileType cgft);
 
-  void init_target_triple_and_machine();
+  void initTargetTripleAndMachine();
 
   const std::string_view argv_front;
 
@@ -81,13 +83,10 @@ private:
 
   llvm::Reloc::Model relocation_model;
 
-  std::vector<CodegenResult> results;
+  std::vector<Result> results;
 
-  std::vector<parse::ParseResult> asts;
+  std::vector<parse::Parser::Result> asts;
 };
-
-// Returns the return value from the main function.
-[[nodiscard]] int do_JIT(std::vector<std::shared_ptr<llvm::Module>>&& modules);
 
 } // namespace maple::codegen
 

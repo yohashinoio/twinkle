@@ -23,14 +23,39 @@ namespace maple::codegen
 // Utilities
 //===----------------------------------------------------------------------===//
 
-struct VariableInfo {
-  llvm::AllocaInst* alloca;
+struct Variable {
+  Variable(llvm::AllocaInst* pointer,
+           const bool        is_mutable,
+           const bool        is_signed) noexcept
+    : pointer{pointer}
+    , is_mutable{is_mutable}
+    , is_signed{is_signed}
+  {
+  }
+
+  llvm::AllocaInst* getAllocaInst() const noexcept
+  {
+    return pointer;
+  }
+
+  bool isMutable() const noexcept
+  {
+    return is_mutable;
+  }
+
+  bool isSigned() const noexcept
+  {
+    return is_signed;
+  }
+
+private:
+  llvm::AllocaInst* pointer;
   bool              is_mutable;
   bool              is_signed;
 };
 
 struct SymbolTable {
-  [[nodiscard]] std::optional<VariableInfo>
+  [[nodiscard]] std::optional<Variable>
   operator[](const std::string& name) const noexcept
   try {
     return named_values.at(name);
@@ -40,7 +65,7 @@ struct SymbolTable {
   }
 
   // Regist stands for register.
-  void regist(const std::string& name, VariableInfo info)
+  void regist(const std::string& name, Variable info)
   {
     named_values.insert({name, info});
   }
@@ -52,7 +77,7 @@ struct SymbolTable {
   }
 
   // For debug.
-  void print_table() const
+  void printTable() const
   {
     for (const auto& r : named_values)
       std::cout << r.first << ' ';
@@ -60,7 +85,7 @@ struct SymbolTable {
   }
 
 private:
-  std::unordered_map<std::string, VariableInfo> named_values;
+  std::unordered_map<std::string, Variable> named_values;
 };
 
 // Class that wraps llvm::Value.
@@ -123,7 +148,7 @@ create_entry_block_alloca(llvm::Function*    func,
 //===----------------------------------------------------------------------===//
 
 struct ExprVisitor : public boost::static_visitor<Value> {
-  ExprVisitor(CodegenContext& ctx, SymbolTable& scope)
+  ExprVisitor(CodeGenerator::Context& ctx, SymbolTable& scope)
     : ctx{ctx}
     , scope{scope}
   {
@@ -162,7 +187,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   [[nodiscard]] Value operator()(const bool node) const
   {
     return {
-      ctx.int1_to_bool(llvm::ConstantInt::get(ctx.builder.getInt1Ty(), node)),
+      ctx.int1ToBool(llvm::ConstantInt::get(ctx.builder.getInt1Ty(), node)),
       false};
   }
 
@@ -183,8 +208,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     if (!rhs.getValue()) {
       throw std::runtime_error{
-        ctx.format_error(ctx.positions.position_of(node),
-                         "failed to generate right-hand side")};
+        ctx.formatError(ctx.positions.position_of(node),
+                        "failed to generate right-hand side")};
     }
 
     if (node.op == "+")
@@ -197,8 +222,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     }
 
     throw std::runtime_error{
-      ctx.format_error(ctx.positions.position_of(node),
-                       format("unknown operator '%s' detected", node.op))};
+      ctx.formatError(ctx.positions.position_of(node),
+                      format("unknown operator '%s' detected", node.op))};
   }
 
   [[nodiscard]] Value operator()(const ast::BinOp& node) const
@@ -208,16 +233,16 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     if (!lhs) {
       throw std::runtime_error{
-        ctx.format_error(ctx.positions.position_of(node),
-                         "failed to generate left-hand side",
-                         false)};
+        ctx.formatError(ctx.positions.position_of(node),
+                        "failed to generate left-hand side",
+                        false)};
     }
 
     if (!rhs) {
       throw std::runtime_error{
-        ctx.format_error(ctx.positions.position_of(node),
-                         "failed to generate right-hand side",
-                         false)};
+        ctx.formatError(ctx.positions.position_of(node),
+                        "failed to generate right-hand side",
+                        false)};
     }
 
     // Implicit conversions.
@@ -243,7 +268,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     }
 
     if (lhs.getValue()->getType() != rhs.getValue()->getType()) {
-      throw std::runtime_error{ctx.format_error(
+      throw std::runtime_error{ctx.formatError(
         ctx.positions.position_of(node),
         "both operands to a binary operator are not of the same type",
         false)};
@@ -298,22 +323,22 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     // Equal.
     if (node.op == "==") {
       return Value{
-        ctx.int1_to_bool(ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
-                                                lhs.getValue(),
-                                                rhs.getValue()))};
+        ctx.int1ToBool(ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
+                                              lhs.getValue(),
+                                              rhs.getValue()))};
     }
 
     // Not equal.
     if (node.op == "!=") {
       return Value{
-        ctx.int1_to_bool(ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_NE,
-                                                lhs.getValue(),
-                                                rhs.getValue()))};
+        ctx.int1ToBool(ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_NE,
+                                              lhs.getValue(),
+                                              rhs.getValue()))};
     }
 
     // Less than.
     if (node.op == "<") {
-      return Value{ctx.int1_to_bool(ctx.builder.CreateICmp(
+      return Value{ctx.int1ToBool(ctx.builder.CreateICmp(
         result_is_signed ? llvm::ICmpInst::ICMP_SLT : llvm::ICmpInst::ICMP_ULT,
         lhs.getValue(),
         rhs.getValue()))};
@@ -321,7 +346,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     // Greater than.
     if (node.op == ">") {
-      return Value{ctx.int1_to_bool(ctx.builder.CreateICmp(
+      return Value{ctx.int1ToBool(ctx.builder.CreateICmp(
         result_is_signed ? llvm::ICmpInst::ICMP_SGT : llvm::ICmpInst::ICMP_UGT,
         lhs.getValue(),
         rhs.getValue()))};
@@ -329,7 +354,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     // Less or equal.
     if (node.op == "<=") {
-      return Value{ctx.int1_to_bool(ctx.builder.CreateICmp(
+      return Value{ctx.int1ToBool(ctx.builder.CreateICmp(
         result_is_signed ? llvm::ICmpInst::ICMP_SLE : llvm::ICmpInst::ICMP_ULE,
         lhs.getValue(),
         rhs.getValue()))};
@@ -337,7 +362,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     // Greater or equal.
     if (node.op == ">=") {
-      return Value{ctx.int1_to_bool(ctx.builder.CreateICmp(
+      return Value{ctx.int1ToBool(ctx.builder.CreateICmp(
         result_is_signed ? llvm::ICmpInst::ICMP_SGE : llvm::ICmpInst::ICMP_UGE,
         lhs.getValue(),
         rhs.getValue()))};
@@ -345,24 +370,25 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     // Unsupported binary operators detected.
     throw std::runtime_error{
-      ctx.format_error(ctx.positions.position_of(node),
-                       format("unknown operator '%s' detected", node.op),
-                       false)};
+      ctx.formatError(ctx.positions.position_of(node),
+                      format("unknown operator '%s' detected", node.op),
+                      false)};
   }
 
   [[nodiscard]] Value operator()(const ast::VariableRef& node) const
   {
-    auto var_info = scope[node.name];
+    auto variable = scope[node.name];
 
-    if (!var_info) {
-      throw std::runtime_error{ctx.format_error(
-        ctx.positions.position_of(node),
-        format("unknown variable '%s' referenced", node.name))};
+    if (!variable) {
+      throw std::runtime_error{
+        ctx.formatError(ctx.positions.position_of(node),
+                        format("unknown variable '%s' referenced", node.name))};
     }
 
-    return {ctx.builder.CreateLoad(var_info->alloca->getAllocatedType(),
-                                   var_info->alloca),
-            var_info->is_signed};
+    return {
+      ctx.builder.CreateLoad(variable->getAllocaInst()->getAllocatedType(),
+                             variable->getAllocaInst()),
+      variable->isSigned()};
   }
 
   [[nodiscard]] Value operator()(const ast::FunctionCall& node) const
@@ -370,7 +396,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     auto const callee_func = ctx.module->getFunction(node.callee);
 
     if (!callee_func) {
-      throw std::runtime_error{ctx.format_error(
+      throw std::runtime_error{ctx.formatError(
         ctx.positions.position_of(node),
         format("unknown function '%s' referenced", node.callee))};
     }
@@ -378,8 +404,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     if (!callee_func->isVarArg()
         && callee_func->arg_size() != node.args.size()) {
       throw std::runtime_error{
-        ctx.format_error(ctx.positions.position_of(node),
-                         format("incorrect arguments passed"))};
+        ctx.formatError(ctx.positions.position_of(node),
+                        format("incorrect arguments passed"))};
     }
 
     std::vector<llvm::Value*> args_value;
@@ -388,7 +414,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
         boost::apply_visitor(*this, node.args[i]).getValue());
 
       if (!args_value.back()) {
-        throw std::runtime_error{ctx.format_error(
+        throw std::runtime_error{ctx.formatError(
           ctx.positions.position_of(node),
           format("argument set failed in call to the function '%s'",
                  node.callee))};
@@ -399,10 +425,10 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     for (std::size_t idx = 0; auto&& arg : callee_func->args()) {
       if (args_value[idx++]->getType() != arg.getType()) {
         throw std::runtime_error{
-          ctx.format_error(ctx.positions.position_of(node),
-                           format("incompatible type for argument %d of '%s'",
-                                  idx + 1,
-                                  node.callee))};
+          ctx.formatError(ctx.positions.position_of(node),
+                          format("incompatible type for argument %d of '%s'",
+                                 idx + 1,
+                                 node.callee))};
       }
     }
 
@@ -415,8 +441,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     if (!lhs) {
       throw std::runtime_error{
-        ctx.format_error(ctx.positions.position_of(node),
-                         "failed to generate left-hand side")};
+        ctx.formatError(ctx.positions.position_of(node),
+                        "failed to generate left-hand side")};
     }
 
     return {ctx.builder.CreateIntCast(lhs.getValue(),
@@ -431,8 +457,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     if (!lhs) {
       throw std::runtime_error{
-        ctx.format_error(ctx.positions.position_of(node),
-                         "failed to generate right-hand side")};
+        ctx.formatError(ctx.positions.position_of(node),
+                        "failed to generate right-hand side")};
     }
 
     return Value{llvm::getPointerOperand(lhs.getValue())};
@@ -444,16 +470,16 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     if (!lhs) {
       throw std::runtime_error{
-        ctx.format_error(ctx.positions.position_of(node),
-                         "failed to generate right-hand side")};
+        ctx.formatError(ctx.positions.position_of(node),
+                        "failed to generate right-hand side")};
     }
 
     auto const lhs_type = lhs.getValue()->getType();
 
     if (!lhs_type->isPointerTy()) {
       throw std::runtime_error{
-        ctx.format_error(ctx.positions.position_of(node),
-                         "unary '*' requires pointer operand")};
+        ctx.formatError(ctx.positions.position_of(node),
+                        "unary '*' requires pointer operand")};
     }
 
     return {
@@ -462,7 +488,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   }
 
 private:
-  CodegenContext& ctx;
+  CodeGenerator::Context& ctx;
 
   SymbolTable& scope;
 };
@@ -471,21 +497,21 @@ private:
 // Statement visitor
 //===----------------------------------------------------------------------===//
 
-void codegen_statement(const ast::Stmt&   statement,
-                       const SymbolTable& scope,
-                       CodegenContext&    ctx,
-                       llvm::AllocaInst*  retvar,
-                       llvm::BasicBlock*  end_bb,
-                       llvm::BasicBlock*  break_bb,
-                       llvm::BasicBlock*  continue_bb);
+void codegen_statement(const ast::Stmt&        statement,
+                       const SymbolTable&      scope,
+                       CodeGenerator::Context& ctx,
+                       llvm::AllocaInst*       retvar,
+                       llvm::BasicBlock*       end_bb,
+                       llvm::BasicBlock*       break_bb,
+                       llvm::BasicBlock*       continue_bb);
 
 struct StmtVisitor : public boost::static_visitor<void> {
-  StmtVisitor(CodegenContext&   ctx,
-              SymbolTable&      scope,
-              llvm::AllocaInst* retvar,
-              llvm::BasicBlock* end_bb,
-              llvm::BasicBlock* break_bb,
-              llvm::BasicBlock* continue_bb)
+  StmtVisitor(CodeGenerator::Context& ctx,
+              SymbolTable&            scope,
+              llvm::AllocaInst*       retvar,
+              llvm::BasicBlock*       end_bb,
+              llvm::BasicBlock*       break_bb,
+              llvm::BasicBlock*       continue_bb)
     : ctx{ctx}
     , scope{scope}
     , retvar{retvar}
@@ -523,14 +549,14 @@ struct StmtVisitor : public boost::static_visitor<void> {
       if (ctx.builder.GetInsertBlock()->getParent()->getReturnType()
           != retval.getValue()->getType()) {
         throw std::runtime_error{
-          ctx.format_error(ctx.positions.position_of(node),
-                           "incompatible type for result type")};
+          ctx.formatError(ctx.positions.position_of(node),
+                          "incompatible type for result type")};
       }
 
       if (!retval) {
         throw std::runtime_error{
-          ctx.format_error(ctx.positions.position_of(node),
-                           "failed to generate return value")};
+          ctx.formatError(ctx.positions.position_of(node),
+                          "failed to generate return value")};
       }
 
       ctx.builder.CreateStore(retval.getValue(), retvar);
@@ -543,14 +569,14 @@ struct StmtVisitor : public boost::static_visitor<void> {
   {
     if (!node.type.has_value() && !node.initializer.has_value()) {
       throw std::runtime_error{
-        ctx.format_error(ctx.positions.position_of(node),
-                         "type inference requires an initializer")};
+        ctx.formatError(ctx.positions.position_of(node),
+                        "type inference requires an initializer")};
     }
 
     if (scope.exists(node.name)) {
       throw std::runtime_error{
-        ctx.format_error(ctx.positions.position_of(node),
-                         format("redefinition of '%s'", node.name))};
+        ctx.formatError(ctx.positions.position_of(node),
+                        format("redefinition of '%s'", node.name))};
     }
 
     auto const func = ctx.builder.GetInsertBlock()->getParent();
@@ -580,14 +606,14 @@ struct StmtVisitor : public boost::static_visitor<void> {
           = boost::apply_visitor(ExprVisitor{ctx, scope}, *node.initializer);
 
         if (!init_value) {
-          throw std::runtime_error{ctx.format_error(
+          throw std::runtime_error{ctx.formatError(
             ctx.positions.position_of(node),
             format("failed to generate initializer for '%s'", node.name))};
         }
 
         if (type_info.getType(ctx.builder)
             != init_value.getValue()->getType()) {
-          throw std::runtime_error{ctx.format_error(
+          throw std::runtime_error{ctx.formatError(
             ctx.positions.position_of(node),
             "Initializer type and variable type are different")};
         }
@@ -603,7 +629,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
         = boost::apply_visitor(ExprVisitor{ctx, scope}, *node.initializer);
 
       if (!init_value) {
-        throw std::runtime_error{ctx.format_error(
+        throw std::runtime_error{ctx.formatError(
           ctx.positions.position_of(node),
           format("failed to generate initializer for '%s'", node.name))};
       }
@@ -631,13 +657,13 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
       if (!rhs) {
         throw std::runtime_error{
-          ctx.format_error(ctx.positions.position_of(node),
-                           "failed to generate right-hand side")};
+          ctx.formatError(ctx.positions.position_of(node),
+                          "failed to generate right-hand side")};
       }
 
       if (lhs.getValue()->getType()->getPointerElementType()
           != rhs.getValue()->getType()) {
-        throw std::runtime_error{ctx.format_error(
+        throw std::runtime_error{ctx.formatError(
           ctx.positions.position_of(node),
           "both operands to a binary operator are not of the same type")};
       }
@@ -728,8 +754,8 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
     if (!cond_value) {
       throw std::runtime_error{
-        ctx.format_error(ctx.positions.position_of(node),
-                         "invalid condition in if statement")};
+        ctx.formatError(ctx.positions.position_of(node),
+                        "invalid condition in if statement")};
     }
 
     // Convert condition to a bool by comparing non-equal to 0.
@@ -827,8 +853,8 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
     if (!cond_value) {
       throw std::runtime_error{
-        ctx.format_error(ctx.positions.position_of(node),
-                         "failed to generate condition expression")};
+        ctx.formatError(ctx.positions.position_of(node),
+                        "failed to generate condition expression")};
     }
 
     auto const cond = ctx.builder.CreateICmp(
@@ -880,8 +906,8 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
       if (!cond_value) {
         throw std::runtime_error{
-          ctx.format_error(ctx.positions.position_of(node),
-                           "failed to generate condition expression")};
+          ctx.formatError(ctx.positions.position_of(node),
+                          "failed to generate condition expression")};
       }
 
       auto const cond = ctx.builder.CreateICmp(
@@ -957,23 +983,23 @@ private:
     if (node.type() == typeid(ast::VariableRef)) {
       auto& var_ref_node = boost::get<ast::VariableRef>(node);
 
-      auto var_info = scope[var_ref_node.name];
+      auto variable = scope[var_ref_node.name];
 
-      if (!var_info) {
+      if (!variable) {
         // Unknown variable name.
-        throw std::runtime_error{ctx.format_error(
+        throw std::runtime_error{ctx.formatError(
           position,
           format("unknown variable name '%s'", var_ref_node.name))};
       }
 
-      if (!var_info->is_mutable) {
+      if (!variable->isMutable()) {
         // Assignment of read-only variable.
-        throw std::runtime_error{ctx.format_error(
+        throw std::runtime_error{ctx.formatError(
           position,
           format("assignment of read-only variable '%s'", var_ref_node.name))};
       }
 
-      value = {var_info->alloca, var_info->is_signed};
+      value = {variable->getAllocaInst(), variable->isSigned()};
     }
     else if (node.type() == typeid(ast::Indirection)) {
       auto const indirection_node = boost::get<ast::Indirection>(node);
@@ -986,18 +1012,18 @@ private:
 
     if (!value) {
       throw std::runtime_error{
-        ctx.format_error(position, "failed to generate left-hand side")};
+        ctx.formatError(position, "failed to generate left-hand side")};
     }
 
     if (!value.getValue()->getType()->isPointerTy()) {
       throw std::runtime_error{
-        ctx.format_error(position, "left-hand side requires assignable")};
+        ctx.formatError(position, "left-hand side requires assignable")};
     }
 
     return value;
   }
 
-  CodegenContext& ctx;
+  CodeGenerator::Context& ctx;
 
   SymbolTable& scope;
 
@@ -1011,13 +1037,13 @@ private:
     continue_bb; // Basic block transitioned by continue statement.
 };
 
-void codegen_statement(const ast::Stmt&   statement,
-                       const SymbolTable& scope,
-                       CodegenContext&    ctx,
-                       llvm::AllocaInst*  retvar,
-                       llvm::BasicBlock*  end_bb,
-                       llvm::BasicBlock*  break_bb,
-                       llvm::BasicBlock*  continue_bb)
+void codegen_statement(const ast::Stmt&        statement,
+                       const SymbolTable&      scope,
+                       CodeGenerator::Context& ctx,
+                       llvm::AllocaInst*       retvar,
+                       llvm::BasicBlock*       end_bb,
+                       llvm::BasicBlock*       break_bb,
+                       llvm::BasicBlock*       continue_bb)
 {
   SymbolTable new_scope = scope;
 
@@ -1050,7 +1076,7 @@ void codegen_statement(const ast::Stmt&   statement,
 //===----------------------------------------------------------------------===//
 
 struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
-  TopLevelVisitor(CodegenContext&                    ctx,
+  TopLevelVisitor(CodeGenerator::Context&            ctx,
                   llvm::legacy::FunctionPassManager& fp_manager)
     : ctx{ctx}
     , fp_manager{fp_manager}
@@ -1070,8 +1096,8 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
     if (ps.size() && ps.at(0).is_vararg) {
       throw std::runtime_error{
-        ctx.format_error(ctx.positions.position_of(node),
-                         "requires a named argument before '...'")};
+        ctx.formatError(ctx.positions.position_of(node),
+                        "requires a named argument before '...'")};
     }
 
     bool is_vararg = false;
@@ -1079,8 +1105,8 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
       if (r.is_vararg) {
         if (is_vararg) {
           throw std::runtime_error{
-            ctx.format_error(ctx.positions.position_of(node),
-                             "cannot have multiple variable arguments")};
+            ctx.formatError(ctx.positions.position_of(node),
+                            "cannot have multiple variable arguments")};
         }
         else
           is_vararg = true;
@@ -1132,7 +1158,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
       func = this->operator()(node.decl);
 
     if (!func) {
-      throw std::runtime_error{ctx.format_error(
+      throw std::runtime_error{ctx.formatError(
         ctx.positions.position_of(node),
         format("failed to create function %s", node.decl.name))};
     }
@@ -1156,12 +1182,14 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
       // Add arguments to variable symbol table.
       if (!param_node.qualifier) {
-        // consttant variable.
-        argument_values.regist(arg.getName().str(), {alloca, false});
+        // constant variable.
+        argument_values.regist(arg.getName().str(),
+                               {alloca, false, param_node.type->isSigned()});
       }
       else if (*param_node.qualifier == VariableQual::mutable_) {
         // mutable variable.
-        argument_values.regist(arg.getName().str(), {alloca, true});
+        argument_values.regist(arg.getName().str(),
+                               {alloca, true, param_node.type->isSigned()});
       }
     }
 
@@ -1227,7 +1255,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
       func->eraseFromParent();
 
       throw std::runtime_error{
-        ctx.format_error(ctx.positions.position_of(node), os.str())};
+        ctx.formatError(ctx.positions.position_of(node), os.str())};
     }
 
     fp_manager.run(*func);
@@ -1236,7 +1264,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
   }
 
 private:
-  CodegenContext& ctx;
+  CodeGenerator::Context& ctx;
 
   llvm::legacy::FunctionPassManager& fp_manager;
 };
@@ -1245,9 +1273,9 @@ private:
 // Code generator
 //===----------------------------------------------------------------------===//
 
-CodegenContext::CodegenContext(llvm::LLVMContext&           context,
-                               const std::filesystem::path& file,
-                               const PositionCache&         positions)
+CodeGenerator::Context::Context(llvm::LLVMContext&           context,
+                                const std::filesystem::path& file,
+                                const PositionCache&         positions)
   : context{context}
   , module{std::make_unique<llvm::Module>(file.filename().string(), context)}
   , builder{context}
@@ -1256,7 +1284,8 @@ CodegenContext::CodegenContext(llvm::LLVMContext&           context,
 {
 }
 
-[[nodiscard]] llvm::Value* CodegenContext::int1_to_bool(llvm::Value* value)
+[[nodiscard]] llvm::Value*
+CodeGenerator::Context::int1ToBool(llvm::Value* value)
 {
   const BuiltinType as{BuiltinTypeKind::bool_};
 
@@ -1267,10 +1296,10 @@ CodegenContext::CodegenContext(llvm::LLVMContext&           context,
                                            builder.GetInsertBlock());
 }
 
-[[nodiscard]] std::string
-CodegenContext::format_error(const boost::iterator_range<InputIterator> pos,
-                             const std::string_view                     message,
-                             const bool with_code)
+[[nodiscard]] std::string CodeGenerator::Context::formatError(
+  const boost::iterator_range<InputIterator> pos,
+  const std::string_view                     message,
+  const bool                                 with_code)
 {
   // Calculate line numbers.
   std::size_t rows = 0;
@@ -1306,10 +1335,10 @@ CodegenContext::format_error(const boost::iterator_range<InputIterator> pos,
   return ss.str();
 }
 
-CodeGenerator::CodeGenerator(const std::string_view            argv_front,
-                             std::vector<parse::ParseResult>&& asts,
-                             const bool                        opt,
-                             const llvm::Reloc::Model          relocation_model)
+CodeGenerator::CodeGenerator(const std::string_view               argv_front,
+                             std::vector<parse::Parser::Result>&& asts,
+                             const bool                           opt,
+                             const llvm::Reloc::Model relocation_model)
   : argv_front{argv_front}
   , context{std::make_unique<llvm::LLVMContext>()}
   , relocation_model{relocation_model}
@@ -1323,10 +1352,10 @@ CodeGenerator::CodeGenerator(const std::string_view            argv_front,
   llvm::InitializeAllAsmParsers();
   llvm::InitializeAllAsmPrinters();
 
-  init_target_triple_and_machine();
+  initTargetTripleAndMachine();
 
   for (auto [ast, positions, file] : asts) {
-    CodegenContext ctx{*context, file, positions};
+    Context ctx{*context, file, positions};
 
     llvm::legacy::FunctionPassManager fp_manager{ctx.module.get()};
 
@@ -1351,7 +1380,7 @@ CodeGenerator::CodeGenerator(const std::string_view            argv_front,
   }
 }
 
-void CodeGenerator::emit_llvmIR_files()
+void CodeGenerator::emitLlvmIRFiles()
 {
   for (auto it = results.begin(), last = results.end(); it != last; ++it) {
     const auto& file = std::get<std::filesystem::path>(*it);
@@ -1371,17 +1400,17 @@ void CodeGenerator::emit_llvmIR_files()
   }
 }
 
-void CodeGenerator::emit_assembly_files()
+void CodeGenerator::emitAssemblyFiles()
 {
-  emit_files(llvm::CGFT_AssemblyFile);
+  emitFiles(llvm::CGFT_AssemblyFile);
 }
 
-void CodeGenerator::emit_object_files()
+void CodeGenerator::emitObjectFiles()
 {
-  emit_files(llvm::CGFT_ObjectFile);
+  emitFiles(llvm::CGFT_ObjectFile);
 }
 
-[[nodiscard]] int CodeGenerator::do_JIT()
+[[nodiscard]] int CodeGenerator::doJIT()
 {
   assert(!jit_compiled);
 
@@ -1409,7 +1438,7 @@ void CodeGenerator::emit_object_files()
   }
 
   if (auto err
-      = jit->add_module({std::move(front_module), std::move(context)})) {
+      = jit->addModule({std::move(front_module), std::move(context)})) {
     throw std::runtime_error{
       format_error_message(file.string(), llvm::toString(std::move(err)))};
   }
@@ -1430,14 +1459,14 @@ void CodeGenerator::emit_object_files()
 }
 
 void CodeGenerator::codegen(const ast::Program&                ast,
-                            CodegenContext&                    ctx,
+                            Context&                           ctx,
                             llvm::legacy::FunctionPassManager& fp_manager)
 {
   for (const auto& node : ast)
     boost::apply_visitor(TopLevelVisitor{ctx, fp_manager}, node);
 }
 
-void CodeGenerator::emit_files(const llvm::CodeGenFileType cgft)
+void CodeGenerator::emitFiles(const llvm::CodeGenFileType cgft)
 {
   static const std::unordered_map<llvm::CodeGenFileType, std::string>
     extension_map = {
@@ -1475,7 +1504,7 @@ void CodeGenerator::emit_files(const llvm::CodeGenFileType cgft)
   }
 }
 
-void CodeGenerator::init_target_triple_and_machine()
+void CodeGenerator::initTargetTripleAndMachine()
 {
   // Set target triple and data layout to module.
   target_triple = llvm::sys::getDefaultTargetTriple();

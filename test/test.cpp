@@ -111,8 +111,13 @@ int main(const int argc, const char* const* const argv)
   for (const auto& r : fs::recursive_directory_iterator(argv[1])) {
     const char* c_argv[] = {"test", "--JIT", r.path().c_str()};
 
+    // A little hack to avoid outputting compile errors.
+    std::cerr.setstate(std::ios::failbit);
+
     const auto result
-      = maple::compile::main(std::extent_v<decltype(c_argv)>, c_argv, false);
+      = maple::compile::main(std::extent_v<decltype(c_argv)>, c_argv);
+
+    std::cerr.clear();
 
     try {
       const auto expect = expects.at(r.path().stem().string());

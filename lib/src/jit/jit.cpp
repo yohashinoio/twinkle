@@ -63,18 +63,18 @@ JitCompiler::~JitCompiler()
                                        std::move(*data_layout));
 }
 
-[[nodiscard]] const llvm::DataLayout& JitCompiler::get_data_layout() const
+[[nodiscard]] const llvm::DataLayout& JitCompiler::getDataLayout() const
 {
   return data_layout;
 }
 
-[[nodiscard]] llvm::orc::JITDylib& JitCompiler::get_main_jit_dylib()
+[[nodiscard]] llvm::orc::JITDylib& JitCompiler::getMainJitDylib()
 {
   return main_jd;
 }
 
 [[nodiscard]] llvm::Error
-JitCompiler::add_module(llvm::orc::ThreadSafeModule  thread_safe_module,
+JitCompiler::addModule(llvm::orc::ThreadSafeModule  thread_safe_module,
                         llvm::orc::ResourceTrackerSP resource_tracker)
 {
   if (!resource_tracker)

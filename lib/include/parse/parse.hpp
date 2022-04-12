@@ -22,26 +22,26 @@ namespace maple::parse
 {
 
 struct Parser {
-  Parser(std::string&&                input,
-         const std::filesystem::path& file_path,
-         const bool                   error_output);
+  using Result = std::tuple<ast::Program, PositionCache, std::filesystem::path>;
 
-  Parser(const std::string&           input,
-         const std::filesystem::path& file_path,
-         const bool                   error_output);
-
-  [[nodiscard]] ast::Program move_ast() const noexcept
+  [[nodiscard]] Result getResult()
   {
-    return std::move(ast);
+    assert(!member_moved);
+
+    member_moved = true;
+
+    // RVO
+    return {std::move(ast), std::move(positions), std::move(file)};
   }
 
-  [[nodiscard]] PositionCache move_positions() const noexcept
-  {
-    return std::move(positions);
-  }
+  Parser(std::string&& input, std::filesystem::path&& file);
+
+  Parser(const std::string& input, std::filesystem::path&& file);
 
 private:
   void parse();
+
+  bool member_moved = false;
 
   std::string         input;
   InputIterator       first;
@@ -50,7 +50,7 @@ private:
   ast::Program  ast;
   PositionCache positions;
 
-  const std::filesystem::path& file_path;
+  std::filesystem::path file;
 };
 
 } // namespace maple::parse

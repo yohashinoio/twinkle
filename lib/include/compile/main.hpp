@@ -26,9 +26,7 @@ struct CompileResult {
 };
 
 // Compilation.
-CompileResult main(const int                argc,
-                   const char* const* const argv,
-                   const bool               eout = true /* Error output */);
+CompileResult main(const int argc, const char* const* const argv);
 
 } // namespace maple::compile
 
