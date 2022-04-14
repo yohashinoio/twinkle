@@ -23,7 +23,7 @@ int main(const int argc, const char* const* const argv)
     return *c_result.jit_result; // Return value from main.
   }
 
-  // TODO: link (ld)
+  // TODO: link
 
   return EXIT_SUCCESS;
 }

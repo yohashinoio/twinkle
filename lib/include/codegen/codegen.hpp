@@ -26,9 +26,9 @@ namespace maple::codegen
 
 struct CodeGenerator {
   struct Context {
-    Context(llvm::LLVMContext&           context,
-            const std::filesystem::path& file,
-            const PositionCache&         positions);
+    Context(llvm::LLVMContext&      context,
+            PositionCache&&         positions,
+            std::filesystem::path&& file) noexcept;
 
     [[nodiscard]] llvm::Value* int1ToBool(llvm::Value* value);
 
@@ -43,7 +43,7 @@ struct CodeGenerator {
 
     std::filesystem::path file;
 
-    const PositionCache& positions;
+    PositionCache positions;
   };
 
   CodeGenerator(const std::string_view               program_name,
@@ -85,7 +85,7 @@ private:
 
   std::vector<Result> results;
 
-  std::vector<parse::Parser::Result> asts;
+  std::vector<parse::Parser::Result> parse_results;
 };
 
 } // namespace maple::codegen

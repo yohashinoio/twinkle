@@ -49,7 +49,7 @@ std::size_t ErrorHandle::total_errors = 0;
 // Annotations
 //===----------------------------------------------------------------------===//
 
-// Tag used to get the position cache from the context
+// Tag used to get the position cache from the context.
 struct PositionCacheTag;
 
 struct AnnotatePosition {
@@ -231,8 +231,7 @@ const auto char_literal
 const auto type = x3::rule<struct TypeTag, std::shared_ptr<Type>>{"type"}
 = (-x3::char_('*')
    >> builtin_type_symbols /* TODO: support double (recursion) ptr */
-   >> -(x3::lit('[')
-        >> uint_64bit >> x3::lit(']')))[([](auto&& ctx) {
+   >> -(x3::lit('[') >> uint_64bit >> x3::lit(']')))[([](auto&& ctx) {
     if (fusion::at_c<0>(x3::_attr(ctx))) {
       // Pointer types.
       x3::_val(ctx) = std::make_shared<PointerType>(

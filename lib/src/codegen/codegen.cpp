@@ -1289,14 +1289,14 @@ private:
 // Code generator
 //===----------------------------------------------------------------------===//
 
-CodeGenerator::Context::Context(llvm::LLVMContext&           context,
-                                const std::filesystem::path& file,
-                                const PositionCache&         positions)
+CodeGenerator::Context::Context(llvm::LLVMContext&      context,
+                                PositionCache&&         positions,
+                                std::filesystem::path&& file) noexcept
   : context{context}
   , module{std::make_unique<llvm::Module>(file.filename().string(), context)}
   , builder{context}
-  , file{file}
-  , positions{positions}
+  , file{std::move(file)}
+  , positions{std::move(positions)}
 {
 }
 
@@ -1352,15 +1352,15 @@ CodeGenerator::Context::int1ToBool(llvm::Value* value)
 }
 
 CodeGenerator::CodeGenerator(const std::string_view               argv_front,
-                             std::vector<parse::Parser::Result>&& asts,
+                             std::vector<parse::Parser::Result>&& parse_results,
                              const bool                           opt,
                              const llvm::Reloc::Model relocation_model)
   : argv_front{argv_front}
   , context{std::make_unique<llvm::LLVMContext>()}
   , relocation_model{relocation_model}
-  , asts{asts}
+  , parse_results{parse_results}
 {
-  results.reserve(asts.size());
+  results.reserve(parse_results.size());
 
   llvm::InitializeAllTargetInfos();
   llvm::InitializeAllTargets();
@@ -1370,8 +1370,9 @@ CodeGenerator::CodeGenerator(const std::string_view               argv_front,
 
   initTargetTripleAndMachine();
 
-  for (auto [ast, positions, file] : asts) {
-    Context ctx{*context, file, positions};
+  for (auto it = parse_results.begin(), last = parse_results.end(); it != last;
+       ++it) {
+    Context ctx{*context, std::move(it->positions), std::move(it->file)};
 
     llvm::legacy::FunctionPassManager fp_manager{ctx.module.get()};
 
@@ -1390,9 +1391,9 @@ CodeGenerator::CodeGenerator(const std::string_view               argv_front,
     ctx.module->setTargetTriple(target_triple);
     ctx.module->setDataLayout(target_machine->createDataLayout());
 
-    codegen(ast, ctx, fp_manager);
+    codegen(it->ast, ctx, fp_manager);
 
-    results.push_back({std::move(ctx.module), std::move(file)});
+    results.push_back({std::move(ctx.module), std::move(ctx.file)});
   }
 }
 

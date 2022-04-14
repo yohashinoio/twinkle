@@ -22,7 +22,13 @@ namespace maple::parse
 {
 
 struct Parser {
-  using Result = std::tuple<ast::Program, PositionCache, std::filesystem::path>;
+  struct Result {
+    // Because positions has a reference to input, it also holds input.
+    std::string           input;
+    ast::Program          ast;
+    PositionCache         positions;
+    std::filesystem::path file;
+  };
 
   [[nodiscard]] Result getResult()
   {
@@ -30,8 +36,12 @@ struct Parser {
 
     member_moved = true;
 
-    // RVO
-    return {std::move(ast), std::move(positions), std::move(file)};
+    // The reason for also returning input is that positions has a reference to
+    // input.
+    return {std::move(input),
+            std::move(ast),
+            std::move(positions),
+            std::move(file)};
   }
 
   Parser(std::string&& input, std::filesystem::path&& file);
