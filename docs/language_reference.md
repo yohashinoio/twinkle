@@ -14,6 +14,7 @@
   - [The boolean type](#the-boolean-type)
   - [The void type](#the-void-type)
   - [Pointer types](#pointer-types)
+  - [Array types](#array-types)
 - [Variables](#variables)
   - [Definition](#definition)
   - [Mutable variables](#mutable-variables)
@@ -167,6 +168,15 @@ let p: *i8 = "hello, world";
 
 let n: i32 = 4810;
 let p_n: *i32 = &n;
+```
+
+### Array types
+| Syntax     |
+| ---------- |
+| type[size] |
+
+```rust
+let ar: i32[4810];
 ```
 
 ## Variables

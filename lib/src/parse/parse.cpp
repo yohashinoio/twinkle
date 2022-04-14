@@ -182,22 +182,6 @@ const auto variable_ident
   = x3::rule<struct VariableIdentTag, ast::VariableRef>{"variable identifier"}
 = identifier;
 
-const auto type = x3::rule<struct TypeTag, std::shared_ptr<Type>>{"type"}
-= (-x3::char_('*')
-   >> builtin_type_symbols /* TODO: support double (recursion) ptr */)[(
-  [](auto&& ctx) {
-    if (fusion::at_c<0>(x3::_attr(ctx))) {
-      // Detected pointer type.
-      x3::_val(ctx) = std::make_shared<PointerType>(
-        BuiltinType{fusion::at_c<1>(x3::_attr(ctx))});
-    }
-    else {
-      // Detected non-pointer type.
-      x3::_val(ctx)
-        = std::make_shared<BuiltinType>(fusion::at_c<1>(x3::_attr(ctx)));
-    }
-  })];
-
 const auto variable_qualifier
   = x3::rule<struct VariableQualifierTag, VariableQual>{"variable qualifier"}
 = variable_qualifier_symbols;
@@ -243,6 +227,31 @@ const auto char_literal
 = x3::lit('\'')
   >> (x3::char_ - (x3::lit('\'') | x3::eol | x3::lit('\\')) | escape_char)
   > x3::lit('\'');
+
+const auto type = x3::rule<struct TypeTag, std::shared_ptr<Type>>{"type"}
+= (-x3::char_('*')
+   >> builtin_type_symbols /* TODO: support double (recursion) ptr */
+   >> -(x3::lit('[')
+        >> uint_64bit >> x3::lit(']')))[([](auto&& ctx) {
+    if (fusion::at_c<0>(x3::_attr(ctx))) {
+      // Pointer types.
+      x3::_val(ctx) = std::make_shared<PointerType>(
+        std::make_unique<BuiltinType>(fusion::at_c<1>(x3::_attr(ctx))));
+      return;
+    }
+
+    if (fusion::at_c<2>(x3::_attr(ctx))) {
+      // Array types.
+      x3::_val(ctx) = std::make_shared<ArrayType>(
+        std::make_unique<BuiltinType>(fusion::at_c<1>(x3::_attr(ctx))),
+        *fusion::at_c<2>(x3::_attr(ctx)) /* Array size */);
+      return;
+    }
+
+    // Fundamental (built-in) types.
+    x3::_val(ctx)
+      = std::make_shared<BuiltinType>(fusion::at_c<1>(x3::_attr(ctx)));
+  })];
 
 //===----------------------------------------------------------------------===//
 // Operator rules

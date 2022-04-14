@@ -16,6 +16,7 @@
 
 #include <pch/pch.hpp>
 #include <utils/util.hpp>
+#include <boost/lexical_cast.hpp>
 
 namespace maple
 {
@@ -36,7 +37,7 @@ enum class BuiltinTypeKind : unsigned char {
 struct Type {
   virtual ~Type() = default;
 
-  [[nodiscard]] virtual BuiltinTypeKind getKind() const noexcept = 0;
+  [[nodiscard]] virtual bool isVoid() const noexcept = 0;
 
   [[nodiscard]] virtual bool isPointer() const noexcept = 0;
 
@@ -47,8 +48,10 @@ struct Type {
     return !isSigned();
   }
 
+  [[nodiscard]] virtual std::string getName() const = 0;
+
   [[nodiscard]] virtual llvm::Type*
-  getType(llvm::IRBuilder<>& builder) const = 0;
+  getType(llvm::LLVMContext& context) const = 0;
 };
 
 struct BuiltinType : public Type {
@@ -57,9 +60,9 @@ struct BuiltinType : public Type {
   {
   }
 
-  [[nodiscard]] BuiltinTypeKind getKind() const noexcept override
+  [[nodiscard]] bool isVoid() const noexcept override
   {
-    return kind;
+    return kind == BuiltinTypeKind::void_;
   }
 
   [[nodiscard]] bool isPointer() const noexcept override
@@ -67,59 +70,25 @@ struct BuiltinType : public Type {
     return false;
   }
 
-  [[nodiscard]] llvm::Type* getType(llvm::IRBuilder<>& builder) const override
-  {
-    switch (kind) {
-    case BuiltinTypeKind::void_:
-      return builder.getVoidTy();
-    case BuiltinTypeKind::i8:
-    case BuiltinTypeKind::u8:
-      return builder.getInt8Ty();
-    case BuiltinTypeKind::i16:
-    case BuiltinTypeKind::u16:
-      return builder.getInt16Ty();
-    case BuiltinTypeKind::i32:
-    case BuiltinTypeKind::u32:
-      return builder.getInt32Ty();
-    case BuiltinTypeKind::i64:
-    case BuiltinTypeKind::u64:
-      return builder.getInt64Ty();
-    case BuiltinTypeKind::bool_:
-      // We will represent boolean by u8 instead of i1.
-      return builder.getInt8Ty();
-    }
+  [[nodiscard]] llvm::Type* getType(llvm::LLVMContext& context) const override;
 
-    unreachable();
-  }
+  [[nodiscard]] bool isSigned() const noexcept override;
 
-  [[nodiscard]] bool isSigned() const noexcept override
-  {
-    switch (kind) {
-    case BuiltinTypeKind::i8:
-    case BuiltinTypeKind::i16:
-    case BuiltinTypeKind::i32:
-    case BuiltinTypeKind::i64:
-      return true;
-    default:
-      return false;
-    }
-
-    unreachable();
-  }
+  [[nodiscard]] std::string getName() const override;
 
 private:
   BuiltinTypeKind kind;
 };
 
 struct PointerType : public Type {
-  explicit PointerType(const BuiltinType& pointee_type) noexcept
-    : pointee_type{pointee_type}
+  explicit PointerType(std::unique_ptr<Type> pointee_type) noexcept
+    : pointee_type{std::move(pointee_type)}
   {
   }
 
-  [[nodiscard]] BuiltinTypeKind getKind() const noexcept override
+  [[nodiscard]] bool isVoid() const noexcept override
   {
-    return pointee_type.getKind();
+    return false;
   }
 
   [[nodiscard]] bool isPointer() const noexcept override
@@ -127,9 +96,9 @@ struct PointerType : public Type {
     return true;
   }
 
-  [[nodiscard]] llvm::Type* getType(llvm::IRBuilder<>& builder) const override
+  [[nodiscard]] llvm::Type* getType(llvm::LLVMContext& context) const override
   {
-    return llvm::PointerType::getUnqual(pointee_type.getType(builder));
+    return llvm::PointerType::getUnqual(pointee_type->getType(context));
   }
 
   [[nodiscard]] bool isSigned() const noexcept override
@@ -137,8 +106,59 @@ struct PointerType : public Type {
     return false;
   }
 
+  [[nodiscard]] std::string getName() const override
+  {
+    // TODO: recursive pointer (like **p)
+    return pointee_type->getName().append(0, '*');
+  }
+
 private:
-  BuiltinType pointee_type;
+  std::unique_ptr<Type> pointee_type;
+};
+
+struct ArrayType : public Type {
+  explicit ArrayType(std::unique_ptr<Type> element_type,
+                     const std::uint64_t   array_size) noexcept
+    : element_type{std::move(element_type)}
+    , array_size{array_size}
+  {
+  }
+
+  [[nodiscard]] llvm::Type*
+  getElementKind(llvm::LLVMContext& context) const noexcept
+  {
+    return element_type->getType(context);
+  }
+
+  [[nodiscard]] bool isVoid() const noexcept override
+  {
+    return false;
+  }
+
+  [[nodiscard]] bool isPointer() const noexcept override
+  {
+    return false;
+  }
+
+  [[nodiscard]] llvm::Type* getType(llvm::LLVMContext& context) const override
+  {
+    return llvm::ArrayType::get(element_type->getType(context), array_size);
+  }
+
+  [[nodiscard]] bool isSigned() const noexcept override
+  {
+    return false;
+  }
+
+  [[nodiscard]] std::string getName() const override
+  {
+    return element_type->getName() + '['
+           + boost::lexical_cast<std::string>(array_size) + ']';
+  }
+
+private:
+  std::unique_ptr<Type> element_type;
+  std::uint64_t         array_size;
 };
 
 // Variable qualifier.

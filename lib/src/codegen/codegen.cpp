@@ -446,9 +446,9 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     }
 
     // TODO: Support for non-integers and non-pointers.
-    if (node.as->getType(ctx.builder)->isIntegerTy()) {
+    if (node.as->getType(ctx.context)->isIntegerTy()) {
       return {ctx.builder.CreateIntCast(lhs.getValue(),
-                                        node.as->getType(ctx.builder),
+                                        node.as->getType(ctx.context),
                                         node.as->isSigned()),
               node.as->isSigned()};
     }
@@ -456,13 +456,13 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       // FIXME: I would like to prohibit this in the regular cast because it is
       // a dangerous cast.
       return {ctx.builder.CreatePointerCast(lhs.getValue(),
-                                            node.as->getType(ctx.builder)),
+                                            node.as->getType(ctx.context)),
               node.as->isSigned()};
     }
     else {
-      throw std::runtime_error{
-        ctx.formatError(ctx.positions.position_of(node),
-                        "cannot be converted to the specified type")};
+      throw std::runtime_error{ctx.formatError(
+        ctx.positions.position_of(node),
+        format("cannot be converted to '%s' type", node.as->getName()))};
     }
 
     unreachable();
@@ -616,7 +616,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
       auto const alloca
         = create_entry_block_alloca(func,
                                     node.name,
-                                    type_info.getType(ctx.builder));
+                                    type_info.getType(ctx.context));
 
       if (node.initializer) {
         auto const init_value
@@ -628,7 +628,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
             format("failed to generate initializer for '%s'", node.name))};
         }
 
-        if (type_info.getType(ctx.builder)
+        if (type_info.getType(ctx.context)
             != init_value.getValue()->getType()) {
           throw std::runtime_error{ctx.formatError(
             ctx.positions.position_of(node),
@@ -780,7 +780,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
       llvm::ICmpInst::ICMP_NE,
       cond_value.getValue(),
       llvm::ConstantInt::get(
-        BuiltinType{BuiltinTypeKind::bool_}.getType(ctx.builder),
+        BuiltinType{BuiltinTypeKind::bool_}.getType(ctx.context),
         0));
 
     auto const func = ctx.builder.GetInsertBlock()->getParent();
@@ -878,7 +878,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
       llvm::ICmpInst::ICMP_NE,
       cond_value.getValue(),
       llvm::ConstantInt::get(
-        BuiltinType{BuiltinTypeKind::bool_}.getType(ctx.builder),
+        BuiltinType{BuiltinTypeKind::bool_}.getType(ctx.context),
         0));
 
     ctx.builder.CreateCondBr(cond, body_bb, loop_end_bb);
@@ -931,7 +931,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
         llvm::ICmpInst::ICMP_NE,
         cond_value.getValue(),
         llvm::ConstantInt::get(
-          BuiltinType{BuiltinTypeKind::bool_}.getType(ctx.builder),
+          BuiltinType{BuiltinTypeKind::bool_}.getType(ctx.context),
           0));
 
       ctx.builder.CreateCondBr(cond, body_bb, loop_end_bb);
@@ -1136,11 +1136,11 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
     for (std::size_t i = 0; i != named_params_length; ++i) {
       const auto& param_type = node.params[i].type;
-      param_types.at(i)      = param_type->getType(ctx.builder);
+      param_types.at(i)      = param_type->getType(ctx.context);
     }
 
     auto const func_type
-      = llvm::FunctionType::get(node.return_type->getType(ctx.builder),
+      = llvm::FunctionType::get(node.return_type->getType(ctx.context),
                                 param_types,
                                 is_vararg);
 
@@ -1192,7 +1192,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
       auto const alloca
         = create_entry_block_alloca(func,
                                     arg.getName().str(),
-                                    param_node.type->getType(ctx.builder));
+                                    param_node.type->getType(ctx.context));
 
       // Store the initial value into the alloca.
       ctx.builder.CreateStore(&arg, alloca);
@@ -1212,13 +1212,12 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
     // Used to combine returns into one.
     auto const end_bb = llvm::BasicBlock::Create(ctx.context);
-    auto const retvar
-      = node.decl.return_type->getKind() == BuiltinTypeKind::void_
-          ? nullptr
-          : create_entry_block_alloca(
-            func,
-            "",
-            node.decl.return_type->getType(ctx.builder));
+    auto const retvar = node.decl.return_type->isVoid()
+                          ? nullptr
+                          : create_entry_block_alloca(
+                            func,
+                            "",
+                            node.decl.return_type->getType(ctx.context));
 
     codegen_statement(node.body,
                       argument_values,
@@ -1230,7 +1229,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
     // If there is no return, returns undef.
     if (!ctx.builder.GetInsertBlock()->getTerminator()
-        && node.decl.return_type->getKind() != BuiltinTypeKind::void_) {
+        && !(node.decl.return_type->isVoid())) {
       // Return 0 specially for main.
       if (node.decl.name == "main") {
         ctx.builder.CreateStore(
@@ -1247,7 +1246,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
     // Inserts a terminator if the function returning void does not have
     // one.
-    if (node.decl.return_type->getKind() == BuiltinTypeKind::void_
+    if (node.decl.return_type->isVoid()
         && !ctx.builder.GetInsertBlock()->getTerminator()) {
       ctx.builder.CreateBr(end_bb);
     }
@@ -1307,7 +1306,7 @@ CodeGenerator::Context::int1ToBool(llvm::Value* value)
   const BuiltinType as{BuiltinTypeKind::bool_};
 
   return llvm::CastInst::CreateIntegerCast(value,
-                                           as.getType(builder),
+                                           as.getType(context),
                                            as.isSigned(),
                                            "",
                                            builder.GetInsertBlock());
