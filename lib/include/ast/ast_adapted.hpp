@@ -69,6 +69,11 @@ BOOST_FUSION_ADAPT_STRUCT(
   (maple::ast::Expr, lhs)
 )
 
+BOOST_FUSION_ADAPT_STRUCT(
+  maple::ast::InitList,
+  (std::vector<maple::ast::Expr>, inits)
+)
+
 //===----------------------------------------------------------------------===//
 // Statement abstract syntax tree adapt
 //===----------------------------------------------------------------------===//

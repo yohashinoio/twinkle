@@ -53,6 +53,7 @@ struct FunctionCall;
 struct Conversion;
 struct AddressOf;
 struct Indirection;
+struct InitList;
 
 using Expr = boost::variant<Nil,
                             std::uint32_t, // Unsigned integer literals (32bit)
@@ -68,7 +69,8 @@ using Expr = boost::variant<Nil,
                             boost::recursive_wrapper<FunctionCall>,
                             boost::recursive_wrapper<Conversion>,
                             boost::recursive_wrapper<AddressOf>,
-                            boost::recursive_wrapper<Indirection>>;
+                            boost::recursive_wrapper<Indirection>,
+                            boost::recursive_wrapper<InitList>>;
 
 struct UnaryOp : x3::position_tagged {
   std::string op;
@@ -108,6 +110,11 @@ struct AddressOf : x3::position_tagged {
 
 struct Indirection : x3::position_tagged {
   Expr lhs;
+};
+
+struct InitList : x3::position_tagged {
+  // initializers.
+  std::vector<Expr> inits;
 };
 
 //===----------------------------------------------------------------------===//

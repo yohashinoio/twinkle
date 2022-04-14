@@ -176,7 +176,8 @@ let p_n: *i32 = &n;
 | type[size] |
 
 ```rust
-let ar: i32[4810];
+let a1: i32[4810];
+let a2 = {4, 8, 1, 0};
 ```
 
 ## Variables

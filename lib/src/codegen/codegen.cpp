@@ -202,6 +202,12 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     return {llvm::ConstantInt::get(ctx.builder.getInt8Ty(), node.ch), false};
   }
 
+  [[nodiscard]] Value operator()(const ast::InitList& node) const
+  {
+    // TODO:
+    unreachable();
+  }
+
   [[nodiscard]] Value operator()(const ast::UnaryOp& node) const
   {
     auto const rhs = boost::apply_visitor(*this, node.rhs);
@@ -584,6 +590,8 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
   void operator()(const ast::VariableDef& node) const
   {
+    // HACK
+
     if (!node.type.has_value() && !node.initializer.has_value()) {
       throw std::runtime_error{
         ctx.formatError(ctx.positions.position_of(node),
@@ -613,12 +621,68 @@ struct StmtVisitor : public boost::static_visitor<void> {
     if (node.type) {
       const auto& type_info = **node.type;
 
-      auto const alloca
-        = create_entry_block_alloca(func,
-                                    node.name,
-                                    type_info.getType(ctx.context));
+      const auto type = type_info.getType(ctx.context);
+
+      auto const alloca = create_entry_block_alloca(func, node.name, type);
 
       if (node.initializer) {
+        if (type->isArrayTy()) {
+          if (node.initializer->type() != typeid(ast::InitList)) {
+            throw std::runtime_error{ctx.formatError(
+              ctx.positions.position_of(node),
+              "initializing an array requires an initializer list")};
+          }
+
+          const auto init_list
+            = gen_init_list(boost::get<ast::InitList>(*node.initializer));
+
+          if (type_info.getArraySize() != init_list.size()) {
+            throw std::runtime_error{ctx.formatError(
+              ctx.positions.position_of(node),
+              "invalid number of elements in initializer list")};
+          }
+
+          init_array(alloca, init_list);
+        }
+        else {
+          auto const init_value
+            = boost::apply_visitor(ExprVisitor{ctx, scope}, *node.initializer);
+
+          if (!init_value) {
+            throw std::runtime_error{ctx.formatError(
+              ctx.positions.position_of(node),
+              format("failed to generate initializer for '%s'", node.name))};
+          }
+
+          if (type != init_value.getValue()->getType()) {
+            throw std::runtime_error{ctx.formatError(
+              ctx.positions.position_of(node),
+              "initializer type and variable type are different")};
+          }
+
+          ctx.builder.CreateStore(init_value.getValue(), alloca);
+        }
+      }
+
+      regist(alloca, type_info.isSigned());
+    }
+    else {
+      // Type inference.
+      if (node.initializer->type() == typeid(ast::InitList)) {
+        // Guess to array.
+        const auto init_list
+          = gen_init_list(boost::get<ast::InitList>(*node.initializer));
+
+        auto const array_alloca = create_entry_block_alloca(
+          func,
+          node.name,
+          llvm::ArrayType::get(init_list.front()->getType(), init_list.size()));
+
+        init_array(array_alloca, init_list);
+
+        regist(array_alloca, false);
+      }
+      else {
         auto const init_value
           = boost::apply_visitor(ExprVisitor{ctx, scope}, *node.initializer);
 
@@ -628,37 +692,15 @@ struct StmtVisitor : public boost::static_visitor<void> {
             format("failed to generate initializer for '%s'", node.name))};
         }
 
-        if (type_info.getType(ctx.context)
-            != init_value.getValue()->getType()) {
-          throw std::runtime_error{ctx.formatError(
-            ctx.positions.position_of(node),
-            "initializer type and variable type are different")};
-        }
+        auto const alloca
+          = create_entry_block_alloca(func,
+                                      node.name,
+                                      init_value.getValue()->getType());
 
         ctx.builder.CreateStore(init_value.getValue(), alloca);
+
+        regist(alloca, init_value.isSigned());
       }
-
-      regist(alloca, type_info.isSigned());
-    }
-    else {
-      // Type inference.
-      auto const init_value
-        = boost::apply_visitor(ExprVisitor{ctx, scope}, *node.initializer);
-
-      if (!init_value) {
-        throw std::runtime_error{ctx.formatError(
-          ctx.positions.position_of(node),
-          format("failed to generate initializer for '%s'", node.name))};
-      }
-
-      auto const alloca
-        = create_entry_block_alloca(func,
-                                    node.name,
-                                    init_value.getValue()->getType());
-
-      ctx.builder.CreateStore(init_value.getValue(), alloca);
-
-      regist(alloca, init_value.isSigned());
     }
   }
 
@@ -1038,6 +1080,29 @@ private:
     }
 
     return value;
+  }
+
+  std::vector<llvm::Value*> gen_init_list(const ast::InitList& list) const
+  {
+    std::vector<llvm::Value*> result;
+
+    for (auto init : list.inits) {
+      result.push_back(
+        boost::apply_visitor(ExprVisitor{ctx, scope}, init).getValue());
+    }
+
+    return result;
+  }
+
+  void init_array(llvm::AllocaInst*                array_alloca,
+                  const std::vector<llvm::Value*>& init_list) const
+  {
+    for (unsigned int i = 0, last = init_list.size(); i != last; ++i) {
+      ctx.builder.CreateInsertValue(
+        ctx.builder.CreateLoad(array_alloca->getAllocatedType(), array_alloca),
+        init_list[i],
+        {i});
+    }
   }
 
   CodeGenerator::Context& ctx;

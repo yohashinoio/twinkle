@@ -231,7 +231,8 @@ const auto char_literal
 const auto type = x3::rule<struct TypeTag, std::shared_ptr<Type>>{"type"}
 = (-x3::char_('*')
    >> builtin_type_symbols /* TODO: support double (recursion) ptr */
-   >> -(x3::lit('[') >> uint_64bit >> x3::lit(']')))[([](auto&& ctx) {
+   >> -(x3::lit('[')
+        >> x3::uint_ /* TODO: inference */ >> x3::lit(']')))[([](auto&& ctx) {
     if (fusion::at_c<0>(x3::_attr(ctx))) {
       // Pointer types.
       x3::_val(ctx) = std::make_shared<PointerType>(
@@ -303,6 +304,7 @@ const x3::rule<struct ConversionTag, ast::Conversion> conversion{"conversion"};
 const x3::rule<struct AddressOfTag, ast::AddressOf>   address_of{"address-of"};
 const x3::rule<struct IndirectionTag, ast::Indirection> indirection{
   "indirection"};
+const x3::rule<struct InitListTag, ast::InitList> init_list{"initializer list"};
 
 const auto expr_def = equal;
 
@@ -335,9 +337,11 @@ const auto arg_list_def = -(expr % x3::lit(','));
 const auto function_call_def
   = identifier >> x3::lit("(") > arg_list > x3::lit(")");
 
+const auto init_list_def = x3::lit('{') > (expr % x3::lit(',')) > x3::lit('}');
+
 const auto primary_def = int_32bit | uint_32bit | int_64bit | uint_64bit
                          | boolean_literal | string_literal | char_literal
-                         | function_call | variable_ident
+                         | init_list | function_call | variable_ident
                          | (x3::lit('(') > expr > x3::lit(')'));
 
 BOOST_SPIRIT_DEFINE(expr,
@@ -351,7 +355,8 @@ BOOST_SPIRIT_DEFINE(expr,
                     function_call,
                     conversion,
                     address_of,
-                    indirection)
+                    indirection,
+                    init_list)
 
 //===----------------------------------------------------------------------===//
 // Statement rules
@@ -545,6 +550,10 @@ struct AddressOfTag
   , AnnotatePosition {};
 
 struct IndirectionTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct InitListTag
   : ErrorHandle
   , AnnotatePosition {};
 

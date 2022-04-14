@@ -48,6 +48,11 @@ struct Type {
     return !isSigned();
   }
 
+  [[nodiscard]] virtual unsigned int getArraySize() const noexcept
+  {
+    unreachable();
+  }
+
   [[nodiscard]] virtual std::string getName() const = 0;
 
   [[nodiscard]] virtual llvm::Type*
@@ -143,6 +148,11 @@ struct ArrayType : public Type {
   [[nodiscard]] llvm::Type* getType(llvm::LLVMContext& context) const override
   {
     return llvm::ArrayType::get(element_type->getType(context), array_size);
+  }
+
+  [[nodiscard]] unsigned int getArraySize() const noexcept override
+  {
+    return array_size;
   }
 
   [[nodiscard]] bool isSigned() const noexcept override
