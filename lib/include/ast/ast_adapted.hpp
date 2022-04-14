@@ -83,7 +83,7 @@ BOOST_FUSION_ADAPT_STRUCT(
   (std::optional<maple::VariableQual>, qualifier)
   (std::string, name)
   (std::optional<std::shared_ptr<maple::Type>>, type)
-  (std::optional<maple::ast::Expr>, initializer)
+  (std::optional<maple::ast::Expr>, init)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

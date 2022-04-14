@@ -129,7 +129,7 @@ struct VariableDef : x3::position_tagged {
   std::optional<VariableQual>          qualifier;
   std::string                          name;
   std::optional<std::shared_ptr<Type>> type;
-  std::optional<Expr>                  initializer;
+  std::optional<Expr>                  init;
 };
 
 struct Assignment : x3::position_tagged {
