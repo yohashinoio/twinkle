@@ -1,8 +1,8 @@
 <div align="center">
   <h1>The Maple Programming Language</h1>
 
-  [Getting Started](docs/getting_started.md) |
-  [Language Reference](docs/language_reference.md) |
+  [Getting Started](docs/GettingStarted.md) |
+  [Language Reference](docs/LanguageReference.md) |
   [Examples](examples)
 </div>
 
