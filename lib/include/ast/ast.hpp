@@ -113,7 +113,7 @@ struct Indirection : x3::position_tagged {
 };
 
 struct InitList : x3::position_tagged {
-  // initializers.
+  // Initializers.
   std::vector<Expr> inits;
 };
 
@@ -129,6 +129,7 @@ struct VariableDef : x3::position_tagged {
   std::optional<VariableQual>          qualifier;
   std::string                          name;
   std::optional<std::shared_ptr<Type>> type;
+  // Initializer.
   std::optional<Expr>                  init;
 };
 
