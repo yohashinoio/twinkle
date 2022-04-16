@@ -24,9 +24,9 @@ namespace maple::codegen
 // Code generator
 //===----------------------------------------------------------------------===//
 
-CodeGenerator::Context::Context(llvm::LLVMContext&      context,
-                                PositionCache&&         positions,
-                                std::filesystem::path&& file) noexcept
+CGContext::CGContext(llvm::LLVMContext&      context,
+                     PositionCache&&         positions,
+                     std::filesystem::path&& file) noexcept
   : context{context}
   , module{std::make_unique<llvm::Module>(file.filename().string(), context)}
   , builder{context}
@@ -35,8 +35,7 @@ CodeGenerator::Context::Context(llvm::LLVMContext&      context,
 {
 }
 
-[[nodiscard]] llvm::Value*
-CodeGenerator::Context::int1ToBool(llvm::Value* value)
+[[nodiscard]] llvm::Value* CGContext::int1ToBool(llvm::Value* value)
 {
   const BuiltinType as{BuiltinTypeKind::bool_};
 
@@ -47,10 +46,10 @@ CodeGenerator::Context::int1ToBool(llvm::Value* value)
                                            builder.GetInsertBlock());
 }
 
-[[nodiscard]] std::string CodeGenerator::Context::formatError(
-  const boost::iterator_range<InputIterator> pos,
-  const std::string_view                     message,
-  const bool                                 with_code)
+[[nodiscard]] std::string
+CGContext::formatError(const boost::iterator_range<InputIterator> pos,
+                       const std::string_view                     message,
+                       const bool                                 with_code)
 {
   // Calculate line numbers.
   std::size_t rows = 0;
@@ -107,7 +106,7 @@ CodeGenerator::CodeGenerator(const std::string_view               argv_front,
 
   for (auto it = parse_results.begin(), last = parse_results.end(); it != last;
        ++it) {
-    Context ctx{*context, std::move(it->positions), std::move(it->file)};
+    CGContext ctx{*context, std::move(it->positions), std::move(it->file)};
 
     llvm::legacy::FunctionPassManager fp_manager{ctx.module.get()};
 
@@ -211,11 +210,11 @@ void CodeGenerator::emitObjectFiles()
 }
 
 void CodeGenerator::codegen(const ast::Program&                ast,
-                            Context&                           ctx,
+                            CGContext&                         ctx,
                             llvm::legacy::FunctionPassManager& fp_manager)
 {
   for (const auto& node : ast)
-    boost::apply_visitor(TopLevelVisitor{ctx, fp_manager}, node);
+    genTopLevel(ctx, fp_manager, node);
 }
 
 void CodeGenerator::emitFiles(const llvm::CodeGenFileType cgft)

@@ -81,6 +81,61 @@ struct BinOp : x3::position_tagged {
   BinOp() noexcept
   {
   }
+
+  bool isAddition() const
+  {
+    return op == "+";
+  }
+
+  bool isSubtraction() const
+  {
+    return op == "-";
+  }
+
+  bool isMultiplication() const
+  {
+    return op == "*";
+  }
+
+  bool isDivision() const
+  {
+    return op == "/";
+  }
+
+  bool isModulo() const
+  {
+    return op == "%";
+  }
+
+  bool isEqual() const
+  {
+    return op == "==";
+  }
+
+  bool isNotEqual() const
+  {
+    return op == "!=";
+  }
+
+  bool isLessThan() const
+  {
+    return op == "<";
+  }
+
+  bool isGreaterThan() const
+  {
+    return op == ">";
+  }
+
+  bool isLessOrEqual() const
+  {
+    return op == "<=";
+  }
+
+  bool isGreaterOrEqual() const
+  {
+    return op == ">=";
+  }
 };
 
 struct UnaryOp : x3::position_tagged {

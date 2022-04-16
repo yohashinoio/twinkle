@@ -14,8 +14,28 @@
 namespace maple::codegen
 {
 
+//===----------------------------------------------------------------------===//
+// Top level statement visitor
+//===----------------------------------------------------------------------===//
+
+struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
+  TopLevelVisitor(CGContext&                         ctx,
+                  llvm::legacy::FunctionPassManager& fp_manager) noexcept;
+
+  llvm::Function* operator()(ast::Nil) const;
+
+  llvm::Function* operator()(const ast::FunctionDecl& node) const;
+
+  llvm::Function* operator()(const ast::FunctionDef& node) const;
+
+private:
+  CGContext& ctx;
+
+  llvm::legacy::FunctionPassManager& fp_manager;
+};
+
 TopLevelVisitor::TopLevelVisitor(
-  CodeGenerator::Context&            ctx,
+  CGContext&                         ctx,
   llvm::legacy::FunctionPassManager& fp_manager) noexcept
   : ctx{ctx}
   , fp_manager{fp_manager}
@@ -102,7 +122,7 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDef& node) const
                       format("failed to create function %s", node.decl.name))};
   }
 
-  SymbolTable argument_values;
+  SymbolTable argument_table;
 
   auto const entry_bb = llvm::BasicBlock::Create(ctx.context, "", func);
   ctx.builder.SetInsertPoint(entry_bb);
@@ -112,9 +132,9 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDef& node) const
 
     // Create an alloca for this variable.
     auto const alloca
-      = create_entry_block_alloca(func,
-                                  arg.getName().str(),
-                                  param_node.type->getType(ctx.context));
+      = createEntryAlloca(func,
+                          arg.getName().str(),
+                          param_node.type->getType(ctx.context));
 
     // Store the initial value into the alloca.
     ctx.builder.CreateStore(&arg, alloca);
@@ -122,32 +142,26 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDef& node) const
     // Add arguments to variable symbol table.
     if (!param_node.qualifier) {
       // constant variable.
-      argument_values.regist(arg.getName().str(),
-                             {alloca, false, param_node.type->isSigned()});
+      argument_table.regist(arg.getName().str(),
+                            {alloca, false, param_node.type->isSigned()});
     }
     else if (*param_node.qualifier == VariableQual::mutable_) {
       // mutable variable.
-      argument_values.regist(arg.getName().str(),
-                             {alloca, true, param_node.type->isSigned()});
+      argument_table.regist(arg.getName().str(),
+                            {alloca, true, param_node.type->isSigned()});
     }
   }
 
   // Used to combine returns into one.
   auto const end_bb = llvm::BasicBlock::Create(ctx.context);
-  auto const retvar = node.decl.return_type->isVoid()
-                        ? nullptr
-                        : create_entry_block_alloca(
-                          func,
-                          "",
-                          node.decl.return_type->getType(ctx.context));
+  auto const retvar
+    = node.decl.return_type->isVoid()
+        ? nullptr
+        : createEntryAlloca(func,
+                            "",
+                            node.decl.return_type->getType(ctx.context));
 
-  StmtVisitor::codegen_statement(node.body,
-                                 argument_values,
-                                 ctx,
-                                 retvar,
-                                 end_bb,
-                                 nullptr,
-                                 nullptr);
+  genStmt(ctx, argument_table, node.body, retvar, end_bb, nullptr, nullptr);
 
   // If there is no return, returns undef.
   if (!ctx.builder.GetInsertBlock()->getTerminator()
@@ -199,6 +213,13 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDef& node) const
   fp_manager.run(*func);
 
   return func;
+}
+
+llvm::Function* genTopLevel(CGContext&                         ctx,
+                            llvm::legacy::FunctionPassManager& fp_manager,
+                            const ast::TopLevel&               node)
+{
+  return boost::apply_visitor(TopLevelVisitor{ctx, fp_manager}, node);
 }
 
 } // namespace maple::codegen

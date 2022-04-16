@@ -17,8 +17,80 @@ namespace maple::codegen
 // Expression visitor
 //===----------------------------------------------------------------------===//
 
-ExprVisitor::ExprVisitor(CodeGenerator::Context& ctx,
-                         SymbolTable&            scope) noexcept
+struct ExprVisitor : public boost::static_visitor<Value> {
+  ExprVisitor(CGContext& ctx, SymbolTable& scope) noexcept;
+
+  [[nodiscard]] Value operator()(ast::Nil) const
+  {
+    unreachable();
+  }
+
+  // 32bit unsigned integer literals.
+  [[nodiscard]] Value operator()(const std::uint32_t node) const
+  {
+    return {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), node), false};
+  }
+
+  // 32bit signed integer literals.
+  [[nodiscard]] Value operator()(const std::int32_t node) const
+  {
+    return {llvm::ConstantInt::getSigned(ctx.builder.getInt32Ty(), node), true};
+  }
+
+  // 64bit unsigned integer literals.
+  [[nodiscard]] Value operator()(const std::uint64_t node) const
+  {
+    return {llvm::ConstantInt::get(ctx.builder.getInt64Ty(), node), false};
+  }
+
+  // 64bit signed integer literals.
+  [[nodiscard]] Value operator()(const std::int64_t node) const
+  {
+    return {llvm::ConstantInt::getSigned(ctx.builder.getInt64Ty(), node), true};
+  }
+
+  // Boolean literals.
+  [[nodiscard]] Value operator()(const bool node) const
+  {
+    return {
+      ctx.int1ToBool(llvm::ConstantInt::get(ctx.builder.getInt1Ty(), node)),
+      false};
+  }
+
+  [[nodiscard]] Value operator()(const ast::StringLiteral& node) const
+  {
+    return Value{ctx.builder.CreateGlobalStringPtr(node.str, ".str")};
+  }
+
+  [[nodiscard]] Value operator()(const ast::CharLiteral& node) const
+  {
+    // Char literal is u8.
+    return {llvm::ConstantInt::get(ctx.builder.getInt8Ty(), node.ch), false};
+  }
+
+  [[nodiscard]] Value operator()(const ast::Identifier& node) const;
+
+  [[nodiscard]] Value operator()(const ast::BinOp& node) const;
+
+  [[nodiscard]] Value operator()(const ast::UnaryOp& node) const;
+
+  [[nodiscard]] Value operator()(const ast::FunctionCall& node) const;
+
+  [[nodiscard]] Value operator()(const ast::Conversion& node) const;
+
+private:
+  [[nodiscard]] Value gen_address_of(const Value& rhs) const;
+
+  [[nodiscard]] Value
+  gen_indirection(const boost::iterator_range<maple::InputIterator> pos,
+                  const Value&                                      rhs) const;
+
+  CGContext& ctx;
+
+  SymbolTable& scope;
+};
+
+ExprVisitor::ExprVisitor(CGContext& ctx, SymbolTable& scope) noexcept
   : ctx{ctx}
   , scope{scope}
 {
@@ -41,26 +113,9 @@ ExprVisitor::ExprVisitor(CodeGenerator::Context& ctx,
           variable->isSigned()};
 }
 
-[[nodiscard]] Value ExprVisitor::operator()(const ast::BinOp& node) const
+// This function changes the value of the argument.
+static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
 {
-  auto lhs = boost::apply_visitor(*this, node.lhs);
-  auto rhs = boost::apply_visitor(*this, node.rhs);
-
-  if (!lhs) {
-    throw std::runtime_error{
-      ctx.formatError(ctx.positions.position_of(node),
-                      "failed to generate left-hand side",
-                      false)};
-  }
-
-  if (!rhs) {
-    throw std::runtime_error{
-      ctx.formatError(ctx.positions.position_of(node),
-                      "failed to generate right-hand side",
-                      false)};
-  }
-
-  // Implicit conversions.
   if (const auto lhs_bitwidth = lhs.getValue()->getType()->getIntegerBitWidth(),
       rhs_bitwidth            = rhs.getValue()->getType()->getIntegerBitWidth();
       lhs_bitwidth != rhs_bitwidth) {
@@ -80,6 +135,28 @@ ExprVisitor::ExprVisitor(CodeGenerator::Context& ctx,
              as_is_signed};
     }
   }
+}
+
+[[nodiscard]] Value ExprVisitor::operator()(const ast::BinOp& node) const
+{
+  auto lhs = boost::apply_visitor(*this, node.lhs);
+  auto rhs = boost::apply_visitor(*this, node.rhs);
+
+  if (!lhs) {
+    throw std::runtime_error{
+      ctx.formatError(ctx.positions.position_of(node),
+                      "failed to generate left-hand side",
+                      false)};
+  }
+
+  if (!rhs) {
+    throw std::runtime_error{
+      ctx.formatError(ctx.positions.position_of(node),
+                      "failed to generate right-hand side",
+                      false)};
+  }
+
+  IntegerImplicitConversion(ctx, lhs, rhs);
 
   if (lhs.getValue()->getType() != rhs.getValue()->getType()) {
     throw std::runtime_error{ctx.formatError(
@@ -88,98 +165,39 @@ ExprVisitor::ExprVisitor(CodeGenerator::Context& ctx,
       false)};
   }
 
-  // If either one of them is signed, the result is also signed.
-  const auto result_is_signed = lhs.isSigned() || rhs.isSigned() ? true : false;
+  if (node.isAddition())
+    return genAddition(ctx, lhs, rhs);
 
-  // Addition.
-  if (node.op == "+") {
-    return {ctx.builder.CreateAdd(lhs.getValue(), rhs.getValue()),
-            result_is_signed};
-  }
+  if (node.isSubtraction())
+    return genSubtraction(ctx, lhs, rhs);
 
-  // Subtraction.
-  if (node.op == "-") {
-    return {ctx.builder.CreateSub(lhs.getValue(), rhs.getValue()),
-            result_is_signed};
-  }
+  if (node.isMultiplication())
+    return genMultiplication(ctx, lhs, rhs);
 
-  // Multiplication.
-  if (node.op == "*") {
-    return {ctx.builder.CreateMul(lhs.getValue(), rhs.getValue()),
-            result_is_signed};
-  }
+  if (node.isDivision())
+    return genDivision(ctx, lhs, rhs);
 
-  // Division.
-  if (node.op == "/") {
-    if (result_is_signed) {
-      return {ctx.builder.CreateSDiv(lhs.getValue(), rhs.getValue()),
-              result_is_signed};
-    }
-    else {
-      return {ctx.builder.CreateUDiv(lhs.getValue(), rhs.getValue()),
-              result_is_signed};
-    }
-  }
+  if (node.isModulo())
+    return genModulo(ctx, lhs, rhs);
 
-  // Modulo.
-  if (node.op == "%") {
-    if (result_is_signed) {
-      return {ctx.builder.CreateSRem(lhs.getValue(), rhs.getValue()),
-              result_is_signed};
-    }
-    else {
-      return {ctx.builder.CreateURem(lhs.getValue(), rhs.getValue()),
-              result_is_signed};
-    }
-  }
+  if (node.isEqual())
+    return genEqual(ctx, lhs, rhs);
 
-  // Equal.
-  if (node.op == "==") {
-    return Value{ctx.int1ToBool(ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
-                                                       lhs.getValue(),
-                                                       rhs.getValue()))};
-  }
+  if (node.isNotEqual())
+    return genNotEqual(ctx, lhs, rhs);
 
-  // Not equal.
-  if (node.op == "!=") {
-    return Value{ctx.int1ToBool(ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_NE,
-                                                       lhs.getValue(),
-                                                       rhs.getValue()))};
-  }
+  if (node.isLessThan())
+    return genLessThan(ctx, lhs, rhs);
 
-  // Less than.
-  if (node.op == "<") {
-    return Value{ctx.int1ToBool(ctx.builder.CreateICmp(
-      result_is_signed ? llvm::ICmpInst::ICMP_SLT : llvm::ICmpInst::ICMP_ULT,
-      lhs.getValue(),
-      rhs.getValue()))};
-  }
+  if (node.isGreaterThan())
+    return genGreaterThan(ctx, lhs, rhs);
 
-  // Greater than.
-  if (node.op == ">") {
-    return Value{ctx.int1ToBool(ctx.builder.CreateICmp(
-      result_is_signed ? llvm::ICmpInst::ICMP_SGT : llvm::ICmpInst::ICMP_UGT,
-      lhs.getValue(),
-      rhs.getValue()))};
-  }
+  if (node.isLessOrEqual())
+    return genLessOrEqual(ctx, lhs, rhs);
 
-  // Less or equal.
-  if (node.op == "<=") {
-    return Value{ctx.int1ToBool(ctx.builder.CreateICmp(
-      result_is_signed ? llvm::ICmpInst::ICMP_SLE : llvm::ICmpInst::ICMP_ULE,
-      lhs.getValue(),
-      rhs.getValue()))};
-  }
+  if (node.isGreaterOrEqual())
+    return genGreaterOrEqual(ctx, lhs, rhs);
 
-  // Greater or equal.
-  if (node.op == ">=") {
-    return Value{ctx.int1ToBool(ctx.builder.CreateICmp(
-      result_is_signed ? llvm::ICmpInst::ICMP_SGE : llvm::ICmpInst::ICMP_UGE,
-      lhs.getValue(),
-      rhs.getValue()))};
-  }
-
-  // Unsupported binary operators detected.
   throw std::runtime_error{
     ctx.formatError(ctx.positions.position_of(node),
                     format("unknown operator '%s' detected", node.op),
@@ -196,22 +214,16 @@ ExprVisitor::ExprVisitor(CodeGenerator::Context& ctx,
                       "failed to generate right-hand side")};
   }
 
-  if (node.op == "+")
+  if (node.isUnaryPlus())
     return rhs;
 
-  if (node.op == "-") {
-    // -x to (0 - x)
-    return Value{ctx.builder.CreateSub(
-      llvm::ConstantInt::get(rhs.getValue()->getType(), 0),
-      rhs.getValue())};
-  }
+  if (node.isUnaryMinus())
+    return inverse(ctx, rhs);
 
-  // Indirection.
-  if (node.op == "*")
+  if (node.isIndirection())
     return gen_indirection(ctx.positions.position_of(node), rhs);
 
-  // Address of.
-  if (node.op == "&")
+  if (node.isAddressOf())
     return gen_address_of(rhs);
 
   throw std::runtime_error{
@@ -313,6 +325,12 @@ ExprVisitor::ExprVisitor(CodeGenerator::Context& ctx,
   return {
     ctx.builder.CreateLoad(rhs_type->getPointerElementType(), rhs.getValue()),
     rhs.isSigned()};
+}
+
+[[nodiscard]] Value
+genExpr(CGContext& ctx, SymbolTable& scope, const ast::Expr& expr)
+{
+  return boost::apply_visitor(ExprVisitor{ctx, scope}, expr);
 }
 
 } // namespace maple::codegen

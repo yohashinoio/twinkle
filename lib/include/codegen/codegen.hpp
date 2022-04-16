@@ -24,28 +24,29 @@
 namespace maple::codegen
 {
 
-struct CodeGenerator {
-  struct Context {
-    Context(llvm::LLVMContext&      context,
+// Codegen context.
+struct CGContext {
+  CGContext(llvm::LLVMContext&      context,
             PositionCache&&         positions,
             std::filesystem::path&& file) noexcept;
 
-    [[nodiscard]] llvm::Value* int1ToBool(llvm::Value* value);
+  [[nodiscard]] llvm::Value* int1ToBool(llvm::Value* value);
 
-    [[nodiscard]] std::string
-    formatError(const boost::iterator_range<InputIterator> pos,
-                const std::string_view                     message,
-                const bool                                 with_code = true);
+  [[nodiscard]] std::string
+  formatError(const boost::iterator_range<InputIterator> pos,
+              const std::string_view                     message,
+              const bool                                 with_code = true);
 
-    llvm::LLVMContext&            context;
-    std::unique_ptr<llvm::Module> module;
-    llvm::IRBuilder<>             builder;
+  llvm::LLVMContext&            context;
+  std::unique_ptr<llvm::Module> module;
+  llvm::IRBuilder<>             builder;
 
-    std::filesystem::path file;
+  std::filesystem::path file;
 
-    PositionCache positions;
-  };
+  PositionCache positions;
+};
 
+struct CodeGenerator {
   CodeGenerator(const std::string_view               program_name,
                 std::vector<parse::Parser::Result>&& ast,
                 const bool                           opt,
@@ -65,7 +66,7 @@ private:
     = std::tuple<std::unique_ptr<llvm::Module>, std::filesystem::path>;
 
   void codegen(const ast::Program&                ast,
-               Context&                           ctx,
+               CGContext&                         ctx,
                llvm::legacy::FunctionPassManager& fp_manager);
 
   void emitFiles(const llvm::CodeGenFileType cgft);

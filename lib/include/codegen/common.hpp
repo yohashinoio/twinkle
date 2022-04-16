@@ -15,6 +15,7 @@
 #endif // _MSC_VER > 1000
 
 #include <pch/pch.hpp>
+#include <codegen/codegen.hpp>
 
 namespace maple::codegen
 {
@@ -101,10 +102,47 @@ private:
 
 // Create an alloca instruction in the entry block of
 // the function.
-[[nodiscard]] llvm::AllocaInst*
-create_entry_block_alloca(llvm::Function*    func,
-                          const std::string& var_name,
-                          llvm::Type*        type);
+[[nodiscard]] llvm::AllocaInst* createEntryAlloca(llvm::Function*    func,
+                                                  const std::string& var_name,
+                                                  llvm::Type*        type);
+
+// Return true if one of them is signed.
+[[nodiscard]] bool eitherSigned(const Value& lhs, const Value& rhs);
+
+[[nodiscard]] Value
+genAddition(CGContext& ctx, const Value& lhs, const Value& rhs);
+
+[[nodiscard]] Value
+genSubtraction(CGContext& ctx, const Value& lhs, const Value& rhs);
+
+[[nodiscard]] Value
+genMultiplication(CGContext& ctx, const Value& lhs, const Value& rhs);
+
+[[nodiscard]] Value
+genDivision(CGContext& ctx, const Value& lhs, const Value& rhs);
+
+[[nodiscard]] Value
+genModulo(CGContext& ctx, const Value& lhs, const Value& rhs);
+
+[[nodiscard]] Value
+genEqual(CGContext& ctx, const Value& lhs, const Value& rhs);
+
+[[nodiscard]] Value
+genNotEqual(CGContext& ctx, const Value& lhs, const Value& rhs);
+
+[[nodiscard]] Value
+genLessThan(CGContext& ctx, const Value& lhs, const Value& rhs);
+
+[[nodiscard]] Value
+genGreaterThan(CGContext& ctx, const Value& lhs, const Value& rhs);
+
+[[nodiscard]] Value
+genLessOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs);
+
+[[nodiscard]] Value
+genGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs);
+
+[[nodiscard]] Value inverse(CGContext& ctx, const Value& num);
 
 } // namespace maple::codegen
 

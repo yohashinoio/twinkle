@@ -21,25 +21,10 @@
 namespace maple::codegen
 {
 
-//===----------------------------------------------------------------------===//
-// Top level statement visitor
-//===----------------------------------------------------------------------===//
-
-struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
-  TopLevelVisitor(CodeGenerator::Context&            ctx,
-                  llvm::legacy::FunctionPassManager& fp_manager) noexcept;
-
-  llvm::Function* operator()(ast::Nil) const;
-
-  llvm::Function* operator()(const ast::FunctionDecl& node) const;
-
-  llvm::Function* operator()(const ast::FunctionDef& node) const;
-
-private:
-  CodeGenerator::Context& ctx;
-
-  llvm::legacy::FunctionPassManager& fp_manager;
-};
+// It is not mandatory to receive a return value.
+llvm::Function* genTopLevel(CGContext&                         ctx,
+                            llvm::legacy::FunctionPassManager& fp_manager,
+                            const ast::TopLevel&               node);
 
 } // namespace maple::codegen
 
