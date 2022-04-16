@@ -86,10 +86,6 @@ const auto assign_binop_to_val = [](auto&& ctx) -> void {
   x3::_val(ctx) = std::move(ast);
 };
 
-const auto char_to_string = [](auto&& ctx) -> void {
-  x3::_val(ctx) = std::string{x3::_attr(ctx)};
-};
-
 } // namespace action
 
 //===----------------------------------------------------------------------===//
@@ -177,10 +173,6 @@ const auto identifier
   = x3::rule<struct IdentifierTag, std::string>{"identifier"}
 = x3::raw[x3::lexeme[(x3::alpha | x3::lit('_'))
                      >> *(x3::alnum | x3::lit('_'))]];
-
-const auto variable_ident
-  = x3::rule<struct VariableIdentTag, ast::VariableRef>{"variable identifier"}
-= identifier;
 
 const auto variable_qualifier
   = x3::rule<struct VariableQualifierTag, VariableQual>{"variable qualifier"}
@@ -282,7 +274,8 @@ const auto multitive_operator
 
 const auto unary_operator
   = x3::rule<struct UnaryOperatorTag, std::string>{"unary operator"}
-= x3::char_("+-")[action::char_to_string];
+= x3::string("+") | x3::string("-") | x3::string("*")
+  | x3::string("&"); // TODO: ! operator
 
 //===----------------------------------------------------------------------===//
 // Expression rules
@@ -294,17 +287,28 @@ const x3::rule<struct RelationTag, ast::Expr> relation{"relational operation"};
 const x3::rule<struct AddTag, ast::Expr>      add{"addition operation"};
 const x3::rule<struct MulTag, ast::Expr>      mul{"multiplication operation"};
 const x3::rule<struct UnaryTag, ast::Expr>    unary{"unary operation"};
-const x3::rule<struct PrimaryTag, ast::Expr>  primary{"primary"};
+const x3::rule<struct ConversionTag, ast::Expr> conversion{"conversion"};
+const x3::rule<struct PrimaryTag, ast::Expr>    primary{"primary"};
+
+// const x3::rule<struct SubscriptTag, ast::Indirection> subscript{"subscript"};
+
+const x3::rule<struct ConversionInternalTag, ast::Conversion>
+  conversion_internal{"conversion"};
+const x3::rule<struct UnaryInternalTag, ast::UnaryOp> unary_internal{
+  "unary operation"};
 
 const x3::rule<struct ArgListTag, std::vector<ast::Expr>> arg_list{
   "argument list"};
 const x3::rule<struct FunctionCallTag, ast::FunctionCall> function_call{
   "function call"};
-const x3::rule<struct ConversionTag, ast::Conversion> conversion{"conversion"};
-const x3::rule<struct AddressOfTag, ast::AddressOf>   address_of{"address-of"};
-const x3::rule<struct IndirectionTag, ast::Indirection> indirection{
-  "indirection"};
-const x3::rule<struct InitListTag, ast::InitList> init_list{"initializer list"};
+
+const auto arg_list_def = -(expr % x3::lit(','));
+const auto function_call_def
+  = identifier >> x3::lit("(") > arg_list > x3::lit(")");
+
+const auto identifier_expr
+  = x3::rule<struct IdentifierExprTag, ast::Identifier>{"identifier"}
+= identifier;
 
 const auto expr_def = equal;
 
@@ -320,28 +324,18 @@ const auto add_def = mul[action::assign_attr_to_val]
                      >> *(additive_operator > mul)[action::assign_binop_to_val];
 
 const auto mul_def
-  = unary[action::assign_attr_to_val]
-    >> *(multitive_operator > unary)[action::assign_binop_to_val];
+  = conversion[action::assign_attr_to_val]
+    >> *(multitive_operator > conversion)[action::assign_binop_to_val];
 
-const auto conversion_def = primary >> x3::lit("as") > type;
+const auto conversion_internal_def = unary >> x3::lit("as") > type;
+const auto conversion_def          = conversion_internal | unary;
 
-const auto address_of_def = x3::lit('&') > primary;
-
-const auto indirection_def = x3::lit('*') > primary;
-
-const auto unary_def = conversion | primary | (unary_operator > primary)
-                       | address_of | indirection;
-
-const auto arg_list_def = -(expr % x3::lit(','));
-
-const auto function_call_def
-  = identifier >> x3::lit("(") > arg_list > x3::lit(")");
-
-const auto init_list_def = x3::lit('{') > (expr % x3::lit(',')) > x3::lit('}');
+const auto unary_internal_def = unary_operator >> primary;
+const auto unary_def          = unary_internal | primary;
 
 const auto primary_def = int_32bit | uint_32bit | int_64bit | uint_64bit
                          | boolean_literal | string_literal | char_literal
-                         | init_list | function_call | variable_ident
+                         | function_call | identifier_expr
                          | (x3::lit('(') > expr > x3::lit(')'));
 
 BOOST_SPIRIT_DEFINE(expr,
@@ -349,19 +343,21 @@ BOOST_SPIRIT_DEFINE(expr,
                     relation,
                     add,
                     mul,
+                    conversion,
                     unary,
-                    primary,
                     arg_list,
                     function_call,
-                    conversion,
-                    address_of,
-                    indirection,
-                    init_list)
+                    conversion_internal,
+                    unary_internal,
+                    primary)
 
 //===----------------------------------------------------------------------===//
 // Statement rules
 //===----------------------------------------------------------------------===//
 
+const x3::rule<struct InitListTag, ast::InitList> init_list{"initializer list"};
+const x3::rule<struct InitializerTag, ast::Initializer> initializer{
+  "initializer"};
 const x3::rule<struct ExprStmtTag, ast::Expr> expr_stmt{"expression statement"};
 const x3::rule<struct VariableDefTag, ast::VariableDef> variable_def{
   "variable definition"};
@@ -376,6 +372,10 @@ const x3::rule<struct WhileTag, ast::While>   _while{"while statement"};
 const x3::rule<struct ForTag, ast::For>       _for{"for statement"};
 const x3::rule<struct StmtTag, ast::Stmt>     stmt{"statement"};
 
+const auto init_list_def = x3::lit('{') > (expr % x3::lit(',')) > x3::lit('}');
+
+const auto initializer_def = expr | init_list;
+
 const auto expr_stmt_def = expr;
 
 const auto assignment_def = expr >> assignment_operator > expr;
@@ -388,7 +388,7 @@ const auto variable_type
 
 const auto variable_def_def = x3::lit("let") > -variable_qualifier > identifier
                               > -(x3::lit(':') > variable_type)
-                              > -(x3::lit('=') > expr);
+                              > -(x3::lit('=') > initializer);
 
 const auto _return_def = x3::lit("ret") > -expr;
 
@@ -406,11 +406,11 @@ const auto _for_def
     > x3::lit(';') > -(prefix_inc_or_dec | assignment)           /* Loop */
     > x3::lit(')') > stmt;
 
-const auto _break = x3::rule<struct break_tag, ast::Break>{"break statement"}
+const auto _break = x3::rule<struct BreakTag, ast::Break>{"break statement"}
 = x3::string("break");
 
 const auto _continue
-  = x3::rule<struct continue_tag, ast::Continue>{"continue statement"}
+  = x3::rule<struct ContinueTag, ast::Continue>{"continue statement"}
 = x3::string("continue");
 
 const auto stmt_def
@@ -421,7 +421,9 @@ const auto stmt_def
     | prefix_inc_or_dec > x3::lit(';') | assignment > x3::lit(';')
     | variable_def > x3::lit(';') | expr_stmt > x3::lit(';');
 
-BOOST_SPIRIT_DEFINE(expr_stmt,
+BOOST_SPIRIT_DEFINE(init_list,
+                    initializer,
+                    expr_stmt,
                     variable_def,
                     assignment,
                     prefix_inc_or_dec,
@@ -535,31 +537,33 @@ struct MulTag
   : ErrorHandle
   , AnnotatePosition {};
 
-struct ArgListTag : ErrorHandle {};
-
-struct FunctionCallTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
 struct ConversionTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct AddressOfTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct IndirectionTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct InitListTag
   : ErrorHandle
   , AnnotatePosition {};
 
 struct UnaryTag
   : ErrorHandle
   , AnnotatePosition {};
+
+struct ConversionInternalTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct UnaryInternalTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+// struct SubscriptTag
+//   : ErrorHandle
+//   , AnnotatePosition {}; // TODO
+
+struct ArgListTag : ErrorHandle {};
+
+struct FunctionCallTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct IdentifierExprTag : AnnotatePosition {};
 
 struct PrimaryTag
   : ErrorHandle
@@ -570,6 +574,14 @@ struct PrimaryTag
 //===----------------------------------------------------------------------===//
 
 struct StmtTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct InitListTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct InitializerTag
   : ErrorHandle
   , AnnotatePosition {};
 
@@ -613,11 +625,11 @@ struct ForTag
   : ErrorHandle
   , AnnotatePosition {};
 
-struct break_tag
+struct BreakTag
   : ErrorHandle
   , AnnotatePosition {};
 
-struct continue_tag
+struct ContinueTag
   : ErrorHandle
   , AnnotatePosition {};
 

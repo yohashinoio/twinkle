@@ -30,9 +30,8 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::UnaryOp,
-  (std::string, op)
-  (maple::ast::Expr, rhs)
+  maple::ast::Identifier,
+  (std::string, name)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -43,8 +42,9 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::VariableRef,
-  (std::string, name)
+  maple::ast::UnaryOp,
+  (std::string, op)
+  (maple::ast::Expr, rhs)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -59,31 +59,21 @@ BOOST_FUSION_ADAPT_STRUCT(
   (std::shared_ptr<maple::Type>, as)
 )
 
-BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::AddressOf,
-  (maple::ast::Expr, lhs)
-)
-
-BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::Indirection,
-  (maple::ast::Expr, lhs)
-)
+//===----------------------------------------------------------------------===//
+// Statement abstract syntax tree adapt
+//===----------------------------------------------------------------------===//
 
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::InitList,
   (std::vector<maple::ast::Expr>, inits)
 )
 
-//===----------------------------------------------------------------------===//
-// Statement abstract syntax tree adapt
-//===----------------------------------------------------------------------===//
-
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::VariableDef,
   (std::optional<maple::VariableQual>, qualifier)
   (std::string, name)
   (std::optional<std::shared_ptr<maple::Type>>, type)
-  (std::optional<maple::ast::Expr>, init)
+  (std::optional<maple::ast::Initializer>, initializer)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

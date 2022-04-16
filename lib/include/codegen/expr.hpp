@@ -76,23 +76,23 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     return {llvm::ConstantInt::get(ctx.builder.getInt8Ty(), node.ch), false};
   }
 
-  [[nodiscard]] Value operator()(const ast::InitList& node) const;
-
-  [[nodiscard]] Value operator()(const ast::UnaryOp& node) const;
+  [[nodiscard]] Value operator()(const ast::Identifier& node) const;
 
   [[nodiscard]] Value operator()(const ast::BinOp& node) const;
 
-  [[nodiscard]] Value operator()(const ast::VariableRef& node) const;
+  [[nodiscard]] Value operator()(const ast::UnaryOp& node) const;
 
   [[nodiscard]] Value operator()(const ast::FunctionCall& node) const;
 
   [[nodiscard]] Value operator()(const ast::Conversion& node) const;
 
-  [[nodiscard]] Value operator()(const ast::AddressOf& node) const;
-
-  [[nodiscard]] Value operator()(const ast::Indirection& node) const;
-
 private:
+  [[nodiscard]] Value gen_address_of(const Value& rhs) const;
+
+  [[nodiscard]] Value
+  gen_indirection(const boost::iterator_range<maple::InputIterator> pos,
+                  const Value&                                      rhs) const;
+
   CodeGenerator::Context& ctx;
 
   SymbolTable& scope;

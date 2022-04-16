@@ -43,17 +43,14 @@ struct CharLiteral : x3::position_tagged {
   unsigned char ch;
 };
 
-struct VariableRef : x3::position_tagged {
+struct Identifier : x3::position_tagged {
   std::string name;
 };
 
-struct UnaryOp;
 struct BinOp;
+struct UnaryOp;
 struct FunctionCall;
 struct Conversion;
-struct AddressOf;
-struct Indirection;
-struct InitList;
 
 using Expr = boost::variant<Nil,
                             std::uint32_t, // Unsigned integer literals (32bit)
@@ -63,19 +60,11 @@ using Expr = boost::variant<Nil,
                             bool,          // Boolean literals
                             StringLiteral,
                             CharLiteral,
-                            VariableRef,
-                            boost::recursive_wrapper<UnaryOp>,
+                            Identifier,
                             boost::recursive_wrapper<BinOp>,
+                            boost::recursive_wrapper<UnaryOp>,
                             boost::recursive_wrapper<FunctionCall>,
-                            boost::recursive_wrapper<Conversion>,
-                            boost::recursive_wrapper<AddressOf>,
-                            boost::recursive_wrapper<Indirection>,
-                            boost::recursive_wrapper<InitList>>;
-
-struct UnaryOp : x3::position_tagged {
-  std::string op;
-  Expr        rhs;
-};
+                            boost::recursive_wrapper<Conversion>>;
 
 struct BinOp : x3::position_tagged {
   Expr        lhs;
@@ -94,6 +83,31 @@ struct BinOp : x3::position_tagged {
   }
 };
 
+struct UnaryOp : x3::position_tagged {
+  std::string op;
+  Expr        rhs;
+
+  bool isUnaryPlus() const
+  {
+    return op == "+";
+  }
+
+  bool isUnaryMinus() const
+  {
+    return op == "-";
+  }
+
+  bool isIndirection() const
+  {
+    return op == "*";
+  }
+
+  bool isAddressOf() const
+  {
+    return op == "&";
+  }
+};
+
 struct FunctionCall : x3::position_tagged {
   std::string       callee;
   std::vector<Expr> args;
@@ -104,22 +118,16 @@ struct Conversion : x3::position_tagged {
   std::shared_ptr<Type> as;
 };
 
-struct AddressOf : x3::position_tagged {
-  Expr lhs;
-};
-
-struct Indirection : x3::position_tagged {
-  Expr lhs;
-};
+//===----------------------------------------------------------------------===//
+// Statement abstract syntax tree
+//===----------------------------------------------------------------------===//
 
 struct InitList : x3::position_tagged {
   // Initializers.
   std::vector<Expr> inits;
 };
 
-//===----------------------------------------------------------------------===//
-// Statement abstract syntax tree
-//===----------------------------------------------------------------------===//
+using Initializer = boost::variant<Expr, InitList>;
 
 struct Return : x3::position_tagged {
   std::optional<Expr> rhs;
@@ -130,7 +138,7 @@ struct VariableDef : x3::position_tagged {
   std::string                          name;
   std::optional<std::shared_ptr<Type>> type;
   // Initializer.
-  std::optional<Expr>                  init;
+  std::optional<Initializer>           initializer;
 };
 
 struct Assignment : x3::position_tagged {

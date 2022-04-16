@@ -92,18 +92,18 @@ private:
                   const std::vector<llvm::Value*>& init_list) const;
 
   llvm::AllocaInst*
-  create_variable_with_type(const ast::Stmt&                node,
-                            llvm::Function*                 func,
-                            const std::string&              name,
-                            const Type&                     type,
-                            const std::optional<ast::Expr>& init) const;
+  create_variable_with_type(const ast::Stmt&                       node,
+                            llvm::Function*                        func,
+                            const std::string&                     name,
+                            const Type&                            type,
+                            const std::optional<ast::Initializer>& initializer) const;
 
   std::pair<llvm::AllocaInst*, bool /* Is signed */>
   create_variable_with_type_inference(
-    const ast::Stmt&                node,
-    llvm::Function*                 func,
-    const std::string&              name,
-    const std::optional<ast::Expr>& init) const;
+    const ast::Stmt&                       node,
+    llvm::Function*                        func,
+    const std::string&                     name,
+    const std::optional<ast::Initializer>& initializer) const;
 
   CodeGenerator::Context& ctx;
 

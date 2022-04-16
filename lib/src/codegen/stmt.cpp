@@ -69,7 +69,7 @@ void StmtVisitor::operator()(const ast::Return& node) const
 
 void StmtVisitor::operator()(const ast::VariableDef& node) const
 {
-  if (!node.type.has_value() && !node.init.has_value()) {
+  if (!node.type.has_value() && !node.initializer.has_value()) {
     throw std::runtime_error{
       ctx.formatError(ctx.positions.position_of(node),
                       "type inference requires an initializer")};
@@ -97,12 +97,16 @@ void StmtVisitor::operator()(const ast::VariableDef& node) const
 
   if (node.type) {
     const auto& type = **node.type;
-    regist(create_variable_with_type(node, func, node.name, type, node.init),
-           type.isSigned());
+    regist(
+      create_variable_with_type(node, func, node.name, type, node.initializer),
+      type.isSigned());
   }
   else {
     auto [alloca, is_signed]
-      = create_variable_with_type_inference(node, func, node.name, node.init);
+      = create_variable_with_type_inference(node,
+                                            func,
+                                            node.name,
+                                            node.initializer);
     regist(alloca, is_signed);
   }
 }
@@ -455,31 +459,32 @@ Value StmtVisitor::gen_assignable_value_from_expr(
 {
   Value value;
 
-  if (node.type() == typeid(ast::VariableRef)) {
-    auto& var_ref_node = boost::get<ast::VariableRef>(node);
+  if (node.type() == typeid(ast::Identifier)) {
+    const auto& identifier = boost::get<ast::Identifier>(node).name;
 
-    auto variable = scope[var_ref_node.name];
+    auto variable = scope[identifier];
 
     if (!variable) {
       // Unknown variable name.
-      throw std::runtime_error{ctx.formatError(
-        position,
-        format("unknown variable name '%s'", var_ref_node.name))};
+      throw std::runtime_error{
+        ctx.formatError(position,
+                        format("unknown variable name '%s'", identifier))};
     }
 
     if (!variable->isMutable()) {
       // Assignment of read-only variable.
       throw std::runtime_error{ctx.formatError(
         position,
-        format("assignment of read-only variable '%s'", var_ref_node.name))};
+        format("assignment of read-only variable '%s'", identifier))};
     }
 
     value = {variable->getAllocaInst(), variable->isSigned()};
   }
-  else if (node.type() == typeid(ast::Indirection)) {
-    auto const indirection_node = boost::get<ast::Indirection>(node);
+  else if (node.type() == typeid(ast::UnaryOp)
+           && boost::get<ast::UnaryOp>(node).isIndirection()) {
+    const auto& unary_op_node = boost::get<ast::UnaryOp>(node);
 
-    value = boost::apply_visitor(ExprVisitor{ctx, scope}, indirection_node.lhs);
+    value = boost::apply_visitor(ExprVisitor{ctx, scope}, unary_op_node.rhs);
   }
   else
     value = boost::apply_visitor(ExprVisitor{ctx, scope}, node);
@@ -522,26 +527,28 @@ void StmtVisitor::init_array(llvm::AllocaInst*                array_alloca,
 }
 
 llvm::AllocaInst* StmtVisitor::create_variable_with_type(
-  const ast::Stmt&                node,
-  llvm::Function*                 func,
-  const std::string&              name,
-  const Type&                     type,
-  const std::optional<ast::Expr>& init) const
+  const ast::Stmt&                       node,
+  llvm::Function*                        func,
+  const std::string&                     name,
+  const Type&                            type,
+  const std::optional<ast::Initializer>& initializer) const
 {
   const auto llvm_type = type.getType(ctx.context);
   auto const alloca    = create_entry_block_alloca(func, name, llvm_type);
 
-  if (!init)
+  if (!initializer)
     return alloca;
 
-  if (llvm_type->isArrayTy()) {
-    if (init->type() != typeid(ast::InitList)) {
+  if (initializer->type() == typeid(ast::InitList)) {
+    // Array initialization.
+    if (!llvm_type->isArrayTy()) {
       throw std::runtime_error{
         ctx.formatError(ctx.positions.position_of(node),
                         "initializing an array requires an initializer list")};
     }
 
-    const auto init_list = gen_init_list(boost::get<ast::InitList>(*init));
+    const auto init_list
+      = gen_init_list(boost::get<ast::InitList>(*initializer));
 
     if (type.getArraySize() != init_list.size()) {
       throw std::runtime_error{
@@ -552,8 +559,10 @@ llvm::AllocaInst* StmtVisitor::create_variable_with_type(
     init_array(alloca, init_list);
   }
   else {
+    // Normal initialization.
     auto const init_value
-      = boost::apply_visitor(ExprVisitor{ctx, scope}, *init);
+      = boost::apply_visitor(ExprVisitor{ctx, scope},
+                             boost::get<ast::Expr>(*initializer));
 
     if (!init_value) {
       throw std::runtime_error{ctx.formatError(
@@ -575,14 +584,15 @@ llvm::AllocaInst* StmtVisitor::create_variable_with_type(
 
 std::pair<llvm::AllocaInst*, bool /* isSigned */>
 StmtVisitor::create_variable_with_type_inference(
-  const ast::Stmt&                node,
-  llvm::Function*                 func,
-  const std::string&              name,
-  const std::optional<ast::Expr>& init) const
+  const ast::Stmt&                       node,
+  llvm::Function*                        func,
+  const std::string&                     name,
+  const std::optional<ast::Initializer>& initializer) const
 {
-  if (init->type() == typeid(ast::InitList)) {
+  if (initializer->type() == typeid(ast::InitList)) {
     // Guess to array.
-    const auto init_list = gen_init_list(boost::get<ast::InitList>(*init));
+    const auto init_list
+      = gen_init_list(boost::get<ast::InitList>(*initializer));
 
     auto const array_alloca = create_entry_block_alloca(
       func,
@@ -595,7 +605,8 @@ StmtVisitor::create_variable_with_type_inference(
   }
   else {
     auto const init_value
-      = boost::apply_visitor(ExprVisitor{ctx, scope}, *init);
+      = boost::apply_visitor(ExprVisitor{ctx, scope},
+                             boost::get<ast::Expr>(*initializer));
 
     if (!init_value) {
       throw std::runtime_error{ctx.formatError(

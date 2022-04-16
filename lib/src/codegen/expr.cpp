@@ -24,34 +24,21 @@ ExprVisitor::ExprVisitor(CodeGenerator::Context& ctx,
 {
 }
 
-[[nodiscard]] Value ExprVisitor::operator()(const ast::InitList& node) const
+[[nodiscard]] Value ExprVisitor::operator()(const ast::Identifier& node) const
 {
-  // TODO:
-  unreachable();
-}
+  // TODO: support function identifier
 
-[[nodiscard]] Value ExprVisitor::operator()(const ast::UnaryOp& node) const
-{
-  auto const rhs = boost::apply_visitor(*this, node.rhs);
+  auto variable = scope[node.name];
 
-  if (!rhs.getValue()) {
+  if (!variable) {
     throw std::runtime_error{
       ctx.formatError(ctx.positions.position_of(node),
-                      "failed to generate right-hand side")};
+                      format("unknown variable '%s' referenced", node.name))};
   }
 
-  if (node.op == "+")
-    return rhs;
-  if (node.op == "-") {
-    // -x to (0 - x).
-    return Value{
-      ctx.builder.CreateSub(llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 0),
-                            rhs.getValue())};
-  }
-
-  throw std::runtime_error{
-    ctx.formatError(ctx.positions.position_of(node),
-                    format("unknown operator '%s' detected", node.op))};
+  return {ctx.builder.CreateLoad(variable->getAllocaInst()->getAllocatedType(),
+                                 variable->getAllocaInst()),
+          variable->isSigned()};
 }
 
 [[nodiscard]] Value ExprVisitor::operator()(const ast::BinOp& node) const
@@ -199,19 +186,37 @@ ExprVisitor::ExprVisitor(CodeGenerator::Context& ctx,
                     false)};
 }
 
-[[nodiscard]] Value ExprVisitor::operator()(const ast::VariableRef& node) const
+[[nodiscard]] Value ExprVisitor::operator()(const ast::UnaryOp& node) const
 {
-  auto variable = scope[node.name];
+  auto const rhs = boost::apply_visitor(*this, node.rhs);
 
-  if (!variable) {
+  if (!rhs.getValue()) {
     throw std::runtime_error{
       ctx.formatError(ctx.positions.position_of(node),
-                      format("unknown variable '%s' referenced", node.name))};
+                      "failed to generate right-hand side")};
   }
 
-  return {ctx.builder.CreateLoad(variable->getAllocaInst()->getAllocatedType(),
-                                 variable->getAllocaInst()),
-          variable->isSigned()};
+  if (node.op == "+")
+    return rhs;
+
+  if (node.op == "-") {
+    // -x to (0 - x)
+    return Value{ctx.builder.CreateSub(
+      llvm::ConstantInt::get(rhs.getValue()->getType(), 0),
+      rhs.getValue())};
+  }
+
+  // Indirection.
+  if (node.op == "*")
+    return gen_indirection(ctx.positions.position_of(node), rhs);
+
+  // Address of.
+  if (node.op == "&")
+    return gen_address_of(rhs);
+
+  throw std::runtime_error{
+    ctx.formatError(ctx.positions.position_of(node),
+                    format("unknown operator '%s' detected", node.op))};
 }
 
 [[nodiscard]] Value ExprVisitor::operator()(const ast::FunctionCall& node) const
@@ -289,40 +294,25 @@ ExprVisitor::ExprVisitor(CodeGenerator::Context& ctx,
   unreachable();
 }
 
-[[nodiscard]] Value ExprVisitor::operator()(const ast::AddressOf& node) const
+[[nodiscard]] Value ExprVisitor::gen_address_of(const Value& rhs) const
 {
-  auto const lhs = boost::apply_visitor(*this, node.lhs);
-
-  if (!lhs) {
-    throw std::runtime_error{
-      ctx.formatError(ctx.positions.position_of(node),
-                      "failed to generate right-hand side")};
-  }
-
-  return Value{llvm::getPointerOperand(lhs.getValue())};
+  return Value{llvm::getPointerOperand(rhs.getValue())};
 }
 
-[[nodiscard]] Value ExprVisitor::operator()(const ast::Indirection& node) const
+[[nodiscard]] Value ExprVisitor::gen_indirection(
+  const boost::iterator_range<maple::InputIterator> pos,
+  const Value&                                      rhs) const
 {
-  auto const lhs = boost::apply_visitor(*this, node.lhs);
+  auto const rhs_type = rhs.getValue()->getType();
 
-  if (!lhs) {
+  if (!rhs_type->isPointerTy()) {
     throw std::runtime_error{
-      ctx.formatError(ctx.positions.position_of(node),
-                      "failed to generate right-hand side")};
-  }
-
-  auto const lhs_type = lhs.getValue()->getType();
-
-  if (!lhs_type->isPointerTy()) {
-    throw std::runtime_error{
-      ctx.formatError(ctx.positions.position_of(node),
-                      "unary '*' requires pointer operand")};
+      ctx.formatError(pos, "unary '*' requires pointer operand")};
   }
 
   return {
-    ctx.builder.CreateLoad(lhs_type->getPointerElementType(), lhs.getValue()),
-    lhs.isSigned()};
+    ctx.builder.CreateLoad(rhs_type->getPointerElementType(), rhs.getValue()),
+    rhs.isSigned()};
 }
 
 } // namespace maple::codegen
