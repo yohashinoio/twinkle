@@ -33,9 +33,9 @@ struct CGContext {
   [[nodiscard]] llvm::Value* int1ToBool(llvm::Value* value);
 
   [[nodiscard]] std::string
-  formatError(const boost::iterator_range<InputIterator> pos,
-              const std::string_view                     message,
-              const bool                                 with_code = true);
+  formatError(const boost::iterator_range<InputIterator>& pos,
+              const std::string_view                      message,
+              const bool                                  with_code = true);
 
   llvm::LLVMContext&            context;
   std::unique_ptr<llvm::Module> module;

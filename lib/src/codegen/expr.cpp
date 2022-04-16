@@ -79,11 +79,11 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   [[nodiscard]] Value operator()(const ast::Conversion& node) const;
 
 private:
-  [[nodiscard]] Value gen_address_of(const Value& rhs) const;
+  [[nodiscard]] Value genAddressOf(const Value& rhs) const;
 
   [[nodiscard]] Value
-  gen_indirection(const boost::iterator_range<maple::InputIterator> pos,
-                  const Value&                                      rhs) const;
+  genIndirection(const boost::iterator_range<InputIterator>& pos,
+                 const Value&                                rhs) const;
 
   CGContext& ctx;
 
@@ -221,10 +221,10 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
     return inverse(ctx, rhs);
 
   if (node.isIndirection())
-    return gen_indirection(ctx.positions.position_of(node), rhs);
+    return genIndirection(ctx.positions.position_of(node), rhs);
 
   if (node.isAddressOf())
-    return gen_address_of(rhs);
+    return genAddressOf(rhs);
 
   throw std::runtime_error{
     ctx.formatError(ctx.positions.position_of(node),
@@ -306,14 +306,14 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
   unreachable();
 }
 
-[[nodiscard]] Value ExprVisitor::gen_address_of(const Value& rhs) const
+[[nodiscard]] Value ExprVisitor::genAddressOf(const Value& rhs) const
 {
   return Value{llvm::getPointerOperand(rhs.getValue())};
 }
 
-[[nodiscard]] Value ExprVisitor::gen_indirection(
-  const boost::iterator_range<maple::InputIterator> pos,
-  const Value&                                      rhs) const
+[[nodiscard]] Value
+ExprVisitor::genIndirection(const boost::iterator_range<InputIterator>& pos,
+                            const Value& rhs) const
 {
   auto const rhs_type = rhs.getValue()->getType();
 
