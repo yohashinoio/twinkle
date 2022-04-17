@@ -29,13 +29,18 @@ namespace maple
 namespace ast
 {
 
-struct Nil {};
+struct Nil {
+};
 
 //===----------------------------------------------------------------------===//
 // Expression abstract syntax tree
 //===----------------------------------------------------------------------===//
 
 struct StringLiteral : x3::position_tagged {
+  // Some compilers will error if there is no value_type,
+  // because x3::rule using this AST uses iterator.
+  using value_type = std::string;
+
   std::string str;
 };
 

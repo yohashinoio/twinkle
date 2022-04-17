@@ -14,6 +14,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
+// Used to replace header files depending on llvm version.
+#include <llvm/Config/llvm-config.h>
+
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Function.h>
@@ -23,7 +26,13 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Verifier.h>
+
+#if 14 <= LLVM_VERSION_MAJOR
 #include <llvm/MC/TargetRegistry.h>
+#else
+#include <llvm/Support/TargetRegistry.h>
+#endif
+
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Host.h>
 #include <llvm/Support/TargetSelect.h>
@@ -59,5 +68,6 @@
 #include <string>
 #include <iostream>
 #include <optional>
+#include <unordered_map>
 
 #endif
