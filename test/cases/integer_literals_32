@@ -1,16 +1,16 @@
-func f() -> i32
+i32 f()
 {
   let n = -2147483648; // INT_MIN.
   ret n;
 }
 
-func g() -> u32
+u32 g()
 {
   let n = 4294967295; // UINT_MAX.
   ret n;
 }
 
-func main() -> i32
+i32 main()
 {
   let n = 2147483647; // INT_MAX.
 

@@ -1,9 +1,9 @@
-func private f() -> i32
+i32 private f()
 {
   ret 58;
 }
 
-func main() -> i32
+i32 main()
 {
   ret f();
 }

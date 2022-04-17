@@ -128,7 +128,8 @@ let n6 =  18446744073709551615; // u64
 | 1-bit   | bool |
 ```rust
 let f: bool = true;
-let g: bool = false;
+
+let g = false;
 ```
 
 ### The void type
@@ -140,16 +141,16 @@ The type void is a special type: you cannot declare a variable of type void,<br/
 but you can use type void for the return value of a function,<br/>
 meaning that the function will not return a value.
 ```rust
-func f() -> void
+void f()
 {
   ret;
 }
 
-func g() -> void
+void g()
 {
 }
 
-func main() -> i32
+i32 main()
 {
   f();
   g();
@@ -168,6 +169,9 @@ let p: *i8 = "hello, world";
 
 let n: i32 = 4810;
 let p_n: *i32 = &n;
+
+let n = 4810;
+let p_n = &n;
 ```
 
 ### Array types
@@ -177,6 +181,7 @@ let p_n: *i32 = &n;
 
 ```rust
 let a1: i32[4810];
+
 let a2 = {4, 8, 1, 0};
 ```
 
@@ -203,6 +208,7 @@ k = 4810; // OK
 ```
 
 ### Type inference
+Type inference can only be used for initializations with initializers.
 ```rust
 let n = 4810; // i32
 
@@ -220,14 +226,15 @@ let n = f + 57; // OK! type of n is i32.
 ```
 
 ## Functions
+Similar to C/C++ language.
 ### Declaration
 ```rust
-extern puts(s: *i8) -> i32;
+extern i32 puts(s: *i8);
 ```
 
 ### Definition
 ```rust
-func twice(n: i32) -> i32
+i32 twice(n: i32)
 {
   ret n * 2;
 }
@@ -237,13 +244,13 @@ func twice(n: i32) -> i32
 In this language, parameters are immutable by default.<br/>
 To make them mutable, use the "mut" qualifier.
 ```rust
-func f(n: i32) -> i32
+i32 f(n: i32)
 {
   n = 123; // Error!
   ret n;
 }
 
-func g(mut n: i32) -> i32
+i32 g(mut n: i32)
 {
   n = 123; // OK
   ret n;
@@ -252,12 +259,12 @@ func g(mut n: i32) -> i32
 
 ### Linkage
 ```rust
-func twice(n: i32) -> i32 // External linkage
+i32 twice(n: i32) // External linkage
 {
   ret n * 2;
 }
 
-func private thrice(n: i32) -> i32 // Internal linkage
+i32 private thrice(n: i32) // Internal linkage
 {
   ret n * 3;
 }

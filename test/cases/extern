@@ -1,6 +1,6 @@
-extern clock() -> i32;
+extern i32 clock();
 
-func main() -> i32
+i32 main()
 {
   clock();
 }

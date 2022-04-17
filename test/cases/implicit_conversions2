@@ -1,4 +1,4 @@
-func main() -> i64
+i64 main()
 {
   let n64 = 48 as i64;
 

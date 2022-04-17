@@ -29,8 +29,7 @@ namespace maple
 namespace ast
 {
 
-struct Nil {
-};
+struct Nil {};
 
 //===----------------------------------------------------------------------===//
 // Expression abstract syntax tree
@@ -314,10 +313,10 @@ struct ParameterList : x3::position_tagged {
 };
 
 struct FunctionDecl : x3::position_tagged {
+  std::shared_ptr<Type>  return_type;
   std::optional<Linkage> linkage;
   std::string            name;
   ParameterList          params;
-  std::shared_ptr<Type>  return_type;
 };
 
 struct FunctionDef : x3::position_tagged {

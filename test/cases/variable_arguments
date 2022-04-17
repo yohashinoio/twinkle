@@ -1,11 +1,11 @@
-extern printf(fmt: *i8, ...) -> i32;
+extern i32 printf(fmt: *i8, ...);
 
-func f(n: i32, ...) -> i32
+i32 f(n: i32, ...)
 {
   ret n;
 }
 
-func main() -> i32
+i32 main()
 {
   ret f(58, 123, 456);
 }

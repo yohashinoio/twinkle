@@ -449,8 +449,8 @@ const auto parameter_list
 
 const auto function_proto
   = x3::rule<struct FunctionProtoTag, ast::FunctionDecl>{"function prototype"}
-= -function_linkage > identifier > x3::lit('(') > parameter_list > x3::lit(')')
-  > x3::lit("->") > type;
+= type > -function_linkage > identifier > x3::lit('(') > parameter_list
+  > x3::lit(')');
 
 const auto function_decl
   = x3::rule<struct FunctionDeclTag, ast::FunctionDecl>{"function declaration"}
@@ -458,7 +458,7 @@ const auto function_decl
 
 const auto function_def
   = x3::rule<struct FunctionDefTag, ast::FunctionDef>{"function definition"}
-= x3::lit("func") > function_proto > stmt;
+= function_proto > stmt;
 
 const auto top_level
   = x3::rule<struct TopLevelTag, ast::TopLevel>{"top level statement"}

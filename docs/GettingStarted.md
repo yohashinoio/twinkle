@@ -7,9 +7,9 @@
 ## Hello world
 ```rust
 // hello.txt
-extern printf(fmt: *i8, ...) -> i32;
+extern i32 printf(fmt: *i8, ...);
 
-func main() -> i32
+i32 main()
 {
   printf("hello, world\n");
 }

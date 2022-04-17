@@ -1,4 +1,4 @@
-func main() -> i32
+i32 main()
 {
   let mut yoha: i32 = 0;
   loop {

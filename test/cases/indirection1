@@ -1,4 +1,4 @@
-func main() -> i32
+i32 main()
 {
   let n: i32 = 58;
   let p: *i32 = &n;

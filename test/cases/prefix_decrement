@@ -1,4 +1,4 @@
-func main() -> i32
+i32 main()
 {
   let mut n = 59;
   --n;

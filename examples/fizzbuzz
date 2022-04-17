@@ -1,7 +1,7 @@
-extern printf(fmt: *i8, ...) -> i8;
-extern scanf(fmt: *i8, ...) -> i8;
+extern i32 printf(fmt: *i8, ...);
+extern i32 scanf(fmt: *i8, ...);
 
-func main() -> i32
+i32 main()
 {
   let mut n: u32;
   printf("> ");

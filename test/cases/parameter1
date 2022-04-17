@@ -1,9 +1,9 @@
-func equal(a: i32, b: i32) -> bool
+bool equal(a: i32, b: i32)
 {
   ret a == b;
 }
 
-func main() -> i32
+i32 main()
 {
   let a: i32 = 48;
   let b: i32 = 10;
