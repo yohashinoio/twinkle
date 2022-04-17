@@ -84,10 +84,9 @@ std::string getVersion()
       format("%s: No such file or directory", path.string()))};
   }
 
-  if (auto file = std::ifstream{path}) {
+  if (auto file = std::ifstream{path, std::ios_base::binary}) {
     std::stringstream ss;
     ss << file.rdbuf();
-    // NRVO
     return ss.str();
   }
 

@@ -1,6 +1,7 @@
 識別子をunicode対応に
 文字列をunicode対応に
 Unicodeリテラル
+ドキュメントに文字列リテラルの説明
 配列の初期化をmemcpyに
 自前のformatをboost::formatに（自前のだとu32stringを渡してもエラーにならないままバグになる）
 添え字演算子
