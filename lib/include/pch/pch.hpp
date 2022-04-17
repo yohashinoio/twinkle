@@ -55,6 +55,8 @@
 #include <llvm/IR/DataLayout.h>
 #include <llvm/Linker/Linker.h>
 
+#define BOOST_SPIRIT_X3_UNICODE
+
 #include <boost/spirit/home/x3.hpp>
 #include <boost/spirit/home/x3/support/ast/variant.hpp>
 #include <boost/spirit/home/x3/support/ast/position_tagged.hpp>
@@ -69,5 +71,7 @@
 #include <iostream>
 #include <optional>
 #include <unordered_map>
+
+#include <cstdint>
 
 #endif

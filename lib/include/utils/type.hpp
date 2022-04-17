@@ -32,6 +32,7 @@ enum class BuiltinTypeKind : unsigned char {
   u32,
   u64,
   bool_,
+  char_,
 };
 
 struct Type {

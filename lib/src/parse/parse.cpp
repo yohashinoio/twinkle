@@ -34,7 +34,7 @@ struct ErrorHandle {
 
     auto&& error_handler = x3::get<x3::error_handler_tag>(context).get();
     error_handler(x.where(),
-                  format_error_message_without_filename(
+                  formatErrorMessage(
                     "expected: " + boost::core::demangle(x.which().c_str())));
 
     return x3::error_handler_result::fail;
@@ -117,6 +117,7 @@ struct BuintinTypeSymbolsTag : x3::symbols<BuiltinTypeKind> {
       ( "i64",     {BuiltinTypeKind::i64})
       ( "u64",     {BuiltinTypeKind::u64})
       ("bool",   {BuiltinTypeKind::bool_})
+      ("char",   {BuiltinTypeKind::char_})
     ;
     // clang-format on
   }
@@ -217,7 +218,8 @@ const auto string_literal
 const auto char_literal
   = x3::rule<struct CharLiteralTag, ast::CharLiteral>{"character literal"}
 = x3::lit('\'')
-  >> (x3::char_ - (x3::lit('\'') | x3::eol | x3::lit('\\')) | escape_char)
+  >> (x3::unicode::char_ - (x3::lit('\'') | x3::eol | x3::lit('\\'))
+      | escape_char)
   > x3::lit('\'');
 
 const auto type = x3::rule<struct TypeTag, std::shared_ptr<Type>>{"type"}
@@ -461,7 +463,7 @@ const auto function_def
 = function_proto > stmt;
 
 const auto top_level
-  = x3::rule<struct TopLevelTag, ast::TopLevel>{"top level statement"}
+  = x3::rule<struct TopLevelTag, ast::TopLevel>{"top level"}
 = function_decl | function_def;
 
 //===----------------------------------------------------------------------===//
@@ -673,19 +675,11 @@ struct ProgramTag
 
 Parser::Parser(std::string&& input, std::filesystem::path&& file)
   : input{std::move(input)}
-  , first{this->input.cbegin()}
-  , last{this->input.cend()}
-  , positions{first, last}
-  , file{std::move(file)}
-{
-  parse();
-}
-
-Parser::Parser(const std::string& input, std::filesystem::path&& file)
-  : input{input}
-  , first{input.cbegin()}
-  , last{input.cend()}
-  , positions{first, last}
+  , u32_first{boost::u8_to_u32_iterator<std::string::const_iterator>{
+      this->input.cbegin()}}
+  , u32_last{boost::u8_to_u32_iterator<std::string::const_iterator>{
+      this->input.cend()}}
+  , positions{u32_first, u32_last}
   , file{std::move(file)}
 {
   parse();
@@ -693,8 +687,8 @@ Parser::Parser(const std::string& input, std::filesystem::path&& file)
 
 void Parser::parse()
 {
-  x3::error_handler<InputIterator> error_handler{first,
-                                                 last,
+  x3::error_handler<InputIterator> error_handler{u32_first,
+                                                 u32_last,
                                                  std::cerr,
                                                  file.string()};
 
@@ -702,9 +696,9 @@ void Parser::parse()
     error_handler))[x3::with<PositionCacheTag>(positions)[syntax::program]];
 
   const auto success
-    = x3::phrase_parse(first, last, parser, syntax::skipper, ast);
+    = x3::phrase_parse(u32_first, u32_last, parser, syntax::skipper, ast);
 
-  if (!success || first != last) {
+  if (!success || u32_first != u32_last) {
     throw std::runtime_error{
       format("%zu errors generated.\n", ErrorHandle::total_errors)};
   }

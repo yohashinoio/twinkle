@@ -1,0 +1,16 @@
+i32 main()
+{
+  let mut unicode : char;
+
+  unicode = '0';
+  if (unicode != 48)
+    ret 48;
+
+  unicode = '\n';
+  if (unicode != 10)
+    ret 4;
+
+  unicode = '🌸';
+  if (unicode != 127800)
+    ret 10;
+}

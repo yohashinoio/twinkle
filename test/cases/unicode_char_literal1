@@ -1,0 +1,9 @@
+i32 main()
+{
+  let heart = '💕';
+
+  let heart_code = 128149;
+
+  if (heart == heart_code)
+    ret 58;
+}

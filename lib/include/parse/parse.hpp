@@ -46,16 +46,14 @@ struct Parser {
 
   Parser(std::string&& input, std::filesystem::path&& file);
 
-  Parser(const std::string& input, std::filesystem::path&& file);
-
 private:
   void parse();
 
   bool member_moved = false;
 
   std::string         input;
-  InputIterator       first;
-  const InputIterator last;
+  InputIterator       u32_first;
+  const InputIterator u32_last;
 
   ast::Program  ast;
   PositionCache positions;

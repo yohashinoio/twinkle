@@ -26,7 +26,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::CharLiteral,
-  (unsigned char, ch)
+  (std::uint32_t, ch)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

@@ -32,6 +32,8 @@ namespace maple
   case BuiltinTypeKind::bool_:
     // We will represent boolean by u8 instead of i1.
     return llvm::IntegerType::getInt8Ty(context);
+  case BuiltinTypeKind::char_:
+    return llvm::IntegerType::getInt32Ty(context);
   }
 
   unreachable();
@@ -75,6 +77,8 @@ namespace maple
     return "u64";
   case BuiltinTypeKind::bool_:
     return "bool";
+  case BuiltinTypeKind::char_:
+    return "char";
   }
 
   unreachable();

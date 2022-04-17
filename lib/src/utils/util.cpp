@@ -19,10 +19,21 @@
 namespace maple
 {
 
+std::string getVersion()
+{
+  const auto major = MAPLE_VER / 100000;
+  const auto minor = MAPLE_VER / 100 % 1000;
+  const auto patch = MAPLE_VER % 100;
+
+  return boost::lexical_cast<std::string>(major) + '.'
+         + boost::lexical_cast<std::string>(minor) + '.'
+         + boost::lexical_cast<std::string>(patch);
+}
+
 // Formatting and coloring.
-[[nodiscard]] std::string format_error_message(const std::string_view filename,
-                                               const std::string_view message,
-                                               const bool             fatal)
+[[nodiscard]] std::string formatErrorMessage(const std::string_view filename,
+                                             const std::string_view message,
+                                             const bool             fatal)
 {
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
   if (isatty(fileno(stdout))) {
@@ -45,9 +56,8 @@ namespace maple
 }
 
 // Formatting and coloring.
-[[nodiscard]] std::string
-format_error_message_without_filename(const std::string_view message,
-                                      const bool             fatal)
+[[nodiscard]] std::string formatErrorMessage(const std::string_view message,
+                                             const bool             fatal)
 {
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
   if (isatty(fileno(stdout))) {
@@ -65,12 +75,11 @@ format_error_message_without_filename(const std::string_view message,
 }
 
 // Load a file to std::string.
-[[nodiscard]] std::string
-load_file_to_string(const std::string_view       program_name,
-                    const std::filesystem::path& path)
+[[nodiscard]] std::string loadFile(const std::string_view       program_name,
+                                   const std::filesystem::path& path)
 {
   if (!std::filesystem::exists(path)) {
-    throw std::runtime_error{format_error_message(
+    throw std::runtime_error{formatErrorMessage(
       program_name,
       format("%s: No such file or directory", path.string()))};
   }
@@ -83,11 +92,11 @@ load_file_to_string(const std::string_view       program_name,
   }
 
   throw std::runtime_error{
-    format_error_message(program_name,
-                         format("%s: Could not open file", path.string()))};
+    formatErrorMessage(program_name,
+                       format("%s: Could not open file", path.string()))};
 }
 
-[[nodiscard]] program_options::options_description create_options_description()
+[[nodiscard]] program_options::options_description createOptionsDesc()
 {
   program_options::options_description desc{"Options"};
 
@@ -116,9 +125,9 @@ load_file_to_string(const std::string_view       program_name,
 }
 
 [[nodiscard]] program_options::variables_map
-get_variable_map(const program_options::options_description& desc,
-                 const int                                   argc,
-                 const char* const* const                    argv)
+getVariableMap(const program_options::options_description& desc,
+               const int                                   argc,
+               const char* const* const                    argv)
 {
   program_options::positional_options_description p;
 
@@ -136,18 +145,18 @@ get_variable_map(const program_options::options_description& desc,
 }
 
 [[nodiscard]] std::vector<std::string>
-get_input_files(const std::string_view                program_name,
-                const program_options::variables_map& vmap)
+getInputFiles(const std::string_view                program_name,
+              const program_options::variables_map& vmap)
 {
   if (vmap.contains("input-file"))
     return vmap["input-file"].as<std::vector<std::string>>();
   else {
     throw std::runtime_error{
-      maple::format_error_message(program_name, "no input files", true)};
+      maple::formatErrorMessage(program_name, "no input files", true)};
   }
 }
 
-[[nodiscard]] std::string string_to_lower(const std::string_view str)
+[[nodiscard]] std::string stringToLower(const std::string_view str)
 {
   std::string result;
 
@@ -161,34 +170,25 @@ get_input_files(const std::string_view                program_name,
 }
 
 [[nodiscard]] llvm::Reloc::Model
-get_relocation_model(const std::string_view                program_name,
-                     const program_options::variables_map& vmap)
+getRelocationModel(const std::string_view                program_name,
+                   const program_options::variables_map& vmap)
 {
   const auto rm_lower_str
-    = string_to_lower(vmap["relocation-model"].as<std::string>());
+    = stringToLower(vmap["relocation-model"].as<std::string>());
 
   if (rm_lower_str == "static")
     return llvm::Reloc::Model::Static;
   else if (rm_lower_str == "pic")
     return llvm::Reloc::Model::PIC_;
   else {
-    throw std::runtime_error{maple::format_error_message(
+    throw std::runtime_error{maple::formatErrorMessage(
       program_name,
       format("The value '%s' for --relocation-model is invalid!", rm_lower_str),
       true)};
   }
 }
 
-void display_version()
-{
-  const auto major = MAPLE_VER / 100000;
-  const auto minor = MAPLE_VER / 100 % 1000;
-  const auto patch = MAPLE_VER % 100;
-
-  std::cout << major << '.' << minor << '.' << patch << '\n';
-}
-
-[[noreturn]] void unreachable_internal(const std::size_t line, const char* file)
+[[noreturn]] void unreachableInternal(const std::size_t line, const char* file)
 {
 #ifndef NDEBUG
   if (file) {

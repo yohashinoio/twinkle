@@ -16,6 +16,7 @@
 
 #include <pch/pch.hpp>
 #include <utils/type.hpp>
+#include <unicode/unicode.hpp>
 
 namespace x3 = boost::spirit::x3;
 
@@ -44,7 +45,8 @@ struct StringLiteral : x3::position_tagged {
 };
 
 struct CharLiteral : x3::position_tagged {
-  unsigned char ch;
+  // Unicode code point.
+  unicode::Codepoint ch;
 };
 
 struct Identifier : x3::position_tagged {

@@ -23,7 +23,7 @@ namespace maple
 // Using & Typedef
 //===----------------------------------------------------------------------===//
 
-using InputIterator = std::string::const_iterator;
+using InputIterator = boost::u8_to_u32_iterator<std::string::const_iterator>;
 
 using PositionCache
   = boost::spirit::x3::position_cache<std::vector<InputIterator>>;

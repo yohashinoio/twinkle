@@ -11,6 +11,7 @@
   - [Other operators](#other-operators)
 - [Fundamental (Built-in) Types](#fundamental-built-in-types)
   - [Integer types](#integer-types)
+  - [The character type](#the-character-type)
   - [The boolean type](#the-boolean-type)
   - [The void type](#the-void-type)
   - [Pointer types](#pointer-types)
@@ -110,6 +111,7 @@ Thank you!
 | 16-bit  | i16    | u16      |
 | 32-bit  | i32    | u32      |
 | 64-bit  | i64    | u64      |
+
 ```rust
 let n = 58; // i32.
 
@@ -122,10 +124,26 @@ let n5 = -9223372036854775808; // i64
 let n6 =  18446744073709551615; // u64
 ```
 
+### The character type
+| Length  | Sign     | Name |
+| ------- | -------- | ---- |
+| 32-bit  | Unsigned | char |
+
+This type can have Unicode code points.<br/>
+The entity is a 32-bit unsigned integer.<br/>
+Passing values of this type as characters to functions such as libc will not work properly.
+
+```rust
+let unicode = '🌸';
+
+let ch: char;
+```
+
 ### The boolean type
 | Length  | Name |
 | ------- | ---- |
 | 1-bit   | bool |
+
 ```rust
 let f: bool = true;
 
@@ -140,6 +158,7 @@ let g = false;
 The type void is a special type: you cannot declare a variable of type void,<br/>
 but you can use type void for the return value of a function,<br/>
 meaning that the function will not return a value.
+
 ```rust
 void f()
 {
@@ -164,6 +183,7 @@ i32 main()
 
 Note that the meaning is equivalent to that of a C pointer,<br/>
 but the position of the * is opposite.
+
 ```rust
 let p: *i8 = "hello, world";
 

@@ -1,4 +1,5 @@
 char型を追加（uint32_tでunicodeのコードポイントを保持する）
+Unicodeリテラル
 リファクタリング（長い関数を短くする、codegenのファイル分割）
 配列の初期化をmemcpyに
 添え字演算子

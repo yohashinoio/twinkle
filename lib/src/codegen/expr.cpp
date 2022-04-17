@@ -64,8 +64,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::CharLiteral& node) const
   {
-    // Char literal is u8.
-    return {llvm::ConstantInt::get(ctx.builder.getInt8Ty(), node.ch), false};
+    // Unicode code point.
+    return {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), node.ch), false};
   }
 
   [[nodiscard]] Value operator()(const ast::Identifier& node) const;
@@ -116,8 +116,8 @@ ExprVisitor::ExprVisitor(CGContext& ctx, SymbolTable& scope) noexcept
 // This function changes the value of the argument.
 static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
 {
-  if (const auto lhs_bitwidth = lhs.getValue()->getType()->getIntegerBitWidth(),
-      rhs_bitwidth            = rhs.getValue()->getType()->getIntegerBitWidth();
+  if (const auto lhs_bitwidth = lhs.getType()->getIntegerBitWidth(),
+      rhs_bitwidth            = rhs.getType()->getIntegerBitWidth();
       lhs_bitwidth != rhs_bitwidth) {
     const auto max_bitwidth = std::max(lhs_bitwidth, rhs_bitwidth);
 
@@ -158,7 +158,7 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
 
   IntegerImplicitConversion(ctx, lhs, rhs);
 
-  if (lhs.getValue()->getType() != rhs.getValue()->getType()) {
+  if (lhs.getType() != rhs.getType()) {
     throw std::runtime_error{ctx.formatError(
       ctx.positions.position_of(node),
       "both operands to a binary operator are not of the same type",
@@ -315,7 +315,7 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
 ExprVisitor::genIndirection(const boost::iterator_range<InputIterator>& pos,
                             const Value& rhs) const
 {
-  auto const rhs_type = rhs.getValue()->getType();
+  auto const rhs_type = rhs.getType();
 
   if (!rhs_type->isPointerTy()) {
     throw std::runtime_error{

@@ -80,6 +80,11 @@ struct Value {
     return value;
   }
 
+  [[nodiscard]] llvm::Type* getType() const
+  {
+    return value->getType();
+  }
+
   [[nodiscard]] bool isSigned() const noexcept
   {
     return is_signed;
@@ -143,6 +148,8 @@ genLessOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs);
 genGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs);
 
 [[nodiscard]] Value inverse(CGContext& ctx, const Value& num);
+
+[[nodiscard]] bool equals(const llvm::Type* left, const llvm::Type* right);
 
 } // namespace maple::codegen
 

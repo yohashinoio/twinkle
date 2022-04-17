@@ -69,7 +69,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
 private:
   [[nodiscard]] Value genAssignableValueFromExpr(
     const ast::Expr&                                  node,
-    const boost::iterator_range<maple::InputIterator> position) const;
+    const boost::iterator_range<maple::InputIterator> pos) const;
 
   [[nodiscard]] std::vector<llvm::Value*>
   genInitList(const ast::InitList& list) const;
@@ -78,18 +78,18 @@ private:
                  const std::vector<llvm::Value*>& init_list) const;
 
   [[nodiscard]] llvm::AllocaInst* createVariableWithType(
-    const ast::Stmt&                       node,
-    llvm::Function*                        func,
-    const std::string&                     name,
-    const Type&                            type,
-    const std::optional<ast::Initializer>& initializer) const;
+    const boost::iterator_range<InputIterator>& pos,
+    llvm::Function*                             func,
+    const std::string&                          name,
+    const Type&                                 type,
+    const std::optional<ast::Initializer>&      initializer) const;
 
   [[nodiscard]] std::pair<llvm::AllocaInst*, bool /* Is signed */>
   createVariableWithTypeInference(
-    const ast::Stmt&                       node,
-    llvm::Function*                        func,
-    const std::string&                     name,
-    const std::optional<ast::Initializer>& initializer) const;
+    const boost::iterator_range<InputIterator>& pos,
+    llvm::Function*                             func,
+    const std::string&                          name,
+    const std::optional<ast::Initializer>&      initializer) const;
 
   CGContext& ctx;
 
@@ -124,7 +124,7 @@ void StmtVisitor::operator()(const ast::Expr& node) const
 {
   if (!genExpr(ctx, scope, node)) {
     throw std::runtime_error{
-      format_error_message(ctx.file.string(),
+      formatErrorMessage(ctx.file.string(),
                            "failed to generate expression statement")};
   }
 }
@@ -135,7 +135,7 @@ void StmtVisitor::operator()(const ast::Return& node) const
     auto const retval = genExpr(ctx, scope, *node.rhs);
 
     if (ctx.builder.GetInsertBlock()->getParent()->getReturnType()
-        != retval.getValue()->getType()) {
+        != retval.getType()) {
       throw std::runtime_error{
         ctx.formatError(ctx.positions.position_of(node),
                         "incompatible type for result type")};
@@ -172,7 +172,7 @@ void StmtVisitor::operator()(const ast::VariableDef& node) const
   const auto regist
     = [&](llvm::AllocaInst* const alloca, const bool is_signed) {
         if (!node.qualifier) {
-          // Consttant variable.
+          // Constant variable.
           scope.regist(node.name, {alloca, false, is_signed});
         }
         else if (*node.qualifier == VariableQual::mutable_) {
@@ -183,13 +183,16 @@ void StmtVisitor::operator()(const ast::VariableDef& node) const
 
   if (node.type) {
     const auto& type = **node.type;
-    regist(
-      createVariableWithType(node, func, node.name, type, node.initializer),
-      type.isSigned());
+    regist(createVariableWithType(ctx.positions.position_of(node),
+                                  func,
+                                  node.name,
+                                  type,
+                                  node.initializer),
+           type.isSigned());
   }
   else {
     auto [alloca, is_signed]
-      = createVariableWithTypeInference(node,
+      = createVariableWithTypeInference(ctx.positions.position_of(node),
                                         func,
                                         node.name,
                                         node.initializer);
@@ -212,19 +215,18 @@ void StmtVisitor::operator()(const ast::Assignment& node) const
                         "failed to generate right-hand side")};
     }
 
-    if (lhs.getValue()->getType()->getPointerElementType()
-        != rhs.getValue()->getType()) {
+    if (lhs.getType()->getPointerElementType() != rhs.getType()) {
       throw std::runtime_error{ctx.formatError(
         ctx.positions.position_of(node),
         "both operands to a binary operator are not of the same type")};
     }
 
-    auto const lhs_value = ctx.builder.CreateLoad(
-      lhs.getValue()->getType()->getPointerElementType(),
-      lhs.getValue());
+    auto const lhs_value
+      = ctx.builder.CreateLoad(lhs.getType()->getPointerElementType(),
+                               lhs.getValue());
 
     // Direct assignment.
-    if (node.op == "=")
+    if (node.op == "=") // TODO: to isXXX()
       ctx.builder.CreateStore(rhs.getValue(), lhs.getValue());
 
     // Addition assignment.
@@ -274,7 +276,7 @@ void StmtVisitor::operator()(const ast::PrefixIncAndDec& node) const
     = genAssignableValueFromExpr(node.rhs, ctx.positions.position_of(node));
 
   auto const rhs_value
-    = ctx.builder.CreateLoad(rhs.getValue()->getType()->getPointerElementType(),
+    = ctx.builder.CreateLoad(rhs.getType()->getPointerElementType(),
                              rhs.getValue());
 
   if (node.op == "++") {
@@ -485,7 +487,7 @@ void StmtVisitor::operator()(const ast::For& node) const
 
 [[nodiscard]] Value StmtVisitor::genAssignableValueFromExpr(
   const ast::Expr&                                  node,
-  const boost::iterator_range<maple::InputIterator> position) const
+  const boost::iterator_range<maple::InputIterator> pos) const
 {
   Value value;
 
@@ -497,14 +499,13 @@ void StmtVisitor::operator()(const ast::For& node) const
     if (!variable) {
       // Unknown variable name.
       throw std::runtime_error{
-        ctx.formatError(position,
-                        format("unknown variable name '%s'", identifier))};
+        ctx.formatError(pos, format("unknown variable name '%s'", identifier))};
     }
 
     if (!variable->isMutable()) {
       // Assignment of read-only variable.
       throw std::runtime_error{ctx.formatError(
-        position,
+        pos,
         format("assignment of read-only variable '%s'", identifier))};
     }
 
@@ -521,12 +522,12 @@ void StmtVisitor::operator()(const ast::For& node) const
 
   if (!value) {
     throw std::runtime_error{
-      ctx.formatError(position, "failed to generate left-hand side")};
+      ctx.formatError(pos, "failed to generate left-hand side")};
   }
 
-  if (!value.getValue()->getType()->isPointerTy()) {
+  if (!value.getType()->isPointerTy()) {
     throw std::runtime_error{
-      ctx.formatError(position, "left-hand side requires assignable")};
+      ctx.formatError(pos, "left-hand side requires assignable")};
   }
 
   return value;
@@ -555,11 +556,11 @@ void StmtVisitor::InitArray(llvm::AllocaInst*                array_alloca,
 }
 
 [[nodiscard]] llvm::AllocaInst* StmtVisitor::createVariableWithType(
-  const ast::Stmt&                       node,
-  llvm::Function*                        func,
-  const std::string&                     name,
-  const Type&                            type,
-  const std::optional<ast::Initializer>& initializer) const
+  const boost::iterator_range<InputIterator>& pos,
+  llvm::Function*                             func,
+  const std::string&                          name,
+  const Type&                                 type,
+  const std::optional<ast::Initializer>&      initializer) const
 {
   const auto llvm_type = type.getType(ctx.context);
   auto const alloca    = createEntryAlloca(func, name, llvm_type);
@@ -571,7 +572,7 @@ void StmtVisitor::InitArray(llvm::AllocaInst*                array_alloca,
     // Array initialization.
     if (!llvm_type->isArrayTy()) {
       throw std::runtime_error{
-        ctx.formatError(ctx.positions.position_of(node),
+        ctx.formatError(pos,
                         "initializing an array requires an initializer list")};
     }
 
@@ -579,8 +580,7 @@ void StmtVisitor::InitArray(llvm::AllocaInst*                array_alloca,
 
     if (type.getArraySize() != init_list.size()) {
       throw std::runtime_error{
-        ctx.formatError(ctx.positions.position_of(node),
-                        "invalid number of elements in initializer list")};
+        ctx.formatError(pos, "invalid number of elements in initializer list")};
     }
 
     InitArray(alloca, init_list);
@@ -592,14 +592,21 @@ void StmtVisitor::InitArray(llvm::AllocaInst*                array_alloca,
 
     if (!init_value) {
       throw std::runtime_error{ctx.formatError(
-        ctx.positions.position_of(node),
+        pos,
         format("failed to generate initializer for '%s'", name))};
     }
 
-    if (llvm_type != init_value.getValue()->getType()) {
+    if (!equals(llvm_type, init_value.getType())) {
+      throw std::runtime_error{ctx.formatError(
+        pos,
+        "the variable type and the initializer type are incompatible")};
+    }
+
+    if (llvm_type->isIntegerTy()
+        && llvm_type->getIntegerBitWidth()
+             != init_value.getType()->getIntegerBitWidth()) {
       throw std::runtime_error{
-        ctx.formatError(ctx.positions.position_of(node),
-                        "initializer type and variable type are different")};
+        ctx.formatError(pos, "different bit widths between operands")};
     }
 
     ctx.builder.CreateStore(init_value.getValue(), alloca);
@@ -608,12 +615,12 @@ void StmtVisitor::InitArray(llvm::AllocaInst*                array_alloca,
   return alloca;
 }
 
-[[nodiscard]] std::pair<llvm::AllocaInst*, bool /* isSigned */>
+[[nodiscard]] std::pair<llvm::AllocaInst*, bool /* is signed */>
 StmtVisitor::createVariableWithTypeInference(
-  const ast::Stmt&                       node,
-  llvm::Function*                        func,
-  const std::string&                     name,
-  const std::optional<ast::Initializer>& initializer) const
+  const boost::iterator_range<InputIterator>& pos,
+  llvm::Function*                             func,
+  const std::string&                          name,
+  const std::optional<ast::Initializer>&      initializer) const
 {
   if (initializer->type() == typeid(ast::InitList)) {
     // Guess to array.
@@ -634,12 +641,11 @@ StmtVisitor::createVariableWithTypeInference(
 
     if (!init_value) {
       throw std::runtime_error{ctx.formatError(
-        ctx.positions.position_of(node),
+        pos,
         format("failed to generate initializer for '%s'", name))};
     }
 
-    auto const alloca
-      = createEntryAlloca(func, name, init_value.getValue()->getType());
+    auto const alloca = createEntryAlloca(func, name, init_value.getType());
 
     ctx.builder.CreateStore(init_value.getValue(), alloca);
 

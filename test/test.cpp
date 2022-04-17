@@ -105,6 +105,8 @@ int main(const int argc, const char* const* const argv)
     {        "for_loop_decrement",  58},
     {                "array_type",   0},
     {          "initializer_list",   0},
+    {     "unicode_char_literal1",  58},
+    {     "unicode_char_literal2",   0},
   };
 
   std::size_t ok_c{};   // ok count.

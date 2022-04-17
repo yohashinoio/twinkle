@@ -38,6 +38,7 @@ target_precompile_headers(${LIB_NAME} PRIVATE ../include/pch/pch.hpp)
 add_subdirectory(codegen)
 add_subdirectory(jit)
 add_subdirectory(parse)
+add_subdirectory(unicode)
 add_subdirectory(utils)
 
 target_link_libraries(
@@ -49,6 +50,7 @@ target_link_libraries(
   codegen
   jit
   parse
+  unicode
   utils
 )
 

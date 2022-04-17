@@ -44,7 +44,7 @@ TopLevelVisitor::TopLevelVisitor(
 
 llvm::Function* TopLevelVisitor::operator()(ast::Nil) const
 {
-  throw std::runtime_error{format_error_message(
+  throw std::runtime_error{formatErrorMessage(
     ctx.file.string(),
     "a function was executed that did not predict execution")};
 }

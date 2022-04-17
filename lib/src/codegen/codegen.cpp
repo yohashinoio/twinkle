@@ -11,6 +11,7 @@
 #include <codegen/top_level.hpp>
 #include <utils/type.hpp>
 #include <utils/format.hpp>
+#include <unicode/unicode.hpp>
 #include <cassert>
 
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
@@ -49,7 +50,7 @@ CGContext::CGContext(llvm::LLVMContext&      context,
 [[nodiscard]] std::string
 CGContext::formatError(const boost::iterator_range<InputIterator>& pos,
                        const std::string_view                      message,
-                       const bool                                  with_code)
+                       const bool print_location)
 {
   // Calculate line numbers.
   std::size_t rows = 0;
@@ -75,8 +76,14 @@ CGContext::formatError(const boost::iterator_range<InputIterator>& pos,
      << "error: " << message << '\n';
 #endif
 
-  if (with_code) {
-    std::for_each(pos.begin(), pos.end(), [&](auto&& ch) { ss << ch; });
+  if (print_location) {
+    std::for_each(pos.begin(), pos.end(), [&](auto&& ch) {
+      const auto utf8 = unicode::charUTF32toUTF8(ch);
+
+      // If conversion fails, skip location output.
+      if (utf8)
+        ss << *utf8;
+    });
 
     // TODO:
     // ss << "\n^_";
@@ -142,7 +149,7 @@ void CodeGenerator::emitLlvmIRFiles()
                             llvm::sys::fs::OpenFlags::OF_None};
 
     if (ostream_ec) {
-      throw std::runtime_error{format_error_message(
+      throw std::runtime_error{formatErrorMessage(
         argv_front,
         format("%s: %s", file.string(), ostream_ec.message()))};
     }
@@ -170,7 +177,7 @@ void CodeGenerator::emitObjectFiles()
   auto jit_expected = jit::JitCompiler::create();
   if (auto err = jit_expected.takeError()) {
     throw std::runtime_error{
-      format_error_message(argv_front, llvm::toString(std::move(err)), true)};
+      formatErrorMessage(argv_front, llvm::toString(std::move(err)), true)};
   }
 
   auto jit = std::move(*jit_expected);
@@ -183,7 +190,7 @@ void CodeGenerator::emitObjectFiles()
 
     if (llvm::Linker::linkModules(*front_module, std::move(module))) {
       throw std::runtime_error{
-        format_error_message(argv_front,
+        formatErrorMessage(argv_front,
                              format("%s: Could not link", file.string()))};
     }
   }
@@ -191,13 +198,13 @@ void CodeGenerator::emitObjectFiles()
   if (auto err
       = jit->addModule({std::move(front_module), std::move(context)})) {
     throw std::runtime_error{
-      format_error_message(file.string(), llvm::toString(std::move(err)))};
+      formatErrorMessage(file.string(), llvm::toString(std::move(err)))};
   }
 
   auto symbol_expected = jit->lookup("main");
   if (auto err = symbol_expected.takeError()) {
     throw std::runtime_error{
-      format_error_message(argv_front, "symbol main could not be found")};
+      formatErrorMessage(argv_front, "symbol main could not be found")};
   }
 
   auto       symbol = *symbol_expected;
@@ -235,7 +242,7 @@ void CodeGenerator::emitFiles(const llvm::CodeGenFileType cgft)
                                  llvm::sys::fs::OpenFlags::OF_None};
 
     if (ostream_ec) {
-      throw std::runtime_error{format_error_message(
+      throw std::runtime_error{formatErrorMessage(
         argv_front,
         format("%s: %s\n", file.string(), ostream_ec.message()))};
     }
@@ -247,7 +254,7 @@ void CodeGenerator::emitFiles(const llvm::CodeGenFileType cgft)
                                             nullptr,
                                             cgft)) {
       throw std::runtime_error{
-        format_error_message(argv_front, "failed to emit a file", true)};
+        formatErrorMessage(argv_front, "failed to emit a file", true)};
     }
 
     p_manager.run(*std::get<std::unique_ptr<llvm::Module>>(*it));
@@ -266,7 +273,7 @@ void CodeGenerator::initTargetTripleAndMachine()
 
   if (!target) {
     throw std::runtime_error{
-      format_error_message(argv_front,
+      formatErrorMessage(argv_front,
                            format("failed to lookup target %s: %s",
                                   target_triple,
                                   target_triple_error),
