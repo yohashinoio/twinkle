@@ -2,6 +2,7 @@
 文字列をunicode対応に
 Unicodeリテラル
 配列の初期化をmemcpyに
+自前のformatをboost::formatに（自前のだとu32stringを渡してもエラーにならないままバグになる）
 添え字演算子
 配列のポインタ取得
 配列への代入

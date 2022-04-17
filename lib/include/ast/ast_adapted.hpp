@@ -31,7 +31,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::Identifier,
-  (std::string, name)
+  (std::u32string, name)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -49,7 +49,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::FunctionCall,
-  (std::string, callee)
+  (maple::ast::Identifier, callee)
   (std::vector<maple::ast::Expr>, args)
 )
 
@@ -71,7 +71,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::VariableDef,
   (std::optional<maple::VariableQual>, qualifier)
-  (std::string, name)
+  (maple::ast::Identifier, name)
   (std::optional<std::shared_ptr<maple::Type>>, type)
   (std::optional<maple::ast::Initializer>, initializer)
 )
@@ -138,7 +138,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::Parameter,
   (std::optional<maple::VariableQual>, qualifier)
-  (std::string, name)
+  (maple::ast::Identifier, name)
   (std::shared_ptr<maple::Type>, type)
   (bool, is_vararg)
 )
@@ -152,7 +152,7 @@ BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::FunctionDecl,
   (std::shared_ptr<maple::Type>, return_type)
   (std::optional<maple::Linkage>, linkage)
-  (std::string, name)
+  (maple::ast::Identifier, name)
   (maple::ast::ParameterList, params)
 )
 

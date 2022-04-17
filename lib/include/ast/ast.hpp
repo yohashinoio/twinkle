@@ -50,7 +50,12 @@ struct CharLiteral : x3::position_tagged {
 };
 
 struct Identifier : x3::position_tagged {
-  std::string name;
+  std::u32string name;
+
+  const std::u32string& operator*() const noexcept
+  {
+    return name;
+  }
 };
 
 struct BinOp;
@@ -170,7 +175,7 @@ struct UnaryOp : x3::position_tagged {
 };
 
 struct FunctionCall : x3::position_tagged {
-  std::string       callee;
+  Identifier        callee;
   std::vector<Expr> args;
 };
 
@@ -196,7 +201,7 @@ struct Return : x3::position_tagged {
 
 struct VariableDef : x3::position_tagged {
   std::optional<VariableQual>          qualifier;
-  std::string                          name;
+  Identifier                           name;
   std::optional<std::shared_ptr<Type>> type;
   // Initializer.
   std::optional<Initializer>           initializer;
@@ -275,7 +280,7 @@ struct For : x3::position_tagged {
 
 struct Parameter : x3::position_tagged {
   std::optional<VariableQual> qualifier;
-  std::string                 name;
+  Identifier                  name;
   std::shared_ptr<Type>       type;
   bool                        is_vararg;
 
@@ -317,7 +322,7 @@ struct ParameterList : x3::position_tagged {
 struct FunctionDecl : x3::position_tagged {
   std::shared_ptr<Type>  return_type;
   std::optional<Linkage> linkage;
-  std::string            name;
+  Identifier             name;
   ParameterList          params;
 };
 

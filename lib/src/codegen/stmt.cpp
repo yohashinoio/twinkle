@@ -125,7 +125,7 @@ void StmtVisitor::operator()(const ast::Expr& node) const
   if (!genExpr(ctx, scope, node)) {
     throw std::runtime_error{
       formatErrorMessage(ctx.file.string(),
-                           "failed to generate expression statement")};
+                         "failed to generate expression statement")};
   }
 }
 
@@ -161,10 +161,13 @@ void StmtVisitor::operator()(const ast::VariableDef& node) const
                       "type inference requires an initializer")};
   }
 
-  if (scope.exists(node.name)) {
+  const auto name
+    = stringUTF32toUTF8cg(ctx, ctx.positions.position_of(node), *node.name);
+
+  if (scope.exists(name)) {
     throw std::runtime_error{
       ctx.formatError(ctx.positions.position_of(node),
-                      format("redefinition of '%s'", node.name))};
+                      format("redefinition of '%s'", name))};
   }
 
   auto const func = ctx.builder.GetInsertBlock()->getParent();
@@ -173,11 +176,11 @@ void StmtVisitor::operator()(const ast::VariableDef& node) const
     = [&](llvm::AllocaInst* const alloca, const bool is_signed) {
         if (!node.qualifier) {
           // Constant variable.
-          scope.regist(node.name, {alloca, false, is_signed});
+          scope.regist(name, {alloca, false, is_signed});
         }
         else if (*node.qualifier == VariableQual::mutable_) {
           // Mutable variable.
-          scope.regist(node.name, {alloca, true, is_signed});
+          scope.regist(name, {alloca, true, is_signed});
         }
       };
 
@@ -185,7 +188,7 @@ void StmtVisitor::operator()(const ast::VariableDef& node) const
     const auto& type = **node.type;
     regist(createVariableWithType(ctx.positions.position_of(node),
                                   func,
-                                  node.name,
+                                  name,
                                   type,
                                   node.initializer),
            type.isSigned());
@@ -194,7 +197,7 @@ void StmtVisitor::operator()(const ast::VariableDef& node) const
     auto [alloca, is_signed]
       = createVariableWithTypeInference(ctx.positions.position_of(node),
                                         func,
-                                        node.name,
+                                        name,
                                         node.initializer);
     regist(alloca, is_signed);
   }
@@ -492,21 +495,22 @@ void StmtVisitor::operator()(const ast::For& node) const
   Value value;
 
   if (node.type() == typeid(ast::Identifier)) {
-    const auto& identifier = boost::get<ast::Identifier>(node).name;
+    const auto ident
+      = stringUTF32toUTF8cg(ctx, pos, boost::get<ast::Identifier>(node).name);
 
-    auto variable = scope[identifier];
+    auto variable = scope[ident];
 
     if (!variable) {
       // Unknown variable name.
       throw std::runtime_error{
-        ctx.formatError(pos, format("unknown variable name '%s'", identifier))};
+        ctx.formatError(pos, format("unknown variable name '%s'", ident))};
     }
 
     if (!variable->isMutable()) {
       // Assignment of read-only variable.
       throw std::runtime_error{ctx.formatError(
         pos,
-        format("assignment of read-only variable '%s'", identifier))};
+        format("assignment of read-only variable '%s'", ident))};
     }
 
     value = {variable->getAllocaInst(), variable->isSigned()};

@@ -99,13 +99,15 @@ ExprVisitor::ExprVisitor(CGContext& ctx, SymbolTable& scope) noexcept
 [[nodiscard]] Value ExprVisitor::operator()(const ast::Identifier& node) const
 {
   // TODO: support function identifier
+  const auto ident
+    = stringUTF32toUTF8cg(ctx, ctx.positions.position_of(node), node.name);
 
-  auto variable = scope[node.name];
+  const auto variable = scope[ident];
 
   if (!variable) {
     throw std::runtime_error{
       ctx.formatError(ctx.positions.position_of(node),
-                      format("unknown variable '%s' referenced", node.name))};
+                      format("unknown variable '%s' referenced", ident))};
   }
 
   return {ctx.builder.CreateLoad(variable->getAllocaInst()->getAllocatedType(),
@@ -233,12 +235,15 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
 
 [[nodiscard]] Value ExprVisitor::operator()(const ast::FunctionCall& node) const
 {
-  auto const callee_func = ctx.module->getFunction(node.callee);
+  const auto callee
+    = stringUTF32toUTF8cg(ctx, ctx.positions.position_of(node), *node.callee);
+
+  auto const callee_func = ctx.module->getFunction(callee);
 
   if (!callee_func) {
     throw std::runtime_error{
       ctx.formatError(ctx.positions.position_of(node),
-                      format("unknown function '%s' referenced", node.callee))};
+                      format("unknown function '%s' referenced", callee))};
   }
 
   if (!callee_func->isVarArg() && callee_func->arg_size() != node.args.size()) {
@@ -254,19 +259,16 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
     if (!args_value.back()) {
       throw std::runtime_error{ctx.formatError(
         ctx.positions.position_of(node),
-        format("argument set failed in call to the function '%s'",
-               node.callee))};
+        format("argument set failed in call to the function '%s'", callee))};
     }
   }
 
   // Verify arguments
   for (std::size_t idx = 0; auto&& arg : callee_func->args()) {
     if (args_value[idx++]->getType() != arg.getType()) {
-      throw std::runtime_error{
-        ctx.formatError(ctx.positions.position_of(node),
-                        format("incompatible type for argument %d of '%s'",
-                               idx + 1,
-                               node.callee))};
+      throw std::runtime_error{ctx.formatError(
+        ctx.positions.position_of(node),
+        format("incompatible type for argument %d of '%s'", idx + 1, callee))};
     }
   }
 

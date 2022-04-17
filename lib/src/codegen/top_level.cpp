@@ -86,32 +86,43 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDecl& node) const
                               param_types,
                               is_vararg);
 
+  const auto name
+    = stringUTF32toUTF8cg(ctx, ctx.positions.position_of(node), *node.name);
+
   llvm::Function* func;
   if (!node.linkage) {
     // External linkage.
     func = llvm::Function::Create(func_type,
                                   llvm::Function::ExternalLinkage,
-                                  node.name,
+                                  name,
                                   *ctx.module);
   }
   else if (node.linkage == Linkage::internal) {
     // Internal linkage.
     func = llvm::Function::Create(func_type,
                                   llvm::Function::InternalLinkage,
-                                  node.name,
+                                  name,
                                   *ctx.module);
   }
 
   // Set names for all arguments.
-  for (std::size_t idx = 0; auto&& arg : func->args())
-    arg.setName(node.params[idx++].name);
+  for (std::size_t idx = 0; auto&& arg : func->args()) {
+    const auto param_name = stringUTF32toUTF8cg(ctx,
+                                                ctx.positions.position_of(node),
+                                                *node.params[idx++].name);
+    arg.setName(param_name);
+  }
 
   return func;
 }
 
 llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDef& node) const
 {
-  auto func = ctx.module->getFunction(node.decl.name);
+  const auto name = stringUTF32toUTF8cg(ctx,
+                                        ctx.positions.position_of(node),
+                                        *node.decl.name);
+
+  auto func = ctx.module->getFunction(name);
 
   if (!func)
     func = this->operator()(node.decl);
@@ -119,7 +130,7 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDef& node) const
   if (!func) {
     throw std::runtime_error{
       ctx.formatError(ctx.positions.position_of(node),
-                      format("failed to create function %s", node.decl.name))};
+                      format("failed to create function %s", name))};
   }
 
   SymbolTable argument_table;
@@ -167,7 +178,7 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDef& node) const
   if (!ctx.builder.GetInsertBlock()->getTerminator()
       && !(node.decl.return_type->isVoid())) {
     // Return 0 specially for main.
-    if (node.decl.name == "main") {
+    if (name == "main") {
       ctx.builder.CreateStore(
         llvm::ConstantInt::getSigned(func->getReturnType(), 0),
         retvar);

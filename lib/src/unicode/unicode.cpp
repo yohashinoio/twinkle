@@ -43,4 +43,20 @@ std::optional<std::string> charUTF32toUTF8(const char32_t utf32)
   return utf8;
 }
 
+std::optional<std::string>
+stringUTF32toUTF8(const std::u32string_view utf32_str)
+{
+  std::string utf8_str;
+
+  for (const auto& ch : utf32_str) {
+    const auto utf8 = charUTF32toUTF8(ch);
+    if (!utf8)
+      return std::nullopt;
+
+    utf8_str += *utf8;
+  }
+
+  return utf8_str;
+}
+
 } // namespace maple::unicode

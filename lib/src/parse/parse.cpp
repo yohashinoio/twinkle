@@ -170,10 +170,16 @@ struct EscapeCharSymbolsTag : x3::symbols<char> {
 // Common rules
 //===----------------------------------------------------------------------===//
 
+const auto identifier_internal
+  = x3::rule<struct IdentifierInternalTag, std::u32string>{"identifier"}
+= x3::raw
+  [x3::lexeme[(x3::unicode::graph - (x3::unicode::digit | x3::unicode::punct)
+               | x3::lit('_'))
+              >> *(x3::unicode::graph - x3::unicode::punct | x3::lit('_'))]];
+
 const auto identifier
-  = x3::rule<struct IdentifierTag, std::string>{"identifier"}
-= x3::raw[x3::lexeme[(x3::alpha | x3::lit('_'))
-                     >> *(x3::alnum | x3::lit('_'))]];
+  = x3::rule<struct IdentifierTag, ast::Identifier>{"identifier"}
+= identifier_internal;
 
 const auto variable_qualifier
   = x3::rule<struct VariableQualifierTag, VariableQual>{"variable qualifier"}
@@ -308,10 +314,6 @@ const auto arg_list_def = -(expr % x3::lit(','));
 const auto function_call_def
   = identifier >> x3::lit("(") > arg_list > x3::lit(")");
 
-const auto identifier_expr
-  = x3::rule<struct IdentifierExprTag, ast::Identifier>{"identifier"}
-= identifier;
-
 const auto expr_def = equal;
 
 const auto equal_def
@@ -337,7 +339,7 @@ const auto unary_def          = unary_internal | primary;
 
 const auto primary_def = int_32bit | uint_32bit | int_64bit | uint_64bit
                          | boolean_literal | string_literal | char_literal
-                         | function_call | identifier_expr
+                         | function_call | identifier
                          | (x3::lit('(') > expr > x3::lit(')'));
 
 BOOST_SPIRIT_DEFINE(expr,
@@ -440,10 +442,13 @@ BOOST_SPIRIT_DEFINE(init_list,
 // Top level rules
 //===----------------------------------------------------------------------===//
 
+using namespace std::literals::string_literals;
+
 const auto parameter
   = x3::rule<struct ParameterTag, ast::Parameter>{"parameter"}
 = (-variable_qualifier >> identifier > x3::lit(':') > type > x3::attr(false))
-  | x3::lit("...") >> x3::attr(ast::Parameter{std::nullopt, "", {}, true});
+  | x3::lit("...")
+      >> x3::attr(ast::Parameter{std::nullopt, ast::Identifier{}, {}, true});
 
 const auto parameter_list
   = x3::rule<struct ParameterListTag, ast::ParameterList>{"parameter list"}
@@ -462,8 +467,7 @@ const auto function_def
   = x3::rule<struct FunctionDefTag, ast::FunctionDef>{"function definition"}
 = function_proto > stmt;
 
-const auto top_level
-  = x3::rule<struct TopLevelTag, ast::TopLevel>{"top level"}
+const auto top_level = x3::rule<struct TopLevelTag, ast::TopLevel>{"top level"}
 = function_decl | function_def;
 
 //===----------------------------------------------------------------------===//
@@ -506,6 +510,8 @@ const auto program = x3::rule<struct ProgramTag, ast::Program>{"program"}
 //===----------------------------------------------------------------------===//
 
 struct VariableIdentTag : AnnotatePosition {};
+
+struct IdentifierTag : AnnotatePosition {};
 
 struct StringLiteralTag
   : ErrorHandle
@@ -564,8 +570,6 @@ struct ArgListTag : ErrorHandle {};
 struct FunctionCallTag
   : ErrorHandle
   , AnnotatePosition {};
-
-struct IdentifierExprTag : AnnotatePosition {};
 
 struct PrimaryTag
   : ErrorHandle
