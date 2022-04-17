@@ -1,6 +1,6 @@
-char型を追加（uint32_tでunicodeのコードポイントを保持する）
+識別子をunicode対応に
+文字列をunicode対応に
 Unicodeリテラル
-リファクタリング（長い関数を短くする、codegenのファイル分割）
 配列の初期化をmemcpyに
 添え字演算子
 配列のポインタ取得

@@ -134,9 +134,11 @@ The entity is a 32-bit unsigned integer.<br/>
 Passing values of this type as characters to functions such as libc will not work properly.
 
 ```rust
-let unicode = '🌸';
-
-let ch: char;
+i32 main()
+{
+  let ch: char;
+  let unicode = '🌸';
+}
 ```
 
 ### The boolean type
@@ -145,9 +147,11 @@ let ch: char;
 | 1-bit   | bool |
 
 ```rust
-let f: bool = true;
-
-let g = false;
+i32 main()
+{
+  let f: bool = true;
+  let g = false;
+}
 ```
 
 ### The void type
@@ -185,13 +189,16 @@ Note that the meaning is equivalent to that of a C pointer,<br/>
 but the position of the * is opposite.
 
 ```rust
-let p: *i8 = "hello, world";
+i32 main()
+{
+  let p: *i8 = "hello, world";
 
-let n: i32 = 4810;
-let p_n: *i32 = &n;
+  let n: i32 = 4810;
+  let p_n: *i32 = &n;
 
-let n = 4810;
-let p_n = &n;
+  let n = 4810;
+  let p_n = &n;
+}
 ```
 
 ### Array types
@@ -200,49 +207,64 @@ let p_n = &n;
 | type[size] |
 
 ```rust
-let a1: i32[4810];
-
-let a2 = {4, 8, 1, 0};
+i32 main()
+{
+  let a1: i32[4810];
+  let a2 = {4, 8, 1, 0};
+}
 ```
 
 ## Variables
 ### Definition
 ```rust
-let a: i32;
-
-let b = 48; // Type inference from the initializer.
+i32 main()
+{
+  let a: i32;
+  let b = 48; // Type inference from the initializer.
+}
 ```
 
 ### Mutable variables
 In this language, variables are immutable by default.<br/>
 To make them mutable, use the "mut" qualifier.
 ```rust
-let i = 48; // Constant.
-i = 58; // Error!
+i32 main()
+{
+  let i = 48; // Constant.
+  i = 58; // Error!
 
-let mut j = 48; // Mutable.
-j = 58; // OK
+  let mut j = 48; // Mutable.
+  j = 58; // OK
 
-let mut k: i32; // Mutable.
-k = 4810; // OK
+  let mut k: i32; // Mutable.
+  k = 4810; // OK
+}
 ```
 
 ### Type inference
 Type inference can only be used for initializations with initializers.
 ```rust
-let n = 4810; // i32
+i32 main()
+{
+  let n = 4810; // i32
 
-let f = 1 as bool; // bool
+  let f = 1 as bool; // bool
 
-let s = "hello, world"; // *i8
+  let c = '💕'; // char
+
+  let s = "hello, world"; // *i8
+}
 ```
 
 ## Implicit conversions
 In the case of numeric values, operands with smaller bit widths are converted to the larger bit width side.
 ```rust
-let f: bool = true;
+i32 main()
+{
+  let f: bool = true;
 
-let n = f + 57; // OK! type of n is i32.
+  let n = f + 57; // OK! type of n is i32.
+}
 ```
 
 ## Functions
@@ -294,68 +316,101 @@ i32 private thrice(n: i32) // Internal linkage
 ## Statements
 ### Expression statements
 ```rust
-f();
+i32 main()
+{
+  f();
+}
 ```
 ```rust
-48 + 10;
+i32 main()
+{
+  48 + 10;
+}
 ```
 
 ### Compound Statement (Block)
 ```rust
+i32 main()
 {
-  f();
-  48 + 10;
+  {
+    // Compount statement
+    f();
+    48 + 10;
+  }
+
+  if (true) {
+    // Compount statement
+  }
 }
 ```
 
 ### If-else statement
 ```rust
-let cond: bool = true;
-if (cond) {
+i32 main()
+{
+  let cond: bool = true;
+
+  if (cond) {
+  }
+  else
+    ;
 }
-else
-  ;
 ```
 
 ### While statement
 ```rust
-let mut i = 0;
-// Repeat 10 times.
-while (i != 10) {
-  ++i;
-}
+i32 main()
+{
+  let mut i = 0;
+  // Repeat 10 times.
+  while (i != 10) {
+    ++i;
+  }
 
-while (/* Required */) // Error!
-  ;
+  while (/* Required */) // Error!
+    ;
+}
 ```
 
 ### For statement
 ```rust
-// Repeat 10 times.
-for (let mut i = 0; i != 10; ++i) {
-}
+i32 main()
+{
+  // Repeat 10 times.
+  for (let mut i = 0; i != 10; ++i) {
+  }
 
-// infinite loop.
-for (;;)
-  ;
+  // infinite loop.
+  for (;;)
+    ;
+}
 ```
 
 ### Break statement
 The break statement terminates execution of the nearest loop.
 ```rust
-for (;;) {
-  break;
+i32 main()
+{
+  for (;;) {
+    break;
+  }
 }
 ```
 
 ### Continue statement
 ```rust
-for (;;) {
-  continue;
+i32 main()
+{
+  for (;;) {
+    continue;
+  }
 }
 ```
 
 ### Return statement
 ```
-ret 48 + 10;
+i32 main()
+{
+  ret 48 + 10;
+}
 ```
