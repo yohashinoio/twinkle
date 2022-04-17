@@ -13,11 +13,11 @@
 
 ## Installing
 ### Dependency List
-- LLVM (Developed in 14.0.0)
+- LLVM (Confirmed to work with 13 and 14)
 - Boost (Developed in 1.71.0)
 - CMake
 - Make (Of course, ninja will work)
-- C++20 compiler (Developed with GCC 8.4.0 and clang 14.0.0)
+- C++20 compiler
 
 ### Install dependencies (Ubuntu)
 Here is how to install them in ubuntu.
