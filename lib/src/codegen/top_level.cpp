@@ -44,9 +44,7 @@ TopLevelVisitor::TopLevelVisitor(
 
 llvm::Function* TopLevelVisitor::operator()(ast::Nil) const
 {
-  throw std::runtime_error{formatErrorMessage(
-    ctx.file.string(),
-    "a function was executed that did not predict execution")};
+  unreachable();
 }
 
 llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDecl& node) const
@@ -108,8 +106,8 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDecl& node) const
   // Set names for all arguments.
   for (std::size_t idx = 0; auto&& arg : func->args()) {
     const auto param_name = utf32toUtf8cg(ctx,
-                                                ctx.positions.position_of(node),
-                                                *node.params[idx++].name);
+                                          ctx.positions.position_of(node),
+                                          *node.params[idx++].name);
     arg.setName(param_name);
   }
 
@@ -118,9 +116,8 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDecl& node) const
 
 llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDef& node) const
 {
-  const auto name = utf32toUtf8cg(ctx,
-                                        ctx.positions.position_of(node),
-                                        *node.decl.name);
+  const auto name
+    = utf32toUtf8cg(ctx, ctx.positions.position_of(node), *node.decl.name);
 
   auto func = ctx.module->getFunction(name);
 

@@ -30,8 +30,6 @@ struct CGContext {
             PositionCache&&         positions,
             std::filesystem::path&& file) noexcept;
 
-  [[nodiscard]] llvm::Value* int1ToBool(llvm::Value* value);
-
   [[nodiscard]] std::string
   formatError(const boost::iterator_range<InputIterator>& pos,
               const std::string_view                      message,

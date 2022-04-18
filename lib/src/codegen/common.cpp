@@ -123,57 +123,57 @@ genModulo(CGContext& ctx, const Value& lhs, const Value& rhs)
 
 [[nodiscard]] Value genEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  return Value{ctx.int1ToBool(ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
-                                                     lhs.getValue(),
-                                                     rhs.getValue()))};
+  return Value{ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
+                                      lhs.getValue(),
+                                      rhs.getValue())};
 }
 
 [[nodiscard]] Value
 genNotEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  return Value{ctx.int1ToBool(ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_NE,
-                                                     lhs.getValue(),
-                                                     rhs.getValue()))};
+  return Value{ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_NE,
+                                      lhs.getValue(),
+                                      rhs.getValue())};
 }
 
 [[nodiscard]] Value
 genLessThan(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  return Value{ctx.int1ToBool(
-    ctx.builder.CreateICmp(eitherSigned(lhs, rhs) ? llvm::ICmpInst::ICMP_SLT
-                                                  : llvm::ICmpInst::ICMP_ULT,
-                           lhs.getValue(),
-                           rhs.getValue()))};
+  return Value{ctx.builder.CreateICmp(eitherSigned(lhs, rhs)
+                                        ? llvm::ICmpInst::ICMP_SLT
+                                        : llvm::ICmpInst::ICMP_ULT,
+                                      lhs.getValue(),
+                                      rhs.getValue())};
 }
 
 [[nodiscard]] Value
 genGreaterThan(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  return Value{ctx.int1ToBool(
-    ctx.builder.CreateICmp(eitherSigned(lhs, rhs) ? llvm::ICmpInst::ICMP_SGT
-                                                  : llvm::ICmpInst::ICMP_UGT,
-                           lhs.getValue(),
-                           rhs.getValue()))};
+  return Value{ctx.builder.CreateICmp(eitherSigned(lhs, rhs)
+                                        ? llvm::ICmpInst::ICMP_SGT
+                                        : llvm::ICmpInst::ICMP_UGT,
+                                      lhs.getValue(),
+                                      rhs.getValue())};
 }
 
 [[nodiscard]] Value
 genLessOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  return Value{ctx.int1ToBool(
-    ctx.builder.CreateICmp(eitherSigned(lhs, rhs) ? llvm::ICmpInst::ICMP_SLE
-                                                  : llvm::ICmpInst::ICMP_ULE,
-                           lhs.getValue(),
-                           rhs.getValue()))};
+  return Value{ctx.builder.CreateICmp(eitherSigned(lhs, rhs)
+                                        ? llvm::ICmpInst::ICMP_SLE
+                                        : llvm::ICmpInst::ICMP_ULE,
+                                      lhs.getValue(),
+                                      rhs.getValue())};
 }
 
 [[nodiscard]] Value
 genGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  return Value{ctx.int1ToBool(
-    ctx.builder.CreateICmp(eitherSigned(lhs, rhs) ? llvm::ICmpInst::ICMP_SGE
-                                                  : llvm::ICmpInst::ICMP_UGE,
-                           lhs.getValue(),
-                           rhs.getValue()))};
+  return Value{ctx.builder.CreateICmp(eitherSigned(lhs, rhs)
+                                        ? llvm::ICmpInst::ICMP_SGE
+                                        : llvm::ICmpInst::ICMP_UGE,
+                                      lhs.getValue(),
+                                      rhs.getValue())};
 }
 
 [[nodiscard]] Value genLogicalNegative(CGContext& ctx, const Value& value)

@@ -20,4 +20,4 @@ export import
 github actions
 JITコンパイルのチュートリアルを進める
 8、16進数リテラル
-optionはdriverでパースするようにして、compile::mainにはvariable_mapを渡す
+optionはdriverでパースするようにして、compile::mainにはvariable_mapを渡す（そうするとドライバからリンカを呼びやすくなる）

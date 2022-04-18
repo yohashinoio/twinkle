@@ -36,17 +36,6 @@ CGContext::CGContext(llvm::LLVMContext&      context,
 {
 }
 
-[[nodiscard]] llvm::Value* CGContext::int1ToBool(llvm::Value* value)
-{
-  const BuiltinType as{BuiltinTypeKind::bool_};
-
-  return llvm::CastInst::CreateIntegerCast(value,
-                                           as.getType(context),
-                                           as.isSigned(),
-                                           "",
-                                           builder.GetInsertBlock());
-}
-
 [[nodiscard]] std::string
 CGContext::formatError(const boost::iterator_range<InputIterator>& pos,
                        const std::string_view                      message,

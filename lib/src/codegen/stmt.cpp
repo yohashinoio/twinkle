@@ -534,12 +534,13 @@ void StmtVisitor::operator()(const ast::For& node) const
 
   if (!value) {
     throw std::runtime_error{
-      ctx.formatError(pos, "failed to generate left-hand side")};
+      ctx.formatError(pos, "failed to generate expression")};
   }
 
-  if (!value.getType()->isPointerTy()) {
+  if (!llvm::isa<llvm::AllocaInst>(value.getValue())
+      && !llvm::isa<llvm::LoadInst>(value.getValue())) {
     throw std::runtime_error{
-      ctx.formatError(pos, "left-hand side requires assignable")};
+      ctx.formatError(pos, "left-hand side value requires assignable")};
   }
 
   return value;
