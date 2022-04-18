@@ -189,6 +189,18 @@ const auto function_linkage
   = x3::rule<struct FunctionLinkageTag, Linkage>{"function linkage"}
 = function_linkage_symbols;
 
+const auto binary_literal
+  = x3::rule<struct BinaryLiteralTag, std::uint32_t>{"binary literal"}
+= x3::lexeme[x3::lit("0b") >> x3::uint_parser<std::uint32_t, 2>{}];
+
+const auto octal_literal
+  = x3::rule<struct OctalLiteralTag, std::uint32_t>{"octal literal"}
+= x3::lexeme[x3::lit("0") >> x3::uint_parser<std::uint32_t, 8>{}];
+
+const auto hex_literal
+  = x3::rule<struct HexLiteralTag, std::uint32_t>{"hexadecimal literal"}
+= x3::lexeme[x3::lit("0x") >> x3::uint_parser<std::uint32_t, 16>{}];
+
 const auto uint_32bit
   = x3::rule<struct UnsignedInteger32Tag, std::uint32_t>{"integral number"}
 = x3::uint32;
@@ -210,8 +222,8 @@ const auto boolean_literal
 
 const auto escape_char
   = x3::rule<struct EscapeCharTag, unsigned char>{"escape character"}
-= x3::lit("\\") >> x3::int_parser<char, 8, 1, 3>()     // Octal
-  | x3::lit("\\x") >> x3::int_parser<char, 16, 2, 2>() // Hexadecimal
+= x3::lit("\\") >> x3::int_parser<char, 8, 1, 3>{}     // Octal
+  | x3::lit("\\x") >> x3::int_parser<char, 16, 2, 2>{} // Hexadecimal
   | escape_char_symbols;
 
 const auto string_literal
@@ -337,10 +349,10 @@ const auto conversion_def          = conversion_internal | unary;
 const auto unary_internal_def = unary_operator >> primary;
 const auto unary_def          = unary_internal | primary;
 
-const auto primary_def = int_32bit | uint_32bit | int_64bit | uint_64bit
-                         | boolean_literal | string_literal | char_literal
-                         | function_call | identifier
-                         | (x3::lit('(') > expr > x3::lit(')'));
+const auto primary_def
+  = binary_literal | octal_literal | hex_literal | int_32bit | uint_32bit
+    | int_64bit | uint_64bit | boolean_literal | string_literal | char_literal
+    | function_call | identifier | (x3::lit('(') > expr > x3::lit(')'));
 
 BOOST_SPIRIT_DEFINE(expr,
                     equal,

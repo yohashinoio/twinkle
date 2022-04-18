@@ -100,7 +100,7 @@ ExprVisitor::ExprVisitor(CGContext& ctx, SymbolTable& scope) noexcept
 {
   // TODO: support function identifier
   const auto ident
-    = stringUTF32toUTF8cg(ctx, ctx.positions.position_of(node), node.name);
+    = utf32toUtf8cg(ctx, ctx.positions.position_of(node), node.name);
 
   const auto variable = scope[ident];
 
@@ -160,7 +160,7 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
 
   IntegerImplicitConversion(ctx, lhs, rhs);
 
-  if (lhs.getType() != rhs.getType()) {
+  if (!equals(lhs.getType(), rhs.getType())) {
     throw std::runtime_error{ctx.formatError(
       ctx.positions.position_of(node),
       "both operands to a binary operator are not of the same type",
@@ -236,7 +236,7 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
 [[nodiscard]] Value ExprVisitor::operator()(const ast::FunctionCall& node) const
 {
   const auto callee
-    = stringUTF32toUTF8cg(ctx, ctx.positions.position_of(node), *node.callee);
+    = utf32toUtf8cg(ctx, ctx.positions.position_of(node), *node.callee);
 
   auto const callee_func = ctx.module->getFunction(callee);
 
@@ -265,7 +265,7 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
 
   // Verify arguments
   for (std::size_t idx = 0; auto&& arg : callee_func->args()) {
-    if (args_value[idx++]->getType() != arg.getType()) {
+    if (!equals(args_value[idx++]->getType(), arg.getType())) {
       throw std::runtime_error{ctx.formatError(
         ctx.positions.position_of(node),
         format("incompatible type for argument %d of '%s'", idx + 1, callee))};

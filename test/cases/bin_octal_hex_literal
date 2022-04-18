@@ -1,0 +1,16 @@
+extern i32 printf(fmt: *i8, ...);
+
+i32 main()
+{
+  let d = 4810;
+  let o = 011312;
+  let h = 0x12ca;
+  let b = 0b1001011001010;
+
+  if (d == o) {
+    if (o == h) {
+      if (h == b)
+        ret 58;
+    }
+  }
+}

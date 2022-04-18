@@ -134,8 +134,8 @@ void StmtVisitor::operator()(const ast::Return& node) const
   if (node.rhs) {
     auto const retval = genExpr(ctx, scope, *node.rhs);
 
-    if (ctx.builder.GetInsertBlock()->getParent()->getReturnType()
-        != retval.getType()) {
+    if (!equals(ctx.builder.GetInsertBlock()->getParent()->getReturnType(),
+                retval.getType())) {
       throw std::runtime_error{
         ctx.formatError(ctx.positions.position_of(node),
                         "incompatible type for result type")};
@@ -162,7 +162,7 @@ void StmtVisitor::operator()(const ast::VariableDef& node) const
   }
 
   const auto name
-    = stringUTF32toUTF8cg(ctx, ctx.positions.position_of(node), *node.name);
+    = utf32toUtf8cg(ctx, ctx.positions.position_of(node), *node.name);
 
   if (scope.exists(name)) {
     throw std::runtime_error{
@@ -218,7 +218,7 @@ void StmtVisitor::operator()(const ast::Assignment& node) const
                         "failed to generate right-hand side")};
     }
 
-    if (lhs.getType()->getPointerElementType() != rhs.getType()) {
+    if (!equals(lhs.getType()->getPointerElementType(), rhs.getType())) {
       throw std::runtime_error{ctx.formatError(
         ctx.positions.position_of(node),
         "both operands to a binary operator are not of the same type")};
@@ -496,7 +496,7 @@ void StmtVisitor::operator()(const ast::For& node) const
 
   if (node.type() == typeid(ast::Identifier)) {
     const auto ident
-      = stringUTF32toUTF8cg(ctx, pos, boost::get<ast::Identifier>(node).name);
+      = utf32toUtf8cg(ctx, pos, boost::get<ast::Identifier>(node).name);
 
     auto variable = scope[ident];
 

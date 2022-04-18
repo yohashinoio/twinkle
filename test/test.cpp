@@ -108,6 +108,7 @@ int main(const int argc, const char* const* const argv)
     {     "unicode_char_literal1",  58},
     {     "unicode_char_literal2",   0},
     {        "unicode_identifier",  58},
+    {     "bin_octal_hex_literal",  58},
   };
 
   std::size_t ok_c{};   // ok count.

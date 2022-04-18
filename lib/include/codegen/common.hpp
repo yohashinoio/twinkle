@@ -20,11 +20,11 @@
 namespace maple::codegen
 {
 
-// unicode::stringUTF32toUTF8 wrapper for code generation.
+// unicode::utf32toUtf8 wrapper for code generation.
 [[nodiscard]] std::string
-stringUTF32toUTF8cg(CGContext&                                  ctx,
-                    const boost::iterator_range<InputIterator>& pos,
-                    const std::u32string_view                   utf32_str);
+utf32toUtf8cg(CGContext&                                  ctx,
+              const boost::iterator_range<InputIterator>& pos,
+              const std::u32string_view                   utf32_str);
 
 struct Variable {
   Variable(llvm::AllocaInst* pointer,

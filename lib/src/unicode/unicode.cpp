@@ -12,7 +12,7 @@
 namespace maple::unicode
 {
 
-std::optional<std::string> charUTF32toUTF8(const char32_t utf32)
+std::optional<std::string> utf32toUtf8(const char32_t utf32)
 {
   std::string utf8;
   utf8.reserve(4);
@@ -44,12 +44,12 @@ std::optional<std::string> charUTF32toUTF8(const char32_t utf32)
 }
 
 std::optional<std::string>
-stringUTF32toUTF8(const std::u32string_view utf32_str)
+utf32toUtf8(const std::u32string_view utf32_str)
 {
   std::string utf8_str;
 
   for (const auto& ch : utf32_str) {
-    const auto utf8 = charUTF32toUTF8(ch);
+    const auto utf8 = utf32toUtf8(ch);
     if (!utf8)
       return std::nullopt;
 

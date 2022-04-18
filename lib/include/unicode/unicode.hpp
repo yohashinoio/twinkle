@@ -25,11 +25,9 @@ namespace maple::unicode
 using Codepoint = std::uint32_t;
 
 // If conversion fails, std::nullopt returns.
-std::optional<std::string> charUTF32toUTF8(const char32_t utf32);
+std::optional<std::string> utf32toUtf8(const char32_t utf32);
 
-// If conversion fails, std::nullopt returns.
-std::optional<std::string>
-stringUTF32toUTF8(const std::u32string_view utf32_str);
+std::optional<std::string> utf32toUtf8(const std::u32string_view utf32_str);
 
 } // namespace maple::unicode
 

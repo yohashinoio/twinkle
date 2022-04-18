@@ -13,11 +13,11 @@ namespace maple::codegen
 {
 
 [[nodiscard]] std::string
-stringUTF32toUTF8cg(CGContext&                                  ctx,
+utf32toUtf8cg(CGContext&                                  ctx,
                     const boost::iterator_range<InputIterator>& pos,
                     const std::u32string_view                   utf32_str)
 {
-  const auto utf8 = unicode::stringUTF32toUTF8(utf32_str);
+  const auto utf8 = unicode::utf32toUtf8(utf32_str);
   if (!utf8) {
     throw std::runtime_error{
       ctx.formatError(pos, "Re-encoding from utf32 to utf8 failed")};

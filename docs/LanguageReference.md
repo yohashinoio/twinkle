@@ -3,7 +3,6 @@
 - [Comments](#comments)
   - [Single line comment](#single-line-comment)
   - [Multi line comment](#multi-line-comment)
-- [Identifier naming rules](#identifier-naming-rules)
 - [Operators](#operators)
   - [Arithmetic operators](#arithmetic-operators)
   - [Comparison operators / Relational operators](#comparison-operators--relational-operators)
@@ -27,6 +26,12 @@
   - [Definition](#definition-1)
   - [Mutable parameters](#mutable-parameters)
   - [Linkage](#linkage)
+- [Identifier naming rules](#identifier-naming-rules)
+- [Integer literal](#integer-literal)
+  - [Decimal](#decimal)
+  - [Octal](#octal)
+  - [Hexadecimal](#hexadecimal)
+  - [Binary](#binary)
 - [Statements](#statements)
   - [Expression statements](#expression-statements)
   - [Compound Statement (Block)](#compound-statement-block)
@@ -51,29 +56,6 @@ is
 a
 comment.
 */
-```
-
-## Identifier naming rules
-1. Numbers cannot be used as the first character.
-1. Punctuation characters are not allowed.
-1. However, '_' is allowed as an exception
-1. One or more unicode graphic characters.
-
-```rust
-// 1
-let 48あ10; // Error!
-
-// 2
-let ab)c; // Error!
-let a,bc; // Error!
-
-// 3
-let _48あ10; // OK!
-
-// 3
-let abc; // OK!
-let 💐; // OK!
-let あ; // OK!
 ```
 
 ## Operators
@@ -336,6 +318,51 @@ i32 private thrice(n: i32) // Internal linkage
 }
 ```
 
+## Identifier naming rules
+1. Numbers cannot be used as the first character.
+1. Punctuation characters are not allowed.
+1. However, '_' is allowed as an exception
+1. One or more unicode graphic characters.
+
+```rust
+// 1
+let 48あ10; // Error!
+
+// 2
+let ab)c; // Error!
+let a,bc; // Error!
+
+// 3
+let _48あ10; // OK!
+
+// 3
+let abc; // OK!
+let 💐; // OK!
+let あ; // OK!
+```
+
+## Integer literal
+### Decimal
+Automatic promotion from i32 to u64
+``` rust
+let n = 4810;
+```
+### Octal
+The maximum value for octal literals is u32.
+```rust
+let n = 011312;
+```
+### Hexadecimal
+The maximum value for hexadecimal literals is u32.
+```rust
+let n = 0x12ca;
+let m = 0x12CA;
+```
+### Binary
+The maximum value for binary literals is u32.
+```rust
+let n = 0b1001011001010;
+```
 
 ## Statements
 ### Expression statements

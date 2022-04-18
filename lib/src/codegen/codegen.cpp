@@ -78,7 +78,7 @@ CGContext::formatError(const boost::iterator_range<InputIterator>& pos,
 
   if (print_location) {
     std::for_each(pos.begin(), pos.end(), [&](auto&& ch) {
-      const auto utf8 = unicode::charUTF32toUTF8(ch);
+      const auto utf8 = unicode::utf32toUtf8(ch);
 
       // If conversion fails, skip location output.
       if (utf8)
@@ -191,7 +191,7 @@ void CodeGenerator::emitObjectFiles()
     if (llvm::Linker::linkModules(*front_module, std::move(module))) {
       throw std::runtime_error{
         formatErrorMessage(argv_front,
-                             format("%s: Could not link", file.string()))};
+                           format("%s: Could not link", file.string()))};
     }
   }
 
@@ -274,10 +274,10 @@ void CodeGenerator::initTargetTripleAndMachine()
   if (!target) {
     throw std::runtime_error{
       formatErrorMessage(argv_front,
-                           format("failed to lookup target %s: %s",
-                                  target_triple,
-                                  target_triple_error),
-                           true)};
+                         format("failed to lookup target %s: %s",
+                                target_triple,
+                                target_triple_error),
+                         true)};
   }
 
   llvm::TargetOptions target_options;

@@ -1,5 +1,5 @@
-識別子をunicode対応に
-文字列をunicode対応に
+論理演算子
+文字列をunicode対応に（文字列リテラルを*i8にするか*charにするか悩みどころ）
 Unicodeリテラル
 ドキュメントに文字列リテラルの説明
 配列の初期化をmemcpyに
@@ -19,3 +19,4 @@ export import
 github actions
 JITコンパイルのチュートリアルを進める
 8、16進数リテラル
+optionはdriverでパースするようにして、compile::mainにはvariable_mapを渡す
