@@ -1,0 +1,19 @@
+i32 f()
+{
+  let n = 4810;
+
+  if (!n)
+    ret 0;
+
+  ret 58;
+}
+
+i32 main()
+{
+  let f = false;
+
+  if (!(f == true))
+    ret f();
+
+  ret 123;
+}

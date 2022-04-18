@@ -52,9 +52,10 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   // Boolean literals.
   [[nodiscard]] Value operator()(const bool node) const
   {
-    return {
-      ctx.int1ToBool(llvm::ConstantInt::get(ctx.builder.getInt1Ty(), node)),
-      false};
+    return {llvm::ConstantInt::get(
+              BuiltinType{BuiltinTypeKind::bool_}.getType(ctx.context),
+              node),
+            false};
   }
 
   [[nodiscard]] Value operator()(const ast::StringLiteral& node) const
@@ -167,43 +168,48 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
       false)};
   }
 
-  if (node.isAddition())
+  switch (node.kind()) {
+  case ast::BinOp::Kind::add:
     return genAddition(ctx, lhs, rhs);
 
-  if (node.isSubtraction())
+  case ast::BinOp::Kind::sub:
     return genSubtraction(ctx, lhs, rhs);
 
-  if (node.isMultiplication())
+  case ast::BinOp::Kind::mul:
     return genMultiplication(ctx, lhs, rhs);
 
-  if (node.isDivision())
+  case ast::BinOp::Kind::div:
     return genDivision(ctx, lhs, rhs);
 
-  if (node.isModulo())
+  case ast::BinOp::Kind::mod:
     return genModulo(ctx, lhs, rhs);
 
-  if (node.isEqual())
+  case ast::BinOp::Kind::eq:
     return genEqual(ctx, lhs, rhs);
 
-  if (node.isNotEqual())
+  case ast::BinOp::Kind::neq:
     return genNotEqual(ctx, lhs, rhs);
 
-  if (node.isLessThan())
+  case ast::BinOp::Kind::lt:
     return genLessThan(ctx, lhs, rhs);
 
-  if (node.isGreaterThan())
+  case ast::BinOp::Kind::gt:
     return genGreaterThan(ctx, lhs, rhs);
 
-  if (node.isLessOrEqual())
+  case ast::BinOp::Kind::le:
     return genLessOrEqual(ctx, lhs, rhs);
 
-  if (node.isGreaterOrEqual())
+  case ast::BinOp::Kind::ge:
     return genGreaterOrEqual(ctx, lhs, rhs);
 
-  throw std::runtime_error{
-    ctx.formatError(ctx.positions.position_of(node),
-                    format("unknown operator '%s' detected", node.op),
-                    false)};
+  case ast::BinOp::Kind::unknown:
+    throw std::runtime_error{
+      ctx.formatError(ctx.positions.position_of(node),
+                      format("unknown operator '%s' detected", node.op),
+                      false)};
+  }
+
+  unreachable();
 }
 
 [[nodiscard]] Value ExprVisitor::operator()(const ast::UnaryOp& node) const
@@ -216,21 +222,36 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
                       "failed to generate right-hand side")};
   }
 
-  if (node.isUnaryPlus())
+  switch (node.kind()) {
+  case ast::UnaryOp::Kind::plus:
     return rhs;
 
-  if (node.isUnaryMinus())
+  case ast::UnaryOp::Kind::minus:
     return inverse(ctx, rhs);
 
-  if (node.isIndirection())
+  case ast::UnaryOp::Kind::indirection:
     return genIndirection(ctx.positions.position_of(node), rhs);
 
-  if (node.isAddressOf())
+  case ast::UnaryOp::Kind::address_of:
     return genAddressOf(rhs);
 
-  throw std::runtime_error{
-    ctx.formatError(ctx.positions.position_of(node),
-                    format("unknown operator '%s' detected", node.op))};
+  case ast::UnaryOp::Kind::not_:
+    if (!equals(rhs.getType(),
+                BuiltinType{BuiltinTypeKind::bool_}.getType(ctx.context))) {
+      throw std::runtime_error{
+        ctx.formatError(ctx.positions.position_of(node),
+                        "the not operator requires a bool operand")};
+    }
+
+    return genLogicalNegative(ctx, rhs);
+
+  case ast::UnaryOp::Kind::unknown:
+    throw std::runtime_error{
+      ctx.formatError(ctx.positions.position_of(node),
+                      format("unknown operator '%s' detected", node.op))};
+  }
+
+  unreachable();
 }
 
 [[nodiscard]] Value ExprVisitor::operator()(const ast::FunctionCall& node) const

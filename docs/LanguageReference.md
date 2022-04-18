@@ -6,6 +6,7 @@
 - [Operators](#operators)
   - [Arithmetic operators](#arithmetic-operators)
   - [Comparison operators / Relational operators](#comparison-operators--relational-operators)
+  - [Logical operators](#logical-operators)
   - [Assignment operators (Statement)](#assignment-operators-statement)
   - [Pointer operators](#pointer-operators)
   - [Other operators](#other-operators)
@@ -79,6 +80,11 @@ comment.
 | Less than                | a < b   |
 | Greater than or equal to | a >= b  |
 | Less than or equal to    | a <= b  |
+
+### Logical operators
+| Operator name | Syntax |
+| ------------- | ------ |
+| Logical not   | !a     |
 
 ### Assignment operators (Statement)
 | Operator name             | Syntax |

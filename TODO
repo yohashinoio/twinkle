@@ -1,3 +1,4 @@
+.type() == typeid()としているところをdyn_castを使えばいいのでは
 論理演算子
 文字列をunicode対応に（文字列リテラルを*i8にするか*charにするか悩みどころ）
 Unicodeリテラル

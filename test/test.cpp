@@ -74,7 +74,7 @@ int main(const int argc, const char* const* const argv)
     { "multiplication_assignment",  58},
     {       "division_assignment",  58},
     {         "modulo_assignment",   1},
-    {           "boolean_literal",   2},
+    {           "boolean_literal",  58},
     {                    "break1",  58},
     {                    "break2",  58},
     {                    "break3",   0},
@@ -109,6 +109,7 @@ int main(const int argc, const char* const* const argv)
     {     "unicode_char_literal2",   0},
     {        "unicode_identifier",  58},
     {     "bin_octal_hex_literal",  58},
+    {               "logical_not",  58},
   };
 
   std::size_t ok_c{};   // ok count.

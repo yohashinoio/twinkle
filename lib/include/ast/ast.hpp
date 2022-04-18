@@ -93,59 +93,47 @@ struct BinOp : x3::position_tagged {
   {
   }
 
-  bool isAddition() const
-  {
-    return op == "+";
-  }
+  enum class Kind : unsigned char {
+    unknown,
+    add, // Addition
+    sub, // Subtraciton
+    mul, // Multiplication
+    div, // Division
+    mod, // Modulo
+    eq,  // Equal to
+    neq, // Not equal to
+    lt,  // Less than
+    gt,  // Greater than
+    le,  // Less than or equal to
+    ge,  // Greater than or equal to
+  };
 
-  bool isSubtraction() const
+  Kind kind() const
   {
-    return op == "-";
-  }
+    if (op == "+")
+      return Kind::add;
+    if (op == "-")
+      return Kind::sub;
+    if (op == "*")
+      return Kind::mul;
+    if (op == "/")
+      return Kind::div;
+    if (op == "%")
+      return Kind::mod;
+    if (op == "==")
+      return Kind::eq;
+    if (op == "!=")
+      return Kind::neq;
+    if (op == "<")
+      return Kind::lt;
+    if (op == ">")
+      return Kind::ge;
+    if (op == "<=")
+      return Kind::le;
+    if (op == ">=")
+      return Kind::ge;
 
-  bool isMultiplication() const
-  {
-    return op == "*";
-  }
-
-  bool isDivision() const
-  {
-    return op == "/";
-  }
-
-  bool isModulo() const
-  {
-    return op == "%";
-  }
-
-  bool isEqual() const
-  {
-    return op == "==";
-  }
-
-  bool isNotEqual() const
-  {
-    return op == "!=";
-  }
-
-  bool isLessThan() const
-  {
-    return op == "<";
-  }
-
-  bool isGreaterThan() const
-  {
-    return op == ">";
-  }
-
-  bool isLessOrEqual() const
-  {
-    return op == "<=";
-  }
-
-  bool isGreaterOrEqual() const
-  {
-    return op == ">=";
+    return Kind::unknown;
   }
 };
 
@@ -153,24 +141,29 @@ struct UnaryOp : x3::position_tagged {
   std::string op;
   Expr        rhs;
 
-  bool isUnaryPlus() const
-  {
-    return op == "+";
-  }
+  enum class Kind : unsigned char {
+    unknown,
+    plus,        // Unary plus
+    minus,       // Unary minus
+    indirection, // Indirection
+    address_of,  // Address-of
+    not_,        // Logical not
+  };
 
-  bool isUnaryMinus() const
+  Kind kind() const
   {
-    return op == "-";
-  }
+    if (op == "+")
+      return Kind::plus;
+    if (op == "-")
+      return Kind::minus;
+    if (op == "*")
+      return Kind::indirection;
+    if (op == "&")
+      return Kind::address_of;
+    if (op == "!")
+      return Kind::not_;
 
-  bool isIndirection() const
-  {
-    return op == "*";
-  }
-
-  bool isAddressOf() const
-  {
-    return op == "&";
+    return Kind::unknown;
   }
 };
 

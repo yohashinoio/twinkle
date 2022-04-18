@@ -294,8 +294,8 @@ const auto multitive_operator
 
 const auto unary_operator
   = x3::rule<struct UnaryOperatorTag, std::string>{"unary operator"}
-= x3::string("+") | x3::string("-") | x3::string("*")
-  | x3::string("&"); // TODO: ! operator
+= x3::string("+") | x3::string("-") | x3::string("*") | x3::string("&")
+  | x3::string("!");
 
 //===----------------------------------------------------------------------===//
 // Expression rules

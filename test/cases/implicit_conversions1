@@ -1,8 +1,9 @@
 i32 main()
 {
-  let f: bool = true;
+  let n = -100;
 
-  let n = f + 40;
+  let n2 = (42 as u32) + n;
 
-  ret n;
+  if (n2 == -58)
+    ret 41;
 }

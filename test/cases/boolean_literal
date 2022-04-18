@@ -1,15 +1,20 @@
-bool f()
+i32 f()
 {
   let f: bool = true;
-  ret f + false + true - false;
+  if (f)
+    ret 58;
 }
 
 i32 main()
 {
   let f1: bool = true;
-  let f2: bool = false;
+  let f2 = false;
   let mut f3: bool;
   f3 = true;
   f3 = false;
-  ret (f() + f3) as i32;
+
+  if (f2)
+    ret 123;
+
+  ret f();
 }

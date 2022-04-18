@@ -14,8 +14,8 @@ namespace maple::codegen
 
 [[nodiscard]] std::string
 utf32toUtf8cg(CGContext&                                  ctx,
-                    const boost::iterator_range<InputIterator>& pos,
-                    const std::u32string_view                   utf32_str)
+              const boost::iterator_range<InputIterator>& pos,
+              const std::u32string_view                   utf32_str)
 {
   const auto utf8 = unicode::utf32toUtf8(utf32_str);
   if (!utf8) {
@@ -176,6 +176,14 @@ genGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
                            rhs.getValue()))};
 }
 
+[[nodiscard]] Value genLogicalNegative(CGContext& ctx, const Value& value)
+{
+  return Value{
+    ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
+                           value.getValue(),
+                           llvm::ConstantInt::get(value.getType(), 0))};
+}
+
 [[nodiscard]] Value inverse(CGContext& ctx, const Value& num)
 {
   return Value{ctx.builder.CreateSub(llvm::ConstantInt::get(num.getType(), 0),
@@ -185,7 +193,8 @@ genGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 
 // The code is based on https://gist.github.com/quantumsheep.
 // Thank you!
-[[nodiscard]] bool equals(const llvm::Type* left, const llvm::Type* right)
+[[nodiscard]] bool equals(const llvm::Type* const left,
+                          const llvm::Type* const right)
 {
   auto left_ptr  = llvm::dyn_cast<llvm::PointerType>(left);
   auto right_ptr = llvm::dyn_cast<llvm::PointerType>(right);

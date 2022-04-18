@@ -134,8 +134,12 @@ void StmtVisitor::operator()(const ast::Return& node) const
   if (node.rhs) {
     auto const retval = genExpr(ctx, scope, *node.rhs);
 
-    if (!equals(ctx.builder.GetInsertBlock()->getParent()->getReturnType(),
-                retval.getType())) {
+    auto const return_type
+      = ctx.builder.GetInsertBlock()->getParent()->getReturnType();
+
+    if (!equals(return_type, retval.getType())) {
+      return_type->dump();
+      retval.getType()->dump();
       throw std::runtime_error{
         ctx.formatError(ctx.positions.position_of(node),
                         "incompatible type for result type")};
@@ -299,28 +303,31 @@ void StmtVisitor::operator()(const ast::PrefixIncAndDec& node) const
 
 void StmtVisitor::operator()(const ast::If& node) const
 {
-  auto const cond_value = genExpr(ctx, scope, node.condition);
-
-  if (!cond_value) {
-    throw std::runtime_error{
-      ctx.formatError(ctx.positions.position_of(node),
-                      "invalid condition in if statement")};
-  }
-
-  // Convert condition to a bool by comparing non-equal to 0.
-  auto const cond = ctx.builder.CreateICmp(
-    llvm::ICmpInst::ICMP_NE,
-    cond_value.getValue(),
-    llvm::ConstantInt::get(
-      BuiltinType{BuiltinTypeKind::bool_}.getType(ctx.context),
-      0));
-
   auto const func = ctx.builder.GetInsertBlock()->getParent();
 
   auto const then_bb = llvm::BasicBlock::Create(ctx.context, "", func);
   auto const else_bb = llvm::BasicBlock::Create(ctx.context);
 
   auto const merge_bb = llvm::BasicBlock::Create(ctx.context);
+
+  auto const cond_value = genExpr(ctx, scope, node.condition);
+  if (!cond_value) {
+    throw std::runtime_error{
+      ctx.formatError(ctx.positions.position_of(node),
+                      "invalid condition in if statement")};
+  }
+
+  if (!cond_value.getType()->isIntegerTy()) {
+    throw std::runtime_error{
+      ctx.formatError(ctx.positions.position_of(node),
+                      "condition type is incompatible with bool")};
+  }
+
+  // Compare with 0 and generate a condition of type booa.
+  auto const cond
+    = ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_NE,
+                             cond_value.getValue(),
+                             llvm::ConstantInt::get(cond_value.getType(), 0));
 
   ctx.builder.CreateCondBr(cond, then_bb, else_bb);
 
@@ -516,7 +523,8 @@ void StmtVisitor::operator()(const ast::For& node) const
     value = {variable->getAllocaInst(), variable->isSigned()};
   }
   else if (node.type() == typeid(ast::UnaryOp)
-           && boost::get<ast::UnaryOp>(node).isIndirection()) {
+           && boost::get<ast::UnaryOp>(node).kind()
+                == ast::UnaryOp::Kind::indirection) {
     const auto& unary_op_node = boost::get<ast::UnaryOp>(node);
 
     value = genExpr(ctx, scope, unary_op_node.rhs);
