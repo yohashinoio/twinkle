@@ -138,8 +138,6 @@ void StmtVisitor::operator()(const ast::Return& node) const
       = ctx.builder.GetInsertBlock()->getParent()->getReturnType();
 
     if (!equals(return_type, retval.getType())) {
-      return_type->dump();
-      retval.getType()->dump();
       throw std::runtime_error{
         ctx.formatError(ctx.positions.position_of(node),
                         "incompatible type for result type")};
