@@ -84,8 +84,7 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDecl& node) const
                               param_types,
                               is_vararg);
 
-  const auto name
-    = utf32toUtf8cg(ctx, ctx.positions.position_of(node), *node.name);
+  const auto name = node.name.utf8();
 
   llvm::Function* func;
   if (!node.linkage) {
@@ -104,20 +103,15 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDecl& node) const
   }
 
   // Set names for all arguments.
-  for (std::size_t idx = 0; auto&& arg : func->args()) {
-    const auto param_name = utf32toUtf8cg(ctx,
-                                          ctx.positions.position_of(node),
-                                          *node.params[idx++].name);
-    arg.setName(param_name);
-  }
+  for (std::size_t idx = 0; auto&& arg : func->args())
+    arg.setName(node.params[idx++].name.utf8());
 
   return func;
 }
 
 llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDef& node) const
 {
-  const auto name
-    = utf32toUtf8cg(ctx, ctx.positions.position_of(node), *node.decl.name);
+  const auto name = node.decl.name.utf8();
 
   auto func = ctx.module->getFunction(name);
 

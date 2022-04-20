@@ -21,12 +21,12 @@
 
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::StringLiteral,
-  (std::string, str)
+  (std::u32string, str)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::CharLiteral,
-  (std::uint32_t, ch)
+  (maple::unicode::Codepoint, ch)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -37,13 +37,13 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::BinOp,
   (maple::ast::Expr, lhs)
-  (std::string, op)
+  (std::u32string, op)
   (maple::ast::Expr, rhs)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::UnaryOp,
-  (std::string, op)
+  (std::u32string, op)
   (maple::ast::Expr, rhs)
 )
 
@@ -84,24 +84,24 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::Assignment,
   (maple::ast::Expr, lhs)
-  (std::string, op)
+  (std::u32string, op)
   (maple::ast::Expr, rhs)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::PrefixIncAndDec,
-  (std::string, op)
+  (std::u32string, op)
   (maple::ast::Expr, rhs)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::Break,
-  (std::string, tmp)
+  (std::u32string, tmp)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::Continue,
-  (std::string, tmp)
+  (std::u32string, tmp)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -113,7 +113,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::Loop,
-  (std::string, tmp)
+  (std::u32string, tmp)
   (maple::ast::Stmt, body)
 )
 

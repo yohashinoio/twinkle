@@ -12,20 +12,6 @@
 namespace maple::codegen
 {
 
-[[nodiscard]] std::string
-utf32toUtf8cg(CGContext&                                  ctx,
-              const boost::iterator_range<InputIterator>& pos,
-              const std::u32string_view                   utf32_str)
-{
-  const auto utf8 = unicode::utf32toUtf8(utf32_str);
-  if (!utf8) {
-    throw std::runtime_error{
-      ctx.formatError(pos, "Re-encoding from utf32 to utf8 failed")};
-  }
-
-  return *utf8;
-}
-
 Variable::Variable(llvm::AllocaInst* pointer,
                    const bool        is_mutable,
                    const bool        is_signed) noexcept
@@ -65,7 +51,7 @@ catch (const std::out_of_range&) {
     .CreateAlloca(type, nullptr, var_name);
 }
 
-[[nodiscard]] bool eitherSigned(const Value& lhs, const Value& rhs)
+[[nodiscard]] bool isEitherSigned(const Value& lhs, const Value& rhs)
 {
   return lhs.isSigned() || rhs.isSigned();
 }
@@ -74,27 +60,27 @@ catch (const std::out_of_range&) {
 genAddition(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateAdd(lhs.getValue(), rhs.getValue()),
-          eitherSigned(lhs, rhs)};
+          isEitherSigned(lhs, rhs)};
 }
 
 [[nodiscard]] Value
 genSubtraction(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateSub(lhs.getValue(), rhs.getValue()),
-          eitherSigned(lhs, rhs)};
+          isEitherSigned(lhs, rhs)};
 }
 
 [[nodiscard]] Value
 genMultiplication(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateMul(lhs.getValue(), rhs.getValue()),
-          eitherSigned(lhs, rhs)};
+          isEitherSigned(lhs, rhs)};
 }
 
 [[nodiscard]] Value
 genDivision(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  const auto result_is_signed = eitherSigned(lhs, rhs);
+  const auto result_is_signed = isEitherSigned(lhs, rhs);
 
   if (result_is_signed) {
     return {ctx.builder.CreateSDiv(lhs.getValue(), rhs.getValue()),
@@ -109,7 +95,7 @@ genDivision(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 genModulo(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  const auto result_is_signed = eitherSigned(lhs, rhs);
+  const auto result_is_signed = isEitherSigned(lhs, rhs);
 
   if (result_is_signed) {
     return {ctx.builder.CreateSRem(lhs.getValue(), rhs.getValue()),
@@ -139,7 +125,7 @@ genNotEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 genLessThan(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  return Value{ctx.builder.CreateICmp(eitherSigned(lhs, rhs)
+  return Value{ctx.builder.CreateICmp(isEitherSigned(lhs, rhs)
                                         ? llvm::ICmpInst::ICMP_SLT
                                         : llvm::ICmpInst::ICMP_ULT,
                                       lhs.getValue(),
@@ -149,7 +135,7 @@ genLessThan(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 genGreaterThan(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  return Value{ctx.builder.CreateICmp(eitherSigned(lhs, rhs)
+  return Value{ctx.builder.CreateICmp(isEitherSigned(lhs, rhs)
                                         ? llvm::ICmpInst::ICMP_SGT
                                         : llvm::ICmpInst::ICMP_UGT,
                                       lhs.getValue(),
@@ -159,7 +145,7 @@ genGreaterThan(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 genLessOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  return Value{ctx.builder.CreateICmp(eitherSigned(lhs, rhs)
+  return Value{ctx.builder.CreateICmp(isEitherSigned(lhs, rhs)
                                         ? llvm::ICmpInst::ICMP_SLE
                                         : llvm::ICmpInst::ICMP_ULE,
                                       lhs.getValue(),
@@ -169,7 +155,7 @@ genLessOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 genGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  return Value{ctx.builder.CreateICmp(eitherSigned(lhs, rhs)
+  return Value{ctx.builder.CreateICmp(isEitherSigned(lhs, rhs)
                                         ? llvm::ICmpInst::ICMP_SGE
                                         : llvm::ICmpInst::ICMP_UGE,
                                       lhs.getValue(),

@@ -38,8 +38,9 @@ constexpr unsigned int MAPLE_VER = 100000;
                                              const bool fatal = false);
 
 // Without filename.
-[[nodiscard]] std::string formatErrorMessage(const std::string_view message,
-                                             const bool fatal = false);
+[[nodiscard]] std::string
+formatErrorMessageWithoutFile(const std::string_view message,
+                              const bool             fatal = false);
 
 // Load a file to std::string.
 [[nodiscard]] std::string loadFile(const std::string_view       program_name,

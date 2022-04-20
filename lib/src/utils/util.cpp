@@ -30,7 +30,6 @@ std::string getVersion()
          + boost::lexical_cast<std::string>(patch);
 }
 
-// Formatting and coloring.
 [[nodiscard]] std::string formatErrorMessage(const std::string_view filename,
                                              const std::string_view message,
                                              const bool             fatal)
@@ -55,9 +54,8 @@ std::string getVersion()
   return format("%s: error: %s", filename.data(), message.data());
 }
 
-// Formatting and coloring.
-[[nodiscard]] std::string formatErrorMessage(const std::string_view message,
-                                             const bool             fatal)
+[[nodiscard]] std::string
+formatErrorMessageWithoutFile(const std::string_view message, const bool fatal)
 {
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
   if (isatty(fileno(stdout))) {

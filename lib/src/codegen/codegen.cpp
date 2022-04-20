@@ -67,11 +67,7 @@ CGContext::formatError(const boost::iterator_range<InputIterator>& pos,
 
   if (print_location) {
     std::for_each(pos.begin(), pos.end(), [&](auto&& ch) {
-      const auto utf8 = unicode::utf32toUtf8(ch);
-
-      // If conversion fails, skip location output.
-      if (utf8)
-        ss << *utf8;
+      ss << unicode::utf32toUtf8(ch);
     });
 
     // TODO:

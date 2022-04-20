@@ -165,8 +165,7 @@ void StmtVisitor::operator()(const ast::VariableDef& node) const
                       "type inference requires an initializer")};
   }
 
-  const auto name
-    = utf32toUtf8cg(ctx, ctx.positions.position_of(node), *node.name);
+  const auto name = node.name.utf8();
 
   if (scope.exists(name)) {
     throw std::runtime_error{
@@ -209,71 +208,67 @@ void StmtVisitor::operator()(const ast::VariableDef& node) const
 
 void StmtVisitor::operator()(const ast::Assignment& node) const
 {
-  if (node.op == "=" || node.op == "+=" || node.op == "-=" || node.op == "*="
-      || node.op == "/=" || node.op == "%=") {
-    const auto lhs
-      = genAssignableValueFromExpr(node.lhs, ctx.positions.position_of(node));
+  const auto lhs
+    = genAssignableValueFromExpr(node.lhs, ctx.positions.position_of(node));
 
-    auto const rhs = genExpr(ctx, scope, node.rhs);
+  auto const rhs = genExpr(ctx, scope, node.rhs);
 
-    if (!rhs) {
-      throw std::runtime_error{
-        ctx.formatError(ctx.positions.position_of(node),
-                        "failed to generate right-hand side")};
-    }
+  if (!rhs) {
+    throw std::runtime_error{
+      ctx.formatError(ctx.positions.position_of(node),
+                      "failed to generate right-hand side")};
+  }
 
-    if (!equals(lhs.getType()->getPointerElementType(), rhs.getType())) {
-      throw std::runtime_error{ctx.formatError(
-        ctx.positions.position_of(node),
-        "both operands to a binary operator are not of the same type")};
-    }
+  if (!equals(lhs.getType()->getPointerElementType(), rhs.getType())) {
+    throw std::runtime_error{ctx.formatError(
+      ctx.positions.position_of(node),
+      "both operands to a binary operator are not of the same type")};
+  }
 
-    auto const lhs_value
-      = ctx.builder.CreateLoad(lhs.getType()->getPointerElementType(),
-                               lhs.getValue());
+  auto const lhs_value
+    = ctx.builder.CreateLoad(lhs.getType()->getPointerElementType(),
+                             lhs.getValue());
 
-    // Direct assignment.
-    if (node.op == "=") // TODO: to isXXX()
-      ctx.builder.CreateStore(rhs.getValue(), lhs.getValue());
+  switch (node.kind()) {
+  case ast::Assignment::Kind::unknown:
+    throw std::runtime_error{ctx.formatError(
+      ctx.positions.position_of(node),
+      format("unknown operator '%s' detected", node.operatorStr()))};
 
-    // Addition assignment.
-    if (node.op == "+=") {
-      ctx.builder.CreateStore(ctx.builder.CreateAdd(lhs_value, rhs.getValue()),
-                              lhs.getValue());
-    }
+  case ast::Assignment::Kind::direct:
+    ctx.builder.CreateStore(rhs.getValue(), lhs.getValue());
+    return;
 
-    // Subtraction assignment.
-    if (node.op == "-=") {
-      ctx.builder.CreateStore(ctx.builder.CreateSub(lhs_value, rhs.getValue()),
-                              lhs.getValue());
-    }
+  case ast::Assignment::Kind::add:
+    ctx.builder.CreateStore(ctx.builder.CreateAdd(lhs_value, rhs.getValue()),
+                            lhs.getValue());
+    return;
 
-    // Multiplication assignment.
-    if (node.op == "*=") {
-      ctx.builder.CreateStore(ctx.builder.CreateMul(lhs_value, rhs.getValue()),
-                              lhs.getValue());
-    }
+  case ast::Assignment::Kind::sub:
+    ctx.builder.CreateStore(ctx.builder.CreateSub(lhs_value, rhs.getValue()),
+                            lhs.getValue());
+    return;
 
-    const auto result_is_signed
-      = rhs.isSigned() || lhs.isSigned() ? true : false;
+  case ast::Assignment::Kind::mul:
+    ctx.builder.CreateStore(ctx.builder.CreateMul(lhs_value, rhs.getValue()),
+                            lhs.getValue());
+    return;
 
-    // Division assignment.
-    if (node.op == "/=") {
-      auto const assign_value
-        = result_is_signed ? ctx.builder.CreateSDiv(lhs_value, rhs.getValue())
-                           : ctx.builder.CreateUDiv(lhs_value, rhs.getValue());
+  case ast::Assignment::Kind::div:
+    ctx.builder.CreateStore(
+      isEitherSigned(rhs, lhs)
+        ? ctx.builder.CreateSDiv(lhs_value, rhs.getValue())
+        : ctx.builder.CreateUDiv(lhs_value, rhs.getValue()),
+      lhs.getValue());
+    return;
 
-      ctx.builder.CreateStore(assign_value, lhs.getValue());
-    }
-
-    // Modulo assignment.
-    if (node.op == "%=") {
-      auto const assign_value
-        = result_is_signed ? ctx.builder.CreateSRem(lhs_value, rhs.getValue())
-                           : ctx.builder.CreateURem(lhs_value, rhs.getValue());
-
-      ctx.builder.CreateStore(assign_value, lhs.getValue());
-    }
+  case ast::Assignment::Kind::mod:
+    ctx.builder.CreateStore(
+      isEitherSigned(rhs, lhs)
+        ? ctx.builder.CreateSRem(lhs_value, rhs.getValue())
+        : ctx.builder.CreateURem(lhs_value, rhs.getValue()),
+      lhs.getValue());
+    return;
   }
 }
 
@@ -286,18 +281,25 @@ void StmtVisitor::operator()(const ast::PrefixIncAndDec& node) const
     = ctx.builder.CreateLoad(rhs.getType()->getPointerElementType(),
                              rhs.getValue());
 
-  if (node.op == "++") {
+  switch (node.kind()) {
+  case ast::PrefixIncAndDec::Kind::unknown:
+    throw std::runtime_error{ctx.formatError(
+      ctx.positions.position_of(node),
+      format("unknown operator '%s' detected", node.operatorStr()))};
+
+  case ast::PrefixIncAndDec::Kind::increment:
     ctx.builder.CreateStore(
       ctx.builder.CreateAdd(rhs_value,
                             llvm::ConstantInt::get(rhs_value->getType(), 1)),
       rhs.getValue());
-  }
+    return;
 
-  if (node.op == "--") {
+  case ast::PrefixIncAndDec::Kind::decrement:
     ctx.builder.CreateStore(
       ctx.builder.CreateSub(rhs_value,
                             llvm::ConstantInt::get(rhs_value->getType(), 1)),
       rhs.getValue());
+    return;
   }
 }
 
@@ -502,8 +504,7 @@ void StmtVisitor::operator()(const ast::For& node) const
   Value value;
 
   if (node.type() == typeid(ast::Identifier)) {
-    const auto ident
-      = utf32toUtf8cg(ctx, pos, boost::get<ast::Identifier>(node).name);
+    const auto ident = boost::get<ast::Identifier>(node).utf8();
 
     auto variable = scope[ident];
 

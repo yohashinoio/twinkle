@@ -12,7 +12,8 @@
 
 int main(const int argc, const char* const* const argv)
 {
-  const auto c_result = maple::compile::main(argc, argv);
+  const char* s[]      = {"xxx", "--JIT", "test.rs"};
+  const auto  c_result = maple::compile::main(3, s);
 
   if (!c_result.success) {
     // Failure.

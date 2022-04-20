@@ -32,9 +32,10 @@ struct ErrorHandle {
   {
     ++total_errors;
 
-    auto&& error_handler = x3::get<x3::error_handler_tag>(context).get();
+    auto& error_handler = x3::get<x3::error_handler_tag>(context).get();
+
     error_handler(x.where(),
-                  formatErrorMessage(
+                  formatErrorMessageWithoutFile(
                     "expected: " + boost::core::demangle(x.which().c_str())));
 
     return x3::error_handler_result::fail;
@@ -71,11 +72,11 @@ struct AnnotatePosition {
 namespace action
 {
 
-const auto assign_attr_to_val = [](auto&& ctx) -> void {
+const auto assignAttrToVal = [](auto&& ctx) {
   x3::_val(ctx) = std::move(x3::_attr(ctx));
 };
 
-const auto assign_binop_to_val = [](auto&& ctx) -> void {
+const auto assignBinOpToVal = [](auto&& ctx) {
   ast::BinOp ast{std::move(x3::_val(ctx)),
                  std::move(fusion::at_c<0>(x3::_attr(ctx))),
                  std::move(fusion::at_c<1>(x3::_attr(ctx)))};
@@ -98,69 +99,77 @@ namespace syntax
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Woverloaded-shift-op-parentheses"
 
+using x3::unicode::lit;
+using x3::unicode::char_;
+using x3::unicode::string;
+
+template <typename T>
+using UnicodeSymbols
+  = x3::symbols_parser<boost::spirit::char_encoding::unicode, T>;
+
 //===----------------------------------------------------------------------===//
 // Symbol table
 //===----------------------------------------------------------------------===//
 
-struct BuintinTypeSymbolsTag : x3::symbols<BuiltinTypeKind> {
+struct BuintinTypeSymbolsTag : UnicodeSymbols<BuiltinTypeKind> {
   BuintinTypeSymbolsTag()
   {
     // clang-format off
     add
-      ("void",   {BuiltinTypeKind::void_})
-      (  "i8",      {BuiltinTypeKind::i8})
-      (  "u8",      {BuiltinTypeKind::u8})
-      ( "i16",     {BuiltinTypeKind::i16})
-      ( "u16",     {BuiltinTypeKind::u16})
-      ( "i32",     {BuiltinTypeKind::i32})
-      ( "u32",     {BuiltinTypeKind::u32})
-      ( "i64",     {BuiltinTypeKind::i64})
-      ( "u64",     {BuiltinTypeKind::u64})
-      ("bool",   {BuiltinTypeKind::bool_})
-      ("char",   {BuiltinTypeKind::char_})
+      (U"void",   {BuiltinTypeKind::void_})
+      (  U"i8",      {BuiltinTypeKind::i8})
+      (  U"u8",      {BuiltinTypeKind::u8})
+      ( U"i16",     {BuiltinTypeKind::i16})
+      ( U"u16",     {BuiltinTypeKind::u16})
+      ( U"i32",     {BuiltinTypeKind::i32})
+      ( U"u32",     {BuiltinTypeKind::u32})
+      ( U"i64",     {BuiltinTypeKind::i64})
+      ( U"u64",     {BuiltinTypeKind::u64})
+      (U"bool",   {BuiltinTypeKind::bool_})
+      (U"char",   {BuiltinTypeKind::char_})
     ;
     // clang-format on
   }
 } builtin_type_symbols;
 
-struct VariableQualifierSymbolsTag : x3::symbols<VariableQual> {
+struct VariableQualifierSymbolsTag : UnicodeSymbols<VariableQual> {
   VariableQualifierSymbolsTag()
   {
     // clang-format off
     add
-      ("mut", VariableQual::mutable_)
+      (U"mut", VariableQual::mutable_)
     ;
     // clang-format on
   }
 } variable_qualifier_symbols;
 
-struct FunctionLinkageSymbolsTag : x3::symbols<Linkage> {
+struct FunctionLinkageSymbolsTag : UnicodeSymbols<Linkage> {
   FunctionLinkageSymbolsTag()
   {
     // clang-format off
     add
-      ("private", Linkage::internal)
+      (U"private", Linkage::internal)
     ;
     // clang-format on
   }
 } function_linkage_symbols;
 
-struct EscapeCharSymbolsTag : x3::symbols<char> {
+struct EscapeCharSymbolsTag : UnicodeSymbols<char32_t> {
   EscapeCharSymbolsTag()
   {
     // clang-format off
     add
-      ("\\a", '\a')
-      ("\\b", '\b')
-      ("\\f", '\f')
-      ("\\n", '\n')
-      ("\\r", '\r')
-      ("\\t", '\t')
-      ("\\v", '\v')
-      ("\\0", '\0')
-      ("\\\\", '\\')
-      ("\\\'", '\'')
-      ("\\\"", '\"')
+      (U"\\a", U'\a')
+      (U"\\b", U'\b')
+      (U"\\f", U'\f')
+      (U"\\n", U'\n')
+      (U"\\r", U'\r')
+      (U"\\t", U'\t')
+      (U"\\v", U'\v')
+      (U"\\0", U'\0')
+      (U"\\\\", U'\\')
+      (U"\\\'", U'\'')
+      (U"\\\"", U'\"')
     ;
     // clang-format on
   }
@@ -174,8 +183,8 @@ const auto identifier_internal
   = x3::rule<struct IdentifierInternalTag, std::u32string>{"identifier"}
 = x3::raw
   [x3::lexeme[(x3::unicode::graph - (x3::unicode::digit | x3::unicode::punct)
-               | x3::lit('_'))
-              >> *(x3::unicode::graph - x3::unicode::punct | x3::lit('_'))]];
+               | lit(U"_"))
+              >> *(x3::unicode::graph - x3::unicode::punct | lit(U"_"))]];
 
 const auto identifier
   = x3::rule<struct IdentifierTag, ast::Identifier>{"identifier"}
@@ -191,15 +200,15 @@ const auto function_linkage
 
 const auto binary_literal
   = x3::rule<struct BinaryLiteralTag, std::uint32_t>{"binary literal"}
-= x3::lexeme[x3::lit("0b") >> x3::uint_parser<std::uint32_t, 2>{}];
+= x3::lexeme[lit(U"0b") >> x3::uint_parser<std::uint32_t, 2>{}];
 
 const auto octal_literal
   = x3::rule<struct OctalLiteralTag, std::uint32_t>{"octal literal"}
-= x3::lexeme[x3::lit("0") >> x3::uint_parser<std::uint32_t, 8>{}];
+= x3::lexeme[lit(U"0") >> x3::uint_parser<std::uint32_t, 8>{}];
 
 const auto hex_literal
   = x3::rule<struct HexLiteralTag, std::uint32_t>{"hexadecimal literal"}
-= x3::lexeme[x3::lit("0x") >> x3::uint_parser<std::uint32_t, 16>{}];
+= x3::lexeme[lit(U"0x") >> x3::uint_parser<std::uint32_t, 16>{}];
 
 const auto uint_32bit
   = x3::rule<struct UnsignedInteger32Tag, std::uint32_t>{"integral number"}
@@ -218,33 +227,31 @@ const auto int_64bit
 = x3::int64;
 
 const auto boolean_literal
-  = x3::rule<struct BooleanLiteralTag, bool>{"boolean literal"} = x3::bool_;
+  = x3::rule<struct BooleanLiteralTag, bool>{"boolean literal"}
+= lit(U"true") >> x3::attr(true) | lit(U"false") >> x3::attr(false);
 
 const auto escape_char
   = x3::rule<struct EscapeCharTag, unsigned char>{"escape character"}
-= x3::lit("\\") >> x3::int_parser<char, 8, 1, 3>{}     // Octal
-  | x3::lit("\\x") >> x3::int_parser<char, 16, 2, 2>{} // Hexadecimal
+= lit(U"\\") >> x3::int_parser<char, 8, 1, 3>{}     // Octal
+  | lit(U"\\x") >> x3::int_parser<char, 16, 2, 2>{} // Hexadecimal
   | escape_char_symbols;
 
 const auto string_literal
   = x3::rule<struct StringLiteralTag, ast::StringLiteral>{"string literal"}
-= x3::lexeme[x3::lit('"')
-             >> *(x3::char_ - (x3::lit('"') | x3::eol | x3::lit('\\'))
-                  | escape_char)
-             > x3::lit('"')];
+= x3::lexeme[lit(U"\"")
+             >> *(char_ - (lit(U"\"") | x3::eol | lit(U"\\")) | escape_char)
+             > lit(U"\"")];
 
 const auto char_literal
   = x3::rule<struct CharLiteralTag, ast::CharLiteral>{"character literal"}
-= x3::lit('\'')
-  >> (x3::unicode::char_ - (x3::lit('\'') | x3::eol | x3::lit('\\'))
-      | escape_char)
-  > x3::lit('\'');
+= lit(U"'") >> (char_ - (lit(U"'") | x3::eol | lit(U"\\")) | escape_char)
+  > lit(U"'");
 
 const auto type = x3::rule<struct TypeTag, std::shared_ptr<Type>>{"type"}
-= (-x3::char_('*')
+= (-char_(U'*')
    >> builtin_type_symbols /* TODO: support double (recursion) ptr */
-   >> -(x3::lit('[')
-        >> x3::uint_ /* TODO: inference */ >> x3::lit(']')))[([](auto&& ctx) {
+   >> -(lit(U"[")
+        >> x3::uint_ /* TODO: inference */ >> lit(U"]")))[([](auto&& ctx) {
     if (fusion::at_c<0>(x3::_attr(ctx))) {
       // Pointer types.
       x3::_val(ctx) = std::make_shared<PointerType>(
@@ -269,33 +276,32 @@ const auto type = x3::rule<struct TypeTag, std::shared_ptr<Type>>{"type"}
 // Operator rules
 //===----------------------------------------------------------------------===//
 
-const auto assignment_operator
-  = x3::rule<struct AssignmentOperatorTag, std::string>{"assignment operator"}
-= x3::string("=") | x3::string("+=") | x3::string("-=") | x3::string("*=")
-  | x3::string("/=") | x3::string("%=");
+const auto assignment_operator = x3::rule<struct AssignmentOperatorTag,
+                                          std::u32string>{"assignment operator"}
+= string(U"=") | string(U"+=") | string(U"-=") | string(U"*=") | string(U"/=")
+  | string(U"%=");
 
 const auto equality_operator
-  = x3::rule<struct EqualityOperatorTag, std::string>{"equality operator"}
-= x3::string("==") | x3::string("!=");
+  = x3::rule<struct EqualityOperatorTag, std::u32string>{"equality operator"}
+= string(U"==") | string(U"!=");
 
-const auto relational_operator
-  = x3::rule<struct RelationalOperatorTag, std::string>{"relational operator"}
-= x3::string("<=") | x3::string(">=") /* <= and >= must come first */
-  | x3::string("<") | x3::string(">");
+const auto relational_operator = x3::rule<struct RelationalOperatorTag,
+                                          std::u32string>{"relational operator"}
+= string(U"<=") | string(U">=") /* <= and >= must come first */
+  | string(U"<") | string(U">");
 
 const auto additive_operator
-  = x3::rule<struct AdditiveOperatorTag, std::string>{"additive operator"}
-= (x3::string("+") - x3::string("+=")) | (x3::string("-") - x3::string("-="));
+  = x3::rule<struct AdditiveOperatorTag, std::u32string>{"additive operator"}
+= (string(U"+") - string(U"+=")) | (string(U"-") - string(U"-="));
 
 const auto multitive_operator
-  = x3::rule<struct MultitiveOperatorTag, std::string>{"multitive operator"}
-= (x3::string("*") - x3::string("*=")) | (x3::string("/") - x3::string("/="))
-  | (x3::string("%") - x3::string("%="));
+  = x3::rule<struct MultitiveOperatorTag, std::u32string>{"multitive operator"}
+= (string(U"*") - string(U"*=")) | (string(U"/") - string(U"/="))
+  | (string(U"%") - string(U"%="));
 
 const auto unary_operator
-  = x3::rule<struct UnaryOperatorTag, std::string>{"unary operator"}
-= x3::string("+") | x3::string("-") | x3::string("*") | x3::string("&")
-  | x3::string("!");
+  = x3::rule<struct UnaryOperatorTag, std::u32string>{"unary operator"}
+= string(U"+") | string(U"-") | string(U"*") | string(U"&") | string(U"!");
 
 //===----------------------------------------------------------------------===//
 // Expression rules
@@ -322,28 +328,27 @@ const x3::rule<struct ArgListTag, std::vector<ast::Expr>> arg_list{
 const x3::rule<struct FunctionCallTag, ast::FunctionCall> function_call{
   "function call"};
 
-const auto arg_list_def = -(expr % x3::lit(','));
-const auto function_call_def
-  = identifier >> x3::lit("(") > arg_list > x3::lit(")");
+const auto arg_list_def      = -(expr % lit(U","));
+const auto function_call_def = identifier >> lit(U"(") > arg_list > lit(U")");
 
 const auto expr_def = equal;
 
 const auto equal_def
-  = relation[action::assign_attr_to_val]
-    >> *(equality_operator > relation)[action::assign_binop_to_val];
+  = relation[action::assignAttrToVal]
+    >> *(equality_operator > relation)[action::assignBinOpToVal];
 
 const auto relation_def
-  = add[action::assign_attr_to_val]
-    >> *(relational_operator > add)[action::assign_binop_to_val];
+  = add[action::assignAttrToVal]
+    >> *(relational_operator > add)[action::assignBinOpToVal];
 
-const auto add_def = mul[action::assign_attr_to_val]
-                     >> *(additive_operator > mul)[action::assign_binop_to_val];
+const auto add_def = mul[action::assignAttrToVal]
+                     >> *(additive_operator > mul)[action::assignBinOpToVal];
 
 const auto mul_def
-  = conversion[action::assign_attr_to_val]
-    >> *(multitive_operator > conversion)[action::assign_binop_to_val];
+  = conversion[action::assignAttrToVal]
+    >> *(multitive_operator > conversion)[action::assignBinOpToVal];
 
-const auto conversion_internal_def = unary >> x3::lit("as") > type;
+const auto conversion_internal_def = unary >> lit(U"as") > type;
 const auto conversion_def          = conversion_internal | unary;
 
 const auto unary_internal_def = unary_operator >> primary;
@@ -352,20 +357,20 @@ const auto unary_def          = unary_internal | primary;
 const auto primary_def
   = binary_literal | octal_literal | hex_literal | int_32bit | uint_32bit
     | int_64bit | uint_64bit | boolean_literal | string_literal | char_literal
-    | function_call | identifier | (x3::lit('(') > expr > x3::lit(')'));
+    | function_call | identifier | (lit(U"(") > expr > lit(U")"));
 
-BOOST_SPIRIT_DEFINE(expr,
-                    equal,
-                    relation,
-                    add,
-                    mul,
-                    conversion,
-                    unary,
-                    arg_list,
-                    function_call,
-                    conversion_internal,
-                    unary_internal,
-                    primary)
+BOOST_SPIRIT_DEFINE(expr)
+BOOST_SPIRIT_DEFINE(equal)
+BOOST_SPIRIT_DEFINE(relation)
+BOOST_SPIRIT_DEFINE(add)
+BOOST_SPIRIT_DEFINE(mul)
+BOOST_SPIRIT_DEFINE(conversion)
+BOOST_SPIRIT_DEFINE(unary)
+BOOST_SPIRIT_DEFINE(arg_list)
+BOOST_SPIRIT_DEFINE(function_call)
+BOOST_SPIRIT_DEFINE(conversion_internal)
+BOOST_SPIRIT_DEFINE(unary_internal)
+BOOST_SPIRIT_DEFINE(primary)
 
 //===----------------------------------------------------------------------===//
 // Statement rules
@@ -388,7 +393,7 @@ const x3::rule<struct WhileTag, ast::While>   _while{"while statement"};
 const x3::rule<struct ForTag, ast::For>       _for{"for statement"};
 const x3::rule<struct StmtTag, ast::Stmt>     stmt{"statement"};
 
-const auto init_list_def = x3::lit('{') > (expr % x3::lit(',')) > x3::lit('}');
+const auto init_list_def = lit(U"{") > (expr % lit(U",")) > lit(U"}");
 
 const auto initializer_def = expr | init_list;
 
@@ -396,59 +401,58 @@ const auto expr_stmt_def = expr;
 
 const auto assignment_def = expr >> assignment_operator > expr;
 
-const auto prefix_inc_or_dec_def = (x3::string("++") | x3::string("--")) > expr;
+const auto prefix_inc_or_dec_def = (string(U"++") | string(U"--")) > expr;
 
 const auto variable_type
   = x3::rule<struct variable_type_tag, std::shared_ptr<Type>>{"variable type"}
-= type - x3::lit("void");
+= type - lit(U"void");
 
-const auto variable_def_def = x3::lit("let") > -variable_qualifier > identifier
-                              > -(x3::lit(':') > variable_type)
-                              > -(x3::lit('=') > initializer);
+const auto variable_def_def = lit(U"let") > -variable_qualifier > identifier
+                              > -(lit(U":") > variable_type)
+                              > -(lit(U"=") > initializer);
 
-const auto _return_def = x3::lit("ret") > -expr;
+const auto _return_def = lit(U"ret") > -expr;
 
-const auto _if_def = x3::lit("if") > x3::lit('(') > expr > x3::lit(')') > stmt
-                     > -(x3::lit("else") > stmt);
+const auto _if_def
+  = lit(U"if") > lit(U"(") > expr > lit(U")") > stmt > -(lit(U"else") > stmt);
 
-const auto _loop_def = x3::string("loop") > stmt;
+const auto _loop_def = string(U"loop") > stmt;
 
-const auto _while_def = x3::lit("while") > x3::lit('(') > expr /* Condition */
-                        > x3::lit(')') > stmt;
+const auto _while_def = lit(U"while") > lit(U"(") > expr /* Condition */
+                        > lit(U")") > stmt;
 
-const auto _for_def
-  = x3::lit("for") > x3::lit('(') > -(assignment | variable_def) /* Init */
-    > x3::lit(';') > -expr                                       /* Condition */
-    > x3::lit(';') > -(prefix_inc_or_dec | assignment)           /* Loop */
-    > x3::lit(')') > stmt;
+const auto _for_def = lit(U"for") > lit(U"(")
+                      > -(assignment | variable_def) /* Init */
+                      > lit(U";") > -expr            /* Condition */
+                      > lit(U";") > -(prefix_inc_or_dec | assignment) /* Loop */
+                      > lit(U")") > stmt;
 
 const auto _break = x3::rule<struct BreakTag, ast::Break>{"break statement"}
-= x3::string("break");
+= string(U"break");
 
 const auto _continue
   = x3::rule<struct ContinueTag, ast::Continue>{"continue statement"}
-= x3::string("continue");
+= string(U"continue");
 
-const auto stmt_def
-  = x3::lit(';')                          /* Null statement */
-    | x3::lit('{') > *stmt > x3::lit('}') /* Compound statement */
-    | _loop | _while | _for | _if | _break > x3::lit(';')
-    | _continue > x3::lit(';') | _return > x3::lit(';')
-    | prefix_inc_or_dec > x3::lit(';') | assignment > x3::lit(';')
-    | variable_def > x3::lit(';') | expr_stmt > x3::lit(';');
+const auto stmt_def = lit(U";")                       /* Null statement */
+                      | lit(U"{") > *stmt > lit(U"}") /* Compound statement */
+                      | _loop | _while | _for | _if | _break > lit(U";")
+                      | _continue > lit(U";") | _return > lit(U";")
+                      | prefix_inc_or_dec > lit(U";") | assignment > lit(U";")
+                      | variable_def > lit(U";") | expr_stmt > lit(U";");
 
-BOOST_SPIRIT_DEFINE(init_list,
-                    initializer,
-                    expr_stmt,
-                    variable_def,
-                    assignment,
-                    prefix_inc_or_dec,
-                    _return,
-                    _if,
-                    _loop,
-                    _while,
-                    _for,
-                    stmt)
+BOOST_SPIRIT_DEFINE(init_list)
+BOOST_SPIRIT_DEFINE(initializer)
+BOOST_SPIRIT_DEFINE(expr_stmt)
+BOOST_SPIRIT_DEFINE(variable_def)
+BOOST_SPIRIT_DEFINE(assignment)
+BOOST_SPIRIT_DEFINE(prefix_inc_or_dec)
+BOOST_SPIRIT_DEFINE(_return)
+BOOST_SPIRIT_DEFINE(_if)
+BOOST_SPIRIT_DEFINE(_loop)
+BOOST_SPIRIT_DEFINE(_while)
+BOOST_SPIRIT_DEFINE(_for)
+BOOST_SPIRIT_DEFINE(stmt)
 
 //===----------------------------------------------------------------------===//
 // Top level rules
@@ -458,22 +462,22 @@ using namespace std::literals::string_literals;
 
 const auto parameter
   = x3::rule<struct ParameterTag, ast::Parameter>{"parameter"}
-= (-variable_qualifier >> identifier > x3::lit(':') > type > x3::attr(false))
-  | x3::lit("...")
+= (-variable_qualifier >> identifier > lit(U":") > type > x3::attr(false))
+  | lit(U"...")
       >> x3::attr(ast::Parameter{std::nullopt, ast::Identifier{}, {}, true});
 
 const auto parameter_list
   = x3::rule<struct ParameterListTag, ast::ParameterList>{"parameter list"}
-= -(parameter % x3::lit(','));
+= -(parameter % lit(U","));
 
 const auto function_proto
   = x3::rule<struct FunctionProtoTag, ast::FunctionDecl>{"function prototype"}
-= type > -function_linkage > identifier > x3::lit('(') > parameter_list
-  > x3::lit(')');
+= type > -function_linkage > identifier > lit(U"(") > parameter_list
+  > lit(U")");
 
 const auto function_decl
   = x3::rule<struct FunctionDeclTag, ast::FunctionDecl>{"function declaration"}
-= x3::lit("extern") > function_proto > x3::lit(';');
+= lit(U"extern") > function_proto > lit(U";");
 
 const auto function_def
   = x3::rule<struct FunctionDefTag, ast::FunctionDef>{"function definition"}
@@ -490,11 +494,10 @@ const x3::rule<struct BlockCommentTag> block_comment{"block comment"};
 
 const auto single_line_comment
   = x3::rule<struct SingleLineCommenTag>{"single line comment"}
-= x3::lit("//") >> *(x3::char_ - x3::eol) >> (x3::eol | x3::eoi);
+= lit(U"//") >> *(char_ - x3::eol) >> (x3::eol | x3::eoi);
 
-const auto block_comment_def = x3::lit("/*")
-                               >> *(block_comment | (x3::char_ - x3::lit("*/")))
-                               >> x3::lit("*/");
+const auto block_comment_def
+  = lit(U"/*") >> *(block_comment | (char_ - lit(U"*/"))) >> lit(U"*/");
 
 const auto comment = x3::rule<struct CommentTag>{"comment"}
 = single_line_comment | block_comment;
@@ -691,10 +694,8 @@ struct ProgramTag
 
 Parser::Parser(std::string&& input, std::filesystem::path&& file)
   : input{std::move(input)}
-  , u32_first{boost::u8_to_u32_iterator<std::string::const_iterator>{
-      this->input.cbegin()}}
-  , u32_last{boost::u8_to_u32_iterator<std::string::const_iterator>{
-      this->input.cend()}}
+  , u32_first{cbegin(this->input)}
+  , u32_last{cend(this->input)}
   , positions{u32_first, u32_last}
   , file{std::move(file)}
 {

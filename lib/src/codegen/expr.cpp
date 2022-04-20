@@ -60,7 +60,9 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::StringLiteral& node) const
   {
-    return Value{ctx.builder.CreateGlobalStringPtr(node.str, ".str")};
+    return Value{
+      ctx.builder.CreateGlobalStringPtr(unicode::utf32toUtf8(node.str),
+                                        ".str")};
   }
 
   [[nodiscard]] Value operator()(const ast::CharLiteral& node) const
@@ -100,8 +102,7 @@ ExprVisitor::ExprVisitor(CGContext& ctx, SymbolTable& scope) noexcept
 [[nodiscard]] Value ExprVisitor::operator()(const ast::Identifier& node) const
 {
   // TODO: support function identifier
-  const auto ident
-    = utf32toUtf8cg(ctx, ctx.positions.position_of(node), node.name);
+  const auto ident = node.utf8();
 
   const auto variable = scope[ident];
 
@@ -203,10 +204,10 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
     return genGreaterOrEqual(ctx, lhs, rhs);
 
   case ast::BinOp::Kind::unknown:
-    throw std::runtime_error{
-      ctx.formatError(ctx.positions.position_of(node),
-                      format("unknown operator '%s' detected", node.op),
-                      false)};
+    throw std::runtime_error{ctx.formatError(
+      ctx.positions.position_of(node),
+      format("unknown operator '%s' detected", node.operatorStr()),
+      false)};
   }
 
   unreachable();
@@ -246,9 +247,9 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
     return genLogicalNegative(ctx, rhs);
 
   case ast::UnaryOp::Kind::unknown:
-    throw std::runtime_error{
-      ctx.formatError(ctx.positions.position_of(node),
-                      format("unknown operator '%s' detected", node.op))};
+    throw std::runtime_error{ctx.formatError(
+      ctx.positions.position_of(node),
+      format("unknown operator '%s' detected", node.operatorStr()))};
   }
 
   unreachable();
@@ -256,8 +257,7 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
 
 [[nodiscard]] Value ExprVisitor::operator()(const ast::FunctionCall& node) const
 {
-  const auto callee
-    = utf32toUtf8cg(ctx, ctx.positions.position_of(node), *node.callee);
+  const auto callee = node.callee.utf8();
 
   auto const callee_func = ctx.module->getFunction(callee);
 

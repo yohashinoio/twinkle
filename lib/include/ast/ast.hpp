@@ -39,9 +39,9 @@ struct Nil {};
 struct StringLiteral : x3::position_tagged {
   // Some compilers will error if there is no value_type,
   // because x3::rule using this AST uses iterator.
-  using value_type = std::string;
+  using value_type = std::u32string;
 
-  std::string str;
+  std::u32string str;
 };
 
 struct CharLiteral : x3::position_tagged {
@@ -52,7 +52,12 @@ struct CharLiteral : x3::position_tagged {
 struct Identifier : x3::position_tagged {
   std::u32string name;
 
-  const std::u32string& operator*() const noexcept
+  std::string utf8() const
+  {
+    return unicode::utf32toUtf8(name);
+  }
+
+  const std::u32string& utf32() const
   {
     return name;
   }
@@ -78,11 +83,11 @@ using Expr = boost::variant<Nil,
                             boost::recursive_wrapper<Conversion>>;
 
 struct BinOp : x3::position_tagged {
-  Expr        lhs;
-  std::string op;
-  Expr        rhs;
+  Expr           lhs;
+  std::u32string op;
+  Expr           rhs;
 
-  BinOp(decltype(lhs)&& lhs, decltype(op)&& op, decltype(rhs)&& rhs)
+  BinOp(Expr&& lhs, std::u32string&& op, Expr&& rhs)
     : lhs{std::move(lhs)}
     , op{std::move(op)}
     , rhs{std::move(rhs)}
@@ -91,6 +96,11 @@ struct BinOp : x3::position_tagged {
 
   BinOp() noexcept
   {
+  }
+
+  std::string operatorStr() const
+  {
+    return unicode::utf32toUtf8(op);
   }
 
   enum class Kind : unsigned char {
@@ -110,27 +120,27 @@ struct BinOp : x3::position_tagged {
 
   Kind kind() const
   {
-    if (op == "+")
+    if (op == U"+")
       return Kind::add;
-    if (op == "-")
+    if (op == U"-")
       return Kind::sub;
-    if (op == "*")
+    if (op == U"*")
       return Kind::mul;
-    if (op == "/")
+    if (op == U"/")
       return Kind::div;
-    if (op == "%")
+    if (op == U"%")
       return Kind::mod;
-    if (op == "==")
+    if (op == U"==")
       return Kind::eq;
-    if (op == "!=")
+    if (op == U"!=")
       return Kind::neq;
-    if (op == "<")
+    if (op == U"<")
       return Kind::lt;
-    if (op == ">")
+    if (op == U">")
       return Kind::ge;
-    if (op == "<=")
+    if (op == U"<=")
       return Kind::le;
-    if (op == ">=")
+    if (op == U">=")
       return Kind::ge;
 
     return Kind::unknown;
@@ -138,8 +148,13 @@ struct BinOp : x3::position_tagged {
 };
 
 struct UnaryOp : x3::position_tagged {
-  std::string op;
-  Expr        rhs;
+  std::u32string op;
+  Expr           rhs;
+
+  std::string operatorStr() const
+  {
+    return unicode::utf32toUtf8(op);
+  }
 
   enum class Kind : unsigned char {
     unknown,
@@ -152,15 +167,15 @@ struct UnaryOp : x3::position_tagged {
 
   Kind kind() const
   {
-    if (op == "+")
+    if (op == U"+")
       return Kind::plus;
-    if (op == "-")
+    if (op == U"-")
       return Kind::minus;
-    if (op == "*")
+    if (op == U"*")
       return Kind::indirection;
-    if (op == "&")
+    if (op == U"&")
       return Kind::address_of;
-    if (op == "!")
+    if (op == U"!")
       return Kind::not_;
 
     return Kind::unknown;
@@ -201,22 +216,76 @@ struct VariableDef : x3::position_tagged {
 };
 
 struct Assignment : x3::position_tagged {
-  Expr        lhs; // Only assignable.
-  std::string op;
-  Expr        rhs;
+  Expr           lhs; // Only assignable.
+  std::u32string op;
+  Expr           rhs;
+
+  std::string operatorStr() const
+  {
+    return unicode::utf32toUtf8(op);
+  }
+
+  enum class Kind : unsigned char {
+    unknown,
+    direct, // Direct assignment
+    add,    // Addition assignment
+    sub,    // Subtraction assignment
+    mul,    // Multiplication assignment
+    div,    // Division assignment
+    mod,    // Modulo assignment
+  };
+
+  Kind kind() const
+  {
+    if (op == U"=")
+      return Kind::direct;
+    if (op == U"+=")
+      return Kind::add;
+    if (op == U"-=")
+      return Kind::sub;
+    if (op == U"*=")
+      return Kind::mul;
+    if (op == U"/=")
+      return Kind::div;
+    if (op == U"%=")
+      return Kind::mod;
+
+    return Kind::unknown;
+  }
 };
 
 struct PrefixIncAndDec : x3::position_tagged {
-  std::string op;
-  Expr        rhs; // Only assignable.
+  std::u32string op;
+  Expr           rhs; // Only assignable.
+
+  std::string operatorStr() const
+  {
+    return unicode::utf32toUtf8(op);
+  }
+
+  enum class Kind : unsigned char {
+    unknown,
+    increment,
+    decrement,
+  };
+
+  Kind kind() const
+  {
+    if (op == U"++")
+      return Kind::increment;
+    if (op == U"--")
+      return Kind::decrement;
+
+    return Kind::unknown;
+  }
 };
 
 struct Break : x3::position_tagged {
-  std::string tmp;
+  std::u32string tmp;
 };
 
 struct Continue : x3::position_tagged {
-  std::string tmp;
+  std::u32string tmp;
 };
 
 struct If;
@@ -248,8 +317,8 @@ struct If : x3::position_tagged {
 };
 
 struct Loop : x3::position_tagged {
-  std::string tmp;
-  Stmt        body;
+  std::u32string tmp;
+  Stmt           body;
 };
 
 struct While : x3::position_tagged {

@@ -12,51 +12,20 @@
 namespace maple::unicode
 {
 
-std::optional<std::string> utf32toUtf8(const char32_t utf32)
+std::string utf32toUtf8(const char32_t utf32)
 {
-  std::string utf8;
-  utf8.reserve(4);
+  std::u32string tmp{utf32};
 
-  if (utf32 < 0x7F)
-    utf8.push_back(static_cast<unsigned>(utf32));
-  else if (utf32 < 0x7FF) {
-    utf8.push_back(0b1100'0000 + static_cast<unsigned>(utf32 >> 6));
-    utf8.push_back(0b1000'0000 + static_cast<unsigned>(utf32 & 0b0011'1111));
-  }
-  else if (utf32 < 0x10000) {
-    utf8.push_back(0b1110'0000 + static_cast<unsigned>(utf32 >> 12));
-    utf8.push_back(0b1000'0000
-                   + static_cast<unsigned>((utf32 >> 6) & 0b0011'1111));
-    utf8.push_back(0b1000'0000 + static_cast<unsigned>(utf32 & 0b0011'1111));
-  }
-  else if (utf32 < 0x110000) {
-    utf8.push_back(0b1111'0000 + static_cast<unsigned>(utf32 >> 18));
-    utf8.push_back(0b1000'0000
-                   + static_cast<unsigned>((utf32 >> 12) & 0b0011'1111));
-    utf8.push_back(0b1000'0000
-                   + static_cast<unsigned>((utf32 >> 6) & 0b0011'1111));
-    utf8.push_back(0b1000'0000 + static_cast<unsigned>(utf32 & 0b0011'1111));
-  }
-  else
-    return std::nullopt;
+  boost::u32_to_u8_iterator first{cbegin(tmp)}, last{cend(tmp)};
 
-  return utf8;
+  return std::string(first, last);
 }
 
-std::optional<std::string>
-utf32toUtf8(const std::u32string_view utf32_str)
+std::string utf32toUtf8(const std::u32string_view utf32_str)
 {
-  std::string utf8_str;
+  boost::u32_to_u8_iterator first{cbegin(utf32_str)}, last{cend(utf32_str)};
 
-  for (const auto& ch : utf32_str) {
-    const auto utf8 = utf32toUtf8(ch);
-    if (!utf8)
-      return std::nullopt;
-
-    utf8_str += *utf8;
-  }
-
-  return utf8_str;
+  return std::string(first, last);
 }
 
 } // namespace maple::unicode

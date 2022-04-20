@@ -20,12 +20,6 @@
 namespace maple::codegen
 {
 
-// unicode::utf32toUtf8 wrapper for code generation.
-[[nodiscard]] std::string
-utf32toUtf8cg(CGContext&                                  ctx,
-              const boost::iterator_range<InputIterator>& pos,
-              const std::u32string_view                   utf32_str);
-
 struct Variable {
   Variable(llvm::AllocaInst* pointer,
            const bool        is_mutable,
@@ -118,7 +112,7 @@ private:
                                                   llvm::Type*        type);
 
 // Return true if one of them is signed.
-[[nodiscard]] bool eitherSigned(const Value& lhs, const Value& rhs);
+[[nodiscard]] bool isEitherSigned(const Value& lhs, const Value& rhs);
 
 [[nodiscard]] Value
 genAddition(CGContext& ctx, const Value& lhs, const Value& rhs);
