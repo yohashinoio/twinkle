@@ -115,13 +115,18 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDef& node) const
 
   auto func = ctx.module->getFunction(name);
 
-  if (!func)
-    func = this->operator()(node.decl);
+  if (func) {
+    throw std::runtime_error{
+      ctx.formatError(ctx.positions.position_of(node.decl),
+                      format("redefinition of '%s'", name))};
+  }
+
+  func = this->operator()(node.decl);
 
   if (!func) {
     throw std::runtime_error{
-      ctx.formatError(ctx.positions.position_of(node),
-                      format("failed to create function %s", name))};
+      ctx.formatError(ctx.positions.position_of(node.decl),
+                      format("failed to create function '%s'", name))};
   }
 
   SymbolTable argument_table;

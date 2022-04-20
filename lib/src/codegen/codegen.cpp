@@ -66,12 +66,10 @@ CGContext::formatError(const boost::iterator_range<InputIterator>& pos,
 #endif
 
   if (print_location) {
-    std::for_each(pos.begin(), pos.end(), [&](auto&& ch) {
-      ss << unicode::utf32toUtf8(ch);
-    });
+    std::u32string tmp;
+    std::copy(cbegin(pos), cend(pos), std::back_inserter(tmp));
 
-    // TODO:
-    // ss << "\n^_";
+    ss << boost::algorithm::trim_copy(unicode::utf32toUtf8(tmp));
   }
 
   return ss.str();

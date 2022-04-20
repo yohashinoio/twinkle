@@ -57,9 +57,19 @@ struct SymbolTable {
   }
 
   // Returns true if the variable is already registered, false otherwise.
-  bool exists(const std::string& name) const
+  [[nodiscard]] bool exists(const std::string& name) const
   {
     return named_values.contains(name);
+  }
+
+  [[nodiscard]] auto begin() const noexcept
+  {
+    return named_values.begin();
+  }
+
+  [[nodiscard]] auto end() const noexcept
+  {
+    return named_values.end();
   }
 
 private:
