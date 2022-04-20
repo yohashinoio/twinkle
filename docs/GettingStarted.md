@@ -9,7 +9,7 @@
 // hello.txt
 extern i32 printf(fmt: *i8, ...);
 
-i32 main()
+fn main() -> i32
 {
   printf("hello, world\n");
 }

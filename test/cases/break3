@@ -1,4 +1,4 @@
-i32 main()
+fn main() -> i32
 {
   let mut i: i32;
   for (i = 0; i != 100000; i += 1)

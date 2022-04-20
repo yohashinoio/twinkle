@@ -1,9 +1,9 @@
-void f(mut p: *i32)
+fn f(mut p: *i32)
 {
   *p = 58;
 }
 
-i32 main()
+fn main() -> i32
 {
   let mut n: i32 = 0;
   f(&n);

@@ -1,4 +1,4 @@
-void f(p: *i32)
+fn f(p: *i32) -> i32
 {
   *p = 58;
   ret;
@@ -8,7 +8,7 @@ void f(p: *i32)
   ret;
 }
 
-i32 main()
+fn main() -> i32
 {
   let mut n: i32;
   f(&n);

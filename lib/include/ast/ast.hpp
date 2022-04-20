@@ -382,10 +382,10 @@ struct ParameterList : x3::position_tagged {
 };
 
 struct FunctionDecl : x3::position_tagged {
-  std::shared_ptr<Type>  return_type;
   std::optional<Linkage> linkage;
   Identifier             name;
   ParameterList          params;
+  std::shared_ptr<Type>  return_type;
 };
 
 struct FunctionDef : x3::position_tagged {

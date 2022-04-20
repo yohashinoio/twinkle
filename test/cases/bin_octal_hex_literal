@@ -1,6 +1,4 @@
-extern i32 printf(fmt: *i8, ...);
-
-i32 main()
+fn main() -> i32
 {
   let d = 4810;
   let o = 011312;

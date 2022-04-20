@@ -1,9 +1,9 @@
-*i32 get_ptr(n: i32)
+fn get_ptr(n: i32) -> *i32
 {
   ret &n;
 }
 
-i32 main()
+fn main() -> i32
 {
   let n: i32 = 58;
   ret *get_ptr(n);

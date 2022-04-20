@@ -472,8 +472,10 @@ const auto parameter_list
 
 const auto function_proto
   = x3::rule<struct FunctionProtoTag, ast::FunctionDecl>{"function prototype"}
-= type > -function_linkage > identifier > lit(U"(") > parameter_list
-  > lit(U")");
+= -function_linkage > identifier > lit(U"(") > parameter_list
+  > lit(U")")
+  > ((lit(U"->") > type)
+     | x3::attr(std::make_shared<BuiltinType>(BuiltinTypeKind::void_)));
 
 const auto function_decl
   = x3::rule<struct FunctionDeclTag, ast::FunctionDecl>{"function declaration"}
@@ -481,7 +483,7 @@ const auto function_decl
 
 const auto function_def
   = x3::rule<struct FunctionDefTag, ast::FunctionDef>{"function definition"}
-= function_proto > stmt;
+= lit(U"fn") > function_proto > stmt;
 
 const auto top_level = x3::rule<struct TopLevelTag, ast::TopLevel>{"top level"}
 = function_decl | function_def;

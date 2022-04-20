@@ -1,16 +1,16 @@
-i64 f()
+fn f() -> i64
 {
   let n = -9223372036854775808; // LLONG_MIN.
   ret n;
 }
 
-u64 g()
+fn g() -> u64
 {
   let n = 18446744073709551615; // ULLONG_MAX.
   ret n;
 }
 
-i32 main()
+fn main() -> i32
 {
   let n = 9223372036854775807; // LLONG_MAX.
 

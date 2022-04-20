@@ -1,6 +1,6 @@
-extern i32 strcmp(s1: *i8, s2: *i8);
+extern strcmp(s1: *i8, s2: *i8) -> i32;
 
-i32 main()
+fn main() -> i32
 {
   let yoha: *i8 = "\x1b[33mYO\033[32mHA";
   let io: *i8 = "\33[37mI\x1b[41mO";

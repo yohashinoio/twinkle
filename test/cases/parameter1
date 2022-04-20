@@ -1,9 +1,9 @@
-bool equal(a: i32, b: i32)
+fn equal(a: i32, b: i32) -> bool
 {
   ret a == b;
 }
 
-i32 main()
+fn main() -> i32
 {
   let a: i32 = 48;
   let b: i32 = 10;

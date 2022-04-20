@@ -1,4 +1,4 @@
-i32 main()
+fn main() -> i32
 {
   let a1: i32[48];
   let a2: i8[10];

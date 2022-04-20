@@ -1,9 +1,9 @@
-i32 🌸(💐: i32, mut 🌹: i32)
+fn 🌸(💐: i32, mut 🌹: i32) -> i32
 {
   ret 🌹 + 💐;
 }
 
-i32 main()
+fn main() -> i32
 {
   let いお = 10;
   let よは = 48;

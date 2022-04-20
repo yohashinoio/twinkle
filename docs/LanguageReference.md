@@ -146,7 +146,7 @@ The entity is a 32-bit unsigned integer.<br/>
 Passing values of this type as characters to functions such as libc will not work properly.
 
 ```rust
-i32 main()
+fn main() -> i32
 {
   let ch: char;
   let unicode = '🌸';
@@ -159,7 +159,7 @@ i32 main()
 | 1-bit   | bool |
 
 ```rust
-i32 main()
+fn main() -> i32
 {
   let f: bool = true;
   let g = false;
@@ -173,19 +173,21 @@ i32 main()
 
 The type void is a special type: you cannot declare a variable of type void,<br/>
 but you can use type void for the return value of a function,<br/>
-meaning that the function will not return a value.
+meaning that the function will not return a value.<br/>
+And the return type of a function is optional and has the same meaning as the void type.
 
 ```rust
-void f()
+fn f() -> void
 {
   ret;
 }
 
-void g()
+// Functions returning void type do not require return.
+fn g()
 {
 }
 
-i32 main()
+fn main() -> i32
 {
   f();
   g();
@@ -201,7 +203,7 @@ Note that the meaning is equivalent to that of a C pointer,<br/>
 but the position of the * is opposite.
 
 ```rust
-i32 main()
+fn main() -> i32
 {
   let p: *i8 = "hello, world";
 
@@ -219,7 +221,7 @@ i32 main()
 | type[size] |
 
 ```rust
-i32 main()
+fn main() -> i32
 {
   let a1: i32[4810];
   let a2 = {4, 8, 1, 0};
@@ -229,7 +231,7 @@ i32 main()
 ## Variables
 ### Definition
 ```rust
-i32 main()
+fn main() -> i32
 {
   let a: i32;
   let b = 48; // Type inference from the initializer.
@@ -240,7 +242,7 @@ i32 main()
 In this language, variables are immutable by default.<br/>
 To make them mutable, use the "mut" qualifier.
 ```rust
-i32 main()
+fn main() -> i32
 {
   let i = 48; // Constant.
   i = 58; // Error!
@@ -256,7 +258,7 @@ i32 main()
 ### Type inference
 Type inference can only be used for initializations with initializers.
 ```rust
-i32 main()
+fn main() -> i32
 {
   let n = 4810; // i32
 
@@ -271,7 +273,7 @@ i32 main()
 ## Implicit conversions
 In the case of numeric values, operands with smaller bit widths are converted to the larger bit width side.
 ```rust
-i32 main()
+fn main() -> i32
 {
   let f: bool = true;
 
@@ -288,7 +290,7 @@ extern i32 puts(s: *i8);
 
 ### Definition
 ```rust
-i32 twice(n: i32)
+fn twice(n: i32) -> i32
 {
   ret n * 2;
 }
@@ -298,13 +300,13 @@ i32 twice(n: i32)
 In this language, parameters are immutable by default.<br/>
 To make them mutable, use the "mut" qualifier.
 ```rust
-i32 f(n: i32)
+fn f(n: i32) -> i32
 {
   n = 123; // Error!
   ret n;
 }
 
-i32 g(mut n: i32)
+fn g(mut n: i32) -> i32
 {
   n = 123; // OK
   ret n;
@@ -313,12 +315,12 @@ i32 g(mut n: i32)
 
 ### Linkage
 ```rust
-i32 twice(n: i32) // External linkage
+fn twice(n: i32) -> i32 // External linkage
 {
   ret n * 2;
 }
 
-i32 private thrice(n: i32) // Internal linkage
+fn private thrice(n: i32) -> i32 // Internal linkage
 {
   ret n * 3;
 }
@@ -373,13 +375,13 @@ let n = 0b1001011001010;
 ## Statements
 ### Expression statements
 ```rust
-i32 main()
+fn main() -> i32
 {
   f();
 }
 ```
 ```rust
-i32 main()
+fn main() -> i32
 {
   48 + 10;
 }
@@ -387,7 +389,7 @@ i32 main()
 
 ### Compound Statement (Block)
 ```rust
-i32 main()
+fn main() -> i32
 {
   {
     // Compount statement
@@ -403,7 +405,7 @@ i32 main()
 
 ### If-else statement
 ```rust
-i32 main()
+fn main() -> i32
 {
   let cond: bool = true;
 
@@ -416,7 +418,7 @@ i32 main()
 
 ### While statement
 ```rust
-i32 main()
+fn main() -> i32
 {
   let mut i = 0;
   // Repeat 10 times.
@@ -431,7 +433,7 @@ i32 main()
 
 ### For statement
 ```rust
-i32 main()
+fn main() -> i32
 {
   // Repeat 10 times.
   for (let mut i = 0; i != 10; ++i) {
@@ -446,7 +448,7 @@ i32 main()
 ### Break statement
 The break statement terminates execution of the nearest loop.
 ```rust
-i32 main()
+fn main() -> i32
 {
   for (;;) {
     break;
@@ -456,7 +458,7 @@ i32 main()
 
 ### Continue statement
 ```rust
-i32 main()
+fn main() -> i32
 {
   for (;;) {
     continue;
@@ -465,8 +467,8 @@ i32 main()
 ```
 
 ### Return statement
-```
-i32 main()
+```rust
+fn main() -> i32
 {
   ret 48 + 10;
 }
