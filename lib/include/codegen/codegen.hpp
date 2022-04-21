@@ -16,10 +16,10 @@
 
 #include <pch/pch.hpp>
 #include <ast/ast.hpp>
-#include <utils/util.hpp>
-#include <utils/typedef.hpp>
+#include <support/utils.hpp>
+#include <support/typedef.hpp>
 #include <jit/jit.hpp>
-#include <parse/parse.hpp>
+#include <parse/parser.hpp>
 
 namespace maple::codegen
 {

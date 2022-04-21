@@ -15,8 +15,8 @@
 #endif // _MSC_VER > 1000
 
 #include <ast/ast.hpp>
-#include <utils/util.hpp>
-#include <utils/typedef.hpp>
+#include <support/utils.hpp>
+#include <support/typedef.hpp>
 
 namespace maple::parse
 {

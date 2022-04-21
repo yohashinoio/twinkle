@@ -8,7 +8,7 @@
  */
 
 #include <jit/jit.hpp>
-#include <utils/util.hpp>
+#include <support/utils.hpp>
 
 namespace maple::jit
 {
@@ -75,7 +75,7 @@ JitCompiler::~JitCompiler()
 
 [[nodiscard]] llvm::Error
 JitCompiler::addModule(llvm::orc::ThreadSafeModule  thread_safe_module,
-                        llvm::orc::ResourceTrackerSP resource_tracker)
+                       llvm::orc::ResourceTrackerSP resource_tracker)
 {
   if (!resource_tracker)
     resource_tracker = main_jd.getDefaultResourceTracker();

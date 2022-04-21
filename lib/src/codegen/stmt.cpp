@@ -9,7 +9,8 @@
 
 #include <codegen/stmt.hpp>
 #include <codegen/expr.hpp>
-#include <utils/format.hpp>
+#include <support/format.hpp>
+#include <codegen/exception.hpp>
 
 namespace maple::codegen
 {
@@ -123,7 +124,7 @@ StmtVisitor::StmtVisitor(CGContext&        ctx,
 void StmtVisitor::operator()(const ast::Expr& node) const
 {
   if (!genExpr(ctx, scope, node)) {
-    throw std::runtime_error{
+    throw CodegenError{
       formatErrorMessage(ctx.file.string(),
                          "failed to generate expression statement")};
   }
@@ -138,15 +139,13 @@ void StmtVisitor::operator()(const ast::Return& node) const
       = ctx.builder.GetInsertBlock()->getParent()->getReturnType();
 
     if (!equals(return_type, retval.getType())) {
-      throw std::runtime_error{
-        ctx.formatError(ctx.positions.position_of(node),
-                        "incompatible type for result type")};
+      throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
+                                         "incompatible type for result type")};
     }
 
     if (!retval) {
-      throw std::runtime_error{
-        ctx.formatError(ctx.positions.position_of(node),
-                        "failed to generate return value")};
+      throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
+                                         "failed to generate return value")};
     }
 
     ctx.builder.CreateStore(retval.getValue(), retvar);
@@ -158,7 +157,7 @@ void StmtVisitor::operator()(const ast::Return& node) const
 void StmtVisitor::operator()(const ast::VariableDef& node) const
 {
   if (!node.type.has_value() && !node.initializer.has_value()) {
-    throw std::runtime_error{
+    throw CodegenError{
       ctx.formatError(ctx.positions.position_of(node),
                       "type inference requires an initializer")};
   }
@@ -166,9 +165,8 @@ void StmtVisitor::operator()(const ast::VariableDef& node) const
   const auto name = node.name.utf8();
 
   if (scope.exists(name)) {
-    throw std::runtime_error{
-      ctx.formatError(ctx.positions.position_of(node),
-                      format("redefinition of '%s'", name))};
+    throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
+                                       format("redefinition of '%s'", name))};
   }
 
   auto const func = ctx.builder.GetInsertBlock()->getParent();
@@ -212,13 +210,12 @@ void StmtVisitor::operator()(const ast::Assignment& node) const
   auto const rhs = genExpr(ctx, scope, node.rhs);
 
   if (!rhs) {
-    throw std::runtime_error{
-      ctx.formatError(ctx.positions.position_of(node),
-                      "failed to generate right-hand side")};
+    throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
+                                       "failed to generate right-hand side")};
   }
 
   if (!equals(lhs.getType()->getPointerElementType(), rhs.getType())) {
-    throw std::runtime_error{ctx.formatError(
+    throw CodegenError{ctx.formatError(
       ctx.positions.position_of(node),
       "both operands to a binary operator are not of the same type")};
   }
@@ -229,7 +226,7 @@ void StmtVisitor::operator()(const ast::Assignment& node) const
 
   switch (node.kind()) {
   case ast::Assignment::Kind::unknown:
-    throw std::runtime_error{ctx.formatError(
+    throw CodegenError{ctx.formatError(
       ctx.positions.position_of(node),
       format("unknown operator '%s' detected", node.operatorStr()))};
 
@@ -281,7 +278,7 @@ void StmtVisitor::operator()(const ast::PrefixIncAndDec& node) const
 
   switch (node.kind()) {
   case ast::PrefixIncAndDec::Kind::unknown:
-    throw std::runtime_error{ctx.formatError(
+    throw CodegenError{ctx.formatError(
       ctx.positions.position_of(node),
       format("unknown operator '%s' detected", node.operatorStr()))};
 
@@ -312,13 +309,12 @@ void StmtVisitor::operator()(const ast::If& node) const
 
   auto const cond_value = genExpr(ctx, scope, node.condition);
   if (!cond_value) {
-    throw std::runtime_error{
-      ctx.formatError(ctx.positions.position_of(node),
-                      "invalid condition in if statement")};
+    throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
+                                       "invalid condition in if statement")};
   }
 
   if (!cond_value.getType()->isIntegerTy()) {
-    throw std::runtime_error{
+    throw CodegenError{
       ctx.formatError(ctx.positions.position_of(node),
                       "condition type is incompatible with bool")};
   }
@@ -401,7 +397,7 @@ void StmtVisitor::operator()(const ast::While& node) const
   auto const cond_value = genExpr(ctx, scope, node.cond_expr);
 
   if (!cond_value) {
-    throw std::runtime_error{
+    throw CodegenError{
       ctx.formatError(ctx.positions.position_of(node),
                       "failed to generate condition expression")};
   }
@@ -447,7 +443,7 @@ void StmtVisitor::operator()(const ast::For& node) const
     auto const cond_value = genExpr(ctx, scope, *node.cond_expr);
 
     if (!cond_value) {
-      throw std::runtime_error{
+      throw CodegenError{
         ctx.formatError(ctx.positions.position_of(node),
                         "failed to generate condition expression")};
     }
@@ -508,13 +504,13 @@ void StmtVisitor::operator()(const ast::For& node) const
 
     if (!variable) {
       // Unknown variable name.
-      throw std::runtime_error{
+      throw CodegenError{
         ctx.formatError(pos, format("unknown variable name '%s'", ident))};
     }
 
     if (!variable->isMutable()) {
       // Assignment of read-only variable.
-      throw std::runtime_error{ctx.formatError(
+      throw CodegenError{ctx.formatError(
         pos,
         format("assignment of read-only variable '%s'", ident))};
     }
@@ -532,13 +528,12 @@ void StmtVisitor::operator()(const ast::For& node) const
     value = genExpr(ctx, scope, node);
 
   if (!value) {
-    throw std::runtime_error{
-      ctx.formatError(pos, "failed to generate expression")};
+    throw CodegenError{ctx.formatError(pos, "failed to generate expression")};
   }
 
   if (!llvm::isa<llvm::AllocaInst>(value.getValue())
       && !llvm::isa<llvm::LoadInst>(value.getValue())) {
-    throw std::runtime_error{
+    throw CodegenError{
       ctx.formatError(pos, "left-hand side value requires assignable")};
   }
 
@@ -583,7 +578,7 @@ void StmtVisitor::InitArray(llvm::AllocaInst*                array_alloca,
   if (initializer->type() == typeid(ast::InitList)) {
     // Array initialization.
     if (!llvm_type->isArrayTy()) {
-      throw std::runtime_error{
+      throw CodegenError{
         ctx.formatError(pos,
                         "initializing an array requires an initializer list")};
     }
@@ -591,7 +586,7 @@ void StmtVisitor::InitArray(llvm::AllocaInst*                array_alloca,
     const auto init_list = genInitList(boost::get<ast::InitList>(*initializer));
 
     if (type.getArraySize() != init_list.size()) {
-      throw std::runtime_error{
+      throw CodegenError{
         ctx.formatError(pos, "invalid number of elements in initializer list")};
     }
 
@@ -603,13 +598,13 @@ void StmtVisitor::InitArray(llvm::AllocaInst*                array_alloca,
       = genExpr(ctx, scope, boost::get<ast::Expr>(*initializer));
 
     if (!init_value) {
-      throw std::runtime_error{ctx.formatError(
+      throw CodegenError{ctx.formatError(
         pos,
         format("failed to generate initializer for '%s'", name))};
     }
 
     if (!equals(llvm_type, init_value.getType())) {
-      throw std::runtime_error{ctx.formatError(
+      throw CodegenError{ctx.formatError(
         pos,
         "the variable type and the initializer type are incompatible")};
     }
@@ -617,7 +612,7 @@ void StmtVisitor::InitArray(llvm::AllocaInst*                array_alloca,
     if (llvm_type->isIntegerTy()
         && llvm_type->getIntegerBitWidth()
              != init_value.getType()->getIntegerBitWidth()) {
-      throw std::runtime_error{
+      throw CodegenError{
         ctx.formatError(pos, "different bit widths between operands")};
     }
 
@@ -652,7 +647,7 @@ StmtVisitor::createVariableWithTypeInference(
       = genExpr(ctx, scope, boost::get<ast::Expr>(*initializer));
 
     if (!init_value) {
-      throw std::runtime_error{ctx.formatError(
+      throw CodegenError{ctx.formatError(
         pos,
         format("failed to generate initializer for '%s'", name))};
     }

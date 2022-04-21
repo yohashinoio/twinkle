@@ -15,13 +15,14 @@
 #endif // _MSC_VER > 1000
 
 #include <pch/pch.hpp>
-#include <utils/util.hpp>
+#include <support/utils.hpp>
 #include <boost/lexical_cast.hpp>
 
 namespace maple
 {
 
-enum class BuiltinTypeKind : unsigned char {
+enum class BuiltinTypeKind : unsigned char
+{
   void_,
   i8,
   i16,
@@ -173,12 +174,14 @@ private:
 };
 
 // Variable qualifier.
-enum class VariableQual : unsigned char {
+enum class VariableQual : unsigned char
+{
   no_qualifier,
   mutable_,
 };
 
-enum class Linkage : unsigned char {
+enum class Linkage : unsigned char
+{
   no_linkage,
   internal,
 };

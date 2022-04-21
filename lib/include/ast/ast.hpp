@@ -15,7 +15,7 @@
 #endif // _MSC_VER > 1000
 
 #include <pch/pch.hpp>
-#include <utils/type.hpp>
+#include <support/type.hpp>
 #include <unicode/unicode.hpp>
 
 namespace x3 = boost::spirit::x3;
@@ -30,7 +30,8 @@ namespace maple
 namespace ast
 {
 
-struct Nil {};
+struct Nil {
+};
 
 //===----------------------------------------------------------------------===//
 // Expression abstract syntax tree
@@ -103,7 +104,8 @@ struct BinOp : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char {
+  enum class Kind : unsigned char
+  {
     unknown,
     add, // Addition
     sub, // Subtraciton
@@ -156,7 +158,8 @@ struct UnaryOp : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char {
+  enum class Kind : unsigned char
+  {
     unknown,
     plus,        // Unary plus
     minus,       // Unary minus
@@ -225,7 +228,8 @@ struct Assignment : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char {
+  enum class Kind : unsigned char
+  {
     unknown,
     direct, // Direct assignment
     add,    // Addition assignment
@@ -263,7 +267,8 @@ struct PrefixIncAndDec : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char {
+  enum class Kind : unsigned char
+  {
     unknown,
     increment,
     decrement,

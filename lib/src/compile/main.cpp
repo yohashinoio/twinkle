@@ -10,9 +10,12 @@
 #include <compile/main.hpp>
 #include <codegen/codegen.hpp>
 #include <jit/jit.hpp>
-#include <parse/parse.hpp>
-#include <utils/util.hpp>
-#include <utils/format.hpp>
+#include <parse/parser.hpp>
+#include <option/parse.hpp>
+#include <support/file.hpp>
+#include <support/utils.hpp>
+#include <support/format.hpp>
+#include <support/exception.hpp>
 
 namespace program_options = boost::program_options;
 
@@ -113,7 +116,7 @@ catch (const program_options::error& err) {
 
   return {false, std::nullopt};
 }
-catch (const std::runtime_error& err) {
+catch (const ErrorBase& err) {
   std::cerr << err.what() << (isBackNewline(err.what()) ? "" : "\n")
             << std::flush;
 

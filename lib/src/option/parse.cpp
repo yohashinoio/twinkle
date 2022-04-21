@@ -1,5 +1,5 @@
 /**
- * util.cpp
+ * option.cpp
  *
  * These codes are licensed under Apache-2.0 License.
  * See the LICENSE for details.
@@ -7,91 +7,15 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <pch/pch.hpp>
-#include <utils/format.hpp>
-#include <utils/util.hpp>
-#include <fstream>
-
-#if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
-#include <unistd.h> // isatty
-#endif
+#include <option/parse.hpp>
+#include <option/exception.hpp>
+#include <support/format.hpp>
+#include <support/utils.hpp>
 
 namespace maple
 {
 
-std::string getVersion()
-{
-  const auto major = MAPLE_VER / 100000;
-  const auto minor = MAPLE_VER / 100 % 1000;
-  const auto patch = MAPLE_VER % 100;
-
-  return boost::lexical_cast<std::string>(major) + '.'
-         + boost::lexical_cast<std::string>(minor) + '.'
-         + boost::lexical_cast<std::string>(patch);
-}
-
-[[nodiscard]] std::string formatErrorMessage(const std::string_view filename,
-                                             const std::string_view message,
-                                             const bool             fatal)
-{
-#if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
-  if (isatty(fileno(stdout))) {
-    if (fatal) {
-      return format("%s: " COLOR_RED "fatal error: " COLOR_DEFAULT "%s",
-                    filename.data(),
-                    message.data());
-    }
-    else {
-      return format("%s: " COLOR_RED "error: " COLOR_DEFAULT "%s",
-                    filename.data(),
-                    message.data());
-    }
-  }
-#endif
-  if (fatal)
-    return format("%s: fatal error: %s", filename.data(), message.data());
-
-  return format("%s: error: %s", filename.data(), message.data());
-}
-
-[[nodiscard]] std::string
-formatErrorMessageWithoutFile(const std::string_view message, const bool fatal)
-{
-#if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
-  if (isatty(fileno(stdout))) {
-    if (fatal)
-      return format(COLOR_RED "fatal error: " COLOR_DEFAULT "%s",
-                    message.data());
-    else
-      return format(COLOR_RED "error: " COLOR_DEFAULT "%s", message.data());
-  }
-#endif
-  if (fatal)
-    return format("fatal error: %s", message.data());
-
-  return format("error: %s", message.data());
-}
-
-// Load a file to std::string.
-[[nodiscard]] std::string loadFile(const std::string_view       program_name,
-                                   const std::filesystem::path& path)
-{
-  if (!std::filesystem::exists(path)) {
-    throw std::runtime_error{formatErrorMessage(
-      program_name,
-      format("%s: No such file or directory", path.string()))};
-  }
-
-  if (auto file = std::ifstream{path, std::ios_base::binary}) {
-    std::stringstream ss;
-    ss << file.rdbuf();
-    return ss.str();
-  }
-
-  throw std::runtime_error{
-    formatErrorMessage(program_name,
-                       format("%s: Could not open file", path.string()))};
-}
+namespace program_options = boost::program_options;
 
 [[nodiscard]] program_options::options_description createOptionsDesc()
 {
@@ -148,8 +72,7 @@ getInputFiles(const std::string_view                program_name,
   if (vmap.contains("input-file"))
     return vmap["input-file"].as<std::vector<std::string>>();
   else {
-    throw std::runtime_error{
-      maple::formatErrorMessage(program_name, "no input files", true)};
+    throw OptionError{formatErrorMessage(program_name, "no input files", true)};
   }
 }
 
@@ -178,27 +101,11 @@ getRelocationModel(const std::string_view                program_name,
   else if (rm_lower_str == "pic")
     return llvm::Reloc::Model::PIC_;
   else {
-    throw std::runtime_error{maple::formatErrorMessage(
+    throw OptionError{formatErrorMessage(
       program_name,
       format("The value '%s' for --relocation-model is invalid!", rm_lower_str),
       true)};
   }
-}
-
-[[noreturn]] void unreachableInternal(const std::size_t line, const char* file)
-{
-#ifndef NDEBUG
-  if (file) {
-    std::cerr << "Unreachable executed"
-              << " at " << file << ":" << line << '!' << std::endl;
-  }
-#endif
-
-#if defined(__GNUC__) // GCC, Clang, ICC
-  __builtin_unreachable();
-#elif define(_MSC_VER) // MSVC
-  __assume(false);
-#endif
 }
 
 } // namespace maple

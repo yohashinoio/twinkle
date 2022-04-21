@@ -39,7 +39,8 @@ add_subdirectory(codegen)
 add_subdirectory(jit)
 add_subdirectory(parse)
 add_subdirectory(unicode)
-add_subdirectory(utils)
+add_subdirectory(option)
+add_subdirectory(support)
 
 target_link_libraries(
   ${LIB_NAME}
@@ -51,7 +52,8 @@ target_link_libraries(
   jit
   parse
   unicode
-  utils
+  option
+  support
 )
 
 target_compile_options(

@@ -9,7 +9,8 @@
 
 #include <codegen/top_level.hpp>
 #include <codegen/stmt.hpp>
-#include <utils/format.hpp>
+#include <support/format.hpp>
+#include <codegen/exception.hpp>
 
 namespace maple::codegen
 {
@@ -52,7 +53,7 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDecl& node) const
   auto&& ps = *node.params;
 
   if (ps.size() && ps.at(0).is_vararg) {
-    throw std::runtime_error{
+    throw CodegenError{
       ctx.formatError(ctx.positions.position_of(node),
                       "requires a named argument before '...'")};
   }
@@ -61,7 +62,7 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDecl& node) const
   for (const auto& r : ps) {
     if (r.is_vararg) {
       if (is_vararg) {
-        throw std::runtime_error{
+        throw CodegenError{
           ctx.formatError(ctx.positions.position_of(node),
                           "cannot have multiple variable arguments")};
       }
@@ -116,15 +117,14 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDef& node) const
   auto func = ctx.module->getFunction(name);
 
   if (func) {
-    throw std::runtime_error{
-      ctx.formatError(ctx.positions.position_of(node.decl),
-                      format("redefinition of '%s'", name))};
+    throw CodegenError{ctx.formatError(ctx.positions.position_of(node.decl),
+                                       format("redefinition of '%s'", name))};
   }
 
   func = this->operator()(node.decl);
 
   if (!func) {
-    throw std::runtime_error{
+    throw CodegenError{
       ctx.formatError(ctx.positions.position_of(node.decl),
                       format("failed to create function '%s'", name))};
   }
@@ -213,7 +213,7 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDef& node) const
   if (llvm::verifyFunction(*func, &os)) {
     func->eraseFromParent();
 
-    throw std::runtime_error{
+    throw CodegenError{
       ctx.formatError(ctx.positions.position_of(node), os.str())};
   }
 

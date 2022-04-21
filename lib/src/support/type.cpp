@@ -7,7 +7,7 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <utils/type.hpp>
+#include <support/type.hpp>
 
 namespace maple
 {

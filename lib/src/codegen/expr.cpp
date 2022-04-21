@@ -8,7 +8,8 @@
  */
 
 #include <codegen/expr.hpp>
-#include <utils/format.hpp>
+#include <support/format.hpp>
+#include <codegen/exception.hpp>
 
 namespace maple::codegen
 {
@@ -107,7 +108,7 @@ ExprVisitor::ExprVisitor(CGContext& ctx, SymbolTable& scope) noexcept
   const auto variable = scope[ident];
 
   if (!variable) {
-    throw std::runtime_error{
+    throw CodegenError{
       ctx.formatError(ctx.positions.position_of(node),
                       format("unknown variable '%s' referenced", ident))};
   }
@@ -147,23 +148,21 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
   auto rhs = boost::apply_visitor(*this, node.rhs);
 
   if (!lhs) {
-    throw std::runtime_error{
-      ctx.formatError(ctx.positions.position_of(node),
-                      "failed to generate left-hand side",
-                      false)};
+    throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
+                                       "failed to generate left-hand side",
+                                       false)};
   }
 
   if (!rhs) {
-    throw std::runtime_error{
-      ctx.formatError(ctx.positions.position_of(node),
-                      "failed to generate right-hand side",
-                      false)};
+    throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
+                                       "failed to generate right-hand side",
+                                       false)};
   }
 
   IntegerImplicitConversion(ctx, lhs, rhs);
 
   if (!equals(lhs.getType(), rhs.getType())) {
-    throw std::runtime_error{ctx.formatError(
+    throw CodegenError{ctx.formatError(
       ctx.positions.position_of(node),
       "both operands to a binary operator are not of the same type",
       false)};
@@ -204,7 +203,7 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
     return genGreaterOrEqual(ctx, lhs, rhs);
 
   case ast::BinOp::Kind::unknown:
-    throw std::runtime_error{ctx.formatError(
+    throw CodegenError{ctx.formatError(
       ctx.positions.position_of(node),
       format("unknown operator '%s' detected", node.operatorStr()),
       false)};
@@ -218,9 +217,8 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
   auto const rhs = boost::apply_visitor(*this, node.rhs);
 
   if (!rhs.getValue()) {
-    throw std::runtime_error{
-      ctx.formatError(ctx.positions.position_of(node),
-                      "failed to generate right-hand side")};
+    throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
+                                       "failed to generate right-hand side")};
   }
 
   switch (node.kind()) {
@@ -239,7 +237,7 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
   case ast::UnaryOp::Kind::not_:
     if (!equals(rhs.getType(),
                 BuiltinType{BuiltinTypeKind::bool_}.getType(ctx.context))) {
-      throw std::runtime_error{
+      throw CodegenError{
         ctx.formatError(ctx.positions.position_of(node),
                         "the not operator requires a bool operand")};
     }
@@ -247,7 +245,7 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
     return genLogicalNegative(ctx, rhs);
 
   case ast::UnaryOp::Kind::unknown:
-    throw std::runtime_error{ctx.formatError(
+    throw CodegenError{ctx.formatError(
       ctx.positions.position_of(node),
       format("unknown operator '%s' detected", node.operatorStr()))};
   }
@@ -262,15 +260,14 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
   auto const callee_func = ctx.module->getFunction(callee);
 
   if (!callee_func) {
-    throw std::runtime_error{
+    throw CodegenError{
       ctx.formatError(ctx.positions.position_of(node),
                       format("unknown function '%s' referenced", callee))};
   }
 
   if (!callee_func->isVarArg() && callee_func->arg_size() != node.args.size()) {
-    throw std::runtime_error{
-      ctx.formatError(ctx.positions.position_of(node),
-                      format("incorrect arguments passed"))};
+    throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
+                                       format("incorrect arguments passed"))};
   }
 
   std::vector<llvm::Value*> args_value;
@@ -278,7 +275,7 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
     args_value.push_back(boost::apply_visitor(*this, node.args[i]).getValue());
 
     if (!args_value.back()) {
-      throw std::runtime_error{ctx.formatError(
+      throw CodegenError{ctx.formatError(
         ctx.positions.position_of(node),
         format("argument set failed in call to the function '%s'", callee))};
     }
@@ -287,7 +284,7 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
   // Verify arguments
   for (std::size_t idx = 0; auto&& arg : callee_func->args()) {
     if (!equals(args_value[idx++]->getType(), arg.getType())) {
-      throw std::runtime_error{ctx.formatError(
+      throw CodegenError{ctx.formatError(
         ctx.positions.position_of(node),
         format("incompatible type for argument %d of '%s'", idx + 1, callee))};
     }
@@ -301,9 +298,8 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
   auto const lhs = boost::apply_visitor(*this, node.lhs);
 
   if (!lhs) {
-    throw std::runtime_error{
-      ctx.formatError(ctx.positions.position_of(node),
-                      "failed to generate left-hand side")};
+    throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
+                                       "failed to generate left-hand side")};
   }
 
   // TODO: Support for non-integers and non-pointers.
@@ -321,7 +317,7 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
             node.as->isSigned()};
   }
   else {
-    throw std::runtime_error{ctx.formatError(
+    throw CodegenError{ctx.formatError(
       ctx.positions.position_of(node),
       format("cannot be converted to '%s' type", node.as->getName()))};
   }
@@ -341,7 +337,7 @@ ExprVisitor::genIndirection(const boost::iterator_range<InputIterator>& pos,
   auto const rhs_type = rhs.getType();
 
   if (!rhs_type->isPointerTy()) {
-    throw std::runtime_error{
+    throw CodegenError{
       ctx.formatError(pos, "unary '*' requires pointer operand")};
   }
 

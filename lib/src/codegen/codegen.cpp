@@ -9,8 +9,9 @@
 
 #include <codegen/codegen.hpp>
 #include <codegen/top_level.hpp>
-#include <utils/type.hpp>
-#include <utils/format.hpp>
+#include <support/type.hpp>
+#include <support/format.hpp>
+#include <codegen/exception.hpp>
 #include <unicode/unicode.hpp>
 #include <cassert>
 
@@ -132,7 +133,7 @@ void CodeGenerator::emitLlvmIRFiles()
                             llvm::sys::fs::OpenFlags::OF_None};
 
     if (ostream_ec) {
-      throw std::runtime_error{formatErrorMessage(
+      throw CodegenError{formatErrorMessage(
         argv_front,
         format("%s: %s", file.string(), ostream_ec.message()))};
     }
@@ -159,7 +160,7 @@ void CodeGenerator::emitObjectFiles()
 
   auto jit_expected = jit::JitCompiler::create();
   if (auto err = jit_expected.takeError()) {
-    throw std::runtime_error{
+    throw CodegenError{
       formatErrorMessage(argv_front, llvm::toString(std::move(err)), true)};
   }
 
@@ -172,7 +173,7 @@ void CodeGenerator::emitObjectFiles()
     auto [module, file] = std::move(*it);
 
     if (llvm::Linker::linkModules(*front_module, std::move(module))) {
-      throw std::runtime_error{
+      throw CodegenError{
         formatErrorMessage(argv_front,
                            format("%s: Could not link", file.string()))};
     }
@@ -180,13 +181,13 @@ void CodeGenerator::emitObjectFiles()
 
   if (auto err
       = jit->addModule({std::move(front_module), std::move(context)})) {
-    throw std::runtime_error{
+    throw CodegenError{
       formatErrorMessage(file.string(), llvm::toString(std::move(err)))};
   }
 
   auto symbol_expected = jit->lookup("main");
   if (auto err = symbol_expected.takeError()) {
-    throw std::runtime_error{
+    throw CodegenError{
       formatErrorMessage(argv_front, "symbol main could not be found")};
   }
 
@@ -225,7 +226,7 @@ void CodeGenerator::emitFiles(const llvm::CodeGenFileType cgft)
                                  llvm::sys::fs::OpenFlags::OF_None};
 
     if (ostream_ec) {
-      throw std::runtime_error{formatErrorMessage(
+      throw CodegenError{formatErrorMessage(
         argv_front,
         format("%s: %s\n", file.string(), ostream_ec.message()))};
     }
@@ -236,7 +237,7 @@ void CodeGenerator::emitFiles(const llvm::CodeGenFileType cgft)
                                             ostream,
                                             nullptr,
                                             cgft)) {
-      throw std::runtime_error{
+      throw CodegenError{
         formatErrorMessage(argv_front, "failed to emit a file", true)};
     }
 
@@ -255,7 +256,7 @@ void CodeGenerator::initTargetTripleAndMachine()
     = llvm::TargetRegistry::lookupTarget(target_triple, target_triple_error);
 
   if (!target) {
-    throw std::runtime_error{
+    throw CodegenError{
       formatErrorMessage(argv_front,
                          format("failed to lookup target %s: %s",
                                 target_triple,
