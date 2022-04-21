@@ -4,7 +4,7 @@
 - [AOT compile](#aot-compile)
 - [JIT compile](#jit-compile)
 
-## Hello world
+## Hello World
 ```rust
 // hello.txt
 extern printf(fmt: *i8, ...) -> i32;
@@ -14,8 +14,9 @@ fn main() -> i32
   printf("hello, world\n");
 }
 ```
+Input files must be encoded in UTF8.
 
-## AOT compile
+## AOT Compile
 This is the standard compilation method for C, C++, etc.<br/>
 
 If multiple files are passed, they are not linked and each is compiled to the target.<br/>
@@ -31,7 +32,7 @@ $ ./a.out
 hello, world
 ```
 
-## JIT compile
+## JIT Compile
 If multiple files are passed, they are linked and executed.<br/>
 Therefore, if the same symbol is defined, an error will occur.
 ```bash

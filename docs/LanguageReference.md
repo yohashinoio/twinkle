@@ -60,7 +60,7 @@ comment.
 ```
 
 ## Operators
-### Arithmetic operators
+### Arithmetic Operators
 | Operator name                | Syntax |
 | ---------------------------- | ------ |
 | Addition                     | a + b  |
@@ -71,7 +71,7 @@ comment.
 | Unary plus                   | +a     |
 | Unary minus                  | -a     |
 
-### Comparison operators / Relational operators
+### Comparison Operators / Relational Operators
 | Operator name            | Syntax  |
 | ------------------------ | ------- |
 | Equal to                 | a == b  |
@@ -81,12 +81,12 @@ comment.
 | Greater than or equal to | a >= b  |
 | Less than or equal to    | a <= b  |
 
-### Logical operators
+### Logical Operators
 | Operator name | Syntax |
 | ------------- | ------ |
 | Logical not   | !a     |
 
-### Assignment operators (Statement)
+### Assignment Operators (Statement)
 | Operator name             | Syntax |
 | ------------------------- | ------ |
 | Direct assignment         | a = b  |
@@ -100,13 +100,13 @@ comment.
 
 In this language, **an assignment is a statement**, so you cannot use a syntax like "a = b = c".
 
-### Pointer operators
+### Pointer Operators
 | Operator name | Syntax |
 | ------------- | ------ |
 | Address-of    | &a     |
 | Indirection   | *a     |
 
-### Other operators
+### Other Operators
 | Operator name | Syntax    |
 | ------------- | --------- |
 | Function call | a(a1, a2) |
@@ -116,7 +116,7 @@ This section on Operators is based on "Operators in C and C++" from wikipedia.<b
 Thank you!
 
 ## Fundamental (Built-in) Types
-### Integer types
+### Integer Types
 | Length  | Signed | Unsigned |
 | ------- | ------ | -------- |
 | 8-bit   | i8     | u8       |
@@ -136,7 +136,7 @@ let n5 = -9223372036854775808; // i64
 let n6 =  18446744073709551615; // u64
 ```
 
-### The character type
+### The Character Type
 | Length  | Sign     | Name |
 | ------- | -------- | ---- |
 | 32-bit  | Unsigned | char |
@@ -153,7 +153,7 @@ fn main() -> i32
 }
 ```
 
-### The boolean type
+### The Boolean Type
 | Length  | Name |
 | ------- | ---- |
 | 1-bit   | bool |
@@ -166,7 +166,7 @@ fn main() -> i32
 }
 ```
 
-### The void type
+### The Void Type
 | Name |
 | ---- |
 | void |
@@ -194,7 +194,7 @@ fn main() -> i32
 }
 ```
 
-### Pointer types
+### Pointer Types
 | Syntax |
 | ------ |
 | *type  |
@@ -215,7 +215,7 @@ fn main() -> i32
 }
 ```
 
-### Array types
+### Array Types
 | Syntax     |
 | ---------- |
 | type[size] |
@@ -238,7 +238,7 @@ fn main() -> i32
 }
 ```
 
-### Mutable variables
+### Mutable Variables
 In this language, variables are immutable by default.<br/>
 To make them mutable, use the "mut" qualifier.
 ```rust
@@ -255,7 +255,7 @@ fn main() -> i32
 }
 ```
 
-### Type inference
+### Type Inference
 Type inference can only be used for initializations with initializers.
 ```rust
 fn main() -> i32
@@ -270,7 +270,7 @@ fn main() -> i32
 }
 ```
 
-## Implicit conversions
+## Implicit Conversions
 In the case of numeric values, operands with smaller bit widths are converted to the larger bit width side.
 ```rust
 fn main() -> i32
@@ -296,7 +296,7 @@ fn twice(n: i32) -> i32
 }
 ```
 
-### Mutable parameters
+### Mutable Parameters
 In this language, parameters are immutable by default.<br/>
 To make them mutable, use the "mut" qualifier.
 ```rust
@@ -326,7 +326,7 @@ fn private thrice(n: i32) -> i32 // Internal linkage
 }
 ```
 
-## Identifier naming rules
+## Identifier Naming Rules
 1. Numbers cannot be used as the first character.
 1. Punctuation characters are not allowed.
 1. However, '_' is allowed as an exception
@@ -349,7 +349,7 @@ let 💐; // OK!
 let あ; // OK!
 ```
 
-## Integer literal
+## Integer Literal
 ### Decimal
 Automatic promotion from i32 to u64
 ``` rust
@@ -373,7 +373,7 @@ let n = 0b1001011001010;
 ```
 
 ## Statements
-### Expression statements
+### Expression Statements
 ```rust
 fn main() -> i32
 {
@@ -403,7 +403,7 @@ fn main() -> i32
 }
 ```
 
-### If-else statement
+### If-else Statement
 ```rust
 fn main() -> i32
 {
@@ -416,7 +416,7 @@ fn main() -> i32
 }
 ```
 
-### While statement
+### While Statement
 ```rust
 fn main() -> i32
 {
@@ -431,7 +431,7 @@ fn main() -> i32
 }
 ```
 
-### For statement
+### For Statement
 ```rust
 fn main() -> i32
 {
@@ -445,7 +445,7 @@ fn main() -> i32
 }
 ```
 
-### Break statement
+### Break Statement
 The break statement terminates execution of the nearest loop.
 ```rust
 fn main() -> i32
@@ -456,7 +456,7 @@ fn main() -> i32
 }
 ```
 
-### Continue statement
+### Continue Statement
 ```rust
 fn main() -> i32
 {
@@ -466,7 +466,7 @@ fn main() -> i32
 }
 ```
 
-### Return statement
+### Return Statement
 ```rust
 fn main() -> i32
 {
