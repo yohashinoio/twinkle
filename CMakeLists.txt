@@ -4,11 +4,17 @@ project(maple C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
-set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=undefined")
-set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fsanitize=undefined")
+# ASAN
+add_compile_options(-fno-omit-frame-pointer -fsanitize=address)
+add_link_options(-fno-omit-frame-pointer -fsanitize=address)
+
+# UBSAN
+add_compile_options(-fsanitize=undefined)
+add_link_options(-fsanitize=undefined)
+
+endif()
 
 add_subdirectory(lib)
 
