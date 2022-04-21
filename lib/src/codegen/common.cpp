@@ -185,11 +185,11 @@ genGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
   auto left_ptr  = llvm::dyn_cast<llvm::PointerType>(left);
   auto right_ptr = llvm::dyn_cast<llvm::PointerType>(right);
 
-  if (left == right)
-    return true;
+  if (left != right)
+    return false;
 
-  if (left->getTypeID() == right->getTypeID())
-    return true;
+  if (left->getTypeID() != right->getTypeID())
+    return false;
 
   switch (left->getTypeID()) {
   case llvm::Type::IntegerTyID:

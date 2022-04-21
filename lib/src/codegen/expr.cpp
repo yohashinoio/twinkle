@@ -235,13 +235,6 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
     return genAddressOf(rhs);
 
   case ast::UnaryOp::Kind::not_:
-    if (!equals(rhs.getType(),
-                BuiltinType{BuiltinTypeKind::bool_}.getType(ctx.context))) {
-      throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(node),
-                        "the not operator requires a bool operand")};
-    }
-
     return genLogicalNegative(ctx, rhs);
 
   case ast::UnaryOp::Kind::unknown:
