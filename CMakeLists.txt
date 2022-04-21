@@ -10,6 +10,10 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 add_compile_options(-fno-omit-frame-pointer -fsanitize=address)
 add_link_options(-fno-omit-frame-pointer -fsanitize=address)
 
+# MSAN
+# add_compile_options(-fno-omit-frame-pointer -fsanitize-memory-track-origins -fsanitize=memory)
+# add_link_options(-fno-omit-frame-pointer -fsanitize-memory-track-origins -fsanitize=memory)
+
 # UBSAN
 add_compile_options(-fsanitize=undefined)
 add_link_options(-fsanitize=undefined)
