@@ -29,11 +29,11 @@ getVariableMap(const program_options::options_description& desc,
                const char* const* const                    argv);
 
 // If no input files are passed, OptionError is thrown.
-[[nodiscard]] std::vector<std::string>
+// Because the value of the argument is returned by reference, the return value
+// is invalid if the argument lifetime has expired.
+[[nodiscard]] const std::vector<std::string>&
 getInputFiles(const std::string_view                program_name,
               const program_options::variables_map& vmap);
-
-[[nodiscard]] std::string stringToLower(const std::string_view str);
 
 [[nodiscard]] llvm::Reloc::Model
 getRelocationModel(const std::string_view                program_name,

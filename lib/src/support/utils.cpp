@@ -71,6 +71,19 @@ formatErrorMessageWithoutFile(const std::string_view message, const bool fatal)
   return format("error: %s", message.data());
 }
 
+[[nodiscard]] std::string stringToLower(const std::string_view str)
+{
+  std::string result;
+
+  // Relocation model string to lower.
+  std::transform(str.begin(),
+                 str.end(),
+                 std::back_inserter(result),
+                 [](auto&& ch) { return std::tolower(ch); });
+
+  return result;
+}
+
 [[noreturn]] void unreachableInternal(const std::size_t line, const char* file)
 {
 #ifndef NDEBUG

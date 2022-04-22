@@ -36,6 +36,8 @@ constexpr unsigned int MAPLE_VER = 100000;
 formatErrorMessageWithoutFile(const std::string_view message,
                               const bool             fatal = false);
 
+[[nodiscard]] std::string stringToLower(const std::string_view str);
+
 [[noreturn]] void unreachableInternal(const std::size_t line, const char* file);
 
 #define unreachable() ::maple::unreachableInternal(__LINE__, __FILE__)

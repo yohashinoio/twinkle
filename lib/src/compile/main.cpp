@@ -78,15 +78,9 @@ try {
     std::exit(EXIT_SUCCESS);
   }
 
-  const auto opt = vmap["opt"].as<bool>();
-
-  const auto relocation_model = getRelocationModel(*argv, vmap);
-
-  auto file_paths = getInputFiles(*argv, vmap);
-
   std::vector<parse::Parser::Result> asts;
 
-  for (const auto& file_path : file_paths) {
+  for (const auto& file_path : getInputFiles(*argv, vmap)) {
     auto input = loadFile(*argv, file_path);
 
     parse::Parser parser{std::move(input), std::move(file_path)};
@@ -96,8 +90,8 @@ try {
 
   codegen::CodeGenerator generator{*argv,
                                    std::move(asts),
-                                   opt,
-                                   relocation_model};
+                                   vmap["opt"].as<bool>(),
+                                   getRelocationModel(*argv, vmap)};
 
   if (vmap.contains("JIT")) {
     return {true, generator.doJIT()};

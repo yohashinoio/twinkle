@@ -54,39 +54,25 @@ getVariableMap(const program_options::options_description& desc,
 
   p.add("input-file", -1);
 
-  program_options::variables_map vm;
+  program_options::variables_map vmap;
   program_options::store(program_options::command_line_parser(argc, argv)
                            .options(desc)
                            .positional(p)
                            .run(),
-                         vm);
-  program_options::notify(vm);
+                         vmap);
+  program_options::notify(vmap);
 
-  return vm;
+  return vmap;
 }
 
-[[nodiscard]] std::vector<std::string>
+[[nodiscard]] const std::vector<std::string>&
 getInputFiles(const std::string_view                program_name,
               const program_options::variables_map& vmap)
 {
   if (vmap.contains("input-file"))
     return vmap["input-file"].as<std::vector<std::string>>();
-  else {
+  else
     throw OptionError{formatErrorMessage(program_name, "no input files", true)};
-  }
-}
-
-[[nodiscard]] std::string stringToLower(const std::string_view str)
-{
-  std::string result;
-
-  // Relocation model string to lower.
-  std::transform(str.begin(),
-                 str.end(),
-                 std::back_inserter(result),
-                 [](auto&& ch) { return std::tolower(ch); });
-
-  return result;
 }
 
 [[nodiscard]] llvm::Reloc::Model
