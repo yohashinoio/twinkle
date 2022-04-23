@@ -68,6 +68,14 @@ struct StmtVisitor : public boost::static_visitor<void> {
   }
 
 private:
+  [[nodiscard]] Value genAssignableValueFromIdentifier(
+    const ast::Identifier&                            node,
+    const boost::iterator_range<maple::InputIterator> pos) const;
+
+  [[nodiscard]] Value genAssignableValueFromSubscript(
+    const ast::Subscript&                             node,
+    const boost::iterator_range<maple::InputIterator> pos) const;
+
   [[nodiscard]] Value genAssignableValueFromExpr(
     const ast::Expr&                                  node,
     const boost::iterator_range<maple::InputIterator> pos) const;
@@ -491,6 +499,40 @@ void StmtVisitor::operator()(const ast::For& node) const
   ctx.builder.SetInsertPoint(loop_end_bb);
 }
 
+[[nodiscard]] Value StmtVisitor::genAssignableValueFromIdentifier(
+  const ast::Identifier&                            node,
+  const boost::iterator_range<maple::InputIterator> pos) const
+{
+  const auto variable = createVarFromIdent(ctx, node, scope);
+
+  if (!variable.isMutable()) {
+    // Assignment of read-only variable.
+    throw CodegenError{ctx.formatError(
+      pos,
+      format("assignment of read-only variable '%s'", node.utf8()))};
+  }
+
+  return {variable.getAllocaInst(), variable.isSigned()};
+}
+
+[[nodiscard]] Value StmtVisitor::genAssignableValueFromSubscript(
+  const ast::Subscript&                             node,
+  const boost::iterator_range<maple::InputIterator> pos) const
+{
+  const auto variable = createVarFromIdent(ctx, node.ident, scope);
+
+  if (!variable.isMutable()) {
+    // Assignment of read-only variable.
+    throw CodegenError{ctx.formatError(
+      pos,
+      format("assignment of read-only variable '%s'", node.ident.utf8()))};
+  }
+
+  const auto tmp = genExpr(ctx, scope, node);
+
+  return {llvm::getPointerOperand(tmp.getValue()), tmp.isSigned()};
+}
+
 [[nodiscard]] Value StmtVisitor::genAssignableValueFromExpr(
   const ast::Expr&                                  node,
   const boost::iterator_range<maple::InputIterator> pos) const
@@ -498,24 +540,8 @@ void StmtVisitor::operator()(const ast::For& node) const
   Value value;
 
   if (node.type() == typeid(ast::Identifier)) {
-    const auto ident = boost::get<ast::Identifier>(node).utf8();
-
-    auto variable = scope[ident];
-
-    if (!variable) {
-      // Unknown variable name.
-      throw CodegenError{
-        ctx.formatError(pos, format("unknown variable name '%s'", ident))};
-    }
-
-    if (!variable->isMutable()) {
-      // Assignment of read-only variable.
-      throw CodegenError{ctx.formatError(
-        pos,
-        format("assignment of read-only variable '%s'", ident))};
-    }
-
-    value = {variable->getAllocaInst(), variable->isSigned()};
+    value = genAssignableValueFromIdentifier(boost::get<ast::Identifier>(node),
+                                             pos);
   }
   else if (node.type() == typeid(ast::UnaryOp)
            && boost::get<ast::UnaryOp>(node).kind()
@@ -524,15 +550,17 @@ void StmtVisitor::operator()(const ast::For& node) const
 
     value = genExpr(ctx, scope, unary_op_node.rhs);
   }
+  else if (node.type() == typeid(ast::Subscript)) {
+    value
+      = genAssignableValueFromSubscript(boost::get<ast::Subscript>(node), pos);
+  }
   else
     value = genExpr(ctx, scope, node);
 
-  if (!value) {
+  if (!value)
     throw CodegenError{ctx.formatError(pos, "failed to generate expression")};
-  }
 
-  if (!llvm::isa<llvm::AllocaInst>(value.getValue())
-      && !llvm::isa<llvm::LoadInst>(value.getValue())) {
+  if (!value.isPointer()) {
     throw CodegenError{
       ctx.formatError(pos, "left-hand side value requires assignable")};
   }
@@ -554,11 +582,14 @@ StmtVisitor::genInitList(const ast::InitList& list) const
 void StmtVisitor::InitArray(llvm::AllocaInst*                array_alloca,
                             const std::vector<llvm::Value*>& init_list) const
 {
-  for (unsigned int i = 0, last = init_list.size(); i != last; ++i) {
-    ctx.builder.CreateInsertValue(
-      ctx.builder.CreateLoad(array_alloca->getAllocatedType(), array_alloca),
-      init_list[i],
-      {i});
+  for (std::uint64_t i = 0, last = init_list.size(); i != last; ++i) {
+    auto const gep = ctx.builder.CreateInBoundsGEP(
+      array_alloca->getAllocatedType(),
+      array_alloca,
+      {llvm::ConstantInt::get(ctx.builder.getInt64Ty(), 0),
+       llvm::ConstantInt::get(ctx.builder.getInt64Ty(), i)});
+
+    ctx.builder.CreateStore(init_list[i], gep);
   }
 }
 

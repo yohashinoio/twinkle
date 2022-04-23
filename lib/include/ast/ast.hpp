@@ -30,8 +30,7 @@ namespace maple
 namespace ast
 {
 
-struct Nil {
-};
+struct Nil {};
 
 //===----------------------------------------------------------------------===//
 // Expression abstract syntax tree
@@ -68,6 +67,7 @@ struct BinOp;
 struct UnaryOp;
 struct FunctionCall;
 struct Conversion;
+struct Subscript;
 
 using Expr = boost::variant<Nil,
                             std::uint32_t, // Unsigned integer literals (32bit)
@@ -80,6 +80,7 @@ using Expr = boost::variant<Nil,
                             Identifier,
                             boost::recursive_wrapper<BinOp>,
                             boost::recursive_wrapper<UnaryOp>,
+                            boost::recursive_wrapper<Subscript>,
                             boost::recursive_wrapper<FunctionCall>,
                             boost::recursive_wrapper<Conversion>>;
 
@@ -104,8 +105,7 @@ struct BinOp : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char
-  {
+  enum class Kind : unsigned char {
     unknown,
     add, // Addition
     sub, // Subtraciton
@@ -158,8 +158,7 @@ struct UnaryOp : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char
-  {
+  enum class Kind : unsigned char {
     unknown,
     plus,        // Unary plus
     minus,       // Unary minus
@@ -183,6 +182,11 @@ struct UnaryOp : x3::position_tagged {
 
     return Kind::unknown;
   }
+};
+
+struct Subscript : x3::position_tagged {
+  Identifier ident;
+  Expr       nsubscript;
 };
 
 struct FunctionCall : x3::position_tagged {
@@ -228,8 +232,7 @@ struct Assignment : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char
-  {
+  enum class Kind : unsigned char {
     unknown,
     direct, // Direct assignment
     add,    // Addition assignment
@@ -267,8 +270,7 @@ struct PrefixIncAndDec : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char
-  {
+  enum class Kind : unsigned char {
     unknown,
     increment,
     decrement,

@@ -100,6 +100,11 @@ struct Value {
     return is_signed;
   }
 
+  [[nodiscard]] bool isPointer() const
+  {
+    return value->getType()->isPointerTy();
+  }
+
   [[nodiscard]] bool isInteger() const
   {
     return value->getType()->isIntegerTy();

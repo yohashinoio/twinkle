@@ -74,6 +74,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::Identifier& node) const;
 
+  [[nodiscard]] Value operator()(const ast::Subscript& node) const;
+
   [[nodiscard]] Value operator()(const ast::BinOp& node) const;
 
   [[nodiscard]] Value operator()(const ast::UnaryOp& node) const;
@@ -100,9 +102,10 @@ ExprVisitor::ExprVisitor(CGContext& ctx, SymbolTable& scope) noexcept
 {
 }
 
-[[nodiscard]] Value ExprVisitor::operator()(const ast::Identifier& node) const
+[[nodiscard]] Variable createVarFromIdent(CGContext&             ctx,
+                                       const ast::Identifier& node,
+                                       const SymbolTable&     scope)
 {
-  // TODO: support function identifier
   const auto ident = node.utf8();
 
   const auto variable = scope[ident];
@@ -113,9 +116,51 @@ ExprVisitor::ExprVisitor(CGContext& ctx, SymbolTable& scope) noexcept
                       format("unknown variable '%s' referenced", ident))};
   }
 
-  return {ctx.builder.CreateLoad(variable->getAllocaInst()->getAllocatedType(),
-                                 variable->getAllocaInst()),
-          variable->isSigned()};
+  return *variable;
+}
+
+[[nodiscard]] Value ExprVisitor::operator()(const ast::Identifier& node) const
+{
+  // TODO: support function identifier
+  const auto variable = createVarFromIdent(ctx, node, scope);
+
+  return {ctx.builder.CreateLoad(variable.getAllocaInst()->getAllocatedType(),
+                                 variable.getAllocaInst()),
+          variable.isSigned()};
+}
+
+[[nodiscard]] Value ExprVisitor::operator()(const ast::Subscript& node) const
+{
+  // TODO: If const, make an error
+
+  const auto lhs = createVarFromIdent(ctx, node.ident, scope);
+
+  const auto nsubscript = boost::apply_visitor(*this, node.nsubscript);
+
+  if (!lhs.getAllocaInst()->getAllocatedType()->isArrayTy()) {
+    throw CodegenError{ctx.formatError(
+      ctx.positions.position_of(node),
+      "the subscript operator cannot be adapted to non-array types")};
+  }
+
+  if (!nsubscript.isInteger()) {
+    throw CodegenError{
+      ctx.formatError(ctx.positions.position_of(node),
+                      "subscripts need to be evaluated to numbers")};
+  }
+
+  const auto array_type = lhs.getAllocaInst()->getAllocatedType();
+
+  auto const gep = ctx.builder.CreateInBoundsGEP(
+    array_type,
+    lhs.getAllocaInst(),
+    {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 0),
+     nsubscript.getValue()});
+
+  auto const element_type
+    = lhs.getAllocaInst()->getAllocatedType()->getArrayElementType();
+
+  return {ctx.builder.CreateLoad(element_type, gep), lhs.isSigned()};
 }
 
 // This function changes the value of the argument.

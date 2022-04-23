@@ -21,6 +21,10 @@
 namespace maple::codegen
 {
 
+[[nodiscard]] Variable createVarFromIdent(CGContext&             ctx,
+                                       const ast::Identifier& node,
+                                       const SymbolTable&     scope);
+
 [[nodiscard]] Value
 genExpr(CGContext& ctx, SymbolTable& scope, const ast::Expr& expr);
 

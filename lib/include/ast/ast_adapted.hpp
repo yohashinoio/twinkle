@@ -48,6 +48,12 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
+  maple::ast::Subscript,
+  (maple::ast::Identifier, ident)
+  (maple::ast::Expr, nsubscript)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::FunctionCall,
   (maple::ast::Identifier, callee)
   (std::vector<maple::ast::Expr>, args)

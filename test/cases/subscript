@@ -1,0 +1,19 @@
+fn f() -> i32
+{
+  ret 14;
+}
+
+fn main() -> i32
+{
+  let a1 = {4, 8, 1, 0};
+  let a2 = {1, 0, 4, 8};
+
+  let mut res = 0;
+  for (let mut i = 0; i < 4; ++i)
+    res += a1[i] + a2[3 - i];
+
+  let mut a3: i32[15];
+  a3[20 - (20 - f())] = 4810;
+  if (a3[f()] == 4810)
+    ret res;
+}
