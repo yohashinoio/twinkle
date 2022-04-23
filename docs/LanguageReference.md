@@ -33,6 +33,10 @@
   - [Octal](#octal)
   - [Hexadecimal](#hexadecimal)
   - [Binary](#binary)
+- [Character and string encoding](#character-and-string-encoding)
+- [Array in detail](#array-in-detail)
+  - [Definition](#definition-2)
+  - [Subscript](#subscript)
 - [Statements](#statements)
   - [Expression Statements](#expression-statements)
   - [Compound Statement (Block)](#compound-statement-block)
@@ -371,6 +375,57 @@ let m = 0x12CA;
 The maximum value for binary literals is u32.
 ```rust
 let n = 0b1001011001010;
+```
+
+## Character and string encoding
+The char type holds Unicode code points.
+String literals are UTF8.
+
+```rust
+fn main() -> i32
+{
+  let ch = 'あ'; // Unicode code point.
+
+  let s = "良きに計らえ"; // UTF8.
+}
+```
+
+## Array in detail
+### Definition
+```rust
+fn main() -> i32
+{
+  let a1 = {'い', 'お'};
+
+  let a2 = {'よ', 'は', 1, 0}; // Error!
+
+  let a3: i32[4810];
+
+  let a3: i32[]; // Error!
+}
+```
+
+### Subscript
+Subscript numbers begin with 0.
+```rust
+fn f() -> i32
+{
+  ret 0;
+}
+
+fn main() -> i32
+{
+  let a = {48, 10, 4, 8, 1, 0};
+
+  a[0];
+
+  a[f() + 1];
+
+  a[4810]; // Does not work correctly.
+
+  for (let mut i = 0; i < 6; ++i)
+    a[i];
+}
 ```
 
 ## Statements

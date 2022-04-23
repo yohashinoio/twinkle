@@ -103,8 +103,8 @@ ExprVisitor::ExprVisitor(CGContext& ctx, SymbolTable& scope) noexcept
 }
 
 [[nodiscard]] Variable createVarFromIdent(CGContext&             ctx,
-                                       const ast::Identifier& node,
-                                       const SymbolTable&     scope)
+                                          const ast::Identifier& node,
+                                          const SymbolTable&     scope)
 {
   const auto ident = node.utf8();
 

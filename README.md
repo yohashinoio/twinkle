@@ -39,26 +39,25 @@ Here is an example if /usr/bin/llvm-config-xxx.
 $ sudo ln -s /usr/bin/llvm-config-xxx /usr/local/bin/llvm-config
 ```
 
-### Clone
+### Installation
+Clone maple repository.
 ```bash
 $ git clone https://github.com/GothicLoli/maple.git
 $ cd maple
 ```
-
-### Build
-Create a build directory.
+Create build directory.
 ```bash
 $ mkdir build && cd $_
 ```
-Next, build. (It may take a few minutes)
+Build and install.
 ```bash
 $ cmake .. -DCMAKE_BUILD_TYPE=Release
-$ sudo make install
+$ sudo cmake --install .
 ```
 If you want to specify where to install.
 ```bash
 $ cmake .. -DCMAKE_INSTALL_PREFIX="path/to/install" -DCMAKE_BUILD_TYPE=Release
-$ make install
+$ cmake --install .
 ```
 
 ## References
