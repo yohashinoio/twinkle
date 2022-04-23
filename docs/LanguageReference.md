@@ -33,8 +33,8 @@
   - [Octal](#octal)
   - [Hexadecimal](#hexadecimal)
   - [Binary](#binary)
-- [Character and string encoding](#character-and-string-encoding)
-- [Array in detail](#array-in-detail)
+- [Character And String Encoding](#character-and-string-encoding)
+- [Array In Detail](#array-in-detail)
   - [Definition](#definition-2)
   - [Subscript](#subscript)
 - [Statements](#statements)
@@ -377,7 +377,7 @@ The maximum value for binary literals is u32.
 let n = 0b1001011001010;
 ```
 
-## Character and string encoding
+## Character And String Encoding
 The char type holds Unicode code points.
 String literals are UTF8.
 
@@ -390,7 +390,7 @@ fn main() -> i32
 }
 ```
 
-## Array in detail
+## Array In Detail
 ### Definition
 ```rust
 fn main() -> i32
