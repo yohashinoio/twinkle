@@ -1,0 +1,8 @@
+fn quicksort(a: *i32)
+{
+}
+
+fn main() -> i32
+{
+  let a = {48, 10, -4, 8, 1, 0};
+}

@@ -131,17 +131,20 @@ ExprVisitor::ExprVisitor(CGContext& ctx, SymbolTable& scope) noexcept
 
 [[nodiscard]] Value ExprVisitor::operator()(const ast::Subscript& node) const
 {
-  // TODO: If const, make an error
+  auto lhs = this->operator()(node.ident);
 
-  const auto lhs = createVarFromIdent(ctx, node.ident, scope);
+  const auto is_array = lhs.getType()->isArrayTy();
+
+  if (!is_array && !lhs.getType()->isPointerTy()) {
+    throw CodegenError{
+      ctx.formatError(ctx.positions.position_of(node),
+                      "the type incompatible with the subscript operator")};
+  }
+
+  if (is_array)
+    lhs = genAddressOf(lhs);
 
   const auto nsubscript = boost::apply_visitor(*this, node.nsubscript);
-
-  if (!lhs.getAllocaInst()->getAllocatedType()->isArrayTy()) {
-    throw CodegenError{ctx.formatError(
-      ctx.positions.position_of(node),
-      "the subscript operator cannot be adapted to non-array types")};
-  }
 
   if (!nsubscript.isInteger()) {
     throw CodegenError{
@@ -149,16 +152,20 @@ ExprVisitor::ExprVisitor(CGContext& ctx, SymbolTable& scope) noexcept
                       "subscripts need to be evaluated to numbers")};
   }
 
-  const auto array_type = lhs.getAllocaInst()->getAllocatedType();
-
-  auto const gep = ctx.builder.CreateInBoundsGEP(
-    array_type,
-    lhs.getAllocaInst(),
-    {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 0),
-     nsubscript.getValue()});
+  auto const gep
+    = is_array
+        ? ctx.builder.CreateInBoundsGEP(
+          lhs.getType()->getPointerElementType(),
+          lhs.getValue(),
+          {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 0),
+           nsubscript.getValue()})
+        : ctx.builder.CreateInBoundsGEP(lhs.getType()->getPointerElementType(),
+                                        lhs.getValue(),
+                                        nsubscript.getValue());
 
   auto const element_type
-    = lhs.getAllocaInst()->getAllocatedType()->getArrayElementType();
+    = is_array ? lhs.getType()->getPointerElementType()->getArrayElementType()
+               : lhs.getType()->getPointerElementType();
 
   return {ctx.builder.CreateLoad(element_type, gep), lhs.isSigned()};
 }

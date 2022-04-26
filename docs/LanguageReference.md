@@ -427,6 +427,19 @@ fn main() -> i32
     a[i];
 }
 ```
+Can also be used for pointers.
+```rust
+fn front(p: *i32) -> i32
+{
+  ret p[0];
+}
+
+fn main() -> i32
+{
+  let a = {4, 8, 1, 0};
+  front(&a[0]);
+}
+```
 
 ## Statements
 ### Expression Statements

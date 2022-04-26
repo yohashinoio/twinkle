@@ -111,6 +111,7 @@ int main(const int argc, const char* const* const argv)
     {     "bin_octal_hex_literal",  58},
     {               "logical_not",  58},
     {                 "subscript",  26},
+    {         "pointer_subscript", 168},
   };
 
   std::size_t ok_c{};   // ok count.
