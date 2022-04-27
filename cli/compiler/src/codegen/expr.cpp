@@ -331,7 +331,7 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
     if (!equals(args_value[idx++]->getType(), arg.getType())) {
       throw CodegenError{ctx.formatError(
         ctx.positions.position_of(node),
-        format("incompatible type for argument %d of '%s'", idx + 1, callee))};
+        format("incompatible type for argument %d of '%s'", idx, callee))};
     }
   }
 
