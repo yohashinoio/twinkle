@@ -7,14 +7,15 @@
 </div>
 
 ## Key Features of Maple
-- Variables are immutable by default.
-- Support for both AOT and JIT compilation.
+- Syntax is like c++, swift and rust combined.
 - LLVM backend.
+- Support for both AOT and JIT compilation.
+- Variables are immutable by default.
 
 ## Installing
 ### Dependency List
 - LLVM (Confirmed to work with 13 and 14)
-- Boost (Developed in 1.71.0)
+- Boost
 - CMake
 - Make (Of course, ninja will work)
 - C++20 compiler
