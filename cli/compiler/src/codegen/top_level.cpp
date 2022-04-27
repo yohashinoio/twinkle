@@ -168,7 +168,13 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDef& node) const
                             "",
                             node.decl.return_type->getType(ctx.context));
 
-  genStmt(ctx, argument_table, node.body, retvar, end_bb, nullptr, nullptr);
+  createStatement(ctx,
+                  argument_table,
+                  node.body,
+                  retvar,
+                  end_bb,
+                  nullptr,
+                  nullptr);
 
   // If there is no return, returns undef.
   if (!ctx.builder.GetInsertBlock()->getTerminator()
@@ -222,9 +228,9 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDef& node) const
   return func;
 }
 
-llvm::Function* genTopLevel(CGContext&                         ctx,
-                            llvm::legacy::FunctionPassManager& fp_manager,
-                            const ast::TopLevel&               node)
+llvm::Function* createTopLevel(CGContext&                         ctx,
+                               llvm::legacy::FunctionPassManager& fp_manager,
+                               const ast::TopLevel&               node)
 {
   return boost::apply_visitor(TopLevelVisitor{ctx, fp_manager}, node);
 }

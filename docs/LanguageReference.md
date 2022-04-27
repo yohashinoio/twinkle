@@ -277,8 +277,7 @@ fn main() -> i32
 ```
 
 ## Constant pointer
-A pointer that is not mutable cannot have its value changed.
-Also, the value to which the pointer points cannot be changed.
+The constant pointer in this language is the same as 'const xxx* const' in c++.
 ```rust
 fn f(p: *i32)
 {

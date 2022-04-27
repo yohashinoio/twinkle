@@ -205,7 +205,7 @@ void CodeGenerator::codegen(const ast::Program&                ast,
                             llvm::legacy::FunctionPassManager& fp_manager)
 {
   for (const auto& node : ast)
-    genTopLevel(ctx, fp_manager, node);
+    createTopLevel(ctx, fp_manager, node);
 }
 
 void CodeGenerator::emitFiles(const llvm::CodeGenFileType cgft)

@@ -136,46 +136,46 @@ private:
 [[nodiscard]] bool isEitherSigned(const Value& lhs, const Value& rhs);
 
 [[nodiscard]] Value
-genAddition(CGContext& ctx, const Value& lhs, const Value& rhs);
+createAdd(CGContext& ctx, const Value& lhs, const Value& rhs);
 
 [[nodiscard]] Value
-genSubtraction(CGContext& ctx, const Value& lhs, const Value& rhs);
+createSub(CGContext& ctx, const Value& lhs, const Value& rhs);
 
 [[nodiscard]] Value
-genMultiplication(CGContext& ctx, const Value& lhs, const Value& rhs);
+createMul(CGContext& ctx, const Value& lhs, const Value& rhs);
 
 [[nodiscard]] Value
-genDivision(CGContext& ctx, const Value& lhs, const Value& rhs);
+createDiv(CGContext& ctx, const Value& lhs, const Value& rhs);
 
 [[nodiscard]] Value
-genModulo(CGContext& ctx, const Value& lhs, const Value& rhs);
+createMod(CGContext& ctx, const Value& lhs, const Value& rhs);
 
 [[nodiscard]] Value
-genEqual(CGContext& ctx, const Value& lhs, const Value& rhs);
+createEqual(CGContext& ctx, const Value& lhs, const Value& rhs);
 
 [[nodiscard]] Value
-genNotEqual(CGContext& ctx, const Value& lhs, const Value& rhs);
+createNotEqual(CGContext& ctx, const Value& lhs, const Value& rhs);
 
 [[nodiscard]] Value
-genLessThan(CGContext& ctx, const Value& lhs, const Value& rhs);
+createLessThan(CGContext& ctx, const Value& lhs, const Value& rhs);
 
 [[nodiscard]] Value
-genGreaterThan(CGContext& ctx, const Value& lhs, const Value& rhs);
+createGreaterThan(CGContext& ctx, const Value& lhs, const Value& rhs);
 
 [[nodiscard]] Value
-genLessOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs);
+createLessOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs);
 
 [[nodiscard]] Value
-genGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs);
+createGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs);
 
-[[nodiscard]] Value genLogicalNegative(CGContext& ctx, const Value& value);
+[[nodiscard]] Value createLogicalNot(CGContext& ctx, const Value& value);
 
-[[nodiscard]] Value genSizeOf(CGContext& ctx, const Value& value);
+[[nodiscard]] Value createSizeOf(CGContext& ctx, const Value& value);
 
-[[nodiscard]] Value inverse(CGContext& ctx, const Value& num);
+[[nodiscard]] Value createAddInverse(CGContext& ctx, const Value& num);
 
 [[nodiscard]] bool strictEquals(const llvm::Type* const left,
-                          const llvm::Type* const right);
+                                const llvm::Type* const right);
 
 } // namespace maple::codegen
 

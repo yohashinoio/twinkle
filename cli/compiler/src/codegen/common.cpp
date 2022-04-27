@@ -54,28 +54,28 @@ catch (const std::out_of_range&) {
 }
 
 [[nodiscard]] Value
-genAddition(CGContext& ctx, const Value& lhs, const Value& rhs)
+createAdd(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateAdd(lhs.getValue(), rhs.getValue()),
           isEitherSigned(lhs, rhs)};
 }
 
 [[nodiscard]] Value
-genSubtraction(CGContext& ctx, const Value& lhs, const Value& rhs)
+createSub(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateSub(lhs.getValue(), rhs.getValue()),
           isEitherSigned(lhs, rhs)};
 }
 
 [[nodiscard]] Value
-genMultiplication(CGContext& ctx, const Value& lhs, const Value& rhs)
+createMul(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateMul(lhs.getValue(), rhs.getValue()),
           isEitherSigned(lhs, rhs)};
 }
 
 [[nodiscard]] Value
-genDivision(CGContext& ctx, const Value& lhs, const Value& rhs)
+createDiv(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   const auto result_is_signed = isEitherSigned(lhs, rhs);
 
@@ -90,7 +90,7 @@ genDivision(CGContext& ctx, const Value& lhs, const Value& rhs)
 }
 
 [[nodiscard]] Value
-genModulo(CGContext& ctx, const Value& lhs, const Value& rhs)
+createMod(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   const auto result_is_signed = isEitherSigned(lhs, rhs);
 
@@ -104,7 +104,7 @@ genModulo(CGContext& ctx, const Value& lhs, const Value& rhs)
   }
 }
 
-[[nodiscard]] Value genEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
+[[nodiscard]] Value createEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
                                  lhs.getValue(),
@@ -112,7 +112,7 @@ genModulo(CGContext& ctx, const Value& lhs, const Value& rhs)
 }
 
 [[nodiscard]] Value
-genNotEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
+createNotEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_NE,
                                  lhs.getValue(),
@@ -120,7 +120,7 @@ genNotEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 }
 
 [[nodiscard]] Value
-genLessThan(CGContext& ctx, const Value& lhs, const Value& rhs)
+createLessThan(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateICmp(isEitherSigned(lhs, rhs)
                                    ? llvm::ICmpInst::ICMP_SLT
@@ -130,7 +130,7 @@ genLessThan(CGContext& ctx, const Value& lhs, const Value& rhs)
 }
 
 [[nodiscard]] Value
-genGreaterThan(CGContext& ctx, const Value& lhs, const Value& rhs)
+createGreaterThan(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateICmp(isEitherSigned(lhs, rhs)
                                    ? llvm::ICmpInst::ICMP_SGT
@@ -140,7 +140,7 @@ genGreaterThan(CGContext& ctx, const Value& lhs, const Value& rhs)
 }
 
 [[nodiscard]] Value
-genLessOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
+createLessOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateICmp(isEitherSigned(lhs, rhs)
                                    ? llvm::ICmpInst::ICMP_SLE
@@ -150,7 +150,7 @@ genLessOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 }
 
 [[nodiscard]] Value
-genGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
+createGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateICmp(isEitherSigned(lhs, rhs)
                                    ? llvm::ICmpInst::ICMP_SGE
@@ -159,21 +159,21 @@ genGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
                                  rhs.getValue())};
 }
 
-[[nodiscard]] Value genLogicalNegative(CGContext& ctx, const Value& value)
+[[nodiscard]] Value createLogicalNot(CGContext& ctx, const Value& value)
 {
   return {ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
                                  value.getValue(),
                                  llvm::ConstantInt::get(value.getType(), 0))};
 }
 
-[[nodiscard]] Value genSizeOf(CGContext& ctx, const Value& value)
+[[nodiscard]] Value createSizeOf(CGContext& ctx, const Value& value)
 {
   return {llvm::ConstantInt::get(
     ctx.builder.getInt32Ty(),
     ctx.module->getDataLayout().getTypeAllocSize(value.getType()))};
 }
 
-[[nodiscard]] Value inverse(CGContext& ctx, const Value& num)
+[[nodiscard]] Value createAddInverse(CGContext& ctx, const Value& num)
 {
   return {ctx.builder.CreateSub(llvm::ConstantInt::get(num.getType(), 0),
                                 num.getValue()),

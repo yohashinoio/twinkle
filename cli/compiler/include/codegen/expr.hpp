@@ -21,12 +21,13 @@
 namespace maple::codegen
 {
 
-[[nodiscard]] Variable createVarFromIdent(CGContext&             ctx,
-                                       const ast::Identifier& node,
-                                       const SymbolTable&     scope);
+// Throws exception if not found.
+[[nodiscard]] Variable findVariable(CGContext&             ctx,
+                                    const ast::Identifier& node,
+                                    const SymbolTable&     scope);
 
 [[nodiscard]] Value
-genExpr(CGContext& ctx, SymbolTable& scope, const ast::Expr& expr);
+createExpr(CGContext& ctx, SymbolTable& scope, const ast::Expr& expr);
 
 } // namespace maple::codegen
 

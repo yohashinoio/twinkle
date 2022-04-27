@@ -21,13 +21,13 @@
 namespace maple::codegen
 {
 
-void genStmt(CGContext&        ctx,
-             SymbolTable&      scope,
-             const ast::Stmt&  statement,
-             llvm::AllocaInst* retvar,
-             llvm::BasicBlock* end_bb,
-             llvm::BasicBlock* break_bb,
-             llvm::BasicBlock* continue_bb);
+void createStatement(CGContext&        ctx,
+                     SymbolTable&      scope,
+                     const ast::Stmt&  statement,
+                     llvm::AllocaInst* retvar,
+                     llvm::BasicBlock* end_bb,
+                     llvm::BasicBlock* break_bb,
+                     llvm::BasicBlock* continue_bb);
 
 } // namespace maple::codegen
 
