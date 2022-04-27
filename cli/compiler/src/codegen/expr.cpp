@@ -213,7 +213,7 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
 
   IntegerImplicitConversion(ctx, lhs, rhs);
 
-  if (!equals(lhs.getType(), rhs.getType())) {
+  if (!strictEquals(lhs.getType(), rhs.getType())) {
     throw CodegenError{ctx.formatError(
       ctx.positions.position_of(node),
       "both operands to a binary operator are not of the same type",
@@ -280,14 +280,17 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
   case ast::UnaryOp::Kind::minus:
     return inverse(ctx, rhs);
 
+  case ast::UnaryOp::Kind::not_:
+    return genLogicalNegative(ctx, rhs);
+
   case ast::UnaryOp::Kind::indirection:
     return genIndirection(ctx.positions.position_of(node), rhs);
 
   case ast::UnaryOp::Kind::address_of:
     return genAddressOf(rhs);
 
-  case ast::UnaryOp::Kind::not_:
-    return genLogicalNegative(ctx, rhs);
+  case ast::UnaryOp::Kind::size_of:
+    return genSizeOf(ctx, rhs);
 
   case ast::UnaryOp::Kind::unknown:
     throw CodegenError{ctx.formatError(
@@ -328,7 +331,7 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
 
   // Verify arguments
   for (std::size_t idx = 0; auto&& arg : callee_func->args()) {
-    if (!equals(args_value[idx++]->getType(), arg.getType())) {
+    if (!strictEquals(args_value[idx++]->getType(), arg.getType())) {
       throw CodegenError{ctx.formatError(
         ctx.positions.position_of(node),
         format("incompatible type for argument %d of '%s'", idx, callee))};

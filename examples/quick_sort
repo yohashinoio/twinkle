@@ -18,7 +18,7 @@ fn printarray(a: *i32, s: i32)
 fn main() -> i32
 {
   let a = {48, 10, -4, 8, 1, 0};
-  let s = 6;
+  let s = sizeof a / sizeof a[0];
 
   let p = &a[0];
 

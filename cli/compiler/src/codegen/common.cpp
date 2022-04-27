@@ -107,77 +107,83 @@ genModulo(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value genEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
-                                      lhs.getValue(),
-                                      rhs.getValue())};
+                                 lhs.getValue(),
+                                 rhs.getValue())};
 }
 
 [[nodiscard]] Value
 genNotEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_NE,
-                                      lhs.getValue(),
-                                      rhs.getValue())};
+                                 lhs.getValue(),
+                                 rhs.getValue())};
 }
 
 [[nodiscard]] Value
 genLessThan(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateICmp(isEitherSigned(lhs, rhs)
-                                        ? llvm::ICmpInst::ICMP_SLT
-                                        : llvm::ICmpInst::ICMP_ULT,
-                                      lhs.getValue(),
-                                      rhs.getValue())};
+                                   ? llvm::ICmpInst::ICMP_SLT
+                                   : llvm::ICmpInst::ICMP_ULT,
+                                 lhs.getValue(),
+                                 rhs.getValue())};
 }
 
 [[nodiscard]] Value
 genGreaterThan(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateICmp(isEitherSigned(lhs, rhs)
-                                        ? llvm::ICmpInst::ICMP_SGT
-                                        : llvm::ICmpInst::ICMP_UGT,
-                                      lhs.getValue(),
-                                      rhs.getValue())};
+                                   ? llvm::ICmpInst::ICMP_SGT
+                                   : llvm::ICmpInst::ICMP_UGT,
+                                 lhs.getValue(),
+                                 rhs.getValue())};
 }
 
 [[nodiscard]] Value
 genLessOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateICmp(isEitherSigned(lhs, rhs)
-                                        ? llvm::ICmpInst::ICMP_SLE
-                                        : llvm::ICmpInst::ICMP_ULE,
-                                      lhs.getValue(),
-                                      rhs.getValue())};
+                                   ? llvm::ICmpInst::ICMP_SLE
+                                   : llvm::ICmpInst::ICMP_ULE,
+                                 lhs.getValue(),
+                                 rhs.getValue())};
 }
 
 [[nodiscard]] Value
 genGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateICmp(isEitherSigned(lhs, rhs)
-                                        ? llvm::ICmpInst::ICMP_SGE
-                                        : llvm::ICmpInst::ICMP_UGE,
-                                      lhs.getValue(),
-                                      rhs.getValue())};
+                                   ? llvm::ICmpInst::ICMP_SGE
+                                   : llvm::ICmpInst::ICMP_UGE,
+                                 lhs.getValue(),
+                                 rhs.getValue())};
 }
 
 [[nodiscard]] Value genLogicalNegative(CGContext& ctx, const Value& value)
 {
-  return {
-    ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
-                           value.getValue(),
-                           llvm::ConstantInt::get(value.getType(), 0))};
+  return {ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
+                                 value.getValue(),
+                                 llvm::ConstantInt::get(value.getType(), 0))};
+}
+
+[[nodiscard]] Value genSizeOf(CGContext& ctx, const Value& value)
+{
+  return {llvm::ConstantInt::get(
+    ctx.builder.getInt32Ty(),
+    ctx.module->getDataLayout().getTypeAllocSize(value.getType()))};
 }
 
 [[nodiscard]] Value inverse(CGContext& ctx, const Value& num)
 {
   return {ctx.builder.CreateSub(llvm::ConstantInt::get(num.getType(), 0),
-                                     num.getValue()),
-               num.isSigned()};
+                                num.getValue()),
+          num.isSigned()};
 }
 
 // The code is based on https://gist.github.com/quantumsheep.
 // Thank you!
-[[nodiscard]] bool equals(const llvm::Type* const left,
-                          const llvm::Type* const right)
+[[nodiscard]] bool strictEquals(const llvm::Type* const left,
+                                const llvm::Type* const right)
 {
   auto left_ptr  = llvm::dyn_cast<llvm::PointerType>(left);
   auto right_ptr = llvm::dyn_cast<llvm::PointerType>(right);
@@ -222,8 +228,8 @@ genGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
       return false;
 
     for (unsigned i = 0, e = left_struct->getNumElements(); i != e; ++i) {
-      if (!equals(left_struct->getElementType(i),
-                  right_struct->getElementType(i)))
+      if (!strictEquals(left_struct->getElementType(i),
+                        right_struct->getElementType(i)))
         return false;
     }
 
@@ -241,13 +247,13 @@ genGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
     if (left_function->isVarArg() != right_function->isVarArg())
       return false;
 
-    if (!equals(left_function->getReturnType(),
-                right_function->getReturnType()))
+    if (!strictEquals(left_function->getReturnType(),
+                      right_function->getReturnType()))
       return false;
 
     for (unsigned i = 0, e = left_function->getNumParams(); i != e; ++i) {
-      if (!equals(left_function->getParamType(i),
-                  right_function->getParamType(i)))
+      if (!strictEquals(left_function->getParamType(i),
+                        right_function->getParamType(i)))
         return false;
     }
 
@@ -262,8 +268,8 @@ genGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
     if (left_sequential->getNumElements() != right_sequential->getNumElements())
       return false;
 
-    return equals(left_sequential->getElementType(),
-                  right_sequential->getElementType());
+    return strictEquals(left_sequential->getElementType(),
+                        right_sequential->getElementType());
   }
 
     // TODO: add VectorType case

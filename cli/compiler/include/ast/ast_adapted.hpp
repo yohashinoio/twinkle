@@ -16,7 +16,7 @@
 // clang-format off
 
 //===----------------------------------------------------------------------===//
-// Expression abstract syntax tree adapt
+// Expression AST adapt
 //===----------------------------------------------------------------------===//
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -66,7 +66,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 //===----------------------------------------------------------------------===//
-// Statement abstract syntax tree adapt
+// Statement AST adapt
 //===----------------------------------------------------------------------===//
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -138,7 +138,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 //===----------------------------------------------------------------------===//
-// Top level statement abstract syntax tree adapt
+// Top level statement AST adapt
 //===----------------------------------------------------------------------===//
 
 BOOST_FUSION_ADAPT_STRUCT(

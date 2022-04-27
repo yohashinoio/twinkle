@@ -18,22 +18,16 @@
 #include <support/type.hpp>
 #include <unicode/unicode.hpp>
 
+namespace maple::ast
+{
+
 namespace x3 = boost::spirit::x3;
 
-namespace maple
-{
+struct Nil {
+};
 
 //===----------------------------------------------------------------------===//
-// Abstract syntax tree
-//===----------------------------------------------------------------------===//
-
-namespace ast
-{
-
-struct Nil {};
-
-//===----------------------------------------------------------------------===//
-// Expression abstract syntax tree
+// Expression AST
 //===----------------------------------------------------------------------===//
 
 struct StringLiteral : x3::position_tagged {
@@ -105,7 +99,8 @@ struct BinOp : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char {
+  enum class Kind : unsigned char
+  {
     unknown,
     add, // Addition
     sub, // Subtraciton
@@ -158,13 +153,15 @@ struct UnaryOp : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char {
+  enum class Kind : unsigned char
+  {
     unknown,
     plus,        // Unary plus
     minus,       // Unary minus
+    not_,        // Logical not
     indirection, // Indirection
     address_of,  // Address-of
-    not_,        // Logical not
+    size_of,     // size-of
   };
 
   Kind kind() const
@@ -173,12 +170,14 @@ struct UnaryOp : x3::position_tagged {
       return Kind::plus;
     if (op == U"-")
       return Kind::minus;
+    if (op == U"!")
+      return Kind::not_;
     if (op == U"*")
       return Kind::indirection;
     if (op == U"&")
       return Kind::address_of;
-    if (op == U"!")
-      return Kind::not_;
+    if (op == U"sizeof")
+      return Kind::size_of;
 
     return Kind::unknown;
   }
@@ -200,7 +199,7 @@ struct Conversion : x3::position_tagged {
 };
 
 //===----------------------------------------------------------------------===//
-// Statement abstract syntax tree
+// Statement AST
 //===----------------------------------------------------------------------===//
 
 struct InitList : x3::position_tagged {
@@ -232,7 +231,8 @@ struct Assignment : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char {
+  enum class Kind : unsigned char
+  {
     unknown,
     direct, // Direct assignment
     add,    // Addition assignment
@@ -270,7 +270,8 @@ struct PrefixIncAndDec : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char {
+  enum class Kind : unsigned char
+  {
     unknown,
     increment,
     decrement,
@@ -344,7 +345,7 @@ struct For : x3::position_tagged {
 };
 
 //===----------------------------------------------------------------------===//
-// Top level abstract syntax tree
+// Top level AST
 //===----------------------------------------------------------------------===//
 
 struct Parameter : x3::position_tagged {
@@ -404,7 +405,6 @@ using TopLevel = boost::variant<Nil, FunctionDecl, FunctionDef>;
 
 using Program = std::vector<TopLevel>;
 
-} // namespace ast
-} // namespace maple
+} // namespace maple::ast
 
 #endif

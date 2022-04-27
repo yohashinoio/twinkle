@@ -170,9 +170,11 @@ genGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs);
 
 [[nodiscard]] Value genLogicalNegative(CGContext& ctx, const Value& value);
 
+[[nodiscard]] Value genSizeOf(CGContext& ctx, const Value& value);
+
 [[nodiscard]] Value inverse(CGContext& ctx, const Value& num);
 
-[[nodiscard]] bool equals(const llvm::Type* const left,
+[[nodiscard]] bool strictEquals(const llvm::Type* const left,
                           const llvm::Type* const right);
 
 } // namespace maple::codegen

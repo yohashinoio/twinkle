@@ -146,7 +146,7 @@ void StmtVisitor::operator()(const ast::Return& node) const
     auto const return_type
       = ctx.builder.GetInsertBlock()->getParent()->getReturnType();
 
-    if (!equals(return_type, retval.getType())) {
+    if (!strictEquals(return_type, retval.getType())) {
       throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
                                          "incompatible type for result type")};
     }
@@ -222,7 +222,7 @@ void StmtVisitor::operator()(const ast::Assignment& node) const
                                        "failed to generate right-hand side")};
   }
 
-  if (!equals(lhs.getType()->getPointerElementType(), rhs.getType())) {
+  if (!strictEquals(lhs.getType()->getPointerElementType(), rhs.getType())) {
     throw CodegenError{ctx.formatError(
       ctx.positions.position_of(node),
       "both operands to a binary operator are not of the same type")};
@@ -636,7 +636,7 @@ void StmtVisitor::InitArray(llvm::AllocaInst*                array_alloca,
         format("failed to generate initializer for '%s'", name))};
     }
 
-    if (!equals(llvm_type, init_value.getType())) {
+    if (!strictEquals(llvm_type, init_value.getType())) {
       throw CodegenError{ctx.formatError(
         pos,
         "the variable type and the initializer type are incompatible")};

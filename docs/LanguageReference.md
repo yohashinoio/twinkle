@@ -116,6 +116,7 @@ In this language, **an assignment is a statement**, so you cannot use a syntax l
 | ------------- | --------- |
 | Function call | a(a1, a2) |
 | Conversion    | a as type |
+| Sizeof        | sizeof a  |
 
 This section on Operators is based on "Operators in C and C++" from wikipedia.<br/>
 Thank you!

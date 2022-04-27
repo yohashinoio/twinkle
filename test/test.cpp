@@ -112,6 +112,7 @@ int main(const int argc, const char* const* const argv)
     {               "logical_not",  58},
     {                 "subscript",  26},
     {         "pointer_subscript", 168},
+    {                    "sizeof",  58},
   };
 
   std::size_t ok_c{};   // ok count.
