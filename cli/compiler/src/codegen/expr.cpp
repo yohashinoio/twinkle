@@ -61,9 +61,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::StringLiteral& node) const
   {
-    return Value{
-      ctx.builder.CreateGlobalStringPtr(unicode::utf32toUtf8(node.str),
-                                        ".str")};
+    return {ctx.builder.CreateGlobalStringPtr(unicode::utf32toUtf8(node.str),
+                                              ".str")};
   }
 
   [[nodiscard]] Value operator()(const ast::CharLiteral& node) const
@@ -126,7 +125,8 @@ ExprVisitor::ExprVisitor(CGContext& ctx, SymbolTable& scope) noexcept
 
   return {ctx.builder.CreateLoad(variable.getAllocaInst()->getAllocatedType(),
                                  variable.getAllocaInst()),
-          variable.isSigned()};
+          variable.isSigned(),
+          variable.isMutable()};
 }
 
 [[nodiscard]] Value ExprVisitor::operator()(const ast::Subscript& node) const
@@ -335,7 +335,7 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
     }
   }
 
-  return Value{ctx.builder.CreateCall(callee_func, args_value)};
+  return {ctx.builder.CreateCall(callee_func, args_value)};
 }
 
 [[nodiscard]] Value ExprVisitor::operator()(const ast::Conversion& node) const
@@ -372,7 +372,7 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
 
 [[nodiscard]] Value ExprVisitor::genAddressOf(const Value& rhs) const
 {
-  return Value{llvm::getPointerOperand(rhs.getValue())};
+  return {llvm::getPointerOperand(rhs.getValue())};
 }
 
 [[nodiscard]] Value
@@ -388,7 +388,8 @@ ExprVisitor::genIndirection(const boost::iterator_range<InputIterator>& pos,
 
   return {
     ctx.builder.CreateLoad(rhs_type->getPointerElementType(), rhs.getValue()),
-    rhs.isSigned()};
+    rhs.isSigned(),
+    rhs.isMutable()};
 }
 
 [[nodiscard]] Value

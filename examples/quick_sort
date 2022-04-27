@@ -1,4 +1,4 @@
-// Production in progress.
+// TODO: Production in progress.
 
 extern printf(fmt: *i8, ...) -> i32;
 
@@ -7,7 +7,7 @@ fn quicksort(mut a: *i32, start: i32, end: i32)
   a[0] = 4810;
 }
 
-fn printa(a: *i32, s: i32)
+fn printarray(a: *i32, s: i32)
 {
   printf("%d", a[0]);
   for (let mut i = 1; i < s; ++i)
@@ -22,9 +22,9 @@ fn main() -> i32
 
   let p = &a[0];
 
-  printa(p, s);
+  printarray(p, s);
 
   quicksort(p, 0, s - 1);
 
-  printa(p, s);
+  printarray(p, s);
 }

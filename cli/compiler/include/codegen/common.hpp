@@ -79,9 +79,9 @@ private:
 // Class that wraps llvm::Value.
 // Made to handle signs, etc.
 struct Value {
-  Value(llvm::Value* value, const bool is_signed) noexcept;
-
-  explicit Value(llvm::Value* value) noexcept;
+  Value(llvm::Value* value,
+        const bool   is_signed  = false,
+        const bool   is_mutable = false) noexcept;
 
   Value() noexcept = default;
 
@@ -93,6 +93,11 @@ struct Value {
   [[nodiscard]] llvm::Type* getType() const
   {
     return value->getType();
+  }
+
+  [[nodiscard]] bool isMutable() const noexcept
+  {
+    return is_mutable;
   }
 
   [[nodiscard]] bool isSigned() const noexcept
@@ -117,6 +122,7 @@ struct Value {
 
 private:
   llvm::Value* value;
+  bool         is_mutable;
   bool         is_signed;
 };
 

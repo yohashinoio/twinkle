@@ -512,7 +512,7 @@ void StmtVisitor::operator()(const ast::For& node) const
       format("assignment of read-only variable '%s'", node.utf8()))};
   }
 
-  return {variable.getAllocaInst(), variable.isSigned()};
+  return {variable.getAllocaInst(), variable.isSigned(), variable.isMutable()};
 }
 
 [[nodiscard]] Value StmtVisitor::genAssignableValueFromSubscript(
@@ -530,7 +530,9 @@ void StmtVisitor::operator()(const ast::For& node) const
 
   const auto tmp = genExpr(ctx, scope, node);
 
-  return {llvm::getPointerOperand(tmp.getValue()), tmp.isSigned()};
+  return {llvm::getPointerOperand(tmp.getValue()),
+          tmp.isSigned(),
+          variable.isMutable()};
 }
 
 [[nodiscard]] Value StmtVisitor::genAssignableValueFromExpr(
@@ -560,7 +562,7 @@ void StmtVisitor::operator()(const ast::For& node) const
   if (!value)
     throw CodegenError{ctx.formatError(pos, "failed to generate expression")};
 
-  if (!value.isPointer()) {
+  if (!value.isMutable() || !value.isPointer()) {
     throw CodegenError{
       ctx.formatError(pos, "left-hand side value requires assignable")};
   }

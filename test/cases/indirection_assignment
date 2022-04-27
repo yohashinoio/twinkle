@@ -1,7 +1,7 @@
 fn main() -> i32
 {
   let n: i32 = 0;
-  let p: *i32 = &n;
+  let mut p: *i32 = &n;
 
   *p = 48;
   *p += 10;

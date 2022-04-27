@@ -275,6 +275,30 @@ fn main() -> i32
 }
 ```
 
+## Constant pointer
+A pointer that is not mutable cannot have its value changed.
+Also, the value to which the pointer points cannot be changed.
+```rust
+fn f(p: *i32)
+{
+  p = p; // Error!
+  *p = 10; // Error!
+}
+
+fn g(mut p: *i32)
+{
+  p = p; // OK!
+  *p = 10; // OK!
+}
+
+fn main() -> i32
+{
+  let n = 4810;
+  f(&n);
+  g(&n);
+}
+```
+
 ## Implicit Conversions
 In the case of numeric values, operands with smaller bit widths are converted to the larger bit width side.
 ```rust

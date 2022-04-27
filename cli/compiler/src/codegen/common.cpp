@@ -21,15 +21,12 @@ Variable::Variable(llvm::AllocaInst* pointer,
 {
 }
 
-Value::Value(llvm::Value* value, const bool is_signed) noexcept
+Value::Value(llvm::Value* value,
+             const bool   is_signed,
+             const bool   is_mutable) noexcept
   : value{value}
   , is_signed{is_signed}
-{
-}
-
-Value::Value(llvm::Value* value) noexcept
-  : value{value}
-  , is_signed{false}
+  , is_mutable{is_mutable}
 {
 }
 
@@ -109,7 +106,7 @@ genModulo(CGContext& ctx, const Value& lhs, const Value& rhs)
 
 [[nodiscard]] Value genEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  return Value{ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
+  return {ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
                                       lhs.getValue(),
                                       rhs.getValue())};
 }
@@ -117,7 +114,7 @@ genModulo(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 genNotEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  return Value{ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_NE,
+  return {ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_NE,
                                       lhs.getValue(),
                                       rhs.getValue())};
 }
@@ -125,7 +122,7 @@ genNotEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 genLessThan(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  return Value{ctx.builder.CreateICmp(isEitherSigned(lhs, rhs)
+  return {ctx.builder.CreateICmp(isEitherSigned(lhs, rhs)
                                         ? llvm::ICmpInst::ICMP_SLT
                                         : llvm::ICmpInst::ICMP_ULT,
                                       lhs.getValue(),
@@ -135,7 +132,7 @@ genLessThan(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 genGreaterThan(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  return Value{ctx.builder.CreateICmp(isEitherSigned(lhs, rhs)
+  return {ctx.builder.CreateICmp(isEitherSigned(lhs, rhs)
                                         ? llvm::ICmpInst::ICMP_SGT
                                         : llvm::ICmpInst::ICMP_UGT,
                                       lhs.getValue(),
@@ -145,7 +142,7 @@ genGreaterThan(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 genLessOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  return Value{ctx.builder.CreateICmp(isEitherSigned(lhs, rhs)
+  return {ctx.builder.CreateICmp(isEitherSigned(lhs, rhs)
                                         ? llvm::ICmpInst::ICMP_SLE
                                         : llvm::ICmpInst::ICMP_ULE,
                                       lhs.getValue(),
@@ -155,7 +152,7 @@ genLessOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 genGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  return Value{ctx.builder.CreateICmp(isEitherSigned(lhs, rhs)
+  return {ctx.builder.CreateICmp(isEitherSigned(lhs, rhs)
                                         ? llvm::ICmpInst::ICMP_SGE
                                         : llvm::ICmpInst::ICMP_UGE,
                                       lhs.getValue(),
@@ -164,7 +161,7 @@ genGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 
 [[nodiscard]] Value genLogicalNegative(CGContext& ctx, const Value& value)
 {
-  return Value{
+  return {
     ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
                            value.getValue(),
                            llvm::ConstantInt::get(value.getType(), 0))};
@@ -172,7 +169,7 @@ genGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 
 [[nodiscard]] Value inverse(CGContext& ctx, const Value& num)
 {
-  return Value{ctx.builder.CreateSub(llvm::ConstantInt::get(num.getType(), 0),
+  return {ctx.builder.CreateSub(llvm::ConstantInt::get(num.getType(), 0),
                                      num.getValue()),
                num.isSigned()};
 }
@@ -196,7 +193,8 @@ genGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
     return llvm::cast<llvm::IntegerType>(left)->getBitWidth()
            == llvm::cast<llvm::IntegerType>(right)->getBitWidth();
 
-  // left == right would have returned true earlier, because types are uniqued.
+  // left == right would have returned true earlier, because types are
+  // uniqued.
   case llvm::Type::VoidTyID:
   case llvm::Type::FloatTyID:
   case llvm::Type::DoubleTyID:
