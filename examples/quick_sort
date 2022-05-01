@@ -1,14 +1,4 @@
-// TODO: Production in progress.
-
 extern printf(fmt: *i8, ...) -> i32;
-
-fn printarray(a: *i32, s: i32)
-{
-  printf("%d", a[0]);
-  for (let mut i = 1; i < s; ++i)
-    printf(" %d", a[i]);
-  printf("\n");
-}
 
 fn swap(mut a: *i32, mut b: *i32)
 {
@@ -21,19 +11,15 @@ fn partition(mut a: *i32, start: i32, end: i32) -> i32
 {
   let pivot = a[end];
   let mut i = start - 1;
-  printf("\ti = %d\n", i);
 
   for (let mut j = start; j <= end - 1; ++j) {
-    printf("\t%d %d\n", a[j], pivot);
     if (a[j] <= pivot) {
-    printf("true\n");
       ++i;
       swap(&a[i], &a[j]);
     }
   }
 
   swap(&a[i + 1], &a[end]);
-  printf("end\n");
   ret i + 1;
 }
 
@@ -44,6 +30,14 @@ fn quicksort(mut a: *i32, start: i32, end: i32)
     quicksort(a, start, pivot - 1);
     quicksort(a, pivot + 1, end);
   }
+}
+
+fn printarray(a: *i32, s: i32)
+{
+  printf("%d", a[0]);
+  for (let mut i = 1; i < s; ++i)
+    printf(" %d", a[i]);
+  printf("\n");
 }
 
 fn main() -> i32
