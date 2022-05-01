@@ -11,6 +11,7 @@ Since the author only understands Japanese, this document was created with trans
 
 ## Key Features of Maple
 - Syntax is like c++, swift and rust combined.
+- Language specification is similar to c++.
 - LLVM backend.
 - Support for both AOT and JIT compilation.
 - Variables are immutable by default.
