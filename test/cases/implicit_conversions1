@@ -5,5 +5,5 @@ fn main() -> i32
   let n2 = (42 as u32) + n;
 
   if (n2 == -58)
-    ret 41;
+    return 41;
 }

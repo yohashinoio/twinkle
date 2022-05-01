@@ -6,7 +6,7 @@ fn main() -> i32
   let mut n: u32;
   printf("> ");
   if (scanf("%u", &n) != 1)
-    ret 1;
+    return 1;
 
   for (let mut i = 1; i <= n; ++i) {
     if (i % 15 == 0)

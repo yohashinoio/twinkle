@@ -15,5 +15,5 @@ fn main() -> i64
   let k: bool = 1 as bool;
   let l: bool = 0 as bool;
 
-  ret 58 as i64;
+  return 58 as i64;
 }

@@ -6,5 +6,5 @@ fn main() -> i32
   let 123;
   */
 
-  ret 58;
+  return 58;
 }

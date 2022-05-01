@@ -11,5 +11,5 @@ fn main() -> i32
     }
   }
 
-  ret n;
+  return n;
 }

@@ -1,4 +1,4 @@
 fn main() -> i32
 {
-  ret 580 / 10;
+  return 580 / 10;
 }

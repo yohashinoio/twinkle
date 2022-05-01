@@ -4,6 +4,6 @@ fn main() -> i32
   for (i = 0; i < 4810; i = i + 1) {
     let n: i32 = i;
     if (n == 58)
-      ret n;
+      return n;
   }
 }

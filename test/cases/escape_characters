@@ -10,5 +10,5 @@ fn main() -> i32
   "hello\0world";
   "hello\\world";
   "hello\"world";
-  ret 58;
+  return 58;
 }

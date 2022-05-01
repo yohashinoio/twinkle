@@ -1,13 +1,13 @@
 fn f() -> i32
 {
   let n = -2147483648; // INT_MIN.
-  ret n;
+  return n;
 }
 
 fn g() -> i32
 {
   let n = 4294967295; // UINT_MAX.
-  ret n;
+  return n;
 }
 
 fn main() -> i32
@@ -16,6 +16,6 @@ fn main() -> i32
 
   if ((n + f()) == -1) {
     g();
-    ret 58;
+    return 58;
   }
 }

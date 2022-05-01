@@ -2,7 +2,7 @@ fn f() -> i32
 {
   let f: bool = true;
   if (f)
-    ret 58;
+    return 58;
 }
 
 fn main() -> i32
@@ -14,7 +14,7 @@ fn main() -> i32
   f3 = false;
 
   if (f2)
-    ret 123;
+    return 123;
 
-  ret f();
+  return f();
 }

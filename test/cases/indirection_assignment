@@ -9,5 +9,5 @@ fn main() -> i32
   *p /= 2;
   *p %= 4810;
 
-  ret *p;
+  return *p;
 }

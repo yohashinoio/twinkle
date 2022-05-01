@@ -1,13 +1,13 @@
 fn f() -> i64
 {
   let n = -9223372036854775808; // LLONG_MIN.
-  ret n;
+  return n;
 }
 
 fn g() -> u64
 {
   let n = 18446744073709551615; // ULLONG_MAX.
-  ret n;
+  return n;
 }
 
 fn main() -> i32
@@ -17,6 +17,6 @@ fn main() -> i32
   let a = n + f();
   if ((n + f()) == -1) {
     g();
-    ret 58;
+    return 58;
   }
 }

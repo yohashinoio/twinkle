@@ -5,5 +5,5 @@ fn main() -> i32
   let heart_code = 128149;
 
   if (heart == heart_code)
-    ret 58;
+    return 58;
 }

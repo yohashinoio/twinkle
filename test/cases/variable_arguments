@@ -2,10 +2,10 @@ extern printf(fmt: *i8, ...) -> i32;
 
 fn f(n: i32, ...) -> i32
 {
-  ret n;
+  return n;
 }
 
 fn main() -> i32
 {
-  ret f(58, 123, 456);
+  return f(58, 123, 456);
 }

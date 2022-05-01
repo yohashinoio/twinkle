@@ -8,7 +8,7 @@ fn main() -> i32
   if (d == o) {
     if (o == h) {
       if (h == b)
-        ret 58;
+        return 58;
     }
   }
 }

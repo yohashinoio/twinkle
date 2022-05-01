@@ -5,5 +5,5 @@ fn main() -> i32
   }
   if (1)
     ;
-  ret n;
+  return n;
 }

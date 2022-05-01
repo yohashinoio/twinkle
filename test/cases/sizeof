@@ -3,5 +3,5 @@ fn main() -> i32
   let a = {4, 8, 1, 0, 48, 10, 4810};
 
   if (sizeof a / sizeof a[0] == 7)
-    ret 58;
+    return 58;
 }

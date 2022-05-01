@@ -1,6 +1,6 @@
 fn f() -> i32
 {
-  ret 14;
+  return 14;
 }
 
 fn main() -> i32
@@ -15,5 +15,5 @@ fn main() -> i32
   let mut a3: i32[15];
   a3[20 - (20 - f())] = 4810;
   if (a3[f()] == 4810)
-    ret res;
+    return res;
 }

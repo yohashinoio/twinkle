@@ -8,5 +8,5 @@ fn main() -> i32
       break;
   }
 
-  ret i;
+  return i;
 }

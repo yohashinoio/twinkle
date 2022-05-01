@@ -20,7 +20,7 @@ fn partition(mut a: *i32, start: i32, end: i32) -> i32
   }
 
   swap(&a[i + 1], &a[end]);
-  ret i + 1;
+  return i + 1;
 }
 
 fn quicksort(mut a: *i32, start: i32, end: i32)

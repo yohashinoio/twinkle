@@ -12,5 +12,5 @@ fn main() -> i32
   let d: i64;
   let d_p: *i64 = &d;
 
-  ret 58;
+  return 58;
 }

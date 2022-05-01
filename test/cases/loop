@@ -17,5 +17,5 @@ fn main() -> i32
     io += 1;
   }
 
-  ret yoha + io;
+  return yoha + io;
 }

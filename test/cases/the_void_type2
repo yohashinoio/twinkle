@@ -7,5 +7,5 @@ fn main() -> i32
 {
   let mut n: i32;
   f(&n);
-  ret n;
+  return n;
 }

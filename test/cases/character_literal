@@ -3,5 +3,5 @@ fn main() -> i32
   'a';
   '0';
   '\n';
-  ret ':' as i32;
+  return ':' as i32;
 }

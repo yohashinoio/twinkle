@@ -4,13 +4,13 @@ fn main() -> i32
 
   unicode = '0';
   if (unicode != 48)
-    ret 48;
+    return 48;
 
   unicode = '\n';
   if (unicode != 10)
-    ret 4;
+    return 4;
 
   unicode = '🌸';
   if (unicode != 127800)
-    ret 10;
+    return 10;
 }

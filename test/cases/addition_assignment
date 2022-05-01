@@ -3,5 +3,5 @@ fn main() -> i32
   let mut shino: i32 = 0;
   shino += 48;
   shino += 10;
-  ret shino;
+  return shino;
 }

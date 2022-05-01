@@ -8,5 +8,5 @@ fn main() -> i32
     }
   }
 
-  ret i + 48;
+  return i + 48;
 }

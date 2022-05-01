@@ -3,9 +3,9 @@ extern printf(fmt: *i8, ...) -> i32;
 fn fib(n: i32) -> i32
 {
   if (n < 3)
-    ret 1;
+    return 1;
   else
-    ret fib(n - 1) + fib(n - 2);
+    return fib(n - 1) + fib(n - 2);
 }
 
 fn main() -> i32

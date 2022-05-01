@@ -4,5 +4,5 @@ fn main() -> i32
 
   for (; i < 10; ) ;
 
-  ret i;
+  return i;
 }

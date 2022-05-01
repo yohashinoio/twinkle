@@ -3,9 +3,9 @@ fn f() -> i32
   let n = 4810;
 
   if (!n)
-    ret 0;
+    return 0;
 
-  ret 58;
+  return 58;
 }
 
 fn main() -> i32
@@ -13,7 +13,7 @@ fn main() -> i32
   let f = false;
 
   if (!(f == true))
-    ret f();
+    return f();
 
-  ret 123;
+  return 123;
 }

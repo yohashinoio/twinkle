@@ -9,5 +9,5 @@ fn main() -> i32
   for (let mut j: i32 = 0; j < 48; j = j + 1)
     n = n + 1;
 
-  ret n;
+  return n;
 }

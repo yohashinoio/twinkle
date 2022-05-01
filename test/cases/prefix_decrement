@@ -2,5 +2,5 @@ fn main() -> i32
 {
   let mut n = 59;
   --n;
-  ret n;
+  return n;
 }

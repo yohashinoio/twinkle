@@ -10,5 +10,5 @@ fn main() -> i32
 
   let result: i32 = a + b + c;
 
-  ret result * 2 / 2;
+  return result * 2 / 2;
 }

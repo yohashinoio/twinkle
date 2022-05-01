@@ -1,16 +1,16 @@
 fn f(mut p: *i32) -> i32
 {
   *p = 58;
-  ret;
+  return;
   *p = 110;
-  ret;
+  return;
   *p = 4810;
-  ret;
+  return;
 }
 
 fn main() -> i32
 {
   let mut n: i32;
   f(&n);
-  ret n;
+  return n;
 }

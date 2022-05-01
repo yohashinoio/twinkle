@@ -1,5 +1,5 @@
 fn main() -> i32 {
   let mut shino: i32 = 68;
   shino -= 10;
-  ret shino;
+  return shino;
 }

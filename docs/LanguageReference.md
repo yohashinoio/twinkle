@@ -326,7 +326,7 @@ extern i32 puts(s: *i8);
 ```rust
 fn twice(n: i32) -> i32
 {
-  ret n * 2;
+  return n * 2;
 }
 ```
 
@@ -337,13 +337,13 @@ To make them mutable, use the "mut" qualifier.
 fn f(n: i32) -> i32
 {
   n = 123; // Error!
-  ret n;
+  return n;
 }
 
 fn g(mut n: i32) -> i32
 {
   n = 123; // OK
-  ret n;
+  return n;
 }
 ```
 
@@ -351,12 +351,12 @@ fn g(mut n: i32) -> i32
 ```rust
 fn twice(n: i32) -> i32 // External linkage
 {
-  ret n * 2;
+  return n * 2;
 }
 
 fn private thrice(n: i32) -> i32 // Internal linkage
 {
-  ret n * 3;
+  return n * 3;
 }
 ```
 
@@ -439,7 +439,7 @@ Subscript numbers begin with 0.
 ```rust
 fn f() -> i32
 {
-  ret 0;
+  return 0;
 }
 
 fn main() -> i32
@@ -460,7 +460,7 @@ Can also be used for pointers.
 ```rust
 fn front(p: *i32) -> i32
 {
-  ret p[0];
+  return p[0];
 }
 
 fn main() -> i32
@@ -568,6 +568,6 @@ fn main() -> i32
 ```rust
 fn main() -> i32
 {
-  ret 48 + 10;
+  return 48 + 10;
 }
 ```

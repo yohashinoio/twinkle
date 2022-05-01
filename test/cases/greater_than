@@ -1,5 +1,5 @@
 fn main() -> i32
 {
   if (48 > 10)
-    ret 1;
+    return 1;
 }

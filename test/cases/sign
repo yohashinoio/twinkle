@@ -8,6 +8,6 @@ fn main() -> i32
     let b = 58 * -2;
 
     if (a * 2 == b)
-      ret -a;
+      return -a;
   }
 }

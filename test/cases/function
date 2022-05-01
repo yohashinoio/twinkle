@@ -1,14 +1,14 @@
 fn add(a: i32, b: i32) -> i32
 {
-  ret a + b;
+  return a + b;
 }
 
 fn twice(n: i32) -> i32
 {
-  ret n * 2;
+  return n * 2;
 }
 
 fn main() -> i32
 {
-  ret add(twice(add(4, 8) + 1 + 0), 32);
+  return add(twice(add(4, 8) + 1 + 0), 32);
 }

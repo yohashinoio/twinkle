@@ -7,6 +7,6 @@ fn main() -> i32
 
   if (strcmp(yoha, "\033[33mYO\x1b[32mHA") == 0) {
     if (strcmp(io, "\x1b[37mI\33[41mO") == 0)
-      ret 58;
+      return 58;
   }
 }

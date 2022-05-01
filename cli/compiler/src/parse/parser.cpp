@@ -409,7 +409,7 @@ const auto variable_def_def = lit(U"let") > -variable_qualifier > identifier
                               > -(lit(U":") > variable_type)
                               > -(lit(U"=") > initializer);
 
-const auto _return_def = lit(U"ret") > -expr;
+const auto _return_def = lit(U"return") > -expr;
 
 const auto _if_def
   = lit(U"if") > lit(U"(") > expr > lit(U")") > stmt > -(lit(U"else") > stmt);
