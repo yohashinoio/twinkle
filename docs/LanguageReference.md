@@ -1,5 +1,6 @@
 ## Table of Contents
 - [Table of Contents](#table-of-contents)
+- [Notes](#notes)
 - [Comments](#comments)
   - [Single line comment](#single-line-comment)
   - [Multi line comment](#multi-line-comment)
@@ -21,6 +22,7 @@
   - [Definition](#definition)
   - [Mutable Variables](#mutable-variables)
   - [Type Inference](#type-inference)
+- [Constant pointer](#constant-pointer)
 - [Implicit Conversions](#implicit-conversions)
 - [Functions](#functions)
   - [Declaration](#declaration)
@@ -46,6 +48,9 @@
   - [Break Statement](#break-statement)
   - [Continue Statement](#continue-statement)
   - [Return Statement](#return-statement)
+
+## Notes
+Since the author only understands Japanese, this document was created with translation at DeepL.
 
 ## Comments
 ### Single line comment

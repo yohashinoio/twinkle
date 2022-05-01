@@ -1,8 +1,12 @@
 ## Table of Contents
 - [Table of Contents](#table-of-contents)
-- [Hello world](#hello-world)
-- [AOT compile](#aot-compile)
-- [JIT compile](#jit-compile)
+- [Notes](#notes)
+- [Hello World](#hello-world)
+- [AOT Compile](#aot-compile)
+- [JIT Compile](#jit-compile)
+
+## Notes
+Since the author only understands Japanese, this document was created with translation at DeepL.
 
 ## Hello World
 ```rust

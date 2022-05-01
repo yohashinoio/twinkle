@@ -31,8 +31,6 @@ struct ErrorHandle {
                                     const x3::expectation_failure<Iterator>& x,
                                     Context const& context) const
   {
-    ++total_errors;
-
     auto& error_handler = x3::get<x3::error_handler_tag>(context).get();
 
     error_handler(x.where(),
@@ -41,11 +39,7 @@ struct ErrorHandle {
 
     return x3::error_handler_result::fail;
   }
-
-  static std::size_t total_errors;
 };
-
-std::size_t ErrorHandle::total_errors = 0;
 
 //===----------------------------------------------------------------------===//
 // Annotations
@@ -255,14 +249,14 @@ const auto type = x3::rule<struct TypeTag, std::shared_ptr<Type>>{"type"}
     if (fusion::at_c<0>(x3::_attr(ctx))) {
       // Pointer types.
       x3::_val(ctx) = std::make_shared<PointerType>(
-        std::make_unique<BuiltinType>(fusion::at_c<1>(x3::_attr(ctx))));
+        std::make_shared<BuiltinType>(fusion::at_c<1>(x3::_attr(ctx))));
       return;
     }
 
     if (fusion::at_c<2>(x3::_attr(ctx))) {
       // Array types.
       x3::_val(ctx) = std::make_shared<ArrayType>(
-        std::make_unique<BuiltinType>(fusion::at_c<1>(x3::_attr(ctx))),
+        std::make_shared<BuiltinType>(fusion::at_c<1>(x3::_attr(ctx))),
         *fusion::at_c<2>(x3::_attr(ctx)) /* Array size */);
       return;
     }
@@ -379,7 +373,8 @@ BOOST_SPIRIT_DEFINE(primary)
 // Statement rules
 //===----------------------------------------------------------------------===//
 
-const x3::rule<struct InitListTag, ast::InitList> init_list{"initializer list"};
+const x3::rule<struct InitListTag, ast::InitializerList> initializer_list{
+  "initializer list"};
 const x3::rule<struct InitializerTag, ast::Initializer> initializer{
   "initializer"};
 const x3::rule<struct ExprStmtTag, ast::Expr> expr_stmt{"expression statement"};
@@ -396,9 +391,9 @@ const x3::rule<struct WhileTag, ast::While>   _while{"while statement"};
 const x3::rule<struct ForTag, ast::For>       _for{"for statement"};
 const x3::rule<struct StmtTag, ast::Stmt>     stmt{"statement"};
 
-const auto init_list_def = lit(U"{") > (expr % lit(U",")) > lit(U"}");
+const auto initializer_list_def = lit(U"{") > (expr % lit(U",")) > lit(U"}");
 
-const auto initializer_def = expr | init_list;
+const auto initializer_def = expr | initializer_list;
 
 const auto expr_stmt_def = expr;
 
@@ -444,7 +439,7 @@ const auto stmt_def = lit(U";")                       /* Null statement */
                       | prefix_inc_or_dec > lit(U";") | assignment > lit(U";")
                       | variable_def > lit(U";") | expr_stmt > lit(U";");
 
-BOOST_SPIRIT_DEFINE(init_list)
+BOOST_SPIRIT_DEFINE(initializer_list)
 BOOST_SPIRIT_DEFINE(initializer)
 BOOST_SPIRIT_DEFINE(expr_stmt)
 BOOST_SPIRIT_DEFINE(variable_def)
@@ -755,12 +750,9 @@ void Parser::parse()
   const auto parser = x3::with<x3::error_handler_tag>(std::ref(
     error_handler))[x3::with<PositionCacheTag>(positions)[syntax::program]];
 
-  const auto success
-    = x3::phrase_parse(u32_first, u32_last, parser, syntax::skipper, ast);
-
-  if (!success || u32_first != u32_last) {
-    throw ParseError{
-      format("%zu errors generated.\n", ErrorHandle::total_errors)};
+  if (!x3::phrase_parse(u32_first, u32_last, parser, syntax::skipper, ast)
+      || u32_first != u32_last) {
+    throw ParseError{"compilation terminated."};
   }
 }
 

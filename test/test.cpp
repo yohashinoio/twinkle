@@ -113,6 +113,7 @@ int main(const int argc, const char* const* const argv)
     {                 "subscript",  26},
     {         "pointer_subscript", 168},
     {                    "sizeof",  58},
+    {              "signed_array",  58},
   };
 
   std::size_t ok_c{};   // ok count.

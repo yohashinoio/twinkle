@@ -96,34 +96,25 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
     auto const func = ctx.builder.GetInsertBlock()->getParent();
 
-    const auto regist
-      = [&](llvm::AllocaInst* const alloca, const bool is_signed) {
-          if (!node.qualifier) {
-            // Constant variable.
-            scope.regist(name, {alloca, false, is_signed});
-          }
-          else if (*node.qualifier == VariableQual::mutable_) {
-            // Mutable variable.
-            scope.regist(name, {alloca, true, is_signed});
-          }
-        };
+    const auto is_mutable
+      = node.qualifier && (*node.qualifier == VariableQual::mutable_);
 
     if (node.type) {
-      const auto& type = **node.type;
-      regist(createVariable(ctx.positions.position_of(node),
-                            func,
-                            name,
-                            type,
-                            node.initializer),
-             type.isSigned());
+      scope.regist(name,
+                   createVariable(ctx.positions.position_of(node),
+                                  func,
+                                  name,
+                                  **node.type,
+                                  node.initializer,
+                                  is_mutable));
     }
     else {
-      auto [alloca, is_signed]
-        = createVariableTyInference(ctx.positions.position_of(node),
-                                    func,
-                                    name,
-                                    node.initializer);
-      regist(alloca, is_signed);
+      scope.regist(name,
+                   createVariableTyInference(ctx.positions.position_of(node),
+                                             func,
+                                             name,
+                                             node.initializer,
+                                             is_mutable));
     }
   }
 
@@ -256,12 +247,12 @@ struct StmtVisitor : public boost::static_visitor<void> {
     ctx.builder.SetInsertPoint(then_bb);
 
     createStatement(ctx,
-            scope,
-            node.then_statement,
-            retvar,
-            end_bb,
-            break_bb,
-            continue_bb);
+                    scope,
+                    node.then_statement,
+                    retvar,
+                    end_bb,
+                    break_bb,
+                    continue_bb);
 
     if (!ctx.builder.GetInsertBlock()->getTerminator())
       ctx.builder.CreateBr(merge_bb);
@@ -272,12 +263,12 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
     if (node.else_statement) {
       createStatement(ctx,
-              scope,
-              *node.else_statement,
-              retvar,
-              end_bb,
-              break_bb,
-              continue_bb);
+                      scope,
+                      *node.else_statement,
+                      retvar,
+                      end_bb,
+                      break_bb,
+                      continue_bb);
     }
 
     if (!ctx.builder.GetInsertBlock()->getTerminator())
@@ -299,7 +290,13 @@ struct StmtVisitor : public boost::static_visitor<void> {
     ctx.builder.CreateBr(body_bb);
     ctx.builder.SetInsertPoint(body_bb);
 
-    createStatement(ctx, scope, node.body, retvar, end_bb, loop_end_bb, body_bb);
+    createStatement(ctx,
+                    scope,
+                    node.body,
+                    retvar,
+                    end_bb,
+                    loop_end_bb,
+                    body_bb);
 
     if (!ctx.builder.GetInsertBlock()->getTerminator())
       ctx.builder.CreateBr(body_bb);
@@ -340,7 +337,13 @@ struct StmtVisitor : public boost::static_visitor<void> {
     func->getBasicBlockList().push_back(body_bb);
     ctx.builder.SetInsertPoint(body_bb);
 
-    createStatement(ctx, scope, node.body, retvar, end_bb, loop_end_bb, cond_bb);
+    createStatement(ctx,
+                    scope,
+                    node.body,
+                    retvar,
+                    end_bb,
+                    loop_end_bb,
+                    cond_bb);
 
     if (!ctx.builder.GetInsertBlock()->getTerminator())
       ctx.builder.CreateBr(cond_bb);
@@ -394,7 +397,13 @@ struct StmtVisitor : public boost::static_visitor<void> {
     func->getBasicBlockList().push_back(body_bb);
     ctx.builder.SetInsertPoint(body_bb);
 
-    createStatement(ctx, scope, node.body, retvar, end_bb, loop_end_bb, loop_bb);
+    createStatement(ctx,
+                    scope,
+                    node.body,
+                    retvar,
+                    end_bb,
+                    loop_end_bb,
+                    loop_bb);
 
     if (!ctx.builder.GetInsertBlock()->getTerminator())
       ctx.builder.CreateBr(loop_bb);
@@ -474,9 +483,8 @@ private:
   {
     Value value;
 
-    if (node.type() == typeid(ast::Identifier)) {
+    if (node.type() == typeid(ast::Identifier))
       value = createAssignableValue(boost::get<ast::Identifier>(node), pos);
-    }
     else if (node.type() == typeid(ast::UnaryOp)
              && boost::get<ast::UnaryOp>(node).kind()
                   == ast::UnaryOp::Kind::indirection) {
@@ -484,9 +492,8 @@ private:
 
       value = createExpr(ctx, scope, unary_op_node.rhs);
     }
-    else if (node.type() == typeid(ast::Subscript)) {
+    else if (node.type() == typeid(ast::Subscript))
       value = createAssignableValue(boost::get<ast::Subscript>(node), pos);
-    }
     else
       value = createExpr(ctx, scope, node);
 
@@ -501,62 +508,71 @@ private:
     return value;
   }
 
-  [[nodiscard]] std::vector<llvm::Value*>
-  createInitializerList(const ast::InitList& list) const
+  [[nodiscard]] InitializerList
+  createInitializerList(const ast::InitializerList& initializer_list) const
   {
-    std::vector<llvm::Value*> result;
+    InitializerList result;
 
-    for (auto init : list.inits)
-      result.push_back(createExpr(ctx, scope, init).getValue());
+    for (const auto& initializer : initializer_list.inits)
+      result.push_back(createExpr(ctx, scope, initializer));
 
     return result;
   }
 
-  void initArray(llvm::AllocaInst*                array_alloca,
-                 const std::vector<llvm::Value*>& init_list) const
+  void initArray(llvm::AllocaInst*      array_alloca,
+                 const InitializerList& initializer_list) const
   {
-    for (std::uint64_t i = 0, last = init_list.size(); i != last; ++i) {
+    for (std::uint64_t i = 0, last = initializer_list.size(); i != last; ++i) {
       auto const gep = ctx.builder.CreateInBoundsGEP(
         array_alloca->getAllocatedType(),
         array_alloca,
         {llvm::ConstantInt::get(ctx.builder.getInt64Ty(), 0),
          llvm::ConstantInt::get(ctx.builder.getInt64Ty(), i)});
 
-      ctx.builder.CreateStore(init_list[i], gep);
+      ctx.builder.CreateStore(initializer_list[i].getValue(), gep);
     }
   }
 
-  [[nodiscard]] llvm::AllocaInst*
+  [[nodiscard]] Variable
   createVariable(const boost::iterator_range<InputIterator>& pos,
                  llvm::Function*                             func,
                  const std::string&                          name,
                  const Type&                                 type,
-                 const std::optional<ast::Initializer>&      initializer) const
+                 const std::optional<ast::Initializer>&      initializer,
+                 const bool                                  is_mutable) const
   {
-    const auto llvm_type = type.getType(ctx.context);
-    auto const alloca    = createEntryAlloca(func, name, llvm_type);
+    const auto variable_type = type.getType(ctx.context);
+    auto const alloca        = createEntryAlloca(func, name, variable_type);
 
-    if (!initializer)
-      return alloca;
+    if (!initializer) {
+      if (const auto pointee_type = type.getPointeeType()) {
+        return {alloca,
+                is_mutable,
+                type.isSigned(),
+                pointee_type.value()->isSigned()};
+      }
+      else
+        return {alloca, is_mutable, type.isSigned()};
+    }
 
-    if (initializer->type() == typeid(ast::InitList)) {
+    if (initializer->type() == typeid(ast::InitializerList)) {
       // Array initialization.
-      if (!llvm_type->isArrayTy()) {
+      if (!variable_type->isArrayTy()) {
         throw CodegenError{ctx.formatError(
           pos,
           "initializing an array requires an initializer list")};
       }
 
-      const auto init_list
-        = createInitializerList(boost::get<ast::InitList>(*initializer));
+      const auto initializer_list
+        = createInitializerList(boost::get<ast::InitializerList>(*initializer));
 
-      if (type.getArraySize() != init_list.size()) {
+      if (type.getArraySize() != initializer_list.size()) {
         throw CodegenError{
           ctx.formatError(pos,
                           "invalid number of elements in initializer list")};
       }
 
-      initArray(alloca, init_list);
+      initArray(alloca, initializer_list);
     }
     else {
       // Normal initialization.
@@ -569,14 +585,14 @@ private:
           format("failed to generate initializer for '%s'", name))};
       }
 
-      if (!strictEquals(llvm_type, init_value.getType())) {
+      if (!strictEquals(variable_type, init_value.getType())) {
         throw CodegenError{ctx.formatError(
           pos,
           "the variable type and the initializer type are incompatible")};
       }
 
-      if (llvm_type->isIntegerTy()
-          && llvm_type->getIntegerBitWidth()
+      if (variable_type->isIntegerTy()
+          && variable_type->getIntegerBitWidth()
                != init_value.getType()->getIntegerBitWidth()) {
         throw CodegenError{
           ctx.formatError(pos, "different bit widths between operands")};
@@ -585,29 +601,43 @@ private:
       ctx.builder.CreateStore(init_value.getValue(), alloca);
     }
 
-    return alloca;
+    if (const auto pointee_type = type.getPointeeType()) {
+      return {alloca,
+              is_mutable,
+              type.isSigned(),
+              pointee_type.value()->isSigned()};
+    }
+    else
+      return {alloca, is_mutable, type.isSigned()};
   }
 
-  [[nodiscard]] std::pair<llvm::AllocaInst*, bool /* Is signed */>
-  createVariableTyInference(
-    const boost::iterator_range<InputIterator>& pos,
-    llvm::Function*                             func,
-    const std::string&                          name,
-    const std::optional<ast::Initializer>&      initializer) const
+  [[nodiscard]] Variable
+  createVariableTyInference(const boost::iterator_range<InputIterator>& pos,
+                            llvm::Function*                             func,
+                            const std::string&                          name,
+                            const std::optional<ast::Initializer>& initializer,
+                            const bool is_mutable) const
   {
-    if (initializer->type() == typeid(ast::InitList)) {
+    if (initializer->type() == typeid(ast::InitializerList)) {
       // Guess to array.
-      const auto init_list
-        = createInitializerList(boost::get<ast::InitList>(*initializer));
+      const auto initializer_list
+        = createInitializerList(boost::get<ast::InitializerList>(*initializer));
+
+      auto const type = initializer_list.getType();
+      if (!type) {
+        throw CodegenError{
+          ctx.formatError(pos, "incompatibility type between initializers")};
+      }
 
       auto const array_alloca = createEntryAlloca(
         func,
         name,
-        llvm::ArrayType::get(init_list.front()->getType(), init_list.size()));
+        llvm::ArrayType::get(type, initializer_list.size()));
 
-      initArray(array_alloca, init_list);
+      initArray(array_alloca, initializer_list);
 
-      return {array_alloca, false};
+      // In the case of type inference, arrays are always signed.
+      return {array_alloca, is_mutable, true};
     }
     else {
       auto const init_value
@@ -623,7 +653,14 @@ private:
 
       ctx.builder.CreateStore(init_value.getValue(), alloca);
 
-      return {alloca, init_value.isSigned()};
+      if (init_value.isPointer()) {
+        return {alloca,
+                is_mutable,
+                init_value.isSigned(),
+                init_value.isPointerToSigned()};
+      }
+      else
+        return {alloca, is_mutable, init_value.isSigned()};
     }
 
     unreachable();
@@ -644,12 +681,12 @@ private:
 };
 
 void createStatement(CGContext&        ctx,
-             SymbolTable&      scope,
-             const ast::Stmt&  statement,
-             llvm::AllocaInst* retvar,
-             llvm::BasicBlock* end_bb,
-             llvm::BasicBlock* break_bb,
-             llvm::BasicBlock* continue_bb)
+                     SymbolTable&      scope,
+                     const ast::Stmt&  statement,
+                     llvm::AllocaInst* retvar,
+                     llvm::BasicBlock* end_bb,
+                     llvm::BasicBlock* break_bb,
+                     llvm::BasicBlock* continue_bb)
 {
   SymbolTable new_scope = scope;
 

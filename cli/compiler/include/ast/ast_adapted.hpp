@@ -70,7 +70,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 //===----------------------------------------------------------------------===//
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::InitList,
+  maple::ast::InitializerList,
   (std::vector<maple::ast::Expr>, inits)
 )
 

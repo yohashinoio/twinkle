@@ -21,29 +21,40 @@ namespace maple::codegen
 {
 
 struct Variable {
-  Variable(llvm::AllocaInst* pointer,
-           const bool        is_mutable,
-           const bool        is_signed) noexcept;
+  Variable(llvm::AllocaInst*          alloca,
+           const bool                 is_mutable,
+           const bool                 is_signed,
+           const std::optional<bool>& is_pointer_to_signed
+           = std::nullopt) noexcept;
 
-  llvm::AllocaInst* getAllocaInst() const noexcept
+  [[nodiscard]] llvm::AllocaInst* getAllocaInst() const noexcept
   {
-    return pointer;
+    return alloca;
   }
 
-  bool isMutable() const noexcept
+  [[nodiscard]] bool isMutable() const noexcept
   {
     return is_mutable;
   }
 
-  bool isSigned() const noexcept
+  [[nodiscard]] bool isSigned() const noexcept
   {
     return is_signed;
   }
 
+  // If std::nullopt, then value is not a pointer.
+  [[nodiscard]] const std::optional<bool>& isPointerToSigned() const noexcept
+  {
+    return is_pointer_to_signed;
+  }
+
 private:
-  llvm::AllocaInst* pointer;
+  llvm::AllocaInst* alloca;
   bool              is_mutable;
   bool              is_signed;
+
+  // If std::nullopt, then value is not a pointer.
+  std::optional<bool> is_pointer_to_signed;
 };
 
 struct SymbolTable {
@@ -79,9 +90,11 @@ private:
 // Class that wraps llvm::Value.
 // Made to handle signs, etc.
 struct Value {
-  Value(llvm::Value* value,
-        const bool   is_signed  = false,
-        const bool   is_mutable = false) noexcept;
+  Value(llvm::Value*               value,
+        const bool                 is_signed  = false,
+        const bool                 is_mutable = false,
+        const std::optional<bool>& is_pointer_to_signed
+        = std::nullopt) noexcept;
 
   Value() noexcept = default;
 
@@ -115,6 +128,12 @@ struct Value {
     return value->getType()->isIntegerTy();
   }
 
+  // If std::nullopt, then value is not a pointer.
+  [[nodiscard]] const std::optional<bool>& isPointerToSigned() const noexcept
+  {
+    return is_pointer_to_signed;
+  }
+
   [[nodiscard]] explicit operator bool() const noexcept
   {
     return value;
@@ -124,6 +143,9 @@ private:
   llvm::Value* value;
   bool         is_mutable;
   bool         is_signed;
+
+  // If std::nullopt, then value is not a pointer.
+  std::optional<bool> is_pointer_to_signed;
 };
 
 // Create an alloca instruction in the entry block of

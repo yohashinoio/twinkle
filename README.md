@@ -6,6 +6,9 @@
   [Examples](examples)
 </div>
 
+## Notes
+Since the author only understands Japanese, this document was created with translation at DeepL.
+
 ## Key Features of Maple
 - Syntax is like c++, swift and rust combined.
 - LLVM backend.

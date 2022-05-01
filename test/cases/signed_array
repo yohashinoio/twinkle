@@ -1,0 +1,7 @@
+fn main() -> i32
+{
+  let a = {-4, 0};
+  let pivot = a[1];
+  if (a[0] <= pivot)
+    ret 58;
+}

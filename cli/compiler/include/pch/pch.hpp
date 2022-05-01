@@ -73,6 +73,7 @@
 #include <optional>
 #include <unordered_map>
 #include <fstream>
+#include <algorithm>
 
 #include <cstdint>
 

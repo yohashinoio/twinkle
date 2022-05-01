@@ -39,18 +39,20 @@ static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
       lhs_bitwidth != rhs_bitwidth) {
     const auto max_bitwidth = std::max(lhs_bitwidth, rhs_bitwidth);
 
-    const auto as = ctx.builder.getIntNTy(max_bitwidth);
+    const auto target = ctx.builder.getIntNTy(max_bitwidth);
 
-    const auto as_is_signed
+    const auto target_is_signed
       = lhs_bitwidth == max_bitwidth ? lhs.isSigned() : rhs.isSigned();
 
     if (lhs_bitwidth == max_bitwidth) {
-      rhs = {ctx.builder.CreateIntCast(rhs.getValue(), as, as_is_signed),
-             as_is_signed};
+      rhs
+        = {ctx.builder.CreateIntCast(rhs.getValue(), target, target_is_signed),
+           target_is_signed};
     }
     else {
-      lhs = {ctx.builder.CreateIntCast(lhs.getValue(), as, as_is_signed),
-             as_is_signed};
+      lhs
+        = {ctx.builder.CreateIntCast(lhs.getValue(), target, target_is_signed),
+           target_is_signed};
     }
   }
 }
@@ -124,7 +126,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     return {ctx.builder.CreateLoad(variable.getAllocaInst()->getAllocatedType(),
                                    variable.getAllocaInst()),
             variable.isSigned(),
-            variable.isMutable()};
+            variable.isMutable(),
+            variable.isPointerToSigned()};
   }
 
   [[nodiscard]] Value operator()(const ast::Subscript& node) const
@@ -139,8 +142,19 @@ struct ExprVisitor : public boost::static_visitor<Value> {
                         "the type incompatible with the subscript operator")};
     }
 
-    if (is_array)
-      lhs = createAddressOf(lhs);
+    bool result_is_signed;
+    if (is_array) {
+      result_is_signed = lhs.isSigned();
+      lhs              = createAddressOf(lhs);
+    }
+    else {
+      // If pointer.
+      const auto& tmp = lhs.isPointerToSigned();
+      if (!tmp)
+        unreachable();
+
+      result_is_signed = *tmp;
+    }
 
     const auto nsubscript = boost::apply_visitor(*this, node.nsubscript);
 
@@ -164,7 +178,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       = is_array ? lhs.getType()->getPointerElementType()->getArrayElementType()
                  : lhs.getType()->getPointerElementType();
 
-    return {ctx.builder.CreateLoad(element_type, gep), lhs.isSigned()};
+    return {ctx.builder.CreateLoad(element_type, gep), result_is_signed};
   }
 
   [[nodiscard]] Value operator()(const ast::BinOp& node) const
@@ -351,7 +365,10 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 private:
   [[nodiscard]] Value createAddressOf(const Value& rhs) const
   {
-    return {llvm::getPointerOperand(rhs.getValue())};
+    return {llvm::getPointerOperand(rhs.getValue()),
+            false,
+            false,
+            rhs.isSigned()};
   }
 
   [[nodiscard]] Value
@@ -367,7 +384,7 @@ private:
 
     return {
       ctx.builder.CreateLoad(rhs_type->getPointerElementType(), rhs.getValue()),
-      rhs.isSigned(),
+      rhs.isSigned(), // FIXME: This is a pointer type sign, not a value sign
       rhs.isMutable()};
   }
 

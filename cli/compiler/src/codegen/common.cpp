@@ -12,21 +12,25 @@
 namespace maple::codegen
 {
 
-Variable::Variable(llvm::AllocaInst* pointer,
-                   const bool        is_mutable,
-                   const bool        is_signed) noexcept
-  : pointer{pointer}
+Variable::Variable(llvm::AllocaInst*          alloca,
+                   const bool                 is_mutable,
+                   const bool                 is_signed,
+                   const std::optional<bool>& is_pointer_to_signed) noexcept
+  : alloca{alloca}
   , is_mutable{is_mutable}
   , is_signed{is_signed}
+  , is_pointer_to_signed{is_pointer_to_signed}
 {
 }
 
-Value::Value(llvm::Value* value,
-             const bool   is_signed,
-             const bool   is_mutable) noexcept
+Value::Value(llvm::Value*               value,
+             const bool                 is_signed,
+             const bool                 is_mutable,
+             const std::optional<bool>& is_pointer_to_signed) noexcept
   : value{value}
   , is_signed{is_signed}
   , is_mutable{is_mutable}
+  , is_pointer_to_signed{is_pointer_to_signed}
 {
 }
 
@@ -104,7 +108,8 @@ createMod(CGContext& ctx, const Value& lhs, const Value& rhs)
   }
 }
 
-[[nodiscard]] Value createEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
+[[nodiscard]] Value
+createEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
                                  lhs.getValue(),
@@ -169,7 +174,7 @@ createGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value createSizeOf(CGContext& ctx, const Value& value)
 {
   return {llvm::ConstantInt::get(
-    ctx.builder.getInt32Ty(),
+    ctx.builder.getInt64Ty(),
     ctx.module->getDataLayout().getTypeAllocSize(value.getType()))};
 }
 

@@ -21,6 +21,65 @@
 namespace maple::codegen
 {
 
+struct InitializerList {
+  [[nodiscard]] const Value& operator[](const std::size_t idx) const
+  {
+    return initializer_list.at(idx);
+  }
+
+  void push_back(Value&& value)
+  {
+    initializer_list.push_back(value);
+  }
+
+  [[nodiscard]] std::size_t size() const noexcept
+  {
+    return initializer_list.size();
+  }
+
+  // Returns true if all types are the same.
+  [[nodiscard]] bool verify() const
+  {
+    for (auto it = cbegin(initializer_list), last = cend(initializer_list);
+         it != last;) {
+      const auto tmp = it;
+
+      ++it;
+      if (it == last)
+        return true;
+
+      if (tmp->getType() != it->getType())
+        return false;
+    }
+
+    return true;
+  }
+
+  // Return nullptr on failure.
+  [[nodiscard]] llvm::Type* getType() const
+  {
+    if (!verify())
+      return nullptr;
+
+    if (initializer_list.front().getType()->isIntegerTy()) {
+      const auto max_bitwidth
+        = std::max_element(cbegin(initializer_list),
+                           cend(initializer_list),
+                           [](const Value& a, const Value& b) {
+                             return a.getType()->getIntegerBitWidth()
+                                    < b.getType()->getIntegerBitWidth();
+                           });
+
+      return max_bitwidth->getType();
+    }
+
+    return initializer_list.front().getType();
+  }
+
+private:
+  std::vector<Value> initializer_list;
+};
+
 void createStatement(CGContext&        ctx,
                      SymbolTable&      scope,
                      const ast::Stmt&  statement,

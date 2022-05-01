@@ -202,12 +202,12 @@ struct Conversion : x3::position_tagged {
 // Statement AST
 //===----------------------------------------------------------------------===//
 
-struct InitList : x3::position_tagged {
+struct InitializerList : x3::position_tagged {
   // Initializers.
   std::vector<Expr> inits;
 };
 
-using Initializer = boost::variant<Expr, InitList>;
+using Initializer = boost::variant<Expr, InitializerList>;
 
 struct Return : x3::position_tagged {
   std::optional<Expr> rhs;

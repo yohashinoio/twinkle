@@ -55,6 +55,12 @@ struct Type {
     unreachable();
   }
 
+  [[nodiscard]] virtual std::optional<std::shared_ptr<Type>>
+  getPointeeType() const
+  {
+    return std::nullopt;
+  }
+
   [[nodiscard]] virtual std::string getName() const = 0;
 
   [[nodiscard]] virtual llvm::Type*
@@ -88,8 +94,8 @@ private:
 };
 
 struct PointerType : public Type {
-  explicit PointerType(std::unique_ptr<Type> pointee_type) noexcept
-    : pointee_type{std::move(pointee_type)}
+  explicit PointerType(std::shared_ptr<Type> pointee_type) noexcept
+    : pointee_type{pointee_type}
   {
   }
 
@@ -113,6 +119,12 @@ struct PointerType : public Type {
     return false;
   }
 
+  [[nodiscard]] std::optional<std::shared_ptr<Type>>
+  getPointeeType() const override
+  {
+    return pointee_type;
+  }
+
   [[nodiscard]] std::string getName() const override
   {
     // TODO: recursive pointer (like **p)
@@ -120,13 +132,13 @@ struct PointerType : public Type {
   }
 
 private:
-  std::unique_ptr<Type> pointee_type;
+  std::shared_ptr<Type> pointee_type;
 };
 
 struct ArrayType : public Type {
-  explicit ArrayType(std::unique_ptr<Type> element_type,
+  explicit ArrayType(std::shared_ptr<Type> element_type,
                      const std::uint64_t   array_size) noexcept
-    : element_type{std::move(element_type)}
+    : element_type{element_type}
     , array_size{array_size}
   {
   }
@@ -169,7 +181,7 @@ struct ArrayType : public Type {
   }
 
 private:
-  std::unique_ptr<Type> element_type;
+  std::shared_ptr<Type> element_type;
   std::uint64_t         array_size;
 };
 
