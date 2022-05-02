@@ -111,12 +111,14 @@ int main(const int argc, const char* const* const argv)
     {                          "subscript",  26},
     {                  "pointer_subscript", 168},
     {                             "sizeof",  58},
-    {             "subscript_signed_array",  58},
+    {          "subscript_array_of_signed",  58},
     {   "indirection_to_pointer_to_signed",  58},
     {                 "signed_return_type",  58},
-    {           "subscript_unsigned_array",  41},
+    {        "subscript_array_of_unsigned",  41},
     {  "subscript_pointer_to_signed_array",  58},
     {"subscript_pointer_to_unsigned_array",  41},
+    {        "subscript_array_of_pointers", 116},
+    { "subscript_pointer_to_signed_array2",  58},
   };
 
   std::size_t ok_c{};   // ok count.

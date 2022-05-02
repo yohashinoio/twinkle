@@ -74,6 +74,11 @@ struct InitializerList {
     return initializer_list.front().getType();
   }
 
+  [[nodiscard]] const std::stack<bool>& createFrontSignStack() const
+  {
+    return initializer_list.front().getIsSignedStack();
+  }
+
 private:
   std::vector<Value> initializer_list;
 };

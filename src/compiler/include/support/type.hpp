@@ -58,6 +58,12 @@ struct Type {
     return std::nullopt;
   }
 
+  [[nodiscard]] virtual std::optional<std::shared_ptr<Type>>
+  getArrayElementType() const
+  {
+    return std::nullopt;
+  }
+
   [[nodiscard]] virtual std::string getName() const = 0;
 
   [[nodiscard]] virtual llvm::Type*
@@ -140,12 +146,6 @@ struct ArrayType : public Type {
   {
   }
 
-  [[nodiscard]] llvm::Type*
-  getElementKind(llvm::LLVMContext& context) const noexcept
-  {
-    return element_type->getType(context);
-  }
-
   [[nodiscard]] bool isVoid() const noexcept override
   {
     return false;
@@ -169,6 +169,12 @@ struct ArrayType : public Type {
   [[nodiscard]] bool isSigned() const noexcept override
   {
     return false;
+  }
+
+  [[nodiscard]] std::optional<std::shared_ptr<Type>>
+  getArrayElementType() const override
+  {
+    return element_type;
   }
 
   [[nodiscard]] std::string getName() const override

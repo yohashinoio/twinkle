@@ -2,9 +2,9 @@ extern printf(fmt: *i8, ...) -> i32;
 
 func swap(mut a: *i32, mut b: *i32)
 {
-    let tmp = *a;
-    *a = *b;
-    *b = tmp;
+  let tmp = *a;
+  *a = *b;
+  *b = tmp;
 }
 
 func partition(mut a: *i32, start: i32, end: i32) -> i32

@@ -1,0 +1,13 @@
+func f(p: *i32) -> i32
+{
+  if (p[2] < (0 as u32))
+    return 58;
+
+  return 0;
+}
+
+func main() -> i32
+{
+  let a = {1, 2, -4};
+  return f(&a[0]);
+}

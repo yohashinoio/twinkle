@@ -145,22 +145,15 @@ struct ExprVisitor : public boost::static_visitor<Value> {
                         "the type incompatible with the subscript operator")};
     }
 
-    std::stack<bool> is_signed_stack;
-    if (is_array) {
-      is_signed_stack = lhs.getIsSignedStack();
-      lhs             = createAddressOf(lhs);
-    }
-    else {
-      // If pointer.
-      auto tmp = lhs.getIsSignedStack();
+    auto tmp = lhs.getIsSignedStack();
+    if (tmp.size() < 2)
+      unreachable();
+    else
+      tmp.pop();
+    const auto is_signed_stack = std::move(tmp);
 
-      if (tmp.size() < 2)
-        unreachable();
-      else
-        tmp.pop();
-
-      is_signed_stack = std::move(tmp);
-    }
+    if (is_array)
+      lhs = createAddressOf(lhs);
 
     const auto nsubscript = boost::apply_visitor(*this, node.nsubscript);
 

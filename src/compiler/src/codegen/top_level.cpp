@@ -160,8 +160,8 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDef& node) const
     {
       // Add arguments to variable symbol table.
       std::stack<bool> tmp;
-      tmp.push(param_node.type->isSigned());
       tmp.push(is_pointer_to_signed);
+      tmp.push(param_node.type->isSigned());
 
       argument_table.regist(arg.getName().str(),
                             {

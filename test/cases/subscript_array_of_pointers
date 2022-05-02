@@ -1,0 +1,16 @@
+func f() -> i32
+{
+  let n1 = 48;
+  let n2 = 10;
+  let a: *i32[2] = {&n1, &n2};
+  return *a[0] + *a[1];
+}
+
+func main() -> i32
+{
+  let n1 = 48;
+  let n2 = 10;
+  let a = {&n1, &n2};
+  let front = *a[0];
+  return front + *a[1] + f();
+}

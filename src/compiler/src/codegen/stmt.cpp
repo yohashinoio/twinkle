@@ -546,25 +546,31 @@ private:
     auto const alloca        = createEntryAlloca(func, name, variable_type);
 
     if (!initializer) {
+      std::stack<bool> tmp;
+
+      if (const auto element_type = type.getArrayElementType()) {
+        // Array types.
+        if (const auto pointee_type = element_type.value()->getPointeeType())
+          tmp.push(pointee_type.value()->isSigned()); // Pointee type.
+
+        tmp.push(element_type.value()->isSigned()); // Element type.
+      }
+
       if (const auto pointee_type = type.getPointeeType()) {
-        std::stack<bool> tmp;
-        tmp.push(type.isSigned());
-        tmp.push(pointee_type.value()->isSigned());
-        return {
-          {alloca, std::move(tmp)},
-          is_mutable
-        };
+        // Pointer types.
+        tmp.push(pointee_type.value()->isSigned()); // Pointee type.
       }
-      else {
-        return {
-          {alloca, createStack(type.isSigned())},
-          is_mutable
-        };
-      }
+
+      tmp.push(type.isSigned());
+
+      return {
+        {alloca, std::move(tmp)},
+        is_mutable
+      };
     }
 
     if (initializer->type() == typeid(ast::InitializerList)) {
-      // Array initialization.
+      // Array type.
       if (!variable_type->isArrayTy()) {
         throw CodegenError{ctx.formatError(
           pos,
@@ -581,9 +587,25 @@ private:
       }
 
       initArray(alloca, initializer_list);
+
+      std::stack<bool> tmp;
+      if (const auto element_type = type.getArrayElementType()) {
+        if (const auto pointee_type = element_type.value()->getPointeeType())
+          tmp.push(pointee_type.value()->isSigned()); // Pointee type.
+
+        tmp.push(element_type.value()->isSigned()); // Element type.
+      }
+      else
+        unreachable();
+      tmp.push(type.isSigned()); // Array type.
+
+      return {
+        {alloca, std::move(tmp)},
+        is_mutable
+      };
     }
     else {
-      // Normal initialization.
+      // Primitive types.
       auto const init_value
         = createExpr(ctx, scope, boost::get<ast::Expr>(*initializer));
 
@@ -607,22 +629,19 @@ private:
       }
 
       ctx.builder.CreateStore(init_value.getValue(), alloca);
-    }
 
-    if (const auto pointee_type = type.getPointeeType()) {
       std::stack<bool> tmp;
+      if (const auto pointee_type = type.getPointeeType())
+        tmp.push(pointee_type.value()->isSigned());
       tmp.push(type.isSigned());
-      tmp.push(pointee_type.value()->isSigned());
+
       return {
         {alloca, std::move(tmp)},
         is_mutable
       };
     }
-    else
-      return {
-        {alloca, createStack(type.isSigned())},
-        is_mutable
-      };
+
+    unreachable();
   }
 
   [[nodiscard]] Variable
@@ -633,7 +652,7 @@ private:
                             const bool is_mutable) const
   {
     if (initializer->type() == typeid(ast::InitializerList)) {
-      // Guess to array.
+      // Inference to array types.
       const auto initializer_list
         = createInitializerList(boost::get<ast::InitializerList>(*initializer));
 
@@ -650,13 +669,15 @@ private:
 
       initArray(array_alloca, initializer_list);
 
-      // In the case of type inference, arrays are always signed.
+      auto tmp = initializer_list.createFrontSignStack();
+      tmp.push(false); // Array type.
       return {
-        {array_alloca, createStack(true)}  /* FIXME */,
+        {array_alloca, std::move(tmp)},
         is_mutable
       };
     }
     else {
+      // Inference to primitive types.
       auto const init_value
         = createExpr(ctx, scope, boost::get<ast::Expr>(*initializer));
 
