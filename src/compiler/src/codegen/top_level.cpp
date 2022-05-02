@@ -85,6 +85,9 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDecl& node) const
 
   const auto name = node.name.utf8();
 
+  // Register return type to table.
+  ctx.func_ret_types.regist(name, node.return_type);
+
   llvm::Function* func;
   if (!node.linkage) {
     // External linkage.

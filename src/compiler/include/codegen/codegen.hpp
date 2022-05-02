@@ -22,6 +22,37 @@
 namespace maple::codegen
 {
 
+struct FunctionRetTypeTable {
+  // Regist stands for register.
+  void regist(const std::string& name, const std::shared_ptr<Type> v)
+  {
+    return_type_map.insert({name, v});
+  }
+
+  [[nodiscard]] auto begin() const noexcept
+  {
+    return return_type_map.begin();
+  }
+
+  [[nodiscard]] auto end() const noexcept
+  {
+    return return_type_map.end();
+  }
+
+  [[nodiscard]] std::optional<std::shared_ptr<Type>>
+  operator[](const std::string& name) const noexcept
+  {
+    const auto it = return_type_map.find(name);
+    if (it == end())
+      return std::nullopt;
+
+    return it->second;
+  }
+
+private:
+  std::unordered_map<std::string, std::shared_ptr<Type>> return_type_map;
+};
+
 // Codegen context.
 struct CGContext {
   CGContext(llvm::LLVMContext&      context,
@@ -40,6 +71,8 @@ struct CGContext {
   std::filesystem::path file;
 
   PositionCache positions;
+
+  FunctionRetTypeTable func_ret_types;
 };
 
 struct CodeGenerator {

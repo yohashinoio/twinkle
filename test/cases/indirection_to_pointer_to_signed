@@ -1,0 +1,7 @@
+func main() -> i32
+{
+  let n = -1;
+  let p = &n;
+  if (*p < (58 as u32))
+    return 58;
+}

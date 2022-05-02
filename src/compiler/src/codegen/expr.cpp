@@ -325,7 +325,21 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       }
     }
 
-    return {ctx.builder.CreateCall(callee_func, args_value)};
+    // Get return type.
+    const auto return_type = ctx.func_ret_types[callee];
+    assert(return_type);
+
+    if (auto pointee_type = return_type.value()->getPointeeType()) {
+      return {ctx.builder.CreateCall(callee_func, args_value),
+              return_type.value()->isSigned(),
+              false,
+              pointee_type.value()->isSigned()};
+    }
+    else {
+      return {ctx.builder.CreateCall(callee_func, args_value),
+              return_type.value()->isSigned(),
+              false};
+    }
   }
 
   [[nodiscard]] Value operator()(const ast::Conversion& node) const
@@ -373,17 +387,18 @@ private:
   createIndirection(const boost::iterator_range<InputIterator>& pos,
                     const Value&                                rhs) const
   {
-    auto const rhs_type = rhs.getType();
+    const auto is_pointer_to_signed = rhs.isPointerToSigned();
 
-    if (!rhs_type->isPointerTy()) {
+    if (!is_pointer_to_signed) {
       throw CodegenError{
         ctx.formatError(pos, "unary '*' requires pointer operand")};
     }
 
-    return {
-      ctx.builder.CreateLoad(rhs_type->getPointerElementType(), rhs.getValue()),
-      rhs.isSigned(), // FIXME: This is a pointer type sign, not a value sign
-      rhs.isMutable()};
+    // FIXME: Double pointer is a bug because the 4th argument is not passed.
+    return {ctx.builder.CreateLoad(rhs.getType()->getPointerElementType(),
+                                   rhs.getValue()),
+            *is_pointer_to_signed,
+            rhs.isMutable()};
   }
 
   CGContext& ctx;

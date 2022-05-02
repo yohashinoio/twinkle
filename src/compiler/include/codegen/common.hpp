@@ -60,9 +60,9 @@ struct SymbolTable {
   operator[](const std::string& name) const noexcept;
 
   // Regist stands for register.
-  void regist(const std::string& name, const Variable& info)
+  void regist(const std::string& name, const Variable& v)
   {
-    named_values.insert({name, info});
+    named_values.insert({name, v});
   }
 
   // Returns true if the variable is already registered, false otherwise.
