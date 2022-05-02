@@ -3,7 +3,7 @@ set(RUNTIME_NAME test)
 find_package(Threads REQUIRED)
 
 include_directories(
-  ${CMAKE_SOURCE_DIR}/cli/compiler/include
+  ${CMAKE_SOURCE_DIR}/src/compiler/include
 )
 
 add_executable(

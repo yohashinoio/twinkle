@@ -4,7 +4,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 include(GNUInstallDirs)
 
-include_directories(${CMAKE_SOURCE_DIR}/cli/compiler/include)
+include_directories(${CMAKE_SOURCE_DIR}/src/compiler/include)
 
 add_executable(
   ${RUNTIME_NAME}

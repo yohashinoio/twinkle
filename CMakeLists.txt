@@ -18,6 +18,6 @@ add_link_options(
 )
 endif()
 
-add_subdirectory(cli)
+add_subdirectory(src)
 
 add_subdirectory(test)

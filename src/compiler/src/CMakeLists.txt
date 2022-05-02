@@ -19,7 +19,7 @@ execute_process(COMMAND llvm-config --libs all
 string(REGEX REPLACE "[ \t]*[\r\n]+[ \t]*" ";" CONFIG_OUTPUT ${CONFIG_OUTPUT})
 
 include_directories(
-  ${CMAKE_SOURCE_DIR}/cli/compiler/include
+  ${CMAKE_SOURCE_DIR}/src/compiler/include
   ${Boost_INCLUDE_DIRS}
   ${LLVM_INCLUDE_DIRS}
 )
