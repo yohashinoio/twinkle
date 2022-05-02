@@ -40,17 +40,17 @@ static void integerLargerBitsCast(CGContext& ctx, Value& lhs, Value& rhs)
     const auto target = ctx.builder.getIntNTy(max_bitwidth);
 
     const auto target_is_signed
-      = lhs_bitwidth == max_bitwidth ? lhs.isSigned() : rhs.isSigned();
+      = lhs_bitwidth == max_bitwidth ? lhs.isSignedTop() : rhs.isSignedTop();
 
     if (lhs_bitwidth == max_bitwidth) {
       rhs
         = {ctx.builder.CreateIntCast(rhs.getValue(), target, target_is_signed),
-           target_is_signed};
+           createStack(target_is_signed)};
     }
     else {
       lhs
         = {ctx.builder.CreateIntCast(lhs.getValue(), target, target_is_signed),
-           target_is_signed};
+           createStack(target_is_signed)};
     }
   }
 }
@@ -74,25 +74,29 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   // 32bit unsigned integer literals.
   [[nodiscard]] Value operator()(const std::uint32_t node) const
   {
-    return {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), node), false};
+    return {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), node),
+            createStack(false)};
   }
 
   // 32bit signed integer literals.
   [[nodiscard]] Value operator()(const std::int32_t node) const
   {
-    return {llvm::ConstantInt::getSigned(ctx.builder.getInt32Ty(), node), true};
+    return {llvm::ConstantInt::getSigned(ctx.builder.getInt32Ty(), node),
+            createStack(true)};
   }
 
   // 64bit unsigned integer literals.
   [[nodiscard]] Value operator()(const std::uint64_t node) const
   {
-    return {llvm::ConstantInt::get(ctx.builder.getInt64Ty(), node), false};
+    return {llvm::ConstantInt::get(ctx.builder.getInt64Ty(), node),
+            createStack(false)};
   }
 
   // 64bit signed integer literals.
   [[nodiscard]] Value operator()(const std::int64_t node) const
   {
-    return {llvm::ConstantInt::getSigned(ctx.builder.getInt64Ty(), node), true};
+    return {llvm::ConstantInt::getSigned(ctx.builder.getInt64Ty(), node),
+            createStack(true)};
   }
 
   // Boolean literals.
@@ -101,19 +105,21 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     return {llvm::ConstantInt::get(
               BuiltinType{BuiltinTypeKind::bool_}.getType(ctx.context),
               node),
-            false};
+            createStack(false)};
   }
 
   [[nodiscard]] Value operator()(const ast::StringLiteral& node) const
   {
-    return {ctx.builder.CreateGlobalStringPtr(unicode::utf32toUtf8(node.str),
-                                              ".str")};
+    return {
+      ctx.builder.CreateGlobalStringPtr(unicode::utf32toUtf8(node.str), ".str"),
+      createStack(false)};
   }
 
   [[nodiscard]] Value operator()(const ast::CharLiteral& node) const
   {
     // Unicode code point.
-    return {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), node.ch), false};
+    return {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), node.ch),
+            createStack(false)};
   }
 
   [[nodiscard]] Value operator()(const ast::Identifier& node) const
@@ -123,9 +129,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     return {ctx.builder.CreateLoad(variable.getAllocaInst()->getAllocatedType(),
                                    variable.getAllocaInst()),
-            variable.isSigned(),
-            variable.isMutable(),
-            variable.isPointerToSigned()};
+            variable.getIsSignedStack(),
+            variable.isMutable()};
   }
 
   [[nodiscard]] Value operator()(const ast::Subscript& node) const
@@ -140,18 +145,21 @@ struct ExprVisitor : public boost::static_visitor<Value> {
                         "the type incompatible with the subscript operator")};
     }
 
-    bool result_is_signed;
+    std::stack<bool> is_signed_stack;
     if (is_array) {
-      result_is_signed = lhs.isSigned();
-      lhs              = createAddressOf(lhs);
+      is_signed_stack = lhs.getIsSignedStack();
+      lhs             = createAddressOf(lhs);
     }
     else {
       // If pointer.
-      const auto& tmp = lhs.isPointerToSigned();
-      if (!tmp)
-        unreachable();
+      auto tmp = lhs.getIsSignedStack();
 
-      result_is_signed = *tmp;
+      if (tmp.size() < 2)
+        unreachable();
+      else
+        tmp.pop();
+
+      is_signed_stack = std::move(tmp);
     }
 
     const auto nsubscript = boost::apply_visitor(*this, node.nsubscript);
@@ -176,7 +184,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       = is_array ? lhs.getType()->getPointerElementType()->getArrayElementType()
                  : lhs.getType()->getPointerElementType();
 
-    return {ctx.builder.CreateLoad(element_type, gep), result_is_signed};
+    return {ctx.builder.CreateLoad(element_type, gep), is_signed_stack};
   }
 
   [[nodiscard]] Value operator()(const ast::BinOp& node) const
@@ -333,15 +341,14 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     assert(return_type);
 
     if (auto pointee_type = return_type.value()->getPointeeType()) {
-      return {ctx.builder.CreateCall(callee_func, args_value),
-              return_type.value()->isSigned(),
-              false,
-              pointee_type.value()->isSigned()};
+      std::stack<bool> tmp;
+      tmp.push(return_type.value()->isSigned());
+      tmp.push(pointee_type.value()->isSigned());
+      return {ctx.builder.CreateCall(callee_func, args_value), std::move(tmp)};
     }
     else {
       return {ctx.builder.CreateCall(callee_func, args_value),
-              return_type.value()->isSigned(),
-              false};
+              createStack(return_type.value()->isSigned())};
     }
   }
 
@@ -359,14 +366,14 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       return {ctx.builder.CreateIntCast(lhs.getValue(),
                                         node.as->getType(ctx.context),
                                         node.as->isSigned()),
-              node.as->isSigned()};
+              createStack(node.as->isSigned())};
     }
     else if (node.as->isPointer()) {
       // FIXME: I would like to prohibit this in the regular cast because it is
       // a dangerous cast.
       return {ctx.builder.CreatePointerCast(lhs.getValue(),
                                             node.as->getType(ctx.context)),
-              node.as->isSigned()};
+              createStack(node.as->isSigned())};
     }
     else {
       throw CodegenError{ctx.formatError(
@@ -380,27 +387,30 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 private:
   [[nodiscard]] Value createAddressOf(const Value& rhs) const
   {
-    return {llvm::getPointerOperand(rhs.getValue()),
-            false,
-            false,
-            rhs.isSigned()};
+    std::stack<bool> tmp;
+    tmp.push(rhs.isSignedTop());
+
+    tmp.push(false); // Pointer type.
+    return {llvm::getPointerOperand(rhs.getValue()), tmp};
   }
 
   [[nodiscard]] Value
   createIndirection(const boost::iterator_range<InputIterator>& pos,
                     const Value&                                rhs) const
   {
-    const auto is_pointer_to_signed = rhs.isPointerToSigned();
+    auto tmp = rhs.getIsSignedStack();
 
-    if (!is_pointer_to_signed) {
+    if (tmp.size() < 2) {
       throw CodegenError{
         ctx.formatError(pos, "unary '*' requires pointer operand")};
     }
 
+    tmp.pop();
+
     // FIXME: Double pointer is a bug because the 4th argument is not passed.
     return {ctx.builder.CreateLoad(rhs.getType()->getPointerElementType(),
                                    rhs.getValue()),
-            *is_pointer_to_signed,
+            std::move(tmp),
             rhs.isMutable()};
   }
 

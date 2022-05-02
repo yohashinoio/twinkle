@@ -50,13 +50,15 @@ namespace maple
 {
 #ifndef NDEBUG
   if (file)
-    fmt::print(stderr, "Unreachable executed at {} : {}!\n", file, line);
+    fmt::print(stderr, "Unreachable executed at {}:{}!\n", file, line);
 #endif
 
 #if defined(__GNUC__) // GCC, Clang, ICC
   __builtin_unreachable();
 #elif define(_MSC_VER) // MSVC
   __assume(false);
+#else
+  std::terminate();
 #endif
 }
 

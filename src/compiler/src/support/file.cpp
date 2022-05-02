@@ -25,9 +25,9 @@ struct FileError : public ErrorBase {
                                    const std::filesystem::path& path)
 {
   if (!std::filesystem::exists(path)) {
-    throw FileError{formatError(
-      program_name,
-      fmt::format("{}: No such file or directory", path.string()))};
+    throw FileError{
+      formatError(program_name,
+                  fmt::format("{}: No such file or directory", path.string()))};
   }
 
   if (auto file = std::ifstream{path, std::ios_base::binary}) {
@@ -38,7 +38,7 @@ struct FileError : public ErrorBase {
 
   throw FileError{
     formatError(program_name,
-                       fmt::format("{}: Could not open file", path.string()))};
+                fmt::format("{}: Could not open file", path.string()))};
 }
 
 } // namespace maple

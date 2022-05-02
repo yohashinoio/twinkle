@@ -157,10 +157,18 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDef& node) const
       = param_node.qualifier
         && (*param_node.qualifier == VariableQual::mutable_);
 
-    // Add arguments to variable symbol table.
-    argument_table.regist(
-      arg.getName().str(),
-      {alloca, param_node.type->isSigned(), is_mutable, is_pointer_to_signed});
+    {
+      // Add arguments to variable symbol table.
+      std::stack<bool> tmp;
+      tmp.push(param_node.type->isSigned());
+      tmp.push(is_pointer_to_signed);
+
+      argument_table.regist(arg.getName().str(),
+                            {
+                              {alloca, std::move(tmp)},
+                              is_mutable
+      });
+    }
   }
 
   // Used to combine returns into one.

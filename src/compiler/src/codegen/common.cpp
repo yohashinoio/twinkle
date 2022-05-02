@@ -10,25 +10,27 @@
 namespace maple::codegen
 {
 
-Variable::Variable(llvm::AllocaInst*          alloca,
-                   const bool                 is_signed,
-                   const bool                 is_mutable,
-                   const std::optional<bool>& is_pointer_to_signed) noexcept
-  : alloca{alloca}
-  , is_signed{is_signed}
+Value::Value(llvm::Value*            value,
+             const std::stack<bool>& is_signed_stack,
+             const bool              is_mutable) noexcept
+  : value{value}
+  , is_signed_stack{is_signed_stack}
   , is_mutable{is_mutable}
-  , is_pointer_to_signed{is_pointer_to_signed}
 {
 }
 
-Value::Value(llvm::Value*               value,
-             const bool                 is_signed,
-             const bool                 is_mutable,
-             const std::optional<bool>& is_pointer_to_signed) noexcept
+Value::Value(llvm::Value*       value,
+             std::stack<bool>&& is_signed_stack,
+             const bool         is_mutable) noexcept
   : value{value}
-  , is_signed{is_signed}
+  , is_signed_stack{std::move(is_signed_stack)}
   , is_mutable{is_mutable}
-  , is_pointer_to_signed{is_pointer_to_signed}
+{
+}
+
+Variable::Variable(const Value& alloca, const bool is_mutable) noexcept
+  : alloca{alloca}
+  , is_mutable{is_mutable}
 {
 }
 
@@ -52,28 +54,28 @@ catch (const std::out_of_range&) {
 
 [[nodiscard]] bool isEitherSigned(const Value& lhs, const Value& rhs)
 {
-  return lhs.isSigned() || rhs.isSigned();
+  return lhs.isSignedTop() || rhs.isSignedTop();
 }
 
 [[nodiscard]] Value
 createAdd(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateAdd(lhs.getValue(), rhs.getValue()),
-          isEitherSigned(lhs, rhs)};
+          createStack(isEitherSigned(lhs, rhs))};
 }
 
 [[nodiscard]] Value
 createSub(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateSub(lhs.getValue(), rhs.getValue()),
-          isEitherSigned(lhs, rhs)};
+          createStack(isEitherSigned(lhs, rhs))};
 }
 
 [[nodiscard]] Value
 createMul(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateMul(lhs.getValue(), rhs.getValue()),
-          isEitherSigned(lhs, rhs)};
+          createStack(isEitherSigned(lhs, rhs))};
 }
 
 [[nodiscard]] Value
@@ -83,11 +85,11 @@ createDiv(CGContext& ctx, const Value& lhs, const Value& rhs)
 
   if (result_is_signed) {
     return {ctx.builder.CreateSDiv(lhs.getValue(), rhs.getValue()),
-            result_is_signed};
+            createStack(result_is_signed)};
   }
   else {
     return {ctx.builder.CreateUDiv(lhs.getValue(), rhs.getValue()),
-            result_is_signed};
+            createStack(result_is_signed)};
   }
 }
 
@@ -98,11 +100,11 @@ createMod(CGContext& ctx, const Value& lhs, const Value& rhs)
 
   if (result_is_signed) {
     return {ctx.builder.CreateSRem(lhs.getValue(), rhs.getValue()),
-            result_is_signed};
+            createStack(result_is_signed)};
   }
   else {
     return {ctx.builder.CreateURem(lhs.getValue(), rhs.getValue()),
-            result_is_signed};
+            createStack(result_is_signed)};
   }
 }
 
@@ -111,7 +113,8 @@ createEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
                                  lhs.getValue(),
-                                 rhs.getValue())};
+                                 rhs.getValue()),
+          createStack(false)};
 }
 
 [[nodiscard]] Value
@@ -119,7 +122,8 @@ createNotEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_NE,
                                  lhs.getValue(),
-                                 rhs.getValue())};
+                                 rhs.getValue()),
+          createStack(false)};
 }
 
 [[nodiscard]] Value
@@ -129,7 +133,8 @@ createLessThan(CGContext& ctx, const Value& lhs, const Value& rhs)
                                    ? llvm::ICmpInst::ICMP_SLT
                                    : llvm::ICmpInst::ICMP_ULT,
                                  lhs.getValue(),
-                                 rhs.getValue())};
+                                 rhs.getValue()),
+          createStack(false)};
 }
 
 [[nodiscard]] Value
@@ -139,7 +144,8 @@ createGreaterThan(CGContext& ctx, const Value& lhs, const Value& rhs)
                                    ? llvm::ICmpInst::ICMP_SGT
                                    : llvm::ICmpInst::ICMP_UGT,
                                  lhs.getValue(),
-                                 rhs.getValue())};
+                                 rhs.getValue()),
+          createStack(false)};
 }
 
 [[nodiscard]] Value
@@ -149,7 +155,8 @@ createLessOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
                                    ? llvm::ICmpInst::ICMP_SLE
                                    : llvm::ICmpInst::ICMP_ULE,
                                  lhs.getValue(),
-                                 rhs.getValue())};
+                                 rhs.getValue()),
+          createStack(false)};
 }
 
 [[nodiscard]] Value
@@ -159,28 +166,31 @@ createGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
                                    ? llvm::ICmpInst::ICMP_SGE
                                    : llvm::ICmpInst::ICMP_UGE,
                                  lhs.getValue(),
-                                 rhs.getValue())};
+                                 rhs.getValue()),
+          createStack(false)};
 }
 
 [[nodiscard]] Value createLogicalNot(CGContext& ctx, const Value& value)
 {
   return {ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
                                  value.getValue(),
-                                 llvm::ConstantInt::get(value.getType(), 0))};
+                                 llvm::ConstantInt::get(value.getType(), 0)),
+          createStack(false)};
 }
 
 [[nodiscard]] Value createSizeOf(CGContext& ctx, const Value& value)
 {
   return {llvm::ConstantInt::get(
-    ctx.builder.getInt64Ty(),
-    ctx.module->getDataLayout().getTypeAllocSize(value.getType()))};
+            ctx.builder.getInt64Ty(),
+            ctx.module->getDataLayout().getTypeAllocSize(value.getType())),
+          createStack(false)};
 }
 
 [[nodiscard]] Value createAddInverse(CGContext& ctx, const Value& num)
 {
   return {ctx.builder.CreateSub(llvm::ConstantInt::get(num.getType(), 0),
                                 num.getValue()),
-          num.isSigned()};
+          createStack(num.isSignedTop())};
 }
 
 // The code is based on https://gist.github.com/quantumsheep.

@@ -18,16 +18,39 @@
 namespace maple::codegen
 {
 
-struct Variable {
-  Variable(llvm::AllocaInst*          alloca,
-           const bool                 is_signed,
-           const bool                 is_mutable,
-           const std::optional<bool>& is_pointer_to_signed
-           = std::nullopt) noexcept;
+template <typename T>
+[[nodiscard]] std::stack<T> createStack(T&& v)
+{
+  return std::stack{std::deque{v}};
+}
 
-  [[nodiscard]] llvm::AllocaInst* getAllocaInst() const noexcept
+template <typename T>
+[[nodiscard]] std::stack<T> createStack(const T& v)
+{
+  return std::stack{std::deque{v}};
+}
+
+// Class that wraps llvm::Value.
+// Made to handle signs, etc.
+struct Value {
+  Value(llvm::Value*            value,
+        const std::stack<bool>& is_signed_stack,
+        const bool              is_mutable = false) noexcept;
+
+  Value(llvm::Value*       value,
+        std::stack<bool>&& is_signed_stack,
+        const bool         is_mutable = false) noexcept;
+
+  Value() noexcept = default;
+
+  [[nodiscard]] llvm::Value* getValue() const noexcept
   {
-    return alloca;
+    return value;
+  }
+
+  [[nodiscard]] llvm::Type* getType() const
+  {
+    return value->getType();
   }
 
   [[nodiscard]] bool isMutable() const noexcept
@@ -35,24 +58,97 @@ struct Variable {
     return is_mutable;
   }
 
-  [[nodiscard]] bool isSigned() const noexcept
+  [[nodiscard]] bool isSignedTop() const
   {
-    return is_signed;
+    if (is_signed_stack.empty())
+      unreachable();
+
+    const auto top = is_signed_stack.top();
+    return top;
   }
 
-  // If std::nullopt, then value is not a pointer.
-  [[nodiscard]] const std::optional<bool>& isPointerToSigned() const noexcept
+  void pushIsSigned(const bool is_signed)
   {
-    return is_pointer_to_signed;
+    is_signed_stack.push(is_signed);
+  }
+
+  [[nodiscard]] const std::stack<bool>& getIsSignedStack() const noexcept
+  {
+    return is_signed_stack;
+  }
+
+  [[nodiscard]] bool isPointer() const
+  {
+    return value->getType()->isPointerTy();
+  }
+
+  [[nodiscard]] bool isInteger() const
+  {
+    return value->getType()->isIntegerTy();
+  }
+
+  [[nodiscard]] explicit operator bool() const noexcept
+  {
+    return value;
   }
 
 private:
-  llvm::AllocaInst* alloca;
-  bool              is_signed;
-  bool              is_mutable;
+  llvm::Value* value;
 
-  // If std::nullopt, then value is not a pointer.
-  std::optional<bool> is_pointer_to_signed;
+  /*
+  |--------------------|
+  |        Type | Size |
+  |--------------------|
+  | Non-pointer |    1 |
+  |     Pointer |    2 |
+  |  Double ptr |    3 |
+  |  Triple ptr |    4 |
+  |         ... |  ... |
+  |--------------------|
+
+  Example: *i32
+  |-------------------------|
+  | unsigned (pointer type) | <- top
+  |       signed (int type) |
+  |-------------------------|
+
+  Example: **i32
+  |-------------------------|
+  | unsigned (pointer type) | <- top
+  | unsigned (pointer type) |
+  |       signed (int type) |
+  |-------------------------|
+  */
+  std::stack<bool> is_signed_stack;
+
+  bool is_mutable;
+};
+
+struct Variable {
+  Variable(const Value& alloca, const bool is_mutable) noexcept;
+
+  [[nodiscard]] llvm::AllocaInst* getAllocaInst() const noexcept
+  {
+    if (auto alloca_inst = llvm::dyn_cast<llvm::AllocaInst>(alloca.getValue()))
+      return alloca_inst;
+
+    unreachable();
+  }
+
+  [[nodiscard]] const std::stack<bool>& getIsSignedStack() const noexcept
+  {
+    return alloca.getIsSignedStack();
+  }
+
+  [[nodiscard]] bool isMutable() const noexcept
+  {
+    return is_mutable;
+  }
+
+private:
+  Value alloca;
+
+  bool is_mutable;
 };
 
 struct SymbolTable {
@@ -83,67 +179,6 @@ struct SymbolTable {
 
 private:
   std::unordered_map<std::string, Variable> named_values;
-};
-
-// Class that wraps llvm::Value.
-// Made to handle signs, etc.
-struct Value {
-  Value(llvm::Value*               value,
-        const bool                 is_signed  = false,
-        const bool                 is_mutable = false,
-        const std::optional<bool>& is_pointer_to_signed
-        = std::nullopt) noexcept;
-
-  Value() noexcept = default;
-
-  [[nodiscard]] llvm::Value* getValue() const noexcept
-  {
-    return value;
-  }
-
-  [[nodiscard]] llvm::Type* getType() const
-  {
-    return value->getType();
-  }
-
-  [[nodiscard]] bool isMutable() const noexcept
-  {
-    return is_mutable;
-  }
-
-  [[nodiscard]] bool isSigned() const noexcept
-  {
-    return is_signed;
-  }
-
-  [[nodiscard]] bool isPointer() const
-  {
-    return value->getType()->isPointerTy();
-  }
-
-  [[nodiscard]] bool isInteger() const
-  {
-    return value->getType()->isIntegerTy();
-  }
-
-  // If std::nullopt, then value is not a pointer.
-  [[nodiscard]] const std::optional<bool>& isPointerToSigned() const noexcept
-  {
-    return is_pointer_to_signed;
-  }
-
-  [[nodiscard]] explicit operator bool() const noexcept
-  {
-    return value;
-  }
-
-private:
-  llvm::Value* value;
-  bool         is_signed;
-  bool         is_mutable;
-
-  // If std::nullopt, then value is not a pointer.
-  std::optional<bool> is_pointer_to_signed;
 };
 
 // Create an alloca instruction in the entry block of

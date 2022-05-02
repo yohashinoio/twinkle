@@ -47,7 +47,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
     if (!createExpr(ctx, scope, node)) {
       throw CodegenError{
         formatError(ctx.file.string(),
-                           "failed to generate expression statement")};
+                    "failed to generate expression statement")};
     }
   }
 
@@ -451,7 +451,7 @@ private:
     }
 
     return {variable.getAllocaInst(),
-            variable.isSigned(),
+            variable.getIsSignedStack(),
             variable.isMutable()};
   }
 
@@ -469,10 +469,12 @@ private:
                                     node.ident.utf8()))};
     }
 
-    const auto tmp = createExpr(ctx, scope, node);
+    const auto tmp       = createExpr(ctx, scope, node);
+    auto       tmp_stack = tmp.getIsSignedStack();
 
+    tmp_stack.push(false); // Pointer type.
     return {llvm::getPointerOperand(tmp.getValue()),
-            tmp.isSigned(),
+            std::move(tmp_stack),
             variable.isMutable()};
   }
 
@@ -480,31 +482,31 @@ private:
     const ast::Expr&                                  node,
     const boost::iterator_range<maple::InputIterator> pos) const
   {
-    Value value;
+    std::optional<Value> value;
 
     if (node.type() == typeid(ast::Identifier))
-      value = createAssignableValue(boost::get<ast::Identifier>(node), pos);
+      *value = createAssignableValue(boost::get<ast::Identifier>(node), pos);
     else if (node.type() == typeid(ast::UnaryOp)
              && boost::get<ast::UnaryOp>(node).kind()
                   == ast::UnaryOp::Kind::indirection) {
       const auto& unary_op_node = boost::get<ast::UnaryOp>(node);
 
-      value = createExpr(ctx, scope, unary_op_node.rhs);
+      *value = createExpr(ctx, scope, unary_op_node.rhs);
     }
     else if (node.type() == typeid(ast::Subscript))
-      value = createAssignableValue(boost::get<ast::Subscript>(node), pos);
+      *value = createAssignableValue(boost::get<ast::Subscript>(node), pos);
     else
-      value = createExpr(ctx, scope, node);
+      *value = createExpr(ctx, scope, node);
 
-    if (!value)
+    if (!*value)
       throw CodegenError{ctx.formatError(pos, "failed to generate expression")};
 
-    if (!value.isMutable() || !value.isPointer()) {
+    if (!value->isMutable() || !value->isPointer()) {
       throw CodegenError{
         ctx.formatError(pos, "left-hand side value requires assignable")};
     }
 
-    return value;
+    return *value;
   }
 
   [[nodiscard]] InitializerList
@@ -545,13 +547,20 @@ private:
 
     if (!initializer) {
       if (const auto pointee_type = type.getPointeeType()) {
-        return {alloca,
-                type.isSigned(),
-                is_mutable,
-                pointee_type.value()->isSigned()};
+        std::stack<bool> tmp;
+        tmp.push(type.isSigned());
+        tmp.push(pointee_type.value()->isSigned());
+        return {
+          {alloca, std::move(tmp)},
+          is_mutable
+        };
       }
-      else
-        return {alloca, type.isSigned(), is_mutable};
+      else {
+        return {
+          {alloca, createStack(type.isSigned())},
+          is_mutable
+        };
+      }
     }
 
     if (initializer->type() == typeid(ast::InitializerList)) {
@@ -601,13 +610,19 @@ private:
     }
 
     if (const auto pointee_type = type.getPointeeType()) {
-      return {alloca,
-              type.isSigned(),
-              is_mutable,
-              pointee_type.value()->isSigned()};
+      std::stack<bool> tmp;
+      tmp.push(type.isSigned());
+      tmp.push(pointee_type.value()->isSigned());
+      return {
+        {alloca, std::move(tmp)},
+        is_mutable
+      };
     }
     else
-      return {alloca, type.isSigned(), is_mutable};
+      return {
+        {alloca, createStack(type.isSigned())},
+        is_mutable
+      };
   }
 
   [[nodiscard]] Variable
@@ -636,7 +651,10 @@ private:
       initArray(array_alloca, initializer_list);
 
       // In the case of type inference, arrays are always signed.
-      return {array_alloca, true, is_mutable};
+      return {
+        {array_alloca, createStack(true)}  /* FIXME */,
+        is_mutable
+      };
     }
     else {
       auto const init_value
@@ -652,14 +670,10 @@ private:
 
       ctx.builder.CreateStore(init_value.getValue(), alloca);
 
-      if (init_value.isPointer()) {
-        return {alloca,
-                init_value.isSigned(),
-                is_mutable,
-                init_value.isPointerToSigned()};
-      }
-      else
-        return {alloca, init_value.isSigned(), is_mutable};
+      return {
+        {alloca, init_value.getIsSignedStack()},
+        is_mutable
+      };
     }
 
     unreachable();
