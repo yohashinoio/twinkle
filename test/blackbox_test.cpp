@@ -114,6 +114,7 @@ int main(const int argc, const char* const* const argv)
     {          "subscript_signed_array",  58},
     {"indirection_to_pointer_to_signed",  58},
     {              "signed_return_type",  58},
+    {        "subscript_unsigned_array",  41},
   };
 
   std::size_t ok_c{};   // ok count.
