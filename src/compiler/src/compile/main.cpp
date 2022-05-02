@@ -12,7 +12,6 @@
 #include <option/parse.hpp>
 #include <support/file.hpp>
 #include <support/utils.hpp>
-#include <support/format.hpp>
 #include <support/exception.hpp>
 
 namespace program_options = boost::program_options;
@@ -33,8 +32,8 @@ static std::ostream& printHelp(std::ostream&          ostm,
                                const std::string_view command,
                                const program_options::options_description& desc)
 {
-  return ostm << format("Usage: %s [options] file...\n", command.data())
-              << desc;
+  fmt::print(ostm, "Usage: {} [options] file...\n", command);
+  return ostm << desc;
 }
 
 // Emit object file without error even if target does not exist.

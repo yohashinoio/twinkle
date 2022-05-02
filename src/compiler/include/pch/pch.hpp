@@ -12,6 +12,10 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
+//===----------------------------------------------------------------------===//
+// LLVM
+//===----------------------------------------------------------------------===//
+
 // Used to replace header files depending on llvm version.
 #include <llvm/Config/llvm-config.h>
 
@@ -53,8 +57,11 @@
 #include <llvm/IR/DataLayout.h>
 #include <llvm/Linker/Linker.h>
 
-#define BOOST_SPIRIT_X3_UNICODE
+//===----------------------------------------------------------------------===//
+// Boost
+//===----------------------------------------------------------------------===//
 
+#define BOOST_SPIRIT_X3_UNICODE
 #include <boost/spirit/home/x3.hpp>
 #include <boost/spirit/home/x3/support/ast/variant.hpp>
 #include <boost/spirit/home/x3/support/ast/position_tagged.hpp>
@@ -65,6 +72,18 @@
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
 
+//===----------------------------------------------------------------------===//
+// fmt
+//===----------------------------------------------------------------------===//
+
+#include <fmt/color.h>
+#include <fmt/core.h>
+#include <fmt/ostream.h>
+
+//===----------------------------------------------------------------------===//
+// C++ standard
+//===----------------------------------------------------------------------===//
+
 #include <filesystem>
 #include <string>
 #include <iostream>
@@ -72,6 +91,10 @@
 #include <unordered_map>
 #include <fstream>
 #include <algorithm>
+
+//===----------------------------------------------------------------------===//
+// C standard
+//===----------------------------------------------------------------------===//
 
 #include <cstdint>
 

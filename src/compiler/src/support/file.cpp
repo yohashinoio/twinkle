@@ -6,7 +6,6 @@
  */
 
 #include <support/file.hpp>
-#include <support/format.hpp>
 #include <support/utils.hpp>
 #include <support/exception.hpp>
 
@@ -28,7 +27,7 @@ struct FileError : public ErrorBase {
   if (!std::filesystem::exists(path)) {
     throw FileError{formatErrorMessage(
       program_name,
-      format("%s: No such file or directory", path.string()))};
+      fmt::format("{}: No such file or directory", path.string()))};
   }
 
   if (auto file = std::ifstream{path, std::ios_base::binary}) {
@@ -39,7 +38,7 @@ struct FileError : public ErrorBase {
 
   throw FileError{
     formatErrorMessage(program_name,
-                       format("%s: Could not open file", path.string()))};
+                       fmt::format("{}: Could not open file", path.string()))};
 }
 
 } // namespace maple

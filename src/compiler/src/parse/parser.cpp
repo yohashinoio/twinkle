@@ -9,7 +9,6 @@
 #include <ast/ast_adapted.hpp>
 #include <parse/parser.hpp>
 #include <support/type.hpp>
-#include <support/format.hpp>
 #include <parse/exception.hpp>
 
 namespace x3     = boost::spirit::x3;
@@ -245,6 +244,15 @@ const auto type = x3::rule<struct TypeTag, std::shared_ptr<Type>>{"type"}
    >> builtin_type_symbols /* TODO: support double (recursion) ptr */
    >> -(lit(U"[") >> x3::uint64 >> lit(U"]")))[([](auto&& ctx) {
     if (fusion::at_c<0>(x3::_attr(ctx))) {
+      if (fusion::at_c<2>(x3::_attr(ctx))) {
+        // Pointer array types.
+        x3::_val(ctx) = std::make_shared<ArrayType>(
+          std::make_shared<PointerType>(
+            std::make_shared<BuiltinType>(fusion::at_c<1>(x3::_attr(ctx)))),
+          *fusion::at_c<2>(x3::_attr(ctx)) /* Array size */);
+        return;
+      }
+
       // Pointer types.
       x3::_val(ctx) = std::make_shared<PointerType>(
         std::make_shared<BuiltinType>(fusion::at_c<1>(x3::_attr(ctx))));

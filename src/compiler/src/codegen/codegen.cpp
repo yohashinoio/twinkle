@@ -8,7 +8,6 @@
 #include <codegen/codegen.hpp>
 #include <codegen/top_level.hpp>
 #include <support/type.hpp>
-#include <support/format.hpp>
 #include <codegen/exception.hpp>
 #include <unicode/unicode.hpp>
 #include <cassert>
@@ -53,26 +52,18 @@ CGContext::formatError(const boost::iterator_range<InputIterator>& pos,
     }
   }
 
-  std::ostringstream ss;
-
-#if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
-  if (isatty(fileno(stdout))) {
-    ss << "In file " << file.string() << ", line " << rows << ":\n"
-       << COLOR_RED "error: " COLOR_DEFAULT << message << '\n';
-  }
-#else
-  ss << "In file " << file.string() << ", line " << line << ":\n"
-     << "error: " << message << '\n';
-#endif
+  auto result = fmt::format("In file {}, line {}:\n", file.string(), rows)
+                + fmt::format(fg(fmt::color::red), "error: ")
+                + fmt::format("{}\n", message);
 
   if (print_location) {
     std::u32string tmp;
     std::copy(cbegin(pos), cend(pos), std::back_inserter(tmp));
 
-    ss << boost::algorithm::trim_copy(unicode::utf32toUtf8(tmp));
+    result += boost::algorithm::trim_copy(unicode::utf32toUtf8(tmp));
   }
 
-  return ss.str();
+  return result;
 }
 
 CodeGenerator::CodeGenerator(const std::string_view               argv_front,
@@ -134,7 +125,7 @@ void CodeGenerator::emitLlvmIRFiles()
     if (ostream_ec) {
       throw CodegenError{formatErrorMessage(
         argv_front,
-        format("%s: %s", file.string(), ostream_ec.message()))};
+        fmt::format("{}: {}", file.string(), ostream_ec.message()))};
     }
 
     std::get<std::unique_ptr<llvm::Module>>(*it)->print(os, nullptr);
@@ -174,7 +165,7 @@ void CodeGenerator::emitObjectFiles()
     if (llvm::Linker::linkModules(*front_module, std::move(module))) {
       throw CodegenError{
         formatErrorMessage(argv_front,
-                           format("%s: Could not link", file.string()))};
+                           fmt::format("{}: Could not link", file.string()))};
     }
   }
 
@@ -227,7 +218,7 @@ void CodeGenerator::emitFiles(const llvm::CodeGenFileType cgft)
     if (ostream_ec) {
       throw CodegenError{formatErrorMessage(
         argv_front,
-        format("%s: %s\n", file.string(), ostream_ec.message()))};
+        fmt::format("{}: {}\n", file.string(), ostream_ec.message()))};
     }
 
     llvm::legacy::PassManager p_manager;
@@ -257,9 +248,9 @@ void CodeGenerator::initTargetTripleAndMachine()
   if (!target) {
     throw CodegenError{
       formatErrorMessage(argv_front,
-                         format("failed to lookup target %s: %s",
-                                target_triple,
-                                target_triple_error),
+                         fmt::format("failed to lookup target {}: {}",
+                                     target_triple,
+                                     target_triple_error),
                          true)};
   }
 

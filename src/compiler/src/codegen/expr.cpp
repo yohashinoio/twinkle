@@ -6,7 +6,6 @@
  */
 
 #include <codegen/expr.hpp>
-#include <support/format.hpp>
 #include <codegen/exception.hpp>
 
 namespace maple::codegen
@@ -23,14 +22,15 @@ namespace maple::codegen
   if (!variable) {
     throw CodegenError{
       ctx.formatError(ctx.positions.position_of(node),
-                      format("unknown variable '%s' referenced", ident))};
+                      fmt::format("unknown variable '{}' referenced", ident))};
   }
 
   return *variable;
 }
 
-// This function changes the value of the argument.
-static void IntegerImplicitConversion(CGContext& ctx, Value& lhs, Value& rhs)
+// This function changes the arguments.
+// Compare both operands and cast to the operand with the larger bit width.
+static void integerLargerBitsCast(CGContext& ctx, Value& lhs, Value& rhs)
 {
   if (const auto lhs_bitwidth = lhs.getType()->getIntegerBitWidth(),
       rhs_bitwidth            = rhs.getType()->getIntegerBitWidth();
@@ -196,7 +196,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
                                          false)};
     }
 
-    IntegerImplicitConversion(ctx, lhs, rhs);
+    integerLargerBitsCast(ctx, lhs, rhs);
 
     if (!strictEquals(lhs.getType(), rhs.getType())) {
       throw CodegenError{ctx.formatError(
@@ -242,7 +242,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     case ast::BinOp::Kind::unknown:
       throw CodegenError{ctx.formatError(
         ctx.positions.position_of(node),
-        format("unknown operator '%s' detected", node.operatorStr()),
+        fmt::format("unknown operator '{}' detected", node.operatorStr()),
         false)};
     }
 
@@ -280,7 +280,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     case ast::UnaryOp::Kind::unknown:
       throw CodegenError{ctx.formatError(
         ctx.positions.position_of(node),
-        format("unknown operator '%s' detected", node.operatorStr()))};
+        fmt::format("unknown operator '{}' detected", node.operatorStr()))};
     }
 
     unreachable();
@@ -293,15 +293,15 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     auto const callee_func = ctx.module->getFunction(callee);
 
     if (!callee_func) {
-      throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(node),
-                        format("unknown function '%s' referenced", callee))};
+      throw CodegenError{ctx.formatError(
+        ctx.positions.position_of(node),
+        fmt::format("unknown function '{}' referenced", callee))};
     }
 
     if (!callee_func->isVarArg()
         && callee_func->arg_size() != node.args.size()) {
       throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
-                                         format("incorrect arguments passed"))};
+                                         "incorrect arguments passed")};
     }
 
     std::vector<llvm::Value*> args_value;
@@ -312,7 +312,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       if (!args_value.back()) {
         throw CodegenError{ctx.formatError(
           ctx.positions.position_of(node),
-          format("argument set failed in call to the function '%s'", callee))};
+          fmt::format("argument set failed in call to the function '{}'",
+                      callee))};
       }
     }
 
@@ -321,7 +322,9 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       if (!strictEquals(args_value[idx++]->getType(), arg.getType())) {
         throw CodegenError{ctx.formatError(
           ctx.positions.position_of(node),
-          format("incompatible type for argument %d of '%s'", idx, callee))};
+          fmt::format("incompatible type for argument {} of '{}'",
+                      idx,
+                      callee))};
       }
     }
 
@@ -368,7 +371,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     else {
       throw CodegenError{ctx.formatError(
         ctx.positions.position_of(node),
-        format("cannot be converted to '%s' type", node.as->getName()))};
+        fmt::format("cannot be converted to '{}' type", node.as->getName()))};
     }
 
     unreachable();

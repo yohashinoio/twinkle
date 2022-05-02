@@ -7,7 +7,6 @@
 
 #include <codegen/stmt.hpp>
 #include <codegen/expr.hpp>
-#include <support/format.hpp>
 #include <codegen/exception.hpp>
 
 namespace maple::codegen
@@ -88,8 +87,9 @@ struct StmtVisitor : public boost::static_visitor<void> {
     const auto name = node.name.utf8();
 
     if (scope.exists(name)) {
-      throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
-                                         format("redefinition of '%s'", name))};
+      throw CodegenError{
+        ctx.formatError(ctx.positions.position_of(node),
+                        fmt::format("redefinition of '{}'", name))};
     }
 
     auto const func = ctx.builder.GetInsertBlock()->getParent();
@@ -142,7 +142,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
     case ast::Assignment::Kind::unknown:
       throw CodegenError{ctx.formatError(
         ctx.positions.position_of(node),
-        format("unknown operator '%s' detected", node.operatorStr()))};
+        fmt::format("unknown operator '{}' detected", node.operatorStr()))};
 
     case ast::Assignment::Kind::direct:
       ctx.builder.CreateStore(rhs.getValue(), lhs.getValue());
@@ -194,7 +194,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
     case ast::PrefixIncAndDec::Kind::unknown:
       throw CodegenError{ctx.formatError(
         ctx.positions.position_of(node),
-        format("unknown operator '%s' detected", node.operatorStr()))};
+        fmt::format("unknown operator '{}' detected", node.operatorStr()))};
 
     case ast::PrefixIncAndDec::Kind::increment:
       ctx.builder.CreateStore(
@@ -447,7 +447,7 @@ private:
       // Assignment of read-only variable.
       throw CodegenError{ctx.formatError(
         pos,
-        format("assignment of read-only variable '%s'", node.utf8()))};
+        fmt::format("assignment of read-only variable '{}'", node.utf8()))};
     }
 
     return {variable.getAllocaInst(),
@@ -463,9 +463,10 @@ private:
 
     if (!variable.isMutable()) {
       // Assignment of read-only variable.
-      throw CodegenError{ctx.formatError(
-        pos,
-        format("assignment of read-only variable '%s'", node.ident.utf8()))};
+      throw CodegenError{
+        ctx.formatError(pos,
+                        fmt::format("assignment of read-only variable '{}'",
+                                    node.ident.utf8()))};
     }
 
     const auto tmp = createExpr(ctx, scope, node);
@@ -580,7 +581,7 @@ private:
       if (!init_value) {
         throw CodegenError{ctx.formatError(
           pos,
-          format("failed to generate initializer for '%s'", name))};
+          fmt::format("failed to generate initializer for '{}'", name))};
       }
 
       if (!strictEquals(variable_type, init_value.getType())) {
@@ -644,7 +645,7 @@ private:
       if (!init_value) {
         throw CodegenError{ctx.formatError(
           pos,
-          format("failed to generate initializer for '%s'", name))};
+          fmt::format("failed to generate initializer for '{}'", name))};
       }
 
       auto const alloca = createEntryAlloca(func, name, init_value.getType());

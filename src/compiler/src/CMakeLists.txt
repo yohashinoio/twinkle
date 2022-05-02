@@ -26,6 +26,7 @@ string(REGEX REPLACE "[ \t]*[\r\n]+[ \t]*" ";" CONFIG_OUTPUT ${CONFIG_OUTPUT})
 
 include_directories(
   ${CMAKE_SOURCE_DIR}/src/compiler/include
+  ${CMAKE_SOURCE_DIR}/third-party/fmt/include
   ${Boost_INCLUDE_DIRS}
   ${LLVM_INCLUDE_DIRS}
 )
@@ -49,6 +50,7 @@ target_link_libraries(
   ${LIB_NAME}
   PRIVATE
   Threads::Threads
+  fmt::fmt
   ${Boost_LIBRARIES}
   ${CONFIG_OUTPUT}
   codegen

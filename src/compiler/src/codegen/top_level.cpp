@@ -7,7 +7,6 @@
 
 #include <codegen/top_level.hpp>
 #include <codegen/stmt.hpp>
-#include <support/format.hpp>
 #include <codegen/exception.hpp>
 
 namespace maple::codegen
@@ -118,8 +117,9 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDef& node) const
   auto func = ctx.module->getFunction(name);
 
   if (func) {
-    throw CodegenError{ctx.formatError(ctx.positions.position_of(node.decl),
-                                       format("redefinition of '%s'", name))};
+    throw CodegenError{
+      ctx.formatError(ctx.positions.position_of(node.decl),
+                      fmt::format("redefinition of '{}'", name))};
   }
 
   func = this->operator()(node.decl);
@@ -127,7 +127,7 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDef& node) const
   if (!func) {
     throw CodegenError{
       ctx.formatError(ctx.positions.position_of(node.decl),
-                      format("failed to create function '%s'", name))};
+                      fmt::format("failed to create function '{}'", name))};
   }
 
   SymbolTable argument_table;

@@ -6,12 +6,7 @@
  */
 
 #include <pch/pch.hpp>
-#include <support/format.hpp>
 #include <support/utils.hpp>
-
-#if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
-#include <unistd.h> // isatty
-#endif
 
 namespace maple
 {
@@ -31,49 +26,32 @@ std::string getVersion()
                                              const std::string_view message,
                                              const bool             fatal)
 {
-#if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
-  if (isatty(fileno(stdout))) {
-    if (fatal) {
-      return format("%s: " COLOR_RED "fatal error: " COLOR_DEFAULT "%s",
-                    filename.data(),
-                    message.data());
-    }
-    else {
-      return format("%s: " COLOR_RED "error: " COLOR_DEFAULT "%s",
-                    filename.data(),
-                    message.data());
-    }
+  if (fatal) {
+    return fmt::format("{}: ", filename)
+           + fmt::format(fg(fmt::color::red), "fatal error: ")
+           + std::string(message);
   }
-#endif
-  if (fatal)
-    return format("%s: fatal error: %s", filename.data(), message.data());
-
-  return format("%s: error: %s", filename.data(), message.data());
+  else {
+    return fmt::format("{}: ", filename)
+           + fmt::format(fg(fmt::color::red), "error: ") + std::string(message);
+  }
 }
 
 [[nodiscard]] std::string
 formatErrorMessageWithoutFile(const std::string_view message, const bool fatal)
 {
-#if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
-  if (isatty(fileno(stdout))) {
-    if (fatal)
-      return format(COLOR_RED "fatal error: " COLOR_DEFAULT "%s",
-                    message.data());
-    else
-      return format(COLOR_RED "error: " COLOR_DEFAULT "%s", message.data());
+  if (fatal) {
+    return fmt::format(fg(fmt::color::red), "fatal error: ")
+           + std::string(message);
   }
-#endif
-  if (fatal)
-    return format("fatal error: %s", message.data());
-
-  return format("error: %s", message.data());
+  else
+    return fmt::format(fg(fmt::color::red), "error: ") + std::string(message);
 }
 
 [[nodiscard]] std::string stringToLower(const std::string_view str)
 {
   std::string result;
 
-  // Relocation model string to lower.
   std::transform(str.begin(),
                  str.end(),
                  std::back_inserter(result),
@@ -85,10 +63,8 @@ formatErrorMessageWithoutFile(const std::string_view message, const bool fatal)
 [[noreturn]] void unreachableInternal(const std::size_t line, const char* file)
 {
 #ifndef NDEBUG
-  if (file) {
-    std::cerr << "Unreachable executed"
-              << " at " << file << ":" << line << '!' << std::endl;
-  }
+  if (file)
+    fmt::print(stderr, "Unreachable executed at {} : {}!\n", file, line);
 #endif
 
 #if defined(__GNUC__) // GCC, Clang, ICC

@@ -7,7 +7,6 @@
 
 #include <option/parse.hpp>
 #include <option/exception.hpp>
-#include <support/format.hpp>
 #include <support/utils.hpp>
 
 namespace maple
@@ -87,7 +86,8 @@ getRelocationModel(const std::string_view                program_name,
   else {
     throw OptionError{formatErrorMessage(
       program_name,
-      format("The value '%s' for --relocation-model is invalid!", rm_lower_str),
+      fmt::format("The value '{}' for --relocation-model is invalid!",
+                  rm_lower_str),
       true)};
   }
 }
