@@ -64,6 +64,22 @@ $ cmake .. -DCMAKE_BUILD_TYPE=Release -DLLVM_CONFIG_PATH="path/to/llvm-config"
 $ sudo cmake --install .
 ```
 
+### Testing
+Passing -DENABLE_TEST=1 to cmake and building will create an executable file for testing.
+```bash
+$ cmake .. -DENABLE_TEST=1
+$ cmake --build .
+```
+
+Run the test with CTest.
+```bash
+$ ctest --verbose
+```
+If you want to show details only in case of failure.
+```bash
+$ ctest --output-on-failure
+```
+
 ## References
 - [X3 Documentation](http://ciere.com/cppnow15/x3_docs/): Documentation for Boost.Spirit.X3.
 - [Using X3 Slides](http://ciere.com/cppnow15/x3_docs/): Slides for Boost.Spirit.X3.

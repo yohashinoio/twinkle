@@ -156,4 +156,7 @@ int main(const int argc, const char* const* const argv)
   std::cerr << "| \x1b[31mFail\x1b[39m: " << std::setw(10) << fail_c << " |\n";
   std::cerr << "|   \x1b[32mOK\x1b[39m: " << std::setw(10) << ok_c << " |\n";
   std::cerr << "--------------------\n";
+
+  if (fail_c)
+    return EXIT_FAILURE;
 }

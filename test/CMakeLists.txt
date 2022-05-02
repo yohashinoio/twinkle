@@ -1,4 +1,4 @@
-set(RUNTIME_NAME test)
+set(RUNTIME_NAME blackbox_test)
 
 find_package(Threads REQUIRED)
 
@@ -23,4 +23,9 @@ target_compile_options(
   PRIVATE
   -Wall
   -Wextra
+)
+
+add_test(
+  NAME blackbox_testing
+  COMMAND $<TARGET_FILE:blackbox_test> ${CMAKE_SOURCE_DIR}/test/cases
 )

@@ -1,7 +1,5 @@
 set(RUNTIME_NAME maplec)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-
 include(GNUInstallDirs)
 
 include_directories(${CMAKE_SOURCE_DIR}/src/compiler/include)
