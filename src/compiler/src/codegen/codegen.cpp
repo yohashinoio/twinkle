@@ -123,7 +123,7 @@ void CodeGenerator::emitLlvmIRFiles()
                             llvm::sys::fs::OpenFlags::OF_None};
 
     if (ostream_ec) {
-      throw CodegenError{formatErrorMessage(
+      throw CodegenError{formatError(
         argv_front,
         fmt::format("{}: {}", file.string(), ostream_ec.message()))};
     }
@@ -149,10 +149,8 @@ void CodeGenerator::emitObjectFiles()
   jit_compiled = true;
 
   auto jit_expected = jit::JitCompiler::create();
-  if (auto err = jit_expected.takeError()) {
-    throw CodegenError{
-      formatErrorMessage(argv_front, llvm::toString(std::move(err)), true)};
-  }
+  if (auto err = jit_expected.takeError())
+    throw CodegenError{formatError(argv_front, llvm::toString(std::move(err)))};
 
   auto jit = std::move(*jit_expected);
 
@@ -164,21 +162,21 @@ void CodeGenerator::emitObjectFiles()
 
     if (llvm::Linker::linkModules(*front_module, std::move(module))) {
       throw CodegenError{
-        formatErrorMessage(argv_front,
-                           fmt::format("{}: Could not link", file.string()))};
+        formatError(argv_front,
+                    fmt::format("{}: Could not link", file.string()))};
     }
   }
 
   if (auto err
       = jit->addModule({std::move(front_module), std::move(context)})) {
     throw CodegenError{
-      formatErrorMessage(file.string(), llvm::toString(std::move(err)))};
+      formatError(file.string(), llvm::toString(std::move(err)))};
   }
 
   auto symbol_expected = jit->lookup("main");
   if (auto err = symbol_expected.takeError()) {
     throw CodegenError{
-      formatErrorMessage(argv_front, "symbol main could not be found")};
+      formatError(argv_front, "symbol main could not be found")};
   }
 
   auto       symbol = *symbol_expected;
@@ -216,7 +214,7 @@ void CodeGenerator::emitFiles(const llvm::CodeGenFileType cgft)
                                  llvm::sys::fs::OpenFlags::OF_None};
 
     if (ostream_ec) {
-      throw CodegenError{formatErrorMessage(
+      throw CodegenError{formatError(
         argv_front,
         fmt::format("{}: {}\n", file.string(), ostream_ec.message()))};
     }
@@ -227,8 +225,7 @@ void CodeGenerator::emitFiles(const llvm::CodeGenFileType cgft)
                                             ostream,
                                             nullptr,
                                             cgft)) {
-      throw CodegenError{
-        formatErrorMessage(argv_front, "failed to emit a file", true)};
+      throw CodegenError{formatError(argv_front, "failed to emit a file")};
     }
 
     p_manager.run(*std::get<std::unique_ptr<llvm::Module>>(*it));
@@ -246,12 +243,10 @@ void CodeGenerator::initTargetTripleAndMachine()
     = llvm::TargetRegistry::lookupTarget(target_triple, target_triple_error);
 
   if (!target) {
-    throw CodegenError{
-      formatErrorMessage(argv_front,
-                         fmt::format("failed to lookup target {}: {}",
-                                     target_triple,
-                                     target_triple_error),
-                         true)};
+    throw CodegenError{formatError(argv_front,
+                                   fmt::format("failed to lookup target {}: {}",
+                                               target_triple,
+                                               target_triple_error))};
   }
 
   llvm::TargetOptions target_options;

@@ -46,7 +46,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
   {
     if (!createExpr(ctx, scope, node)) {
       throw CodegenError{
-        formatErrorMessage(ctx.file.string(),
+        formatError(ctx.file.string(),
                            "failed to generate expression statement")};
     }
   }

@@ -25,7 +25,7 @@ struct FileError : public ErrorBase {
                                    const std::filesystem::path& path)
 {
   if (!std::filesystem::exists(path)) {
-    throw FileError{formatErrorMessage(
+    throw FileError{formatError(
       program_name,
       fmt::format("{}: No such file or directory", path.string()))};
   }
@@ -37,7 +37,7 @@ struct FileError : public ErrorBase {
   }
 
   throw FileError{
-    formatErrorMessage(program_name,
+    formatError(program_name,
                        fmt::format("{}: Could not open file", path.string()))};
 }
 

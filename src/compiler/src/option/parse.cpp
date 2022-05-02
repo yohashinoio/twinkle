@@ -69,26 +69,25 @@ getInputFiles(const std::string_view                program_name,
   if (vmap.contains("input-file"))
     return vmap["input-file"].as<std::vector<std::string>>();
   else
-    throw OptionError{formatErrorMessage(program_name, "no input files", true)};
+    throw OptionError{formatError(program_name, "no input files")};
 }
 
 [[nodiscard]] llvm::Reloc::Model
 getRelocationModel(const std::string_view                program_name,
                    const program_options::variables_map& vmap)
 {
-  const auto rm_lower_str
-    = stringToLower(vmap["relocation-model"].as<std::string>());
+  const auto& reloc_model       = vmap["relocation-model"].as<std::string>();
+  const auto  lower_reloc_model = stringToLower(reloc_model);
 
-  if (rm_lower_str == "static")
+  if (lower_reloc_model == "static")
     return llvm::Reloc::Model::Static;
-  else if (rm_lower_str == "pic")
+  else if (lower_reloc_model == "pic")
     return llvm::Reloc::Model::PIC_;
   else {
-    throw OptionError{formatErrorMessage(
+    throw OptionError{formatError(
       program_name,
-      fmt::format("The value '{}' for --relocation-model is invalid!",
-                  rm_lower_str),
-      true)};
+      fmt::format("the value '{}' for --relocation-model is invalid!",
+                  reloc_model))};
   }
 }
 

@@ -11,7 +11,7 @@
 namespace maple
 {
 
-std::string getVersion()
+[[nodiscard]] std::string getVersion()
 {
   const auto major = MAPLE_VER / 100000;
   const auto minor = MAPLE_VER / 100 % 1000;
@@ -22,30 +22,16 @@ std::string getVersion()
          + boost::lexical_cast<std::string>(patch);
 }
 
-[[nodiscard]] std::string formatErrorMessage(const std::string_view filename,
-                                             const std::string_view message,
-                                             const bool             fatal)
+[[nodiscard]] std::string formatError(const std::string_view filename,
+                                      const std::string_view message)
 {
-  if (fatal) {
-    return fmt::format("{}: ", filename)
-           + fmt::format(fg(fmt::color::red), "fatal error: ")
-           + std::string(message);
-  }
-  else {
-    return fmt::format("{}: ", filename)
-           + fmt::format(fg(fmt::color::red), "error: ") + std::string(message);
-  }
+  return fmt::format("{}: ", filename)
+         + fmt::format(fg(fmt::color::red), "error: ") + std::string(message);
 }
 
-[[nodiscard]] std::string
-formatErrorMessageWithoutFile(const std::string_view message, const bool fatal)
+[[nodiscard]] std::string formatError(const std::string_view message)
 {
-  if (fatal) {
-    return fmt::format(fg(fmt::color::red), "fatal error: ")
-           + std::string(message);
-  }
-  else
-    return fmt::format(fg(fmt::color::red), "error: ") + std::string(message);
+  return fmt::format(fg(fmt::color::red), "error: ") + std::string(message);
 }
 
 [[nodiscard]] std::string stringToLower(const std::string_view str)

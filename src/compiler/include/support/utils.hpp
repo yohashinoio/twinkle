@@ -17,22 +17,16 @@
 namespace maple
 {
 
-#define COLOR_DEFAULT "\x1b[0m"
-#define COLOR_RED     "\x1b[91m"
-
 constexpr unsigned int MAPLE_VER = 100000;
 
 [[nodiscard]] std::string getVersion();
 
 // With filename.
-[[nodiscard]] std::string formatErrorMessage(const std::string_view filename,
-                                             const std::string_view message,
-                                             const bool fatal = false);
+[[nodiscard]] std::string formatError(const std::string_view filename,
+                                      const std::string_view message);
 
 // Without filename.
-[[nodiscard]] std::string
-formatErrorMessageWithoutFile(const std::string_view message,
-                              const bool             fatal = false);
+[[nodiscard]] std::string formatError(const std::string_view message);
 
 [[nodiscard]] std::string stringToLower(const std::string_view str);
 

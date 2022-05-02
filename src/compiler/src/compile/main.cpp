@@ -102,7 +102,7 @@ try {
 }
 catch (const program_options::error& err) {
   // Error about command line options.
-  std::cerr << formatErrorMessage(*argv, err.what(), true)
+  std::cerr << formatError(*argv, err.what())
             << (isBackNewline(err.what()) ? "" : "\n") << std::flush;
 
   return {false, std::nullopt};
