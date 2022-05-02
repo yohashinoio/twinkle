@@ -1,4 +1,4 @@
-fn main() -> i32 {
+func main() -> i32 {
   let mut shino: i32 = 68;
   shino -= 10;
   return shino;

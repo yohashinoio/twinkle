@@ -1,4 +1,4 @@
-fn main() -> i32
+func main() -> i32
 {
   let n: i32 = 4810;
   if (n != 4810)

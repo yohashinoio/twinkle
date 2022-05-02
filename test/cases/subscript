@@ -1,9 +1,9 @@
-fn f() -> i32
+func f() -> i32
 {
   return 14;
 }
 
-fn main() -> i32
+func main() -> i32
 {
   let a1 = {4, 8, 1, 0};
   let a2 = {1, 0, 4, 8};

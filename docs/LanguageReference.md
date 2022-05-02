@@ -157,7 +157,7 @@ The entity is a 32-bit unsigned integer.<br/>
 Passing values of this type as characters to functions such as libc will not work properly.
 
 ```rust
-fn main() -> i32
+func main() -> i32
 {
   let ch: char;
   let unicode = '🌸';
@@ -170,7 +170,7 @@ fn main() -> i32
 | 1-bit   | bool |
 
 ```rust
-fn main() -> i32
+func main() -> i32
 {
   let f: bool = true;
   let g = false;
@@ -188,17 +188,17 @@ meaning that the function will not return a value.<br/>
 And the return type of a function is optional and has the same meaning as the void type.
 
 ```rust
-fn f() -> void
+func f() -> void
 {
   ret;
 }
 
 // Functions returning void type do not require return.
-fn g()
+func g()
 {
 }
 
-fn main() -> i32
+func main() -> i32
 {
   f();
   g();
@@ -214,7 +214,7 @@ Note that the meaning is equivalent to that of a C pointer,<br/>
 but the position of the * is opposite.
 
 ```rust
-fn main() -> i32
+func main() -> i32
 {
   let p: *i8 = "hello, world";
 
@@ -232,7 +232,7 @@ fn main() -> i32
 | type[size] |
 
 ```rust
-fn main() -> i32
+func main() -> i32
 {
   let a1: i32[4810];
   let a2 = {4, 8, 1, 0};
@@ -242,7 +242,7 @@ fn main() -> i32
 ## Variables
 ### Definition
 ```rust
-fn main() -> i32
+func main() -> i32
 {
   let a: i32;
   let b = 48; // Type inference from the initializer.
@@ -253,7 +253,7 @@ fn main() -> i32
 In this language, variables are immutable by default.<br/>
 To make them mutable, use the "mut" qualifier.
 ```rust
-fn main() -> i32
+func main() -> i32
 {
   let i = 48; // Constant.
   i = 58; // Error!
@@ -269,7 +269,7 @@ fn main() -> i32
 ### Type Inference
 Type inference can only be used for initializations with initializers.
 ```rust
-fn main() -> i32
+func main() -> i32
 {
   let n = 4810; // i32
 
@@ -284,19 +284,19 @@ fn main() -> i32
 ## Constant pointer
 The constant pointer in this language is the same as 'const xxx* const' in c++.
 ```rust
-fn f(p: *i32)
+func f(p: *i32)
 {
   p = p; // Error!
   *p = 10; // Error!
 }
 
-fn g(mut p: *i32)
+func g(mut p: *i32)
 {
   p = p; // OK!
   *p = 10; // OK!
 }
 
-fn main() -> i32
+func main() -> i32
 {
   let n = 4810;
   f(&n);
@@ -307,7 +307,7 @@ fn main() -> i32
 ## Implicit Conversions
 In the case of numeric values, operands with smaller bit widths are converted to the larger bit width side.
 ```rust
-fn main() -> i32
+func main() -> i32
 {
   let f: bool = true;
 
@@ -324,7 +324,7 @@ extern i32 puts(s: *i8);
 
 ### Definition
 ```rust
-fn twice(n: i32) -> i32
+func twice(n: i32) -> i32
 {
   return n * 2;
 }
@@ -334,13 +334,13 @@ fn twice(n: i32) -> i32
 In this language, parameters are immutable by default.<br/>
 To make them mutable, use the "mut" qualifier.
 ```rust
-fn f(n: i32) -> i32
+func f(n: i32) -> i32
 {
   n = 123; // Error!
   return n;
 }
 
-fn g(mut n: i32) -> i32
+func g(mut n: i32) -> i32
 {
   n = 123; // OK
   return n;
@@ -349,12 +349,12 @@ fn g(mut n: i32) -> i32
 
 ### Linkage
 ```rust
-fn twice(n: i32) -> i32 // External linkage
+func twice(n: i32) -> i32 // External linkage
 {
   return n * 2;
 }
 
-fn private thrice(n: i32) -> i32 // Internal linkage
+func private thrice(n: i32) -> i32 // Internal linkage
 {
   return n * 3;
 }
@@ -411,7 +411,7 @@ The char type holds Unicode code points.
 String literals are UTF8.
 
 ```rust
-fn main() -> i32
+func main() -> i32
 {
   let ch = 'あ'; // Unicode code point.
 
@@ -422,7 +422,7 @@ fn main() -> i32
 ## Array In Detail
 ### Definition
 ```rust
-fn main() -> i32
+func main() -> i32
 {
   let a1 = {'い', 'お'};
 
@@ -437,12 +437,12 @@ fn main() -> i32
 ### Subscript
 Subscript numbers begin with 0.
 ```rust
-fn f() -> i32
+func f() -> i32
 {
   return 0;
 }
 
-fn main() -> i32
+func main() -> i32
 {
   let a = {48, 10, 4, 8, 1, 0};
 
@@ -458,12 +458,12 @@ fn main() -> i32
 ```
 Can also be used for pointers.
 ```rust
-fn front(p: *i32) -> i32
+func front(p: *i32) -> i32
 {
   return p[0];
 }
 
-fn main() -> i32
+func main() -> i32
 {
   let a = {4, 8, 1, 0};
   front(&a[0]);
@@ -473,13 +473,13 @@ fn main() -> i32
 ## Statements
 ### Expression Statements
 ```rust
-fn main() -> i32
+func main() -> i32
 {
   f();
 }
 ```
 ```rust
-fn main() -> i32
+func main() -> i32
 {
   48 + 10;
 }
@@ -487,7 +487,7 @@ fn main() -> i32
 
 ### Compound Statement (Block)
 ```rust
-fn main() -> i32
+func main() -> i32
 {
   {
     // Compount statement
@@ -503,7 +503,7 @@ fn main() -> i32
 
 ### If-else Statement
 ```rust
-fn main() -> i32
+func main() -> i32
 {
   let cond: bool = true;
 
@@ -516,7 +516,7 @@ fn main() -> i32
 
 ### While Statement
 ```rust
-fn main() -> i32
+func main() -> i32
 {
   let mut i = 0;
   // Repeat 10 times.
@@ -531,7 +531,7 @@ fn main() -> i32
 
 ### For Statement
 ```rust
-fn main() -> i32
+func main() -> i32
 {
   // Repeat 10 times.
   for (let mut i = 0; i != 10; ++i) {
@@ -546,7 +546,7 @@ fn main() -> i32
 ### Break Statement
 The break statement terminates execution of the nearest loop.
 ```rust
-fn main() -> i32
+func main() -> i32
 {
   for (;;) {
     break;
@@ -556,7 +556,7 @@ fn main() -> i32
 
 ### Continue Statement
 ```rust
-fn main() -> i32
+func main() -> i32
 {
   for (;;) {
     continue;
@@ -566,7 +566,7 @@ fn main() -> i32
 
 ### Return Statement
 ```rust
-fn main() -> i32
+func main() -> i32
 {
   return 48 + 10;
 }

@@ -13,7 +13,7 @@ Since the author only understands Japanese, this document was created with trans
 // hello.txt
 extern printf(fmt: *i8, ...) -> i32;
 
-fn main() -> i32
+func main() -> i32
 {
   printf("hello, world\n");
 }

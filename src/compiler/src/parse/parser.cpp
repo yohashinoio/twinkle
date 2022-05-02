@@ -478,7 +478,7 @@ const auto function_decl
 
 const auto function_def
   = x3::rule<struct FunctionDefTag, ast::FunctionDef>{"function definition"}
-= lit(U"fn") > function_proto > stmt;
+= lit(U"func") > function_proto > stmt;
 
 const auto top_level = x3::rule<struct TopLevelTag, ast::TopLevel>{"top level"}
 = function_decl | function_def;
@@ -521,21 +521,17 @@ const auto program = x3::rule<struct ProgramTag, ast::Program>{"program"}
 // Common tags
 //===----------------------------------------------------------------------===//
 
-struct VariableIdentTag : AnnotatePosition {
-};
+struct VariableIdentTag : AnnotatePosition {};
 
-struct IdentifierTag : AnnotatePosition {
-};
+struct IdentifierTag : AnnotatePosition {};
 
 struct StringLiteralTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct CharLiteralTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 //===----------------------------------------------------------------------===//
 // Expression tags
@@ -543,66 +539,53 @@ struct CharLiteralTag
 
 struct ExprTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct EqualTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct RelationTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct AddTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct MulTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct ConversionTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct UnaryTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct ConversionInternalTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct UnaryInternalTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct SubscriptTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
-struct ArgListTag : ErrorHandle {
-};
+struct ArgListTag : ErrorHandle {};
 
 struct FunctionCallTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct PrimaryTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 //===----------------------------------------------------------------------===//
 // Statement tags
@@ -610,78 +593,63 @@ struct PrimaryTag
 
 struct StmtTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct InitListTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct InitializerTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct ExprStmtTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct VariableDefTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct AssignTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct PrefixIncOrDec
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct PrefixDecrement
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct ReturnTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct IfTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct LoopTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct WhileTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct ForTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct BreakTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct ContinueTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 //===----------------------------------------------------------------------===//
 // Top level statement tags
@@ -689,33 +657,27 @@ struct ContinueTag
 
 struct ParameterTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct ParameterListTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct FunctionProtoTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct FunctionDeclTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct FunctionDefTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct TopLevelTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 //===----------------------------------------------------------------------===//
 // Program tag
@@ -723,8 +685,7 @@ struct TopLevelTag
 
 struct ProgramTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 } // namespace syntax
 

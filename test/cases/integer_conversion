@@ -1,4 +1,4 @@
-fn main() -> i64
+func main() -> i64
 {
   let a: i8 = -58 as i8;
   let b: u8 = 58 as u8;

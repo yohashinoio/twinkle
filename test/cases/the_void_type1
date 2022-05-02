@@ -1,4 +1,4 @@
-fn f(mut p: *i32) -> i32
+func f(mut p: *i32) -> i32
 {
   *p = 58;
   return;
@@ -8,7 +8,7 @@ fn f(mut p: *i32) -> i32
   return;
 }
 
-fn main() -> i32
+func main() -> i32
 {
   let mut n: i32;
   f(&n);

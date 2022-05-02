@@ -1,4 +1,4 @@
-fn f(s: *i8) -> i32
+func f(s: *i8) -> i32
 {
   let p1: *i16;
   let p2: *u16;
@@ -7,7 +7,7 @@ fn f(s: *i8) -> i32
   return 58;
 }
 
-fn main() -> i32 {
+func main() -> i32 {
   let s1: *i8;
   let mut s2: *u8;
   let p1: *i32;

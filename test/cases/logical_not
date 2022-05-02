@@ -1,4 +1,4 @@
-fn f() -> i32
+func f() -> i32
 {
   let n = 4810;
 
@@ -8,7 +8,7 @@ fn f() -> i32
   return 58;
 }
 
-fn main() -> i32
+func main() -> i32
 {
   let f = false;
 

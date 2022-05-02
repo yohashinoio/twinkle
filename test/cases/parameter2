@@ -1,10 +1,10 @@
-fn f(mut a: i32) -> i32
+func f(mut a: i32) -> i32
 {
   a = 58;
   return a;
 }
 
-fn main() -> i32
+func main() -> i32
 {
   let n: i32 = 4810;
   return f(n);

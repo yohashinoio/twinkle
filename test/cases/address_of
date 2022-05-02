@@ -1,4 +1,4 @@
-fn main() -> i32
+func main() -> i32
 {
   let a: i8;
   let a_p: *i8 = &a;

@@ -1,14 +1,14 @@
-fn add(a: i32, b: i32) -> i32
+func add(a: i32, b: i32) -> i32
 {
   return a + b;
 }
 
-fn twice(n: i32) -> i32
+func twice(n: i32) -> i32
 {
   return n * 2;
 }
 
-fn main() -> i32
+func main() -> i32
 {
   return add(twice(add(4, 8) + 1 + 0), 32);
 }

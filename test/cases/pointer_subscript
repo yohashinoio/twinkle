@@ -1,9 +1,9 @@
-fn f(a: *i32, n: u64) -> i32
+func f(a: *i32, n: u64) -> i32
 {
   return a[n];
 }
 
-fn main() -> i32
+func main() -> i32
 {
   let a = {48, 10, 110};
 

@@ -1,13 +1,13 @@
 extern printf(fmt: *i8, ...) -> i32;
 
-fn swap(mut a: *i32, mut b: *i32)
+func swap(mut a: *i32, mut b: *i32)
 {
     let tmp = *a;
     *a = *b;
     *b = tmp;
 }
 
-fn partition(mut a: *i32, start: i32, end: i32) -> i32
+func partition(mut a: *i32, start: i32, end: i32) -> i32
 {
   let pivot = a[end];
   let mut i = start - 1;
@@ -23,7 +23,7 @@ fn partition(mut a: *i32, start: i32, end: i32) -> i32
   return i + 1;
 }
 
-fn quicksort(mut a: *i32, start: i32, end: i32)
+func quicksort(mut a: *i32, start: i32, end: i32)
 {
   if (start < end) {
     let pivot = partition(a, start, end);
@@ -32,7 +32,7 @@ fn quicksort(mut a: *i32, start: i32, end: i32)
   }
 }
 
-fn printarray(a: *i32, s: i32)
+func printarray(a: *i32, s: i32)
 {
   printf("%d", a[0]);
   for (let mut i = 1; i < s; ++i)
@@ -40,7 +40,7 @@ fn printarray(a: *i32, s: i32)
   printf("\n");
 }
 
-fn main() -> i32
+func main() -> i32
 {
   let a = {48, 10, -4, 8, 1, 0};
 
