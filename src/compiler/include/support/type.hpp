@@ -21,8 +21,7 @@
 namespace maple
 {
 
-enum class BuiltinTypeKind : unsigned char
-{
+enum class BuiltinTypeKind : unsigned char {
   void_,
   i8,
   i16,
@@ -50,7 +49,7 @@ struct Type {
     return !isSigned();
   }
 
-  [[nodiscard]] virtual unsigned int getArraySize() const noexcept
+  [[nodiscard]] virtual std::uint64_t getArraySize() const noexcept
   {
     unreachable();
   }
@@ -164,7 +163,7 @@ struct ArrayType : public Type {
     return llvm::ArrayType::get(element_type->getType(context), array_size);
   }
 
-  [[nodiscard]] unsigned int getArraySize() const noexcept override
+  [[nodiscard]] std::uint64_t getArraySize() const noexcept override
   {
     return array_size;
   }
@@ -186,14 +185,12 @@ private:
 };
 
 // Variable qualifier.
-enum class VariableQual : unsigned char
-{
+enum class VariableQual : unsigned char {
   no_qualifier,
   mutable_,
 };
 
-enum class Linkage : unsigned char
-{
+enum class Linkage : unsigned char {
   no_linkage,
   internal,
 };
