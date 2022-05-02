@@ -8,7 +8,7 @@ include_directories(
 
 add_executable(
   ${RUNTIME_NAME}
-  test.cpp
+  blackbox_test.cpp
 )
 
 target_link_libraries(
