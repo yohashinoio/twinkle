@@ -20,8 +20,8 @@ namespace maple::codegen
 
 struct Variable {
   Variable(llvm::AllocaInst*          alloca,
-           const bool                 is_mutable,
            const bool                 is_signed,
+           const bool                 is_mutable,
            const std::optional<bool>& is_pointer_to_signed
            = std::nullopt) noexcept;
 
@@ -48,8 +48,8 @@ struct Variable {
 
 private:
   llvm::AllocaInst* alloca;
-  bool              is_mutable;
   bool              is_signed;
+  bool              is_mutable;
 
   // If std::nullopt, then value is not a pointer.
   std::optional<bool> is_pointer_to_signed;
@@ -139,8 +139,8 @@ struct Value {
 
 private:
   llvm::Value* value;
-  bool         is_mutable;
   bool         is_signed;
+  bool         is_mutable;
 
   // If std::nullopt, then value is not a pointer.
   std::optional<bool> is_pointer_to_signed;

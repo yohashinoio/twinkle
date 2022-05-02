@@ -11,12 +11,12 @@ namespace maple::codegen
 {
 
 Variable::Variable(llvm::AllocaInst*          alloca,
-                   const bool                 is_mutable,
                    const bool                 is_signed,
+                   const bool                 is_mutable,
                    const std::optional<bool>& is_pointer_to_signed) noexcept
   : alloca{alloca}
-  , is_mutable{is_mutable}
   , is_signed{is_signed}
+  , is_mutable{is_mutable}
   , is_pointer_to_signed{is_pointer_to_signed}
 {
 }

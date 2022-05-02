@@ -160,7 +160,7 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDef& node) const
     // Add arguments to variable symbol table.
     argument_table.regist(
       arg.getName().str(),
-      {alloca, is_mutable, param_node.type->isSigned(), is_pointer_to_signed});
+      {alloca, param_node.type->isSigned(), is_mutable, is_pointer_to_signed});
   }
 
   // Used to combine returns into one.

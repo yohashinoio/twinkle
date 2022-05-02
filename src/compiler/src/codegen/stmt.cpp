@@ -545,12 +545,12 @@ private:
     if (!initializer) {
       if (const auto pointee_type = type.getPointeeType()) {
         return {alloca,
-                is_mutable,
                 type.isSigned(),
+                is_mutable,
                 pointee_type.value()->isSigned()};
       }
       else
-        return {alloca, is_mutable, type.isSigned()};
+        return {alloca, type.isSigned(), is_mutable};
     }
 
     if (initializer->type() == typeid(ast::InitializerList)) {
@@ -601,12 +601,12 @@ private:
 
     if (const auto pointee_type = type.getPointeeType()) {
       return {alloca,
-              is_mutable,
               type.isSigned(),
+              is_mutable,
               pointee_type.value()->isSigned()};
     }
     else
-      return {alloca, is_mutable, type.isSigned()};
+      return {alloca, type.isSigned(), is_mutable};
   }
 
   [[nodiscard]] Variable
@@ -635,7 +635,7 @@ private:
       initArray(array_alloca, initializer_list);
 
       // In the case of type inference, arrays are always signed.
-      return {array_alloca, is_mutable, true};
+      return {array_alloca, true, is_mutable};
     }
     else {
       auto const init_value
@@ -653,12 +653,12 @@ private:
 
       if (init_value.isPointer()) {
         return {alloca,
-                is_mutable,
                 init_value.isSigned(),
+                is_mutable,
                 init_value.isPointerToSigned()};
       }
       else
-        return {alloca, is_mutable, init_value.isSigned()};
+        return {alloca, init_value.isSigned(), is_mutable};
     }
 
     unreachable();
