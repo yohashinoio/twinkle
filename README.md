@@ -37,12 +37,6 @@ Install LLVM. (https://apt.llvm.org/)
 ```bash
 $ sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
 ```
-Please make sure you can use the llvm-config command.<br/>
-If it is llvm-config-xxx, please use symbolic links, etc.<br/>
-Here is an example if /usr/bin/llvm-config-xxx.
-```bash
-$ sudo ln -s /usr/bin/llvm-config-xxx /usr/local/bin/llvm-config
-```
 
 ### Installation
 Clone maple repository.
@@ -63,6 +57,11 @@ If you want to specify where to install.
 ```bash
 $ cmake .. -DCMAKE_INSTALL_PREFIX="path/to/install" -DCMAKE_BUILD_TYPE=Release
 $ cmake --install .
+```
+If you want to specify the path to llvm-config.
+```bash
+$ cmake .. -DCMAKE_BUILD_TYPE=Release -DLLVM_CONFIG_PATH="path/to/llvm-config"
+$ sudo cmake --install .
 ```
 
 ## References

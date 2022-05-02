@@ -14,8 +14,14 @@ message(STATUS "Using .cmake in: ${LLVM_DIR}")
 separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
 add_definitions(${LLVM_DEFINITIONS})
 
-execute_process(COMMAND llvm-config --libs all
-                OUTPUT_VARIABLE CONFIG_OUTPUT)
+if(LLVM_CONFIG_PATH)
+  execute_process(COMMAND ${LLVM_CONFIG_PATH} --libs all
+                  OUTPUT_VARIABLE CONFIG_OUTPUT)
+else()
+  execute_process(COMMAND llvm-config --libs all
+                  OUTPUT_VARIABLE CONFIG_OUTPUT)
+endif()
+
 string(REGEX REPLACE "[ \t]*[\r\n]+[ \t]*" ";" CONFIG_OUTPUT ${CONFIG_OUTPUT})
 
 include_directories(
