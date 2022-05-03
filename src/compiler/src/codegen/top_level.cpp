@@ -147,12 +147,6 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDef& node) const
     // Store the initial value into the alloca.
     ctx.builder.CreateStore(&arg, alloca);
 
-    bool is_pointer_to_signed;
-    if (const auto pointee_type = param_node.type->getPointeeType())
-      is_pointer_to_signed = pointee_type.value()->isSigned();
-    else
-      is_pointer_to_signed = false;
-
     const auto is_mutable
       = param_node.qualifier
         && (*param_node.qualifier == VariableQual::mutable_);
@@ -160,7 +154,8 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDef& node) const
     {
       // Add arguments to variable symbol table.
       std::stack<bool> tmp;
-      tmp.push(is_pointer_to_signed);
+      if (const auto pointee_type = param_node.type->getPointeeType())
+        tmp.push(pointee_type.value()->isSigned());
       tmp.push(param_node.type->isSigned());
 
       argument_table.regist(arg.getName().str(),
