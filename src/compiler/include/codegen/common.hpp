@@ -18,28 +18,16 @@
 namespace maple::codegen
 {
 
-template <typename T>
-[[nodiscard]] std::stack<T> createStack(T&& v)
-{
-  return std::stack{std::deque{v}};
-}
-
-template <typename T>
-[[nodiscard]] std::stack<T> createStack(const T& v)
-{
-  return std::stack{std::deque{v}};
-}
-
 // Class that wraps llvm::Value.
 // Made to handle signs, etc.
 struct Value {
-  Value(llvm::Value*            value,
-        const std::stack<bool>& is_signed_stack,
-        const bool              is_mutable = false) noexcept;
+  Value(llvm::Value*         value,
+        const SignKindStack& sign_info_stack,
+        const bool           is_mutable = false);
 
-  Value(llvm::Value*       value,
-        std::stack<bool>&& is_signed_stack,
-        const bool         is_mutable = false) noexcept;
+  Value(llvm::Value*    value,
+        SignKindStack&& sign_info_stack,
+        const bool      is_mutable = false) noexcept;
 
   Value() noexcept = default;
 
@@ -58,23 +46,27 @@ struct Value {
     return is_mutable;
   }
 
-  [[nodiscard]] bool isSignedTop() const
+  // Returns true if the top of the sign information stack is signed.
+  [[nodiscard]] bool isSigned() const
   {
-    if (is_signed_stack.empty())
-      unreachable();
+    assert(!sign_info_stack.empty());
 
-    const auto top = is_signed_stack.top();
+    const auto top = sign_info_stack.top();
+    return top == SignKind::signed_;
+  }
+
+  // Returns the top of the sign information stack.
+  [[nodiscard]] SignKind getSignKind() const
+  {
+    assert(!sign_info_stack.empty());
+
+    const auto top = sign_info_stack.top();
     return top;
   }
 
-  void pushIsSigned(const bool is_signed)
+  [[nodiscard]] const SignKindStack& getSignInfo() const noexcept
   {
-    is_signed_stack.push(is_signed);
-  }
-
-  [[nodiscard]] const std::stack<bool>& getIsSignedStack() const noexcept
-  {
-    return is_signed_stack;
+    return sign_info_stack;
   }
 
   [[nodiscard]] bool isPointer() const
@@ -95,31 +87,7 @@ struct Value {
 private:
   llvm::Value* value;
 
-  /*
-  |--------------------|
-  |        Type | Size |
-  |--------------------|
-  | Non-pointer |    1 |
-  |     Pointer |    2 |
-  |  Double ptr |    3 |
-  |  Triple ptr |    4 |
-  |         ... |  ... |
-  |--------------------|
-
-  Example: *i32
-  |-------------------------|
-  | unsigned (pointer type) | <- top
-  |       signed (int type) |
-  |-------------------------|
-
-  Example: **i32
-  |-------------------------|
-  | unsigned (pointer type) | <- top
-  | unsigned (pointer type) |
-  |       signed (int type) |
-  |-------------------------|
-  */
-  std::stack<bool> is_signed_stack;
+  SignKindStack sign_info_stack;
 
   bool is_mutable;
 };
@@ -135,9 +103,9 @@ struct Variable {
     unreachable();
   }
 
-  [[nodiscard]] const std::stack<bool>& getIsSignedStack() const noexcept
+  [[nodiscard]] const SignKindStack& getSignInfo() const noexcept
   {
-    return alloca.getIsSignedStack();
+    return alloca.getSignInfo();
   }
 
   [[nodiscard]] bool isMutable() const noexcept
@@ -188,7 +156,7 @@ private:
                                                   llvm::Type*        type);
 
 // Return true if one of them is signed.
-[[nodiscard]] bool isEitherSigned(const Value& lhs, const Value& rhs);
+[[nodiscard]] SignKind logicalOrSign(const Value& lhs, const Value& rhs);
 
 [[nodiscard]] Value
 createAdd(CGContext& ctx, const Value& lhs, const Value& rhs);

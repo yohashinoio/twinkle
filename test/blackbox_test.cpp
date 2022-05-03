@@ -117,7 +117,7 @@ int main(const int argc, const char* const* const argv)
     {        "subscript_array_of_unsigned",  41},
     {  "subscript_pointer_to_signed_array",  58},
     {"subscript_pointer_to_unsigned_array",  41},
-    {        "subscript_array_of_pointers", 116},
+    {        "subscript_array_of_pointers",  71},
     { "subscript_pointer_to_signed_array2",  58},
   };
 

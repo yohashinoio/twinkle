@@ -30,9 +30,9 @@ struct ErrorHandle {
   {
     auto& error_handler = x3::get<x3::error_handler_tag>(context).get();
 
-    error_handler(x.where(),
-                  formatError(
-                    "expected: " + boost::core::demangle(x.which().c_str())));
+    error_handler(
+      x.where(),
+      formatError("expected: " + boost::core::demangle(x.which().c_str())));
 
     return x3::error_handler_result::fail;
   }

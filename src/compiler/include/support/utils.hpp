@@ -13,6 +13,7 @@
 #endif // _MSC_VER > 1000
 
 #include <pch/pch.hpp>
+#include <deque>
 
 namespace maple
 {
@@ -29,6 +30,25 @@ constexpr unsigned int MAPLE_VER = 100000;
 [[nodiscard]] std::string formatError(const std::string_view message);
 
 [[nodiscard]] std::string stringToLower(const std::string_view str);
+
+/*
+  After stacking the argument 1, start stacking from the left of the
+  argument 2.
+  Example: (4, 8, 1, 0)
+  |=--|
+  | 0 | <- top
+  | 1 |
+  | 8 |
+  | 4 |
+  |---|
+*/
+template <typename F, typename... T>
+[[nodiscard]] auto createStack(F&& first, T&&... lst)
+{
+  return std::stack{
+    std::deque{std::forward<F>(first), std::forward<T>(lst)...}
+  };
+}
 
 [[noreturn]] void unreachableInternal(const std::size_t line, const char* file);
 

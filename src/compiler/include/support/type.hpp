@@ -19,6 +19,60 @@
 namespace maple
 {
 
+enum class SignKind : unsigned char {
+  unsigned_,
+  signed_,
+};
+
+[[nodiscard]] inline bool isSigned(const SignKind sk) noexcept
+{
+  return sk == SignKind::signed_;
+}
+
+/*
+  |--------------------|
+  |        Type | Size |
+  |--------------------|
+  | Non-pointer |    1 |
+  |     Pointer |    2 |
+  |  Double ptr |    3 |
+  |  Triple ptr |    4 |
+  |         ... |  ... |
+  |--------------------|
+
+  Example: i32
+  |-------------------------|
+  |       signed (i32 type) | <- top
+  |-------------------------|
+
+  Example: *i32
+  |-------------------------|
+  | unsigned (pointer type) | <- top
+  |       signed (i32 type) |
+  |-------------------------|
+
+  Example: **i32
+  |-------------------------|
+  | unsigned (pointer type) | <- top
+  | unsigned (pointer type) |
+  |       signed (i32 type) |
+  |-------------------------|
+
+  Example: u32[]
+  |-------------------------|
+  |   unsigned (array type) | <- top
+  |     unsigned (u32 type) |
+  |-------------------------|
+
+  Example: *i32[]
+  |-------------------------|
+  |   unsigned (array type) | <- top
+  | unsigned (pointer type) |
+  |       signed (i32 type) |
+  |-------------------------|
+*/
+using SignKindStack = std::stack<SignKind>;
+
 enum class BuiltinTypeKind : unsigned char {
   void_,
   i8,
@@ -36,32 +90,33 @@ enum class BuiltinTypeKind : unsigned char {
 struct Type {
   virtual ~Type() = default;
 
-  [[nodiscard]] virtual bool isVoid() const noexcept = 0;
+  [[nodiscard]] virtual bool isVoid() const noexcept
+  {
+    return false;
+  }
 
-  [[nodiscard]] virtual bool isPointer() const noexcept = 0;
+  [[nodiscard]] virtual bool isPointer() const noexcept
+  {
+    return false;
+  }
 
   [[nodiscard]] virtual bool isSigned() const noexcept = 0;
 
-  [[nodiscard]] virtual bool isUnigned()
+  [[nodiscard]] bool isUnigned()
   {
     return !isSigned();
   }
 
+  [[nodiscard]] SignKind getSignKind() const noexcept
+  {
+    return isSigned() ? SignKind::signed_ : SignKind::unsigned_;
+  }
+
+  [[nodiscard]] virtual SignKindStack createSignKindStack() const noexcept = 0;
+
   [[nodiscard]] virtual std::uint64_t getArraySize() const noexcept
   {
     unreachable();
-  }
-
-  [[nodiscard]] virtual std::optional<std::shared_ptr<Type>>
-  getPointeeType() const
-  {
-    return std::nullopt;
-  }
-
-  [[nodiscard]] virtual std::optional<std::shared_ptr<Type>>
-  getArrayElementType() const
-  {
-    return std::nullopt;
   }
 
   [[nodiscard]] virtual std::string getName() const = 0;
@@ -81,14 +136,20 @@ struct BuiltinType : public Type {
     return kind == BuiltinTypeKind::void_;
   }
 
-  [[nodiscard]] bool isPointer() const noexcept override
-  {
-    return false;
-  }
-
   [[nodiscard]] llvm::Type* getType(llvm::LLVMContext& context) const override;
 
   [[nodiscard]] bool isSigned() const noexcept override;
+
+  /*
+    Example: i32
+    |-------------------------|
+    |       signed (i32 type) | <- top
+    |-------------------------|
+  */
+  [[nodiscard]] SignKindStack createSignKindStack() const noexcept override
+  {
+    return createStack(getSignKind());
+  }
 
   [[nodiscard]] std::string getName() const override;
 
@@ -100,11 +161,6 @@ struct PointerType : public Type {
   explicit PointerType(std::shared_ptr<Type> pointee_type) noexcept
     : pointee_type{pointee_type}
   {
-  }
-
-  [[nodiscard]] bool isVoid() const noexcept override
-  {
-    return false;
   }
 
   [[nodiscard]] bool isPointer() const noexcept override
@@ -122,16 +178,31 @@ struct PointerType : public Type {
     return false;
   }
 
-  [[nodiscard]] std::optional<std::shared_ptr<Type>>
-  getPointeeType() const override
+  /*
+    Example: *i32
+    |-------------------------|
+    | unsigned (pointer type) | <- top
+    |       signed (i32 type) |
+    |-------------------------|
+
+    Example: **i32
+    |-------------------------|
+    | unsigned (pointer type) | <- top
+    | unsigned (pointer type) |
+    |       signed (i32 type) |
+    |-------------------------|
+  */
+  [[nodiscard]] SignKindStack createSignKindStack() const noexcept override
   {
-    return pointee_type;
+    auto tmp = pointee_type->createSignKindStack();
+    tmp.push(getSignKind());
+    return tmp;
   }
 
   [[nodiscard]] std::string getName() const override
   {
     // TODO: recursive pointer (like **p)
-    return pointee_type->getName().append(0, '*');
+    return fmt::format("*{}", pointee_type->getName());
   }
 
 private:
@@ -139,21 +210,11 @@ private:
 };
 
 struct ArrayType : public Type {
-  explicit ArrayType(std::shared_ptr<Type> element_type,
-                     const std::uint64_t   array_size) noexcept
+  ArrayType(std::shared_ptr<Type> element_type,
+            const std::uint64_t   array_size) noexcept
     : element_type{element_type}
     , array_size{array_size}
   {
-  }
-
-  [[nodiscard]] bool isVoid() const noexcept override
-  {
-    return false;
-  }
-
-  [[nodiscard]] bool isPointer() const noexcept override
-  {
-    return false;
   }
 
   [[nodiscard]] llvm::Type* getType(llvm::LLVMContext& context) const override
@@ -171,10 +232,25 @@ struct ArrayType : public Type {
     return false;
   }
 
-  [[nodiscard]] std::optional<std::shared_ptr<Type>>
-  getArrayElementType() const override
+  /*
+    Example: u32[]
+    |-------------------------|
+    |   unsigned (array type) | <- top
+    |     unsigned (u32 type) |
+    |-------------------------|
+
+    Example: *i32[]
+    |-------------------------|
+    |   unsigned (array type) | <- top
+    | unsigned (pointer type) |
+    |       signed (i32 type) |
+    |-------------------------|
+  */
+  [[nodiscard]] SignKindStack createSignKindStack() const noexcept override
   {
-    return element_type;
+    auto tmp = element_type->createSignKindStack();
+    tmp.push(getSignKind());
+    return tmp;
   }
 
   [[nodiscard]] std::string getName() const override

@@ -165,7 +165,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
     case ast::Assignment::Kind::div:
       ctx.builder.CreateStore(
-        isEitherSigned(rhs, lhs)
+        isSigned(logicalOrSign(rhs, lhs))
           ? ctx.builder.CreateSDiv(lhs_value, rhs.getValue())
           : ctx.builder.CreateUDiv(lhs_value, rhs.getValue()),
         lhs.getValue());
@@ -173,7 +173,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
     case ast::Assignment::Kind::mod:
       ctx.builder.CreateStore(
-        isEitherSigned(rhs, lhs)
+        isSigned(logicalOrSign(rhs, lhs))
           ? ctx.builder.CreateSRem(lhs_value, rhs.getValue())
           : ctx.builder.CreateURem(lhs_value, rhs.getValue()),
         lhs.getValue());
@@ -451,7 +451,7 @@ private:
     }
 
     return {variable.getAllocaInst(),
-            variable.getIsSignedStack(),
+            variable.getSignInfo(),
             variable.isMutable()};
   }
 
@@ -470,9 +470,9 @@ private:
     }
 
     const auto tmp       = createExpr(ctx, scope, node);
-    auto       tmp_stack = tmp.getIsSignedStack();
+    auto       tmp_stack = tmp.getSignInfo();
+    tmp_stack.push(SignKind::unsigned_); // Pointer type.
 
-    tmp_stack.push(false); // Pointer type.
     return {llvm::getPointerOperand(tmp.getValue()),
             std::move(tmp_stack),
             variable.isMutable()};
@@ -546,25 +546,8 @@ private:
     auto const alloca        = createEntryAlloca(func, name, variable_type);
 
     if (!initializer) {
-      std::stack<bool> tmp;
-
-      if (const auto element_type = type.getArrayElementType()) {
-        // Array types.
-        if (const auto pointee_type = element_type.value()->getPointeeType())
-          tmp.push(pointee_type.value()->isSigned()); // Pointee type.
-
-        tmp.push(element_type.value()->isSigned()); // Element type.
-      }
-
-      if (const auto pointee_type = type.getPointeeType()) {
-        // Pointer types.
-        tmp.push(pointee_type.value()->isSigned()); // Pointee type.
-      }
-
-      tmp.push(type.isSigned());
-
       return {
-        {alloca, std::move(tmp)},
+        {alloca, type.createSignKindStack()},
         is_mutable
       };
     }
@@ -588,19 +571,8 @@ private:
 
       initArray(alloca, initializer_list);
 
-      std::stack<bool> tmp;
-      if (const auto element_type = type.getArrayElementType()) {
-        if (const auto pointee_type = element_type.value()->getPointeeType())
-          tmp.push(pointee_type.value()->isSigned()); // Pointee type.
-
-        tmp.push(element_type.value()->isSigned()); // Element type.
-      }
-      else
-        unreachable();
-      tmp.push(type.isSigned()); // Array type.
-
       return {
-        {alloca, std::move(tmp)},
+        {alloca, type.createSignKindStack()},
         is_mutable
       };
     }
@@ -630,13 +602,8 @@ private:
 
       ctx.builder.CreateStore(init_value.getValue(), alloca);
 
-      std::stack<bool> tmp;
-      if (const auto pointee_type = type.getPointeeType())
-        tmp.push(pointee_type.value()->isSigned());
-      tmp.push(type.isSigned());
-
       return {
-        {alloca, std::move(tmp)},
+        {alloca, type.createSignKindStack()},
         is_mutable
       };
     }
@@ -669,8 +636,8 @@ private:
 
       initArray(array_alloca, initializer_list);
 
-      auto tmp = initializer_list.createFrontSignStack();
-      tmp.push(false); // Array type.
+      auto tmp = initializer_list.createFrontSignKindStack();
+      tmp.push(SignKind::unsigned_); // Array type.
       return {
         {array_alloca, std::move(tmp)},
         is_mutable
@@ -692,7 +659,7 @@ private:
       ctx.builder.CreateStore(init_value.getValue(), alloca);
 
       return {
-        {alloca, init_value.getIsSignedStack()},
+        {alloca, init_value.getSignInfo()},
         is_mutable
       };
     }
