@@ -97,10 +97,9 @@ struct Variable {
 
   [[nodiscard]] llvm::AllocaInst* getAllocaInst() const noexcept
   {
-    if (auto alloca_inst = llvm::dyn_cast<llvm::AllocaInst>(alloca.getValue()))
-      return alloca_inst;
-
-    unreachable();
+    // It has been confirmed that it can be cast to llvm::AllocaInst in the
+    // constructor.
+    return llvm::cast<llvm::AllocaInst>(alloca.getValue());
   }
 
   [[nodiscard]] const SignKindStack& getSignInfo() const noexcept
