@@ -152,7 +152,16 @@ private:
                                                   const std::string& var_name,
                                                   llvm::Type*        type);
 
-// Return true if one of them is signed.
+/*
+  |--------------------------------|
+  |     Left |    Right |   Result |
+  |----------|----------|----------|
+  |   signed |   signed |   signed |
+  |   signed | unsigned |   signed |
+  | unsigned |   signed |   signed |
+  | unsigned | unsigned | unsigned |
+  |--------------------------------|
+*/
 [[nodiscard]] SignKind logicalOrSign(const Value& lhs, const Value& rhs);
 
 [[nodiscard]] Value

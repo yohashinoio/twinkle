@@ -53,14 +53,7 @@ catch (const std::out_of_range&) {
     .CreateAlloca(type, nullptr, var_name);
 }
 
-// |--------------------------------|
-// |     Left |    Right |   Result |
-// |----------|----------|----------|
-// |   signed |   signed |   signed |
-// |   signed | unsigned |   signed |
-// | unsigned |   signed |   signed |
-// | unsigned | unsigned | unsigned |
-// |--------------------------------|
+// A description of this function is provided in the header file.
 [[nodiscard]] SignKind logicalOrSign(const Value& lhs, const Value& rhs)
 {
   return lhs.isSigned() || rhs.isSigned() ? SignKind::signed_

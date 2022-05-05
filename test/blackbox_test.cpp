@@ -119,6 +119,7 @@ int main(const int argc, const char* const* const argv)
     {"subscript_pointer_to_unsigned_array",  41},
     {        "subscript_array_of_pointers",  71},
     { "subscript_pointer_to_signed_array2",  58},
+    {                       "return_array",  71},
   };
 
   std::size_t ok_c{};   // ok count.
@@ -127,7 +128,7 @@ int main(const int argc, const char* const* const argv)
   for (const auto& r : fs::recursive_directory_iterator(argv[1])) {
     const char* c_argv[] = {"test", "--JIT", r.path().c_str()};
 
-    // A little hack to avoid outputting compile errors.
+    // Suppresses compile error output.
     std::cerr.setstate(std::ios::failbit);
 
     const auto result

@@ -1,0 +1,16 @@
+func f() -> i32[6]
+{
+  let a = {48, 10, 4, 8, 1, 0};
+  return a;
+}
+
+func main() -> i32
+{
+  let a = f();
+
+  let mut res: i32 = 0;
+  for (let mut i = 0; i < sizeof a / sizeof a[0]; ++i)
+    res += a[i];
+
+  return res;
+}

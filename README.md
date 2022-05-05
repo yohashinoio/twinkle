@@ -51,19 +51,19 @@ $ mkdir build && cd $_
 Build and install.
 ```bash
 $ cmake ..
-$ cmake --build . --j
+$ cmake --build . -j
 $ sudo cmake --install .
 ```
 If you want to specify where to install.
 ```bash
 $ cmake .. -DCMAKE_INSTALL_PREFIX="path/to/install"
-$ cmake --build . --j
+$ cmake --build . -j
 $ cmake --install .
 ```
 If you want to specify the path to llvm-config.
 ```bash
 $ cmake .. -DLLVM_CONFIG_PATH="path/to/llvm-config"
-$ cmake --build . --j
+$ cmake --build . -j
 $ sudo cmake --install .
 ```
 
@@ -71,7 +71,7 @@ $ sudo cmake --install .
 Passing -DENABLE_TEST=1 to cmake and building will create an executable file for testing.
 ```bash
 $ cmake .. -DENABLE_TEST=1
-$ cmake --build . --j
+$ cmake --build . -j
 ```
 Run the test with CTest.
 ```bash
