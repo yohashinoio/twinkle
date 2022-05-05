@@ -97,8 +97,6 @@ struct Variable {
 
   [[nodiscard]] llvm::AllocaInst* getAllocaInst() const noexcept
   {
-    // It has been confirmed that it can be cast to llvm::AllocaInst in the
-    // constructor.
     return llvm::cast<llvm::AllocaInst>(alloca.getValue());
   }
 
