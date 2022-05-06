@@ -482,31 +482,31 @@ private:
     const ast::Expr&                                  node,
     const boost::iterator_range<maple::InputIterator> pos) const
   {
-    std::optional<Value> value;
+    Value value;
 
     if (node.type() == typeid(ast::Identifier))
-      *value = createAssignableValue(boost::get<ast::Identifier>(node), pos);
+      value = createAssignableValue(boost::get<ast::Identifier>(node), pos);
     else if (node.type() == typeid(ast::UnaryOp)
              && boost::get<ast::UnaryOp>(node).kind()
                   == ast::UnaryOp::Kind::indirection) {
       const auto& unary_op_node = boost::get<ast::UnaryOp>(node);
 
-      *value = createExpr(ctx, scope, unary_op_node.rhs);
+      value = createExpr(ctx, scope, unary_op_node.rhs);
     }
     else if (node.type() == typeid(ast::Subscript))
-      *value = createAssignableValue(boost::get<ast::Subscript>(node), pos);
+      value = createAssignableValue(boost::get<ast::Subscript>(node), pos);
     else
-      *value = createExpr(ctx, scope, node);
+      value = createExpr(ctx, scope, node);
 
-    if (!*value)
+    if (!value)
       throw CodegenError{ctx.formatError(pos, "failed to generate expression")};
 
-    if (!value->isMutable() || !value->isPointer()) {
+    if (!value.isMutable() || !value.isPointer()) {
       throw CodegenError{
         ctx.formatError(pos, "left-hand side value requires assignable")};
     }
 
-    return *value;
+    return value;
   }
 
   [[nodiscard]] InitializerList

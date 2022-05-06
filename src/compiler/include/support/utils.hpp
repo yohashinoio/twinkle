@@ -42,11 +42,11 @@ constexpr unsigned int MAPLE_VER = 100000;
   | 4 |
   |---|
 */
-template <typename F, typename... T>
-[[nodiscard]] auto createStack(F&& first, T&&... lst)
+template <typename T, typename... Ts>
+[[nodiscard]] auto createStack(T&& arg, Ts&&... args)
 {
   return std::stack{
-    std::deque{std::forward<F>(first), std::forward<T>(lst)...}
+    std::deque{std::forward<T>(arg), std::forward<Ts>(args)...}
   };
 }
 
