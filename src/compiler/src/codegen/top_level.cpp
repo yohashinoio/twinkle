@@ -161,6 +161,7 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDef& node) const
 
   // Used to combine returns into one.
   auto const end_bb = llvm::BasicBlock::Create(ctx.context);
+  // Return variable.
   auto const retvar
     = node.decl.return_type->isVoid()
         ? nullptr

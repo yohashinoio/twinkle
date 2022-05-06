@@ -1,0 +1,13 @@
+func is_4810(n: i32) -> bool
+{
+  return n == 4810;
+}
+
+func main() -> i32
+{
+  let n = 4810;
+  if (n == 4810 || n / 2 == 4810) {
+    if (true && is_4810(4810))
+      return 58;
+  }
+}

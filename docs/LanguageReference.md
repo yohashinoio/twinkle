@@ -93,7 +93,9 @@ comment.
 ### Logical Operators
 | Operator name | Syntax |
 | ------------- | ------ |
-| Logical not   | !a     |
+| Logical NOT   | !a     |
+| Logical AND   | a && b |
+| Logical OR    | a || b |
 
 ### Assignment Operators (Statement)
 | Operator name             | Syntax |

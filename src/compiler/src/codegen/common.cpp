@@ -196,6 +196,20 @@ createGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
           createStack(value.getSignKind())};
 }
 
+[[nodiscard]] Value
+createLogicalAnd(CGContext& ctx, const Value& lhs, const Value& rhs)
+{
+  return {ctx.builder.CreateLogicalAnd(lhs.getValue(), rhs.getValue()),
+          createStack(SignKind::unsigned_)};
+}
+
+[[nodiscard]] Value
+createLogicalOr(CGContext& ctx, const Value& lhs, const Value& rhs)
+{
+  return {ctx.builder.CreateLogicalOr(lhs.getValue(), rhs.getValue()),
+          createStack(SignKind::unsigned_)};
+}
+
 // The code is based on https://gist.github.com/quantumsheep.
 // Thank you!
 [[nodiscard]] bool strictEquals(const llvm::Type* const left,
@@ -288,7 +302,10 @@ createGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
                         right_sequential->getElementType());
   }
 
-    // TODO: add VectorType case
+  // VectorType has not yet been used and is not yet implemented.
+  case llvm::Type::FixedVectorTyID:
+  case llvm::Type::ScalableVectorTyID:
+    unreachable();
 
   default:
     return false;

@@ -120,6 +120,8 @@ int main(const int argc, const char* const* const argv)
     {        "subscript_array_of_pointers",  71},
     { "subscript_pointer_to_signed_array2",  58},
     {                       "return_array",  71},
+    {                        "logical_and",  41},
+    {                         "logical_or",  58},
   };
 
   std::size_t ok_c{};   // ok count.

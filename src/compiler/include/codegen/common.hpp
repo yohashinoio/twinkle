@@ -100,7 +100,7 @@ struct Variable {
     return llvm::cast<llvm::AllocaInst>(alloca.getValue());
   }
 
-  [[nodiscard]] const SignKindStack& getSignInfo() const noexcept
+  [[nodiscard]] decltype(auto) getSignInfo() const noexcept
   {
     return alloca.getSignInfo();
   }
@@ -196,6 +196,12 @@ createLessOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs);
 
 [[nodiscard]] Value
 createGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs);
+
+[[nodiscard]] Value
+createLogicalAnd(CGContext& ctx, const Value& lhs, const Value& rhs);
+
+[[nodiscard]] Value
+createLogicalOr(CGContext& ctx, const Value& lhs, const Value& rhs);
 
 [[nodiscard]] Value createLogicalNot(CGContext& ctx, const Value& value);
 

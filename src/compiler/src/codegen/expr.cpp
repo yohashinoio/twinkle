@@ -243,6 +243,12 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     case ast::BinOp::Kind::ge:
       return createGreaterOrEqual(ctx, lhs, rhs);
 
+    case ast::BinOp::Kind::logical_and:
+      return createLogicalAnd(ctx, lhs, rhs);
+
+    case ast::BinOp::Kind::logical_or:
+      return createLogicalOr(ctx, lhs, rhs);
+
     case ast::BinOp::Kind::unknown:
       throw CodegenError{ctx.formatError(
         ctx.positions.position_of(node),

@@ -299,6 +299,12 @@ const auto multitive_operator
 = (string(U"*") - string(U"*=")) | (string(U"/") - string(U"/="))
   | (string(U"%") - string(U"%="));
 
+// logical not is excluded because it is a unary operator.
+const auto binary_logical_operator
+  = x3::rule<struct BinaryLogicalOperatorTag,
+             std::u32string>{"binary logical operator"}
+= string(U"&&") | string(U"||");
+
 const auto unary_operator
   = x3::rule<struct UnaryOperatorTag, std::u32string>{"unary operator"}
 = string(U"+") | string(U"-") | string(U"!") | string(U"*") | string(U"&")
@@ -308,7 +314,9 @@ const auto unary_operator
 // Expression rules
 //===----------------------------------------------------------------------===//
 
-const x3::rule<struct ExprTag, ast::Expr>     expr{"expression"};
+const x3::rule<struct ExprTag, ast::Expr>          expr{"expression"};
+const x3::rule<struct BinaryLogicalTag, ast::Expr> binary_logical{
+  "binary logical operation"};
 const x3::rule<struct EqualTag, ast::Expr>    equal{"equality operation"};
 const x3::rule<struct RelationTag, ast::Expr> relation{"relational operation"};
 const x3::rule<struct AddTag, ast::Expr>      add{"addition operation"};
@@ -333,7 +341,11 @@ const auto subscript_def = identifier >> lit(U"[") > expr > lit(U"]");
 const auto arg_list_def      = -(expr % lit(U","));
 const auto function_call_def = identifier >> lit(U"(") > arg_list > lit(U")");
 
-const auto expr_def = equal;
+const auto expr_def = binary_logical;
+
+const auto binary_logical_def
+  = equal[action::assignAttrToVal]
+    >> *(binary_logical_operator > equal)[action::assignBinOpToVal];
 
 const auto equal_def
   = relation[action::assignAttrToVal]
@@ -362,6 +374,7 @@ const auto primary_def
     | function_call | subscript | identifier | (lit(U"(") > expr > lit(U")"));
 
 BOOST_SPIRIT_DEFINE(expr)
+BOOST_SPIRIT_DEFINE(binary_logical)
 BOOST_SPIRIT_DEFINE(equal)
 BOOST_SPIRIT_DEFINE(relation)
 BOOST_SPIRIT_DEFINE(add)
@@ -529,17 +542,21 @@ const auto program = x3::rule<struct ProgramTag, ast::Program>{"program"}
 // Common tags
 //===----------------------------------------------------------------------===//
 
-struct VariableIdentTag : AnnotatePosition {};
+struct VariableIdentTag : AnnotatePosition {
+};
 
-struct IdentifierTag : AnnotatePosition {};
+struct IdentifierTag : AnnotatePosition {
+};
 
 struct StringLiteralTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct CharLiteralTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 //===----------------------------------------------------------------------===//
 // Expression tags
@@ -547,53 +564,71 @@ struct CharLiteralTag
 
 struct ExprTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
+
+struct BinaryLogical
+  : ErrorHandle
+  , AnnotatePosition {
+};
 
 struct EqualTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct RelationTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct AddTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct MulTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct ConversionTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct UnaryTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct ConversionInternalTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct UnaryInternalTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct SubscriptTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
-struct ArgListTag : ErrorHandle {};
+struct ArgListTag : ErrorHandle {
+};
 
 struct FunctionCallTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct PrimaryTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 //===----------------------------------------------------------------------===//
 // Statement tags
@@ -601,63 +636,78 @@ struct PrimaryTag
 
 struct StmtTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct InitListTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct InitializerTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct ExprStmtTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct VariableDefTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct AssignTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct PrefixIncOrDec
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct PrefixDecrement
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct ReturnTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct IfTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct LoopTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct WhileTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct ForTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct BreakTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct ContinueTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 //===----------------------------------------------------------------------===//
 // Top level statement tags
@@ -665,27 +715,33 @@ struct ContinueTag
 
 struct ParameterTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct ParameterListTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct FunctionProtoTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct FunctionDeclTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct FunctionDefTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 struct TopLevelTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 //===----------------------------------------------------------------------===//
 // Program tag
@@ -693,7 +749,8 @@ struct TopLevelTag
 
 struct ProgramTag
   : ErrorHandle
-  , AnnotatePosition {};
+  , AnnotatePosition {
+};
 
 } // namespace syntax
 
