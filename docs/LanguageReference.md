@@ -48,6 +48,7 @@
   - [Break Statement](#break-statement)
   - [Continue Statement](#continue-statement)
   - [Return Statement](#return-statement)
+  - [Petrifaction statement](#petrifaction-statement)
 
 ## Notes
 Since the author only understands Japanese, this document was created with translation at DeepL.
@@ -121,38 +122,9 @@ In this language, **an assignment is a statement**, so you cannot use a syntax l
 ### Other Operators
 | Operator name | Syntax    |
 | ------------- | --------- |
-| Petrifaction  | petrify a |
 | Function call | a(a1, a2) |
 | Conversion    | a as type |
 | Sizeof        | sizeof a  |
-
-The petrifaction operator can change variables to constants.<br>
-This is one of the main features of the language.<br>
-The operator is useful in situations where you do not want to create mutable variables, but think that the ternary operator is too complicated.<br>
-For example.
-```rust
-func some_condition() -> bool
-{
-  ...
-}
-
-func main() -> i32
-{
-  // Example of using the ternary operator.
-  // let a = some_condition() ? 123 : 456;
-
-  // Example of using the petrifaction operator.
-  let mut a = 0;
-  if (some_condition())
-    a = 123;
-  else
-    a = 456;
-  petrify a; // From this, variable 'a' changes to constant.
-
-  a = 4810; // Error!
-}
-```
-In this case, using the ternary operator is a simpler and safer program, but in more complex situations you may want to use this operator.
 
 This section on Operators is based on "Operators in C and C++" from wikipedia.<br/>
 Thank you!
@@ -600,5 +572,27 @@ func main() -> i32
 func main() -> i32
 {
   return 48 + 10;
+}
+```
+
+### Petrifaction statement
+This is one of the main features of the language.<br>
+The petrifaction statement can change variable to a constant.<br>
+This operator is useful in complex situations where it is difficult to use the ternary operator.
+```rust
+func main() -> i32
+{
+  let mut a = 0;
+
+  if (some_condition1())
+    a = 1;
+  else if (some_condition2())
+    a = 2;
+  else
+    a = 3;
+
+  petrify a; // From this, variable 'a' changes to constant.
+
+  a = 4810; // Error!
 }
 ```
