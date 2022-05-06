@@ -471,7 +471,7 @@ private:
 
     const auto tmp       = createExpr(ctx, scope, node);
     auto       tmp_stack = tmp.getSignInfo();
-    tmp_stack.push(SignKind::unsigned_); // Pointer type.
+    tmp_stack.emplace(SignKind::unsigned_); // Pointer type.
 
     return {llvm::getPointerOperand(tmp.getValue()),
             std::move(tmp_stack),
@@ -515,7 +515,7 @@ private:
     InitializerList result;
 
     for (const auto& initializer : initializer_list.inits)
-      result.push_back(createExpr(ctx, scope, initializer));
+      result.emplace_back(createExpr(ctx, scope, initializer));
 
     return result;
   }
@@ -637,7 +637,7 @@ private:
       initArray(array_alloca, initializer_list);
 
       auto tmp = initializer_list.createFrontSignKindStack();
-      tmp.push(SignKind::unsigned_); // Array type.
+      tmp.emplace(SignKind::unsigned_); // Array type.
       return {
         {array_alloca, std::move(tmp)},
         is_mutable

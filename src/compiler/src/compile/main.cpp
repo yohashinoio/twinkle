@@ -82,7 +82,7 @@ try {
 
     parse::Parser parser{std::move(input), std::move(file_path)};
 
-    asts.push_back(parser.getResult());
+    asts.emplace_back(parser.getResult());
   }
 
   codegen::CodeGenerator generator{*argv,

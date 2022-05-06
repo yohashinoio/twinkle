@@ -25,9 +25,10 @@ struct InitializerList {
     return initializer_list.at(idx);
   }
 
-  void push_back(Value&& value)
+  template <typename... Args>
+  void emplace_back(Args&&... args)
   {
-    initializer_list.push_back(value);
+    initializer_list.emplace_back(std::forward<Args>(args)...);
   }
 
   [[nodiscard]] std::size_t size() const noexcept

@@ -310,7 +310,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     std::vector<llvm::Value*> args_value;
     for (std::size_t i = 0, size = node.args.size(); i != size; ++i) {
-      args_value.push_back(
+      args_value.emplace_back(
         boost::apply_visitor(*this, node.args[i]).getValue());
 
       if (!args_value.back()) {
@@ -376,7 +376,7 @@ private:
   [[nodiscard]] Value createAddressOf(const Value& rhs) const
   {
     auto tmp = rhs.getSignInfo();
-    tmp.push(SignKind::unsigned_); // Pointer type.
+    tmp.emplace(SignKind::unsigned_); // Pointer type.
 
     return {llvm::getPointerOperand(rhs.getValue()), std::move(tmp)};
   }

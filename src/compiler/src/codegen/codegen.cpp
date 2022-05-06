@@ -108,7 +108,7 @@ CodeGenerator::CodeGenerator(const std::string_view               argv_front,
 
     codegen(it->ast, ctx, fp_manager);
 
-    results.push_back({std::move(ctx.module), std::move(ctx.file)});
+    results.emplace_back(std::move(ctx.module), std::move(ctx.file));
   }
 }
 

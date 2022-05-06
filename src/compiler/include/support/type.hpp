@@ -19,7 +19,8 @@
 namespace maple
 {
 
-enum class SignKind : unsigned char {
+enum class SignKind : unsigned char
+{
   unsigned_,
   signed_,
 };
@@ -73,7 +74,8 @@ enum class SignKind : unsigned char {
 */
 using SignKindStack = std::stack<SignKind>;
 
-enum class BuiltinTypeKind : unsigned char {
+enum class BuiltinTypeKind : unsigned char
+{
   void_,
   i8,
   i16,
@@ -195,7 +197,7 @@ struct PointerType : public Type {
   [[nodiscard]] SignKindStack createSignKindStack() const noexcept override
   {
     auto tmp = pointee_type->createSignKindStack();
-    tmp.push(getSignKind());
+    tmp.emplace(getSignKind());
     return tmp;
   }
 
@@ -249,7 +251,7 @@ struct ArrayType : public Type {
   [[nodiscard]] SignKindStack createSignKindStack() const noexcept override
   {
     auto tmp = element_type->createSignKindStack();
-    tmp.push(getSignKind());
+    tmp.emplace(getSignKind());
     return tmp;
   }
 
@@ -265,12 +267,14 @@ private:
 };
 
 // Variable qualifier.
-enum class VariableQual : unsigned char {
+enum class VariableQual : unsigned char
+{
   no_qualifier,
   mutable_,
 };
 
-enum class Linkage : unsigned char {
+enum class Linkage : unsigned char
+{
   no_linkage,
   internal,
 };
