@@ -97,7 +97,12 @@ struct Type {
     return false;
   }
 
-  [[nodiscard]] virtual bool isPointer() const noexcept
+  [[nodiscard]] virtual bool isArrayTy() const noexcept
+  {
+    return false;
+  }
+
+  [[nodiscard]] virtual bool isPointerTy() const noexcept
   {
     return false;
   }
@@ -144,9 +149,9 @@ struct BuiltinType : public Type {
 
   /*
     Example: i32
-    |-------------------------|
-    |       signed (i32 type) | <- top
-    |-------------------------|
+    |-------------------|
+    | signed (i32 type) | <- top
+    |-------------------|
   */
   [[nodiscard]] SignKindStack createSignKindStack() const noexcept override
   {
@@ -165,7 +170,7 @@ struct PointerType : public Type {
   {
   }
 
-  [[nodiscard]] bool isPointer() const noexcept override
+  [[nodiscard]] bool isPointerTy() const noexcept override
   {
     return true;
   }
@@ -222,6 +227,11 @@ struct ArrayType : public Type {
   [[nodiscard]] llvm::Type* getType(llvm::LLVMContext& context) const override
   {
     return llvm::ArrayType::get(element_type->getType(context), array_size);
+  }
+
+  [[nodiscard]] bool isArrayTy() const noexcept override
+  {
+    return true;
   }
 
   [[nodiscard]] std::uint64_t getArraySize() const noexcept override

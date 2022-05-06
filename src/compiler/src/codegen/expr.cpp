@@ -362,7 +362,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
                                         node.as->isSigned()),
               createStack(node.as->getSignKind())};
     }
-    else if (node.as->isPointer()) {
+    else if (node.as->isPointerTy()) {
       // FIXME: I would like to prohibit this in the regular cast because it is
       // a dangerous cast.
       return {ctx.builder.CreatePointerCast(lhs.getValue(),

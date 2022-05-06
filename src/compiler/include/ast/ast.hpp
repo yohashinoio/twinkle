@@ -358,10 +358,10 @@ struct Parameter : x3::position_tagged {
   std::shared_ptr<Type>       type;
   bool                        is_vararg;
 
-  Parameter(decltype(qualifier)&&     qualifier,
-            decltype(name)&&          name,
-            decltype(type)            type,
-            const decltype(is_vararg) is_vararg)
+  Parameter(std::optional<VariableQual>&& qualifier,
+            Identifier&&                  name,
+            std::shared_ptr<Type>         type,
+            const bool                    is_vararg)
     : qualifier{qualifier}
     , name{name}
     , type{type}
