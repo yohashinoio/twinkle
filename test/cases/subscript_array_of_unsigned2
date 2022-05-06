@@ -1,0 +1,7 @@
+func main() -> i32
+{
+  let a = {-1 as u32};
+  if (a[0] < (4810 as u32))
+    return 58;
+  return 41;
+}
