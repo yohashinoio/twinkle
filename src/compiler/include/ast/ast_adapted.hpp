@@ -109,6 +109,11 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
+  maple::ast::Petrify,
+  (maple::ast::Identifier, ident)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::If,
   (maple::ast::Expr, condition)
   (maple::ast::Stmt, then_statement)
@@ -144,7 +149,7 @@ BOOST_FUSION_ADAPT_STRUCT(
   (std::optional<maple::VariableQual>, qualifier)
   (maple::ast::Identifier, name)
   (std::shared_ptr<maple::Type>, type)
-  (bool, is_vararg)
+  (bool, is_variadic_args)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

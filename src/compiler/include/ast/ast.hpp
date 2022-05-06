@@ -21,8 +21,7 @@ namespace maple::ast
 
 namespace x3 = boost::spirit::x3;
 
-struct Nil {
-};
+struct Nil {};
 
 //===----------------------------------------------------------------------===//
 // Expression AST
@@ -97,8 +96,7 @@ struct BinOp : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char
-  {
+  enum class Kind : unsigned char {
     unknown,
     add,         // Addition
     sub,         // Subtraciton
@@ -157,8 +155,7 @@ struct UnaryOp : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char
-  {
+  enum class Kind : unsigned char {
     unknown,
     plus,        // Unary plus
     minus,       // Unary minus
@@ -235,8 +232,7 @@ struct Assignment : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char
-  {
+  enum class Kind : unsigned char {
     unknown,
     direct, // Direct assignment
     add,    // Addition assignment
@@ -274,8 +270,7 @@ struct PrefixIncAndDec : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char
-  {
+  enum class Kind : unsigned char {
     unknown,
     increment,
     decrement,
@@ -300,6 +295,10 @@ struct Continue : x3::position_tagged {
   std::u32string tmp;
 };
 
+struct Petrify : x3::position_tagged {
+  Identifier ident;
+};
+
 struct If;
 struct Loop;
 struct While;
@@ -315,6 +314,7 @@ using Stmt = boost::make_recursive_variant<
   PrefixIncAndDec,
   Break,
   Continue,
+  Petrify,
   boost::recursive_wrapper<If>,
   boost::recursive_wrapper<Loop>,
   boost::recursive_wrapper<While>,
@@ -356,16 +356,16 @@ struct Parameter : x3::position_tagged {
   std::optional<VariableQual> qualifier;
   Identifier                  name;
   std::shared_ptr<Type>       type;
-  bool                        is_vararg;
+  bool                        is_variadic_args;
 
   Parameter(std::optional<VariableQual>&& qualifier,
             Identifier&&                  name,
             std::shared_ptr<Type>         type,
-            const bool                    is_vararg)
+            const bool                    is_variadic_args)
     : qualifier{qualifier}
     , name{name}
     , type{type}
-    , is_vararg{is_vararg}
+    , is_variadic_args{is_variadic_args}
   {
   }
 

@@ -121,9 +121,38 @@ In this language, **an assignment is a statement**, so you cannot use a syntax l
 ### Other Operators
 | Operator name | Syntax    |
 | ------------- | --------- |
+| Petrifaction  | petrify a |
 | Function call | a(a1, a2) |
 | Conversion    | a as type |
 | Sizeof        | sizeof a  |
+
+The petrifaction operator can change variables to constants.
+This is one of the main features of the language.
+This operator is useful in situations where you do not want to create mutable variables, but think that the ternary operator is too complicated.
+For example.
+```rust
+func some_condition() -> bool
+{
+  ...
+}
+
+func main() -> i32
+{
+  // Example of using the ternary operator.
+  // let a = some_condition() ? 123 : 456;
+
+  // Example of using the petrifaction operator.
+  let mut a = 0;
+  if (some_condition())
+    a = 123;
+  else
+    a = 456;
+  petrify a; // From this, variable 'a' changes to constant.
+
+  a = 4810; // Error!
+}
+```
+In this case, using the ternary operator is a simpler and safer program, but in more complex situations you may want to use this operator.
 
 This section on Operators is based on "Operators in C and C++" from wikipedia.<br/>
 Thank you!

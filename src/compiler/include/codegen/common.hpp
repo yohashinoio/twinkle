@@ -29,7 +29,7 @@ struct Value {
         SignKindStack&& sign_info_stack,
         const bool      is_mutable = false) noexcept;
 
-  Value() noexcept = default;
+  Value() = default;
 
   [[nodiscard]] llvm::Value* getValue() const noexcept
   {
@@ -110,10 +110,15 @@ struct Variable {
     return is_mutable;
   }
 
+  // If already constant, do nothing.
+  void changeToConstant() noexcept
+  {
+    is_mutable = false;
+  }
+
 private:
   Value alloca;
-
-  bool is_mutable;
+  bool  is_mutable;
 };
 
 struct SymbolTable {
@@ -121,15 +126,22 @@ struct SymbolTable {
   operator[](const std::string& name) const noexcept;
 
   // Regist stands for register.
-  void regist(const std::string& name, const Variable& v)
+  void regist(const std::string& name, Variable&& v)
   {
-    named_values.insert({name, v});
+    named_values.emplace(name, std::move(v));
   }
 
   // Returns true if the variable is already registered, false otherwise.
   [[nodiscard]] bool exists(const std::string& name) const
   {
     return named_values.contains(name);
+  }
+
+  void overwrite(const std::string& name, Variable&& v)
+  {
+    assert(exists(name));
+
+    named_values.insert_or_assign(name, std::move(v));
   }
 
   [[nodiscard]] auto begin() const noexcept

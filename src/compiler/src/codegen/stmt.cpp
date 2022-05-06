@@ -436,6 +436,22 @@ struct StmtVisitor : public boost::static_visitor<void> {
       ctx.builder.CreateBr(continue_bb);
   }
 
+  // Change variables to constants.
+  void operator()(const ast::Petrify& node) const
+  {
+    auto variable = findVariable(ctx, node.ident, scope);
+
+    if (!variable.isMutable()) {
+      throw CodegenError{ctx.formatError(
+        ctx.positions.position_of(node),
+        fmt::format("variable '{}' is already constant", node.ident.utf8()))};
+    }
+
+    variable.changeToConstant();
+
+    scope.overwrite(node.ident.utf8(), std::move(variable));
+  }
+
 private:
   [[nodiscard]] Value createAssignableValue(
     const ast::Identifier&                            node,
@@ -444,7 +460,7 @@ private:
     const auto variable = findVariable(ctx, node, scope);
 
     if (!variable.isMutable()) {
-      // Assignment of read-only variable.
+      // Assignment to read-only variable.
       throw CodegenError{ctx.formatError(
         pos,
         fmt::format("assignment of read-only variable '{}'", node.utf8()))};

@@ -1,6 +1,6 @@
 func is_4810(n: i32) -> bool
 {
-  return n == 4810;
+  return n == 4810 && true;
 }
 
 func main() -> i32

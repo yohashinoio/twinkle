@@ -49,27 +49,27 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDecl& node) const
 {
   auto&& ps = *node.params;
 
-  if (ps.size() && ps.at(0).is_vararg) {
+  if (ps.size() && ps.at(0).is_variadic_args) {
     throw CodegenError{
       ctx.formatError(ctx.positions.position_of(node),
                       "requires a named argument before '...'")};
   }
 
-  bool is_vararg = false;
+  bool is_variadic_args = false;
   for (const auto& r : ps) {
-    if (r.is_vararg) {
-      if (is_vararg) {
+    if (r.is_variadic_args) {
+      if (is_variadic_args) {
         throw CodegenError{
           ctx.formatError(ctx.positions.position_of(node),
                           "cannot have multiple variable arguments")};
       }
       else
-        is_vararg = true;
+        is_variadic_args = true;
     }
   }
 
   const auto named_params_length
-    = is_vararg ? node.params.length() - 1 : node.params.length();
+    = is_variadic_args ? node.params.length() - 1 : node.params.length();
   std::vector<llvm::Type*> param_types(named_params_length);
 
   for (std::size_t i = 0; i != named_params_length; ++i) {
@@ -80,7 +80,7 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDecl& node) const
   auto const func_type
     = llvm::FunctionType::get(node.return_type->getType(ctx.context),
                               param_types,
-                              is_vararg);
+                              is_variadic_args);
 
   const auto name = node.name.utf8();
 
