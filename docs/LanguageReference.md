@@ -48,7 +48,7 @@
   - [Break Statement](#break-statement)
   - [Continue Statement](#continue-statement)
   - [Return Statement](#return-statement)
-  - [Petrifaction statement](#petrifaction-statement)
+  - [Petrifaction Statement](#petrifaction-statement)
 
 ## Notes
 Since the author only understands Japanese, this document was created with translation at DeepL.
@@ -575,10 +575,9 @@ func main() -> i32
 }
 ```
 
-### Petrifaction statement
-This is one of the main features of the language.<br>
-The petrifaction statement can change variable to a constant.<br>
-This operator is useful in complex situations where it is difficult to use the ternary operator.
+### Petrifaction Statement
+The petrification statement is one of the main features of the language and act to change variables into constants.<br>
+It is useful in complex situations where it is difficult to use the ternary operator.
 ```rust
 func main() -> i32
 {
