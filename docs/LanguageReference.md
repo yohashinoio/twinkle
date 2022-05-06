@@ -126,9 +126,9 @@ In this language, **an assignment is a statement**, so you cannot use a syntax l
 | Conversion    | a as type |
 | Sizeof        | sizeof a  |
 
-The petrifaction operator can change variables to constants.
-This is one of the main features of the language.
-This operator is useful in situations where you do not want to create mutable variables, but think that the ternary operator is too complicated.
+The petrifaction operator can change variables to constants.<br>
+This is one of the main features of the language.<br>
+The operator is useful in situations where you do not want to create mutable variables, but think that the ternary operator is too complicated.<br>
 For example.
 ```rust
 func some_condition() -> bool
