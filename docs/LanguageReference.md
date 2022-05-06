@@ -91,11 +91,11 @@ comment.
 | Less than or equal to    | a <= b  |
 
 ### Logical Operators
-| Operator name | Syntax |
-| ------------- | ------ |
-| Logical NOT   | !a     |
-| Logical AND   | a && b |
-| Logical OR    | a || b |
+| Operator name | Syntax   |
+| ------------- | -------- |
+| Logical NOT   | !a       |
+| Logical AND   | a && b   |
+| Logical OR    | a \|\| b |
 
 ### Assignment Operators (Statement)
 | Operator name             | Syntax |
