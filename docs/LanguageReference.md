@@ -576,7 +576,7 @@ func main() -> i32
 ```
 
 ### Petrifaction Statement
-The petrification statement is one of the main features of the language and act to change variables into constants.<br>
+The petrifaction statement is one of the main features of the language and act to change variables into constants.<br>
 It is useful in complex situations where it is difficult to use the ternary operator.
 ```rust
 func main() -> i32

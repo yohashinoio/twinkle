@@ -11,21 +11,23 @@
 namespace maple::codegen
 {
 
-[[nodiscard]] Variable findVariable(CGContext&             ctx,
-                                    const ast::Identifier& node,
-                                    const SymbolTable&     scope)
+//===----------------------------------------------------------------------===//
+// Expression visitor
+//===----------------------------------------------------------------------===//
+
+// Be careful about the lifetime of the return value references.
+[[nodiscard]] Variable&
+findVariable(CGContext& ctx, const ast::Identifier& node, SymbolTable& scope)
 {
   const auto ident = node.utf8();
 
-  const auto variable = scope[ident];
-
-  if (!variable) {
+  if (!scope.exists(ident)) {
     throw CodegenError{
       ctx.formatError(ctx.positions.position_of(node),
                       fmt::format("unknown variable '{}' referenced", ident))};
   }
 
-  return *variable;
+  return scope[ident];
 }
 
 // This function changes the arguments.
@@ -39,12 +41,12 @@ static void integerLargerBitsCast(CGContext& ctx, Value& lhs, Value& rhs)
 
     const auto target = ctx.builder.getIntNTy(larger_bitwidth);
 
-    const auto target_is_lhs = lhs_bitwidth == larger_bitwidth;
+    const auto is_target_lhs = lhs_bitwidth == larger_bitwidth;
 
     const auto target_sign_kind
-      = target_is_lhs ? lhs.getSignKind() : rhs.getSignKind();
+      = is_target_lhs ? lhs.getSignKind() : rhs.getSignKind();
 
-    if (target_is_lhs) {
+    if (is_target_lhs) {
       rhs = {ctx.builder.CreateIntCast(rhs.getValue(),
                                        target,
                                        isSigned(target_sign_kind)),
@@ -129,7 +131,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   [[nodiscard]] Value operator()(const ast::Identifier& node) const
   {
     // TODO: support function identifier
-    const auto variable = findVariable(ctx, node, scope);
+    const auto& variable = findVariable(ctx, node, scope);
 
     return {ctx.builder.CreateLoad(variable.getAllocaInst()->getAllocatedType(),
                                    variable.getAllocaInst()),

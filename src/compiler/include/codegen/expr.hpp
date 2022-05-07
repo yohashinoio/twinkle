@@ -19,10 +19,10 @@
 namespace maple::codegen
 {
 
-// Throws exception if not found.
-[[nodiscard]] Variable findVariable(CGContext&             ctx,
-                                    const ast::Identifier& node,
-                                    const SymbolTable&     scope);
+// Be careful about the lifetime of the return value references.
+// Lifetime depends on the argument 3!
+[[nodiscard]] Variable&
+findVariable(CGContext& ctx, const ast::Identifier& node, SymbolTable& scope);
 
 [[nodiscard]] Value
 createExpr(CGContext& ctx, SymbolTable& scope, const ast::Expr& expr);

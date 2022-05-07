@@ -122,8 +122,12 @@ private:
 };
 
 struct SymbolTable {
-  [[nodiscard]] std::optional<Variable>
-  operator[](const std::string& name) const noexcept;
+  // If the variable does not exist, an out_of_range exception is thrown.
+  [[nodiscard]] Variable& operator[](const std::string& name) noexcept
+  {
+    assert(exists(name));
+    return named_values.at(name);
+  }
 
   // Regist stands for register.
   void regist(const std::string& name, Variable&& v)
@@ -135,13 +139,6 @@ struct SymbolTable {
   [[nodiscard]] bool exists(const std::string& name) const
   {
     return named_values.contains(name);
-  }
-
-  void overwrite(const std::string& name, Variable&& v)
-  {
-    assert(exists(name));
-
-    named_values.insert_or_assign(name, std::move(v));
   }
 
   [[nodiscard]] auto begin() const noexcept

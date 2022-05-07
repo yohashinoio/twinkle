@@ -439,7 +439,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
   // Change variables to constants.
   void operator()(const ast::Petrify& node) const
   {
-    auto variable = findVariable(ctx, node.ident, scope);
+    auto& variable = findVariable(ctx, node.ident, scope);
 
     if (!variable.isMutable()) {
       throw CodegenError{ctx.formatError(
@@ -448,8 +448,6 @@ struct StmtVisitor : public boost::static_visitor<void> {
     }
 
     variable.changeToConstant();
-
-    scope.overwrite(node.ident.utf8(), std::move(variable));
   }
 
 private:
@@ -457,7 +455,7 @@ private:
     const ast::Identifier&                            node,
     const boost::iterator_range<maple::InputIterator> pos) const
   {
-    const auto variable = findVariable(ctx, node, scope);
+    const auto& variable = findVariable(ctx, node, scope);
 
     if (!variable.isMutable()) {
       // Assignment to read-only variable.
@@ -475,7 +473,7 @@ private:
     const ast::Subscript&                             node,
     const boost::iterator_range<maple::InputIterator> pos) const
   {
-    const auto variable = findVariable(ctx, node.ident, scope);
+    const auto& variable = findVariable(ctx, node.ident, scope);
 
     if (!variable.isMutable()) {
       // Assignment of read-only variable.

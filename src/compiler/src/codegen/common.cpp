@@ -35,15 +35,6 @@ Variable::Variable(const Value& alloca, const bool is_mutable) noexcept
   assert(llvm::dyn_cast<llvm::AllocaInst>(alloca.getValue()));
 }
 
-[[nodiscard]] std::optional<Variable>
-SymbolTable::operator[](const std::string& name) const noexcept
-try {
-  return named_values.at(name);
-}
-catch (const std::out_of_range&) {
-  return std::nullopt;
-}
-
 [[nodiscard]] llvm::AllocaInst* createEntryAlloca(llvm::Function*    func,
                                                   const std::string& var_name,
                                                   llvm::Type*        type)
