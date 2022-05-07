@@ -152,7 +152,7 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDecl& node) const
   auto const func
     = createLlvmFunction(node.linkage, func_type, name, *ctx.module);
 
-  // Set names for all arguments.
+  // Set names to all arguments.
   for (std::size_t idx = 0; auto&& arg : func->args())
     arg.setName(node.params[idx++].name.utf8());
 
