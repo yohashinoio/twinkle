@@ -159,7 +159,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::FunctionDecl,
-  (std::optional<maple::Linkage>, linkage)
+  (maple::Linkage, linkage)
   (maple::ast::Identifier, name)
   (maple::ast::ParameterList, params)
   (std::shared_ptr<maple::Type>, return_type)

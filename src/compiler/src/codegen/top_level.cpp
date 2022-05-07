@@ -12,6 +12,37 @@
 namespace maple::codegen
 {
 
+// Returns std::nullopt if there are multiple variadic arguments
+[[nodiscard]] static std::optional<bool>
+isVariadicArgs(const std::vector<ast::Parameter>& params)
+{
+  bool is_variadic_args = false;
+
+  for (const auto& r : params) {
+    if (r.is_variadic_args) {
+      if (is_variadic_args) {
+        // Multiple variadic arguments detected.
+        return std::nullopt;
+      }
+      else {
+        is_variadic_args = true;
+        continue;
+      }
+    }
+  }
+
+  return is_variadic_args;
+}
+
+[[nodiscard]] static llvm::Function*
+createLlvmFunction(const Linkage             linkage,
+                   llvm::FunctionType* const type,
+                   const llvm::Twine&        name,
+                   llvm::Module&             module)
+{
+  return llvm::Function::Create(type, linkageToLLVM(linkage), name, module);
+}
+
 //===----------------------------------------------------------------------===//
 // Top level statement visitor
 //===----------------------------------------------------------------------===//
@@ -47,29 +78,25 @@ llvm::Function* TopLevelVisitor::operator()(ast::Nil) const
 
 llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDecl& node) const
 {
-  auto&& ps = *node.params;
+  const auto& params = *node.params;
 
-  if (ps.size() && ps.at(0).is_variadic_args) {
+  if (params.size() && params.at(0).is_variadic_args) {
     throw CodegenError{
       ctx.formatError(ctx.positions.position_of(node),
                       "requires a named argument before '...'")};
   }
 
-  bool is_variadic_args = false;
-  for (const auto& r : ps) {
-    if (r.is_variadic_args) {
-      if (is_variadic_args) {
-        throw CodegenError{
-          ctx.formatError(ctx.positions.position_of(node),
-                          "cannot have multiple variable arguments")};
-      }
-      else
-        is_variadic_args = true;
-    }
+  const auto is_variadic_args = isVariadicArgs(params);
+  if (!is_variadic_args) {
+    throw CodegenError{
+      ctx.formatError(ctx.positions.position_of(node),
+                      "cannot have multiple variable arguments")};
   }
 
+  assert(!(*is_variadic_args && node.params.length() == 0));
   const auto named_params_length
-    = is_variadic_args ? node.params.length() - 1 : node.params.length();
+    = *is_variadic_args ? node.params.length() - 1 : node.params.length();
+
   std::vector<llvm::Type*> param_types(named_params_length);
 
   for (std::size_t i = 0; i != named_params_length; ++i) {
@@ -80,28 +107,15 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDecl& node) const
   auto const func_type
     = llvm::FunctionType::get(node.return_type->getType(ctx.context),
                               param_types,
-                              is_variadic_args);
+                              *is_variadic_args);
 
   const auto name = node.name.utf8();
 
   // Register return type to table.
   ctx.func_ret_types.regist(name, node.return_type);
 
-  llvm::Function* func;
-  if (!node.linkage) {
-    // External linkage.
-    func = llvm::Function::Create(func_type,
-                                  llvm::Function::ExternalLinkage,
-                                  name,
-                                  *ctx.module);
-  }
-  else if (node.linkage == Linkage::internal) {
-    // Internal linkage.
-    func = llvm::Function::Create(func_type,
-                                  llvm::Function::InternalLinkage,
-                                  name,
-                                  *ctx.module);
-  }
+  auto const func
+    = createLlvmFunction(node.linkage, func_type, name, *ctx.module);
 
   // Set names for all arguments.
   for (std::size_t idx = 0; auto&& arg : func->args())

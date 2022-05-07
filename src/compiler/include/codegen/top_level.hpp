@@ -21,8 +21,8 @@ namespace maple::codegen
 
 // It is not mandatory to receive a return value.
 llvm::Function* createTopLevel(CGContext&                         ctx,
-                            llvm::legacy::FunctionPassManager& fp_manager,
-                            const ast::TopLevel&               node);
+                               llvm::legacy::FunctionPassManager& fp_manager,
+                               const ast::TopLevel&               node);
 
 } // namespace maple::codegen
 

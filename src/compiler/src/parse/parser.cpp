@@ -491,7 +491,8 @@ const auto parameter_list
 
 const auto function_proto
   = x3::rule<struct FunctionProtoTag, ast::FunctionDecl>{"function prototype"}
-= -function_linkage > identifier > lit(U"(") > parameter_list > lit(U")")
+= (function_linkage | x3::attr(Linkage::external)) > identifier > lit(U"(")
+  > parameter_list > lit(U")")
   > ((lit(U"->") > type)
      | x3::attr(std::make_shared<BuiltinType>(BuiltinTypeKind::void_)));
 

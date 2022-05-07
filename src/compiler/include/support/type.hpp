@@ -19,8 +19,7 @@
 namespace maple
 {
 
-enum class SignKind : unsigned char
-{
+enum class SignKind : unsigned char {
   unsigned_,
   signed_,
 };
@@ -74,8 +73,7 @@ enum class SignKind : unsigned char
 */
 using SignKindStack = std::stack<SignKind>;
 
-enum class BuiltinTypeKind : unsigned char
-{
+enum class BuiltinTypeKind : unsigned char {
   void_,
   i8,
   i16,
@@ -277,17 +275,19 @@ private:
 };
 
 // Variable qualifier.
-enum class VariableQual : unsigned char
-{
+enum class VariableQual : unsigned char {
   no_qualifier,
   mutable_,
 };
 
-enum class Linkage : unsigned char
-{
-  no_linkage,
+enum class Linkage : unsigned char {
+  unknown,
+  external,
   internal,
 };
+
+[[nodiscard]] llvm::Function::LinkageTypes
+linkageToLLVM(const Linkage linkage) noexcept;
 
 } // namespace maple
 
