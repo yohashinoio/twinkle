@@ -43,6 +43,41 @@ createLlvmFunction(const Linkage             linkage,
   return llvm::Function::Create(type, linkageToLLVM(linkage), name, module);
 }
 
+SymbolTable
+createArgumentTable(CGContext&                ctx,
+                    llvm::Function* const     func,
+                    const ast::ParameterList& param_list,
+                    llvm::iterator_range<llvm::Function::arg_iterator>&& args)
+{
+  SymbolTable argument_table;
+
+  for (auto& arg : args) {
+    const auto& param_node = param_list[arg.getArgNo()];
+
+    // Create an alloca for this variable.
+    auto const alloca
+      = createEntryAlloca(func,
+                          arg.getName().str(),
+                          param_node.type->getType(ctx.context));
+
+    // Store the initial value into the alloca.
+    ctx.builder.CreateStore(&arg, alloca);
+
+    const auto is_mutable
+      = param_node.qualifier
+        && (*param_node.qualifier == VariableQual::mutable_);
+
+    // Add arguments to variable symbol table.
+    argument_table.regist(arg.getName().str(),
+                          {
+                            {alloca, param_node.type->createSignKindStack()},
+                            is_mutable
+    });
+  }
+
+  return argument_table;
+}
+
 //===----------------------------------------------------------------------===//
 // Top level statement visitor
 //===----------------------------------------------------------------------===//
@@ -129,7 +164,6 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDef& node) const
   const auto name = node.decl.name.utf8();
 
   auto func = ctx.module->getFunction(name);
-
   if (func) {
     throw CodegenError{
       ctx.formatError(ctx.positions.position_of(node.decl),
@@ -137,46 +171,22 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDef& node) const
   }
 
   func = this->operator()(node.decl);
-
   if (!func) {
     throw CodegenError{
       ctx.formatError(ctx.positions.position_of(node.decl),
                       fmt::format("failed to create function '{}'", name))};
   }
 
-  SymbolTable argument_table;
-
   auto const entry_bb = llvm::BasicBlock::Create(ctx.context, "", func);
   ctx.builder.SetInsertPoint(entry_bb);
 
-  for (auto&& arg : func->args()) {
-    const auto& param_node = node.decl.params[arg.getArgNo()];
-
-    // Create an alloca for this variable.
-    auto const alloca
-      = createEntryAlloca(func,
-                          arg.getName().str(),
-                          param_node.type->getType(ctx.context));
-
-    // Store the initial value into the alloca.
-    ctx.builder.CreateStore(&arg, alloca);
-
-    const auto is_mutable
-      = param_node.qualifier
-        && (*param_node.qualifier == VariableQual::mutable_);
-
-    // Add arguments to variable symbol table.
-    argument_table.regist(arg.getName().str(),
-                          {
-                            {alloca, param_node.type->createSignKindStack()},
-                            is_mutable
-    });
-  }
+  auto argument_table
+    = createArgumentTable(ctx, func, node.decl.params, func->args());
 
   // Used to combine returns into one.
   auto const end_bb = llvm::BasicBlock::Create(ctx.context);
   // Return variable.
-  auto const retvar
+  auto const return_variable
     = node.decl.return_type->isVoid()
         ? nullptr
         : createEntryAlloca(func,
@@ -186,7 +196,7 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDef& node) const
   createStatement(ctx,
                   argument_table,
                   node.body,
-                  retvar,
+                  return_variable,
                   end_bb,
                   nullptr,
                   nullptr);
@@ -198,12 +208,12 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDef& node) const
     if (name == "main") {
       ctx.builder.CreateStore(
         llvm::ConstantInt::getSigned(func->getReturnType(), 0),
-        retvar);
+        return_variable);
       ctx.builder.CreateBr(end_bb);
     }
     else {
       ctx.builder.CreateStore(llvm::UndefValue::get(func->getReturnType()),
-                              retvar);
+                              return_variable);
       ctx.builder.CreateBr(end_bb);
     }
   }
@@ -219,9 +229,10 @@ llvm::Function* TopLevelVisitor::operator()(const ast::FunctionDef& node) const
   func->getBasicBlockList().push_back(end_bb);
   ctx.builder.SetInsertPoint(end_bb);
 
-  if (retvar) {
+  if (return_variable) {
     auto const retval
-      = ctx.builder.CreateLoad(retvar->getAllocatedType(), retvar);
+      = ctx.builder.CreateLoad(return_variable->getAllocatedType(),
+                               return_variable);
     ctx.builder.CreateRet(retval);
   }
   else {
