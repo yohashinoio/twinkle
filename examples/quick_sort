@@ -1,13 +1,13 @@
 extern printf(fmt: *i8, ...) -> i32;
 
-func swap(mut a: *i32, mut b: *i32)
+func swap(a: mut *i32, b: mut *i32)
 {
   let tmp = *a;
   *a = *b;
   *b = tmp;
 }
 
-func partition(mut a: *i32, start: i32, end: i32) -> i32
+func partition(a: mut *i32, start: i32, end: i32) -> i32
 {
   let pivot = a[end];
   let mut i = start - 1;
@@ -23,7 +23,7 @@ func partition(mut a: *i32, start: i32, end: i32) -> i32
   return i + 1;
 }
 
-func quicksort(mut a: *i32, start: i32, end: i32)
+func quicksort(a: mut *i32, start: i32, end: i32)
 {
   if (start < end) {
     let pivot = partition(a, start, end);

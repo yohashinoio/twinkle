@@ -21,7 +21,8 @@ namespace maple::ast
 
 namespace x3 = boost::spirit::x3;
 
-struct Nil {};
+struct Nil {
+};
 
 //===----------------------------------------------------------------------===//
 // Expression AST
@@ -96,7 +97,8 @@ struct BinOp : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char {
+  enum class Kind : unsigned char
+  {
     unknown,
     add,         // Addition
     sub,         // Subtraciton
@@ -155,7 +157,8 @@ struct UnaryOp : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char {
+  enum class Kind : unsigned char
+  {
     unknown,
     plus,        // Unary plus
     minus,       // Unary minus
@@ -232,7 +235,8 @@ struct Assignment : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char {
+  enum class Kind : unsigned char
+  {
     unknown,
     direct, // Direct assignment
     add,    // Addition assignment
@@ -270,7 +274,8 @@ struct PrefixIncAndDec : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char {
+  enum class Kind : unsigned char
+  {
     unknown,
     increment,
     decrement,
@@ -353,8 +358,8 @@ struct For : x3::position_tagged {
 //===----------------------------------------------------------------------===//
 
 struct Parameter : x3::position_tagged {
-  std::optional<VariableQual> qualifier;
   Identifier                  name;
+  std::optional<VariableQual> qualifier;
   std::shared_ptr<Type>       type;
   bool                        is_variadic_args;
 

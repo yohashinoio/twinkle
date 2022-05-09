@@ -1,4 +1,4 @@
-func f(mut a: i32) -> i32
+func f(a: mut i32) -> i32
 {
   a = 58;
   return a;

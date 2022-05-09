@@ -1,4 +1,4 @@
-func f(mut p: *i32)
+func f(p: mut *i32)
 {
   *p = 110;
 }

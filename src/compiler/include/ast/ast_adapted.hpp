@@ -146,8 +146,8 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::Parameter,
-  (std::optional<maple::VariableQual>, qualifier)
   (maple::ast::Identifier, name)
+  (std::optional<maple::VariableQual>, qualifier)
   (std::shared_ptr<maple::Type>, type)
   (bool, is_variadic_args)
 )

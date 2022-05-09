@@ -294,7 +294,7 @@ func f(p: *i32)
   *p = 10; // Error!
 }
 
-func g(mut p: *i32)
+func g(p: mut *i32)
 {
   p = p; // OK!
   *p = 10; // OK!
@@ -344,7 +344,7 @@ func f(n: i32) -> i32
   return n;
 }
 
-func g(mut n: i32) -> i32
+func g(n: mut i32) -> i32
 {
   n = 123; // OK
   return n;
