@@ -108,9 +108,10 @@ comment.
 | Division assignment	      | a /= b |
 | Prefix increment          | ++a    |
 | Prefix decrement          | --a    |
-| No postfix increment and decrement |
 
-In this language, **an assignment is a statement**, so you cannot use a syntax like "a = b = c".
+The postfix increment and decrement is not supported because it would complicate.
+
+In this language, **assignments are statements**, so a syntax such as "a = b = c" cannot be used.
 
 ### Pointer Operators
 | Operator name | Syntax |
