@@ -231,6 +231,12 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     return func;
   }
 
+  llvm::Function* operator()(const ast::StructDecl& node) const
+  {
+    // TODO
+    return nullptr;
+  }
+
 private:
   // Throws an exception if verification fails.
   void verifyFunction(llvm::Function* const                       func,

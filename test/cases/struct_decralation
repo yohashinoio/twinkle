@@ -1,0 +1,15 @@
+struct Sample1 {
+}
+
+struct Sample1 {
+  let p_int: *i32;
+}
+
+struct Sample3 {
+  let ascii_s: *i8;
+  let unicode_s: *char;
+}
+
+func main() -> i32
+{
+}

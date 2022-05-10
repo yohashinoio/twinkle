@@ -124,6 +124,7 @@ int main(const int argc, const char* const* const argv)
     {                         "logical_or",  58},
     {       "subscript_array_of_unsigned2",  41},
     {                       "petrifaction",  58},
+    {                 "struct_decralation",   0},
   };
 
   std::size_t ok_c{};   // ok count.

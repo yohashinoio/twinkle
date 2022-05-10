@@ -171,6 +171,9 @@ struct EscapeCharSymbolsTag : UnicodeSymbols<char32_t> {
 // Common rules
 //===----------------------------------------------------------------------===//
 
+// The reason for using x3::rule where a rule is not a recursive rule is to speed up
+// compilation.
+
 const auto identifier_internal
   = x3::rule<struct IdentifierInternalTag, std::u32string>{"identifier"}
 = x3::raw
@@ -435,7 +438,7 @@ const auto _return_def = lit(U"return") > -expr;
 const auto _if_def
   = lit(U"if") > lit(U"(") > expr > lit(U")") > stmt > -(lit(U"else") > stmt);
 
-const auto _loop_def = string(U"loop") > stmt;
+const auto _loop_def = lit(U"loop") > stmt;
 
 const auto _while_def = lit(U"while") > lit(U"(") > expr /* Condition */
                         > lit(U")") > stmt;
@@ -447,11 +450,11 @@ const auto _for_def = lit(U"for") > lit(U"(")
                       > lit(U")") > stmt;
 
 const auto _break = x3::rule<struct BreakTag, ast::Break>{"break statement"}
-= string(U"break");
+= lit(U"break") >> x3::attr(ast::Break{});
 
 const auto _continue
   = x3::rule<struct ContinueTag, ast::Continue>{"continue statement"}
-= string(U"continue");
+= lit(U"continue") >> x3::attr(ast::Continue{});
 
 const auto petrify_def = lit(U"petrify") > identifier;
 
@@ -480,35 +483,48 @@ BOOST_SPIRIT_DEFINE(stmt)
 // Top level rules
 //===----------------------------------------------------------------------===//
 
-using namespace std::literals::string_literals;
+const x3::rule<struct StructDecl, ast::StructDecl> struct_decl{
+  "struct declaration"};
+const x3::rule<struct ParameterTag, ast::Parameter> parameter{"parameter"};
+const x3::rule<struct ParameterListTag, ast::ParameterList> parameter_list{
+  "parameter list"};
+const x3::rule<struct FunctionProtoTag, ast::FunctionDecl> function_proto{
+  "function prototype"};
+const x3::rule<struct FunctionDeclTag, ast::FunctionDecl> function_decl{
+  "function declaration"};
+const x3::rule<struct FunctionDefTag, ast::FunctionDef> function_def{
+  "function definition"};
+const x3::rule<struct TopLevelTag, ast::TopLevel> top_level{"top level"};
 
-const auto parameter
-  = x3::rule<struct ParameterTag, ast::Parameter>{"parameter"}
-= (identifier > lit(U":") > -variable_qualifier > type > x3::attr(false))
-  | lit(U"...")
-      >> x3::attr(ast::Parameter{std::nullopt, ast::Identifier{}, {}, true});
+const auto struct_decl_def = lit(U"struct") > identifier > lit(U"{")
+                             > *(variable_def > lit(U";")) > lit(U"}");
 
-const auto parameter_list
-  = x3::rule<struct ParameterListTag, ast::ParameterList>{"parameter list"}
-= -(parameter % lit(U","));
+const auto parameter_def
+  = (identifier > lit(U":") > -variable_qualifier > type > x3::attr(false))
+    | lit(U"...")
+        >> x3::attr(ast::Parameter{ast::Identifier{}, std::nullopt, {}, true});
 
-const auto function_proto
-  = x3::rule<struct FunctionProtoTag, ast::FunctionDecl>{"function prototype"}
-= (function_linkage | x3::attr(Linkage::external)) > identifier > lit(U"(")
-  > parameter_list > lit(U")")
-  > ((lit(U"->") > type)
-     | x3::attr(std::make_shared<BuiltinType>(BuiltinTypeKind::void_)));
+const auto parameter_list_def = -(parameter % lit(U","));
 
-const auto function_decl
-  = x3::rule<struct FunctionDeclTag, ast::FunctionDecl>{"function declaration"}
-= lit(U"extern") > function_proto > lit(U";");
+const auto function_proto_def
+  = (function_linkage | x3::attr(Linkage::external)) > identifier > lit(U"(")
+    > parameter_list > lit(U")")
+    > ((lit(U"->") > type)
+       | x3::attr(std::make_shared<BuiltinType>(BuiltinTypeKind::void_)));
 
-const auto function_def
-  = x3::rule<struct FunctionDefTag, ast::FunctionDef>{"function definition"}
-= lit(U"func") > function_proto > stmt;
+const auto function_decl_def = lit(U"extern") > function_proto > lit(U";");
 
-const auto top_level = x3::rule<struct TopLevelTag, ast::TopLevel>{"top level"}
-= function_decl | function_def;
+const auto function_def_def = lit(U"func") > function_proto > stmt;
+
+const auto top_level_def = function_decl | function_def | struct_decl;
+
+BOOST_SPIRIT_DEFINE(struct_decl)
+BOOST_SPIRIT_DEFINE(parameter)
+BOOST_SPIRIT_DEFINE(parameter_list)
+BOOST_SPIRIT_DEFINE(function_proto)
+BOOST_SPIRIT_DEFINE(function_decl)
+BOOST_SPIRIT_DEFINE(function_def)
+BOOST_SPIRIT_DEFINE(top_level)
 
 //===----------------------------------------------------------------------===//
 // Comment rules
@@ -539,8 +555,11 @@ const auto skipper = x3::rule<struct SkipperTag>{"skipper"}
 // Program rule
 //===----------------------------------------------------------------------===//
 
-const auto program = x3::rule<struct ProgramTag, ast::Program>{"program"}
-= *top_level > x3::eoi;
+const x3::rule<struct ProgramTag, ast::Program> program{"program"};
+
+const auto program_def = *top_level > x3::eoi;
+
+BOOST_SPIRIT_DEFINE(program)
 
 #pragma clang diagnostic pop
 

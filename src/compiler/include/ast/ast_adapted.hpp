@@ -100,12 +100,10 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::Break,
-  (std::u32string, tmp)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::Continue,
-  (std::u32string, tmp)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -122,7 +120,6 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::Loop,
-  (std::u32string, tmp)
   (maple::ast::Stmt, body)
 )
 
@@ -143,6 +140,12 @@ BOOST_FUSION_ADAPT_STRUCT(
 //===----------------------------------------------------------------------===//
 // Top level statement AST adapt
 //===----------------------------------------------------------------------===//
+
+BOOST_FUSION_ADAPT_STRUCT(
+  maple::ast::StructDecl,
+  (maple::ast::Identifier, name)
+  (std::vector<maple::ast::VariableDef>, members)
+)
 
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::Parameter,

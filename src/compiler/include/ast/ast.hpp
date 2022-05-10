@@ -29,9 +29,7 @@ struct Nil {
 //===----------------------------------------------------------------------===//
 
 struct StringLiteral : x3::position_tagged {
-  // Some compilers will error if there is no value_type,
-  // because x3::rule using this AST uses iterator.
-  using value_type = std::u32string;
+  using value_type = std::u32string::value_type;
 
   std::u32string str;
 };
@@ -293,11 +291,9 @@ struct PrefixIncAndDec : x3::position_tagged {
 };
 
 struct Break : x3::position_tagged {
-  std::u32string tmp;
 };
 
 struct Continue : x3::position_tagged {
-  std::u32string tmp;
 };
 
 struct Petrify : x3::position_tagged {
@@ -334,8 +330,7 @@ struct If : x3::position_tagged {
 };
 
 struct Loop : x3::position_tagged {
-  std::u32string tmp;
-  Stmt           body;
+  Stmt body;
 };
 
 struct While : x3::position_tagged {
@@ -357,18 +352,23 @@ struct For : x3::position_tagged {
 // Top level AST
 //===----------------------------------------------------------------------===//
 
+struct StructDecl : x3::position_tagged {
+  Identifier               name;
+  std::vector<VariableDef> members;
+};
+
 struct Parameter : x3::position_tagged {
   Identifier                  name;
   std::optional<VariableQual> qualifier;
   std::shared_ptr<Type>       type;
   bool                        is_variadic_args;
 
-  Parameter(std::optional<VariableQual>&& qualifier,
-            Identifier&&                  name,
+  Parameter(Identifier&&                  name,
+            std::optional<VariableQual>&& qualifier,
             std::shared_ptr<Type>         type,
             const bool                    is_variadic_args)
-    : qualifier{qualifier}
-    , name{name}
+    : name{name}
+    , qualifier{qualifier}
     , type{type}
     , is_variadic_args{is_variadic_args}
   {
@@ -410,7 +410,7 @@ struct FunctionDef : x3::position_tagged {
   Stmt         body;
 };
 
-using TopLevel = boost::variant<Nil, FunctionDecl, FunctionDef>;
+using TopLevel = boost::variant<Nil, FunctionDecl, FunctionDef, StructDecl>;
 
 using Program = std::vector<TopLevel>;
 
