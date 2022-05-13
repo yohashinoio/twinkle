@@ -131,7 +131,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     const auto name = node.name.utf8();
 
     // Register return type to table.
-    ctx.func_ret_types.regist(name, node.return_type);
+    ctx.frt_table.regist(name, node.return_type);
 
     auto const func
       = createLlvmFunction(node.linkage, func_type, name, *ctx.module);
@@ -233,7 +233,16 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
   llvm::Function* operator()(const ast::StructDecl& node) const
   {
-    // TODO
+    const auto name = node.name.utf8();
+
+    if (ctx.udt_table.exists(name)) {
+      throw CodegenError{
+        ctx.formatError(ctx.positions.position_of(node),
+                        fmt::format("redefinition of '{}'", name))};
+    }
+
+    ctx.udt_table.regist(name, node.type);
+
     return nullptr;
   }
 

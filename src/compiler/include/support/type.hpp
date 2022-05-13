@@ -19,9 +19,12 @@
 namespace maple
 {
 
-enum class SignKind : unsigned char {
+enum class SignKind : unsigned char
+{
   unsigned_,
   signed_,
+  struct_,
+  struct_element,
 };
 
 [[nodiscard]] inline bool isSigned(const SignKind sk) noexcept
@@ -73,7 +76,8 @@ enum class SignKind : unsigned char {
 */
 using SignKindStack = std::stack<SignKind>;
 
-enum class BuiltinTypeKind : unsigned char {
+enum class BuiltinTypeKind : unsigned char
+{
   void_,
   i8,
   i16,
@@ -100,6 +104,11 @@ struct Type {
     return false;
   }
 
+  [[nodiscard]] virtual bool isStructTy() const noexcept
+  {
+    return false;
+  }
+
   [[nodiscard]] virtual bool isPointerTy() const noexcept
   {
     return false;
@@ -112,7 +121,7 @@ struct Type {
     return !isSigned();
   }
 
-  [[nodiscard]] SignKind getSignKind() const noexcept
+  [[nodiscard]] virtual SignKind getSignKind() const noexcept
   {
     return isSigned() ? SignKind::signed_ : SignKind::unsigned_;
   }
@@ -274,13 +283,76 @@ private:
   std::uint64_t         array_size;
 };
 
+// Forward declaration.
+namespace ast
+{
+
+struct StructElement;
+
+}
+
+struct StructType : public Type {
+  StructType(std::vector<ast::StructElement>&& elements) noexcept
+    : elements{std::move(elements)}
+  {
+  }
+
+  StructType()
+    : elements{}
+  {
+  }
+
+  [[nodiscard]] llvm::Type* getType(llvm::LLVMContext& context) const override;
+
+  [[nodiscard]] bool isStructTy() const noexcept override
+  {
+    return true;
+  }
+
+  [[nodiscard]] bool isSigned() const noexcept override
+  {
+    return false;
+  }
+
+  [[nodiscard]] SignKind getSignKind() const noexcept override
+  {
+    return SignKind::struct_;
+  }
+
+  /*
+    Example: { i32, i8 }
+    |----------------|
+    |         struct | <- top
+    | struct_element |
+    |----------------|
+  */
+  [[nodiscard]] SignKindStack createSignKindStack() const noexcept override
+  {
+    SignKindStack tmp;
+    tmp.emplace(SignKind::struct_element);
+    tmp.emplace(getSignKind());
+    return tmp;
+  }
+
+  [[nodiscard]] std::string getName() const override
+  {
+    // TODO
+    unreachable();
+  }
+
+private:
+  std::vector<ast::StructElement> elements;
+};
+
 // Variable qualifier.
-enum class VariableQual : unsigned char {
+enum class VariableQual : unsigned char
+{
   no_qualifier,
   mutable_,
 };
 
-enum class Linkage : unsigned char {
+enum class Linkage : unsigned char
+{
   unknown,
   external,
   internal,

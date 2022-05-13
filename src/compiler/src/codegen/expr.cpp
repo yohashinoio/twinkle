@@ -341,7 +341,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     }
 
     // Get return type.
-    const auto return_type = ctx.func_ret_types[callee];
+    const auto return_type = ctx.frt_table[callee];
     assert(return_type);
 
     return {ctx.builder.CreateCall(callee_func, args_value),

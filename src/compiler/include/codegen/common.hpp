@@ -123,7 +123,7 @@ private:
 
 struct SymbolTable {
   // If the variable does not exist, an out_of_range exception is thrown.
-  [[nodiscard]] Variable& operator[](const std::string& name) noexcept
+  [[nodiscard]] Variable& operator[](const std::string& name)
   {
     assert(exists(name));
     return named_values.at(name);

@@ -31,7 +31,7 @@ CGContext::CGContext(llvm::LLVMContext&      context,
   , builder{context}
   , file{std::move(file)}
   , positions{std::move(positions)}
-  , func_ret_types{}
+  , frt_table{}
 {
 }
 

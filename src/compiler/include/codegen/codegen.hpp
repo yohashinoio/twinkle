@@ -22,27 +22,28 @@
 namespace maple::codegen
 {
 
-struct FunctionRetTypeTable {
+// Function return type table.
+struct FRTTable {
   // Regist stands for register.
   void regist(const std::string& name, const std::shared_ptr<Type> v)
   {
-    return_type_map.insert({name, v});
+    function_return_tys.insert({name, v});
   }
 
   [[nodiscard]] auto begin() const noexcept
   {
-    return return_type_map.begin();
+    return function_return_tys.begin();
   }
 
   [[nodiscard]] auto end() const noexcept
   {
-    return return_type_map.end();
+    return function_return_tys.end();
   }
 
   [[nodiscard]] std::optional<std::shared_ptr<Type>>
   operator[](const std::string& name) const noexcept
   {
-    const auto it = return_type_map.find(name);
+    const auto it = function_return_tys.find(name);
     if (it == end())
       return std::nullopt;
 
@@ -50,7 +51,34 @@ struct FunctionRetTypeTable {
   }
 
 private:
-  std::unordered_map<std::string, std::shared_ptr<Type>> return_type_map;
+  std::unordered_map<std::string, std::shared_ptr<Type>> function_return_tys;
+};
+
+// User defined type table.
+struct UDTTable {
+  [[nodiscard]] std::optional<std::shared_ptr<Type>>
+  operator[](const std::string& name) noexcept
+  try {
+    return user_defined_tys.at(name);
+  }
+  catch (const std::out_of_range&) {
+    return std::nullopt;
+  }
+
+  // Regist stands for register.
+  void regist(const std::string& name, const std::shared_ptr<Type> type)
+  {
+    user_defined_tys.emplace(name, type);
+  }
+
+  [[nodiscard]] bool exists(const std::string& name) const
+  {
+    return user_defined_tys.contains(name);
+  }
+
+private:
+  // User defined types.
+  std::unordered_map<std::string, std::shared_ptr<Type>> user_defined_tys;
 };
 
 // Codegen context.
@@ -72,7 +100,9 @@ struct CGContext {
 
   PositionCache positions;
 
-  FunctionRetTypeTable func_ret_types;
+  UDTTable udt_table;
+
+  FRTTable frt_table;
 };
 
 struct CodeGenerator {

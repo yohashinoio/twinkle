@@ -352,9 +352,14 @@ struct For : x3::position_tagged {
 // Top level AST
 //===----------------------------------------------------------------------===//
 
+struct StructElement : x3::position_tagged {
+  Identifier            name;
+  std::shared_ptr<Type> type;
+};
+
 struct StructDecl : x3::position_tagged {
-  Identifier               name;
-  std::vector<VariableDef> members;
+  Identifier            name;
+  std::shared_ptr<Type> type;
 };
 
 struct Parameter : x3::position_tagged {

@@ -680,8 +680,8 @@ FMT_CONSTEXPR inline size_t compute_width(string_view s) {
 }
 
 inline auto compute_width(basic_string_view<char8_type> s) -> size_t {
-  return compute_width(basic_string_view<char>(
-      reinterpret_cast<const char*>(s.data()), s.size()));
+  return compute_width(
+      string_view(reinterpret_cast<const char*>(s.data()), s.size()));
 }
 
 template <typename Char>
@@ -691,14 +691,19 @@ inline auto code_point_index(basic_string_view<Char> s, size_t n) -> size_t {
 }
 
 // Calculates the index of the nth code point in a UTF-8 string.
-inline auto code_point_index(basic_string_view<char8_type> s, size_t n)
-    -> size_t {
-  const char8_type* data = s.data();
+inline auto code_point_index(string_view s, size_t n) -> size_t {
+  const char* data = s.data();
   size_t num_code_points = 0;
   for (size_t i = 0, size = s.size(); i != size; ++i) {
     if ((data[i] & 0xc0) != 0x80 && ++num_code_points > n) return i;
   }
   return s.size();
+}
+
+inline auto code_point_index(basic_string_view<char8_type> s, size_t n)
+    -> size_t {
+  return code_point_index(
+      string_view(reinterpret_cast<const char*>(s.data()), s.size()), n);
 }
 
 #ifndef FMT_USE_FLOAT128
@@ -2338,12 +2343,16 @@ struct has_isfinite<T, enable_if_t<sizeof(std::isfinite(T())) != 0>>
 template <typename T, FMT_ENABLE_IF(std::is_floating_point<T>::value&&
                                         has_isfinite<T>::value)>
 FMT_CONSTEXPR20 bool isfinite(T value) {
-  if (is_constant_evaluated()) return !isnan(value - value);
+  constexpr T inf = T(std::numeric_limits<double>::infinity());
+  if (is_constant_evaluated())
+    return !isnan(value) && value != inf && value != -inf;
   return std::isfinite(value);
 }
 template <typename T, FMT_ENABLE_IF(!has_isfinite<T>::value)>
-constexpr bool isfinite(T value) {
-  return value - value == 0;  // std::isfinite doesn't support __float128.
+FMT_CONSTEXPR bool isfinite(T value) {
+  T inf = T(std::numeric_limits<double>::infinity());
+  // std::isfinite doesn't support __float128.
+  return !isnan(value) && value != inf && value != -inf;
 }
 
 template <typename T, FMT_ENABLE_IF(is_floating_point<T>::value)>

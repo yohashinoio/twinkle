@@ -6,6 +6,7 @@
  */
 
 #include <support/type.hpp>
+#include <ast/ast.hpp>
 
 namespace maple
 {
@@ -79,6 +80,16 @@ namespace maple
   }
 
   unreachable();
+}
+
+[[nodiscard]] llvm::Type* StructType::getType(llvm::LLVMContext& context) const
+{
+  // Set element types.
+  std::vector<llvm::Type*> element_types;
+  for (const auto& element : elements)
+    element_types.emplace_back(element.type->getType(context));
+
+  return llvm::StructType::create(context, element_types);
 }
 
 [[nodiscard]] llvm::Function::LinkageTypes

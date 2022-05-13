@@ -1,7 +1,7 @@
 struct Sample1 {
 }
 
-struct Sample1 {
+struct Sample2 {
   let p_int: *i32;
 }
 

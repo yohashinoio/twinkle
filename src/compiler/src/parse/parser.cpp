@@ -171,8 +171,8 @@ struct EscapeCharSymbolsTag : UnicodeSymbols<char32_t> {
 // Common rules
 //===----------------------------------------------------------------------===//
 
-// The reason for using x3::rule where a rule is not a recursive rule is to speed up
-// compilation.
+// The reason for using x3::rule where a rule is not a recursive rule is to
+// speed up compilation.
 
 const auto identifier_internal
   = x3::rule<struct IdentifierInternalTag, std::u32string>{"identifier"}
@@ -327,12 +327,10 @@ const x3::rule<struct MulTag, ast::Expr>      mul{"multiplication operation"};
 const x3::rule<struct UnaryTag, ast::Expr>    unary{"unary operation"};
 const x3::rule<struct ConversionTag, ast::Expr> conversion{"conversion"};
 const x3::rule<struct PrimaryTag, ast::Expr>    primary{"primary"};
-
 const x3::rule<struct ConversionInternalTag, ast::Conversion>
   conversion_internal{"conversion"};
 const x3::rule<struct UnaryInternalTag, ast::UnaryOp> unary_internal{
   "unary operation"};
-
 const x3::rule<struct SubscriptTag, ast::Subscript> subscript{"subscript"};
 const x3::rule<struct ArgListTag, std::vector<ast::Expr>> arg_list{
   "argument list"};
@@ -483,7 +481,11 @@ BOOST_SPIRIT_DEFINE(stmt)
 // Top level rules
 //===----------------------------------------------------------------------===//
 
-const x3::rule<struct StructDecl, ast::StructDecl> struct_decl{
+const x3::rule<struct StructElementTag, ast::StructElement> struct_element{
+  "struct elements"};
+const x3::rule<struct StructElementsTag, std::shared_ptr<Type>> struct_elements{
+  "struct elements"};
+const x3::rule<struct StructDeclTag, ast::StructDecl> struct_decl{
   "struct declaration"};
 const x3::rule<struct ParameterTag, ast::Parameter> parameter{"parameter"};
 const x3::rule<struct ParameterListTag, ast::ParameterList> parameter_list{
@@ -496,8 +498,16 @@ const x3::rule<struct FunctionDefTag, ast::FunctionDef> function_def{
   "function definition"};
 const x3::rule<struct TopLevelTag, ast::TopLevel> top_level{"top level"};
 
-const auto struct_decl_def = lit(U"struct") > identifier > lit(U"{")
-                             > *(variable_def > lit(U";")) > lit(U"}");
+const auto struct_element_def
+  = lit(U"let") > identifier > lit(U":") > variable_type;
+
+const auto struct_elements_def
+  = (*(struct_element > lit(U";")))[([](auto&& ctx) {
+      x3::_val(ctx) = std::make_shared<StructType>(std::move(x3::_attr(ctx)));
+    })];
+
+const auto struct_decl_def
+  = lit(U"struct") > identifier > lit(U"{") > struct_elements > lit(U"}");
 
 const auto parameter_def
   = (identifier > lit(U":") > -variable_qualifier > type > x3::attr(false))
@@ -518,6 +528,8 @@ const auto function_def_def = lit(U"func") > function_proto > stmt;
 
 const auto top_level_def = function_decl | function_def | struct_decl;
 
+BOOST_SPIRIT_DEFINE(struct_element)
+BOOST_SPIRIT_DEFINE(struct_elements)
 BOOST_SPIRIT_DEFINE(struct_decl)
 BOOST_SPIRIT_DEFINE(parameter)
 BOOST_SPIRIT_DEFINE(parameter_list)
@@ -655,6 +667,11 @@ struct PrimaryTag
   , AnnotatePosition {
 };
 
+struct BlockExprTag
+  : ErrorHandle
+  , AnnotatePosition {
+};
+
 //===----------------------------------------------------------------------===//
 // Statement tags
 //===----------------------------------------------------------------------===//
@@ -742,6 +759,21 @@ struct ContinueTag
 //===----------------------------------------------------------------------===//
 // Top level statement tags
 //===----------------------------------------------------------------------===//
+
+struct StructElementTag
+  : ErrorHandle
+  , AnnotatePosition {
+};
+
+struct StructElementsTag
+  : ErrorHandle
+  , AnnotatePosition {
+};
+
+struct StructDeclTag
+  : ErrorHandle
+  , AnnotatePosition {
+};
 
 struct ParameterTag
   : ErrorHandle
