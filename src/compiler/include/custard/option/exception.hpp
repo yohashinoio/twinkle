@@ -12,7 +12,7 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <support/exception.hpp>
+#include <custard/support/exception.hpp>
 
 namespace custard
 {

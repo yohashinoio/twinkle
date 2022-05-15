@@ -12,9 +12,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <ast/ast.hpp>
-#include <support/utils.hpp>
-#include <support/typedef.hpp>
+#include <custard/ast/ast.hpp>
+#include <custard/support/utils.hpp>
+#include <custard/support/typedef.hpp>
 
 namespace custard::parse
 {

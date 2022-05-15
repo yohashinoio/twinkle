@@ -5,14 +5,14 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <compile/main.hpp>
-#include <codegen/codegen.hpp>
-#include <jit/jit.hpp>
-#include <parse/parser.hpp>
-#include <option/parse.hpp>
-#include <support/file.hpp>
-#include <support/utils.hpp>
-#include <support/exception.hpp>
+#include <custard/compile/main.hpp>
+#include <custard/codegen/codegen.hpp>
+#include <custard/jit/jit.hpp>
+#include <custard/parse/parser.hpp>
+#include <custard/option/parse.hpp>
+#include <custard/support/file.hpp>
+#include <custard/support/utils.hpp>
+#include <custard/support/exception.hpp>
 
 namespace program_options = boost::program_options;
 

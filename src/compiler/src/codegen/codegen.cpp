@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <codegen/codegen.hpp>
-#include <codegen/top_level.hpp>
-#include <support/type.hpp>
-#include <codegen/exception.hpp>
-#include <unicode/unicode.hpp>
+#include <custard/codegen/codegen.hpp>
+#include <custard/codegen/top_level.hpp>
+#include <custard/support/type.hpp>
+#include <custard/codegen/exception.hpp>
+#include <custard/unicode/unicode.hpp>
 #include <cassert>
 
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))

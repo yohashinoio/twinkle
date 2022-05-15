@@ -8,8 +8,8 @@
 #ifndef _4a13c82a_9536_11ec_b909_0242ac120002
 #define _4a13c82a_9536_11ec_b909_0242ac120002
 
-#include <pch/pch.hpp>
-#include <ast/ast.hpp>
+#include <custard/pch/pch.hpp>
+#include <custard/ast/ast.hpp>
 
 // clang-format off
 

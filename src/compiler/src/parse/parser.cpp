@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <pch/pch.hpp>
-#include <ast/ast_adapted.hpp>
-#include <parse/parser.hpp>
-#include <support/type.hpp>
-#include <parse/exception.hpp>
+#include <custard/pch/pch.hpp>
+#include <custard/ast/ast_adapted.hpp>
+#include <custard/parse/parser.hpp>
+#include <custard/support/type.hpp>
+#include <custard/parse/exception.hpp>
 
 namespace x3     = boost::spirit::x3;
 namespace fusion = boost::fusion;

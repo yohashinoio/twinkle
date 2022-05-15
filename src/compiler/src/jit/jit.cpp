@@ -5,8 +5,8 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <jit/jit.hpp>
-#include <support/utils.hpp>
+#include <custard/jit/jit.hpp>
+#include <custard/support/utils.hpp>
 
 namespace custard::jit
 {

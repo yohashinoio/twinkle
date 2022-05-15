@@ -12,12 +12,12 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <pch/pch.hpp>
-#include <ast/ast.hpp>
-#include <support/utils.hpp>
-#include <support/typedef.hpp>
-#include <jit/jit.hpp>
-#include <parse/parser.hpp>
+#include <custard/pch/pch.hpp>
+#include <custard/ast/ast.hpp>
+#include <custard/support/utils.hpp>
+#include <custard/support/typedef.hpp>
+#include <custard/jit/jit.hpp>
+#include <custard/parse/parser.hpp>
 
 namespace custard::codegen
 {

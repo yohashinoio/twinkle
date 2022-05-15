@@ -12,9 +12,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <pch/pch.hpp>
-#include <codegen/codegen.hpp>
-#include <codegen/common.hpp>
+#include <custard/pch/pch.hpp>
+#include <custard/codegen/codegen.hpp>
+#include <custard/codegen/common.hpp>
 
 namespace custard::codegen
 {

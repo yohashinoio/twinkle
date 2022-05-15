@@ -5,7 +5,7 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <codegen/common.hpp>
+#include <custard/codegen/common.hpp>
 
 namespace custard::codegen
 {

@@ -12,9 +12,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <pch/pch.hpp>
-#include <support/type.hpp>
-#include <unicode/unicode.hpp>
+#include <custard/pch/pch.hpp>
+#include <custard/support/type.hpp>
+#include <custard/unicode/unicode.hpp>
 
 namespace custard::ast
 {
