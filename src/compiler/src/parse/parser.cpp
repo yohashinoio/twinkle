@@ -79,6 +79,7 @@ const auto assignToValAs = [](auto&& ctx) {
         std::move(fusion::at_c<0>(x3::_attr(ctx))),
         std::move(fusion::at_c<1>(x3::_attr(ctx)))};
 
+  // FIXME: There is a bug where the exact location is not annotated.
   auto&& position_cache = x3::get<PositionCacheTag>(ctx);
   position_cache.annotate(ast, x3::_where(ctx).begin(), x3::_where(ctx).end());
 
