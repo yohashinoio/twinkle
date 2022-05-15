@@ -1,0 +1,26 @@
+func add(a: i32, b: i32) -> i32
+{
+  return a + b;
+}
+
+func twice(n: i32) -> i32
+{
+  return n |> add(n);
+}
+
+func asterisk(p: *i32) -> i32
+{
+  return *p;
+}
+
+func main() -> i32
+{
+  let n1 = 48;
+
+  let retval = &n1 |> asterisk() |> add(10) |> twice();
+
+  let n3 = 4810 |> twice();
+
+  if (n3 == 4810 * 2)
+    return retval;
+}

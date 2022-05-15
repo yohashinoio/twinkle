@@ -23,9 +23,9 @@ namespace custard::unicode
 using Codepoint = char32_t;
 
 // If conversion fails, std::nullopt returns.
-std::string utf32toUtf8(const char32_t utf32);
+[[nodiscard]] std::string utf32toUtf8(const char32_t utf32);
 
-std::string utf32toUtf8(const std::u32string_view utf32_str);
+[[nodiscard]] std::string utf32toUtf8(const std::u32string_view utf32_str);
 
 } // namespace custard::unicode
 

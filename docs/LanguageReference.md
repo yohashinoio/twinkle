@@ -126,6 +126,9 @@ In this language, **assignments are statements**, so a syntax such as "a = b = c
 | Function call | a(a1, a2) |
 | Conversion    | a as type |
 | Sizeof        | sizeof a  |
+| Pipeline      | a |> b()  |
+
+The pipeline operator is the same as Elixir's.
 
 This section on Operators is based on "Operators in C and C++" from wikipedia.<br/>
 Thank you!

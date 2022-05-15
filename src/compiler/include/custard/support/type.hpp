@@ -19,7 +19,7 @@
 namespace custard
 {
 
-enum class SignKind : unsigned char {
+enum class SignKind {
   unsigned_,
   signed_,
   struct_,
@@ -75,7 +75,7 @@ enum class SignKind : unsigned char {
 */
 using SignKindStack = std::stack<SignKind>;
 
-enum class BuiltinTypeKind : unsigned char {
+enum class BuiltinTypeKind {
   void_,
   i8,
   i16,
@@ -343,12 +343,12 @@ private:
 };
 
 // Variable qualifier.
-enum class VariableQual : unsigned char {
+enum class VariableQual {
   no_qualifier,
   mutable_,
 };
 
-enum class Linkage : unsigned char {
+enum class Linkage {
   unknown,
   external,
   internal,

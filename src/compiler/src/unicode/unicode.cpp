@@ -10,7 +10,7 @@
 namespace custard::unicode
 {
 
-std::string utf32toUtf8(const char32_t utf32)
+[[nodiscard]] std::string utf32toUtf8(const char32_t utf32)
 {
   std::u32string tmp{utf32};
 
@@ -19,7 +19,7 @@ std::string utf32toUtf8(const char32_t utf32)
   return std::string(first, last);
 }
 
-std::string utf32toUtf8(const std::u32string_view utf32_str)
+[[nodiscard]] std::string utf32toUtf8(const std::u32string_view utf32_str)
 {
   boost::u32_to_u8_iterator first{cbegin(utf32_str)}, last{cend(utf32_str)};
 

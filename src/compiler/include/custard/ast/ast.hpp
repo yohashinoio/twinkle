@@ -57,6 +57,7 @@ struct UnaryOp;
 struct FunctionCall;
 struct Conversion;
 struct Subscript;
+struct Pipeline;
 
 using Expr = boost::variant<Nil,
                             std::uint32_t, // Unsigned integer literals (32bit)
@@ -71,7 +72,8 @@ using Expr = boost::variant<Nil,
                             boost::recursive_wrapper<UnaryOp>,
                             boost::recursive_wrapper<Subscript>,
                             boost::recursive_wrapper<FunctionCall>,
-                            boost::recursive_wrapper<Conversion>>;
+                            boost::recursive_wrapper<Conversion>,
+                            boost::recursive_wrapper<Pipeline>>;
 
 struct BinOp : x3::position_tagged {
   Expr           lhs;
@@ -94,7 +96,7 @@ struct BinOp : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char {
+  enum class Kind {
     unknown,
     add,         // Addition
     sub,         // Subtraciton
@@ -156,7 +158,7 @@ struct UnaryOp : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char {
+  enum class Kind {
     unknown,
     plus,        // Unary plus
     minus,       // Unary minus
@@ -191,13 +193,29 @@ struct Subscript : x3::position_tagged {
 };
 
 struct FunctionCall : x3::position_tagged {
-  Identifier        callee;
-  std::vector<Expr> args;
+  Identifier callee;
+
+  // Using deque instead of vector because of the possibility of adding an
+  // element at the front.
+  std::deque<Expr> args;
 };
 
 struct Conversion : x3::position_tagged {
   Expr                  lhs;
   std::shared_ptr<Type> as;
+};
+
+struct Pipeline : x3::position_tagged {
+  Expr           lhs;
+  std::u32string op;
+  Expr           rhs;
+
+  Pipeline(Expr&& lhs, std::u32string&& op, Expr&& rhs)
+    : lhs{std::move(lhs)}
+    , op{std::move(op)}
+    , rhs{std::move(rhs)}
+  {
+  }
 };
 
 //===----------------------------------------------------------------------===//
@@ -233,7 +251,7 @@ struct Assignment : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char {
+  enum class Kind {
     unknown,
     direct, // Direct assignment
     add,    // Addition assignment
@@ -271,7 +289,7 @@ struct PrefixIncAndDec : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char {
+  enum class Kind {
     unknown,
     increment,
     decrement,

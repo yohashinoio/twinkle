@@ -212,9 +212,6 @@ createLogicalAnd(CGContext& ctx, const Value& lhs, const Value& rhs);
 [[nodiscard]] Value
 createLogicalOr(CGContext& ctx, const Value& lhs, const Value& rhs);
 
-[[nodiscard]] Value
-createPipeline(CGContext& ctx, const Value& lhs, const Value& rhs);
-
 [[nodiscard]] Value createLogicalNot(CGContext& ctx, const Value& value);
 
 [[nodiscard]] Value createSizeOf(CGContext& ctx, const Value& value);

@@ -54,13 +54,20 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   custard::ast::FunctionCall,
   (custard::ast::Identifier, callee)
-  (std::vector<custard::ast::Expr>, args)
+  (std::deque<custard::ast::Expr>, args)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
   custard::ast::Conversion,
   (custard::ast::Expr, lhs)
   (std::shared_ptr<custard::Type>, as)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+  custard::ast::Pipeline,
+  (custard::ast::Expr, lhs)
+  (std::u32string, op)
+  (custard::ast::Expr, rhs)
 )
 
 //===----------------------------------------------------------------------===//

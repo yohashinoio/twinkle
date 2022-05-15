@@ -47,10 +47,10 @@ struct PositionCacheTag;
 
 struct AnnotatePosition {
   template <typename T, typename Iterator, typename Context>
-  inline void on_success(const Iterator& first,
-                         const Iterator& last,
-                         T&              ast,
-                         const Context&  ctx)
+  void on_success(const Iterator& first,
+                  const Iterator& last,
+                  T&              ast,
+                  const Context&  ctx)
   {
     auto&& position_cache = x3::get<PositionCacheTag>(ctx);
     position_cache.annotate(ast, first, last);
@@ -68,10 +68,16 @@ const auto assignAttrToVal = [](auto&& ctx) {
   x3::_val(ctx) = std::move(x3::_attr(ctx));
 };
 
-const auto assignBinOpToVal = [](auto&& ctx) {
-  ast::BinOp ast{std::move(x3::_val(ctx)),
-                 std::move(fusion::at_c<0>(x3::_attr(ctx))),
-                 std::move(fusion::at_c<1>(x3::_attr(ctx)))};
+// Only for ASTs of binary operators!
+template <typename T>
+const auto assignToValAs = [](auto&& ctx) {
+  static_assert(
+    std::is_same_v<T, ast::BinOp> || std::is_same_v<T, ast::Pipeline>,
+    "T must be a binary operation!");
+
+  T ast{std::move(x3::_val(ctx)),
+        std::move(fusion::at_c<0>(x3::_attr(ctx))),
+        std::move(fusion::at_c<1>(x3::_attr(ctx)))};
 
   auto&& position_cache = x3::get<PositionCacheTag>(ctx);
   position_cache.annotate(ast, x3::_where(ctx).begin(), x3::_where(ctx).end());
@@ -351,26 +357,27 @@ const auto expr_def = binary_logical;
 
 const auto binary_logical_def
   = equal[action::assignAttrToVal]
-    >> *(binary_logical_operator > equal)[action::assignBinOpToVal];
+    >> *(binary_logical_operator > equal)[action::assignToValAs<ast::BinOp>];
 
 const auto equal_def
   = relation[action::assignAttrToVal]
-    >> *(equality_operator > relation)[action::assignBinOpToVal];
+    >> *(equality_operator > relation)[action::assignToValAs<ast::BinOp>];
 
 const auto relation_def
   = pipeline[action::assignAttrToVal]
-    >> *(relational_operator > pipeline)[action::assignBinOpToVal];
+    >> *(relational_operator > pipeline)[action::assignToValAs<ast::BinOp>];
 
 const auto pipeline_def
   = add[action::assignAttrToVal]
-    >> *(pipeline_operator > add)[action::assignBinOpToVal];
+    >> *(pipeline_operator > add)[action::assignToValAs<ast::Pipeline>];
 
-const auto add_def = mul[action::assignAttrToVal]
-                     >> *(additive_operator > mul)[action::assignBinOpToVal];
+const auto add_def
+  = mul[action::assignAttrToVal]
+    >> *(additive_operator > mul)[action::assignToValAs<ast::BinOp>];
 
 const auto mul_def
   = conversion[action::assignAttrToVal]
-    >> *(multitive_operator > conversion)[action::assignBinOpToVal];
+    >> *(multitive_operator > conversion)[action::assignToValAs<ast::BinOp>];
 
 const auto conversion_internal_def = unary >> lit(U"as") > type;
 const auto conversion_def          = conversion_internal | unary;

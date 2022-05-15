@@ -11,10 +11,6 @@
 namespace custard::codegen
 {
 
-//===----------------------------------------------------------------------===//
-// Expression visitor
-//===----------------------------------------------------------------------===//
-
 // Be careful about the lifetime of the return value references.
 [[nodiscard]] Variable&
 findVariable(CGContext& ctx, const ast::Identifier& node, SymbolTable& scope)
@@ -251,9 +247,6 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     case ast::BinOp::Kind::logical_or:
       return createLogicalOr(ctx, lhs, rhs);
 
-    case ast::BinOp::Kind::pipeline:
-      return createPipeline(ctx, lhs, rhs);
-
     case ast::BinOp::Kind::unknown:
       throw CodegenError{ctx.formatError(
         ctx.positions.position_of(node),
@@ -307,47 +300,27 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     auto const callee_func = ctx.module->getFunction(callee);
 
+    const auto pos = ctx.positions.position_of(node);
+
     if (!callee_func) {
       throw CodegenError{ctx.formatError(
-        ctx.positions.position_of(node),
+        pos,
         fmt::format("unknown function '{}' referenced", callee))};
     }
 
     if (!callee_func->isVarArg()
         && callee_func->arg_size() != node.args.size()) {
-      throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
-                                         "incorrect arguments passed")};
+      throw CodegenError{ctx.formatError(pos, "incorrect arguments passed")};
     }
 
-    std::vector<llvm::Value*> args_value;
-    for (std::size_t i = 0, size = node.args.size(); i != size; ++i) {
-      args_value.emplace_back(
-        boost::apply_visitor(*this, node.args[i]).getValue());
+    const auto arg_values = createArgValues(node.args, callee, pos);
 
-      if (!args_value.back()) {
-        throw CodegenError{ctx.formatError(
-          ctx.positions.position_of(node),
-          fmt::format("argument set failed in call to the function '{}'",
-                      callee))};
-      }
-    }
+    verifyArguments(arg_values, callee_func, pos);
 
-    // Verify arguments
-    for (std::size_t idx = 0; auto&& arg : callee_func->args()) {
-      if (!strictEquals(args_value[idx++]->getType(), arg.getType())) {
-        throw CodegenError{ctx.formatError(
-          ctx.positions.position_of(node),
-          fmt::format("incompatible type for argument {} of '{}'",
-                      idx,
-                      callee))};
-      }
-    }
-
-    // Get return type.
     const auto return_type = ctx.frt_table[callee];
     assert(return_type);
 
-    return {ctx.builder.CreateCall(callee_func, args_value),
+    return {ctx.builder.CreateCall(callee_func, arg_values),
             return_type.value()->createSignKindStack()};
   }
 
@@ -383,6 +356,23 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     unreachable();
   }
 
+  [[nodiscard]] Value operator()(const ast::Pipeline& node) const
+  {
+    if (node.rhs.type() != typeid(ast::FunctionCall)) {
+      throw CodegenError{ctx.formatError(
+        ctx.positions.position_of(node),
+        "the right side of the pipeline requires a function call",
+        false)};
+    }
+
+    // Copy.
+    auto call = boost::get<ast::FunctionCall>(node.rhs);
+
+    call.args.push_front(node.lhs);
+
+    return this->operator()(call);
+  }
+
 private:
   [[nodiscard]] Value createAddressOf(const Value& rhs) const
   {
@@ -409,6 +399,43 @@ private:
                                    rhs.getValue()),
             std::move(tmp),
             rhs.isMutable()};
+  }
+
+  void verifyArguments(const std::vector<llvm::Value*>&            args_value,
+                       llvm::Function* const                       callee,
+                       const boost::iterator_range<InputIterator>& pos) const
+  {
+    // Verify arguments
+    for (std::size_t idx = 0; auto&& arg : callee->args()) {
+      if (!strictEquals(args_value[idx++]->getType(), arg.getType())) {
+        throw CodegenError{ctx.formatError(
+          pos,
+          fmt::format("incompatible type for argument {} of '{}'",
+                      idx,
+                      callee->getName()))};
+      }
+    }
+  }
+
+  [[nodiscard]] std::vector<llvm::Value*>
+  createArgValues(const std::deque<ast::Expr>&                args,
+                  const std::string_view                      callee,
+                  const boost::iterator_range<InputIterator>& pos) const
+  {
+    std::vector<llvm::Value*> arg_values;
+
+    for (std::size_t i = 0, size = args.size(); i != size; ++i) {
+      arg_values.emplace_back(boost::apply_visitor(*this, args[i]).getValue());
+
+      if (!arg_values.back()) {
+        throw CodegenError{ctx.formatError(
+          pos,
+          fmt::format("argument set failed in call to the function '{}'",
+                      callee))};
+      }
+    }
+
+    return arg_values;
   }
 
   CGContext& ctx;
