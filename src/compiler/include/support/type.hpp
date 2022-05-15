@@ -16,11 +16,10 @@
 #include <support/utils.hpp>
 #include <boost/lexical_cast.hpp>
 
-namespace maple
+namespace custard
 {
 
-enum class SignKind : unsigned char
-{
+enum class SignKind : unsigned char {
   unsigned_,
   signed_,
   struct_,
@@ -76,8 +75,7 @@ enum class SignKind : unsigned char
 */
 using SignKindStack = std::stack<SignKind>;
 
-enum class BuiltinTypeKind : unsigned char
-{
+enum class BuiltinTypeKind : unsigned char {
   void_,
   i8,
   i16,
@@ -345,14 +343,12 @@ private:
 };
 
 // Variable qualifier.
-enum class VariableQual : unsigned char
-{
+enum class VariableQual : unsigned char {
   no_qualifier,
   mutable_,
 };
 
-enum class Linkage : unsigned char
-{
+enum class Linkage : unsigned char {
   unknown,
   external,
   internal,
@@ -361,6 +357,6 @@ enum class Linkage : unsigned char
 [[nodiscard]] llvm::Function::LinkageTypes
 linkageToLLVM(const Linkage linkage) noexcept;
 
-} // namespace maple
+} // namespace custard
 
 #endif

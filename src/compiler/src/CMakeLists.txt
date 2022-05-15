@@ -1,4 +1,4 @@
-set(LIB_NAME mplc)
+set(LIB_NAME custardc)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 

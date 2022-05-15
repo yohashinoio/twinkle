@@ -14,7 +14,7 @@
 
 #include <pch/pch.hpp>
 
-namespace maple
+namespace custard
 {
 
 namespace program_options = boost::program_options;
@@ -37,6 +37,6 @@ getInputFiles(const std::string_view                program_name,
 getRelocationModel(const std::string_view                program_name,
                    const program_options::variables_map& vmap);
 
-} // namespace maple
+} // namespace custard
 
 #endif

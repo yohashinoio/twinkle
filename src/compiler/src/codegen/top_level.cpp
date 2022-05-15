@@ -9,7 +9,7 @@
 #include <codegen/stmt.hpp>
 #include <codegen/exception.hpp>
 
-namespace maple::codegen
+namespace custard::codegen
 {
 
 // Returns std::nullopt if there are multiple variadic arguments
@@ -273,4 +273,4 @@ llvm::Function* createTopLevel(CGContext&                         ctx,
   return boost::apply_visitor(TopLevelVisitor{ctx, fp_manager}, node);
 }
 
-} // namespace maple::codegen
+} // namespace custard::codegen

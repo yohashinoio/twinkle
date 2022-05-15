@@ -9,7 +9,7 @@
 #include <codegen/expr.hpp>
 #include <codegen/exception.hpp>
 
-namespace maple::codegen
+namespace custard::codegen
 {
 
 //===----------------------------------------------------------------------===//
@@ -452,8 +452,8 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
 private:
   [[nodiscard]] Value createAssignableValue(
-    const ast::Identifier&                            node,
-    const boost::iterator_range<maple::InputIterator> pos) const
+    const ast::Identifier&                              node,
+    const boost::iterator_range<custard::InputIterator> pos) const
   {
     const auto& variable = findVariable(ctx, node, scope);
 
@@ -470,8 +470,8 @@ private:
   }
 
   [[nodiscard]] Value createAssignableValue(
-    const ast::Subscript&                             node,
-    const boost::iterator_range<maple::InputIterator> pos) const
+    const ast::Subscript&                               node,
+    const boost::iterator_range<custard::InputIterator> pos) const
   {
     const auto& variable = findVariable(ctx, node.ident, scope);
 
@@ -493,8 +493,8 @@ private:
   }
 
   [[nodiscard]] Value createAssignableValue(
-    const ast::Expr&                                  node,
-    const boost::iterator_range<maple::InputIterator> pos) const
+    const ast::Expr&                                    node,
+    const boost::iterator_range<custard::InputIterator> pos) const
   {
     Value value;
 
@@ -729,4 +729,4 @@ void createStatement(CGContext&        ctx,
     statement);
 }
 
-} // namespace maple::codegen
+} // namespace custard::codegen

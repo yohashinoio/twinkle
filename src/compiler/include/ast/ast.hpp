@@ -16,13 +16,12 @@
 #include <support/type.hpp>
 #include <unicode/unicode.hpp>
 
-namespace maple::ast
+namespace custard::ast
 {
 
 namespace x3 = boost::spirit::x3;
 
-struct Nil {
-};
+struct Nil {};
 
 //===----------------------------------------------------------------------===//
 // Expression AST
@@ -95,8 +94,7 @@ struct BinOp : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char
-  {
+  enum class Kind : unsigned char {
     unknown,
     add,         // Addition
     sub,         // Subtraciton
@@ -111,6 +109,7 @@ struct BinOp : x3::position_tagged {
     ge,          // Greater than or equal to
     logical_and, // Logical AND
     logical_or,  // Logical OR
+    pipeline,    // Pipe line
   };
 
   Kind kind() const
@@ -141,6 +140,8 @@ struct BinOp : x3::position_tagged {
       return Kind::logical_and;
     if (op == U"||")
       return Kind::logical_or;
+    if (op == U"|>")
+      return Kind::pipeline;
 
     return Kind::unknown;
   }
@@ -155,8 +156,7 @@ struct UnaryOp : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char
-  {
+  enum class Kind : unsigned char {
     unknown,
     plus,        // Unary plus
     minus,       // Unary minus
@@ -233,8 +233,7 @@ struct Assignment : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char
-  {
+  enum class Kind : unsigned char {
     unknown,
     direct, // Direct assignment
     add,    // Addition assignment
@@ -272,8 +271,7 @@ struct PrefixIncAndDec : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind : unsigned char
-  {
+  enum class Kind : unsigned char {
     unknown,
     increment,
     decrement,
@@ -290,11 +288,9 @@ struct PrefixIncAndDec : x3::position_tagged {
   }
 };
 
-struct Break : x3::position_tagged {
-};
+struct Break : x3::position_tagged {};
 
-struct Continue : x3::position_tagged {
-};
+struct Continue : x3::position_tagged {};
 
 struct Petrify : x3::position_tagged {
   Identifier ident;
@@ -419,6 +415,6 @@ using TopLevel = boost::variant<Nil, FunctionDecl, FunctionDef, StructDecl>;
 
 using Program = std::vector<TopLevel>;
 
-} // namespace maple::ast
+} // namespace custard::ast
 
 #endif

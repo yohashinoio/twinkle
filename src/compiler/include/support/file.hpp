@@ -14,13 +14,13 @@
 
 #include <pch/pch.hpp>
 
-namespace maple
+namespace custard
 {
 
 // Load a file to std::string.
 [[nodiscard]] std::string loadFile(const std::string_view       argv_front,
                                    const std::filesystem::path& path);
 
-} // namespace maple
+} // namespace custard
 
 #endif

@@ -18,49 +18,49 @@
 //===----------------------------------------------------------------------===//
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::StringLiteral,
+  custard::ast::StringLiteral,
   (std::u32string, str)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::CharLiteral,
-  (maple::unicode::Codepoint, ch)
+  custard::ast::CharLiteral,
+  (custard::unicode::Codepoint, ch)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::Identifier,
+  custard::ast::Identifier,
   (std::u32string, name)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::BinOp,
-  (maple::ast::Expr, lhs)
+  custard::ast::BinOp,
+  (custard::ast::Expr, lhs)
   (std::u32string, op)
-  (maple::ast::Expr, rhs)
+  (custard::ast::Expr, rhs)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::UnaryOp,
+  custard::ast::UnaryOp,
   (std::u32string, op)
-  (maple::ast::Expr, rhs)
+  (custard::ast::Expr, rhs)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::Subscript,
-  (maple::ast::Identifier, ident)
-  (maple::ast::Expr, nsubscript)
+  custard::ast::Subscript,
+  (custard::ast::Identifier, ident)
+  (custard::ast::Expr, nsubscript)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::FunctionCall,
-  (maple::ast::Identifier, callee)
-  (std::vector<maple::ast::Expr>, args)
+  custard::ast::FunctionCall,
+  (custard::ast::Identifier, callee)
+  (std::vector<custard::ast::Expr>, args)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::Conversion,
-  (maple::ast::Expr, lhs)
-  (std::shared_ptr<maple::Type>, as)
+  custard::ast::Conversion,
+  (custard::ast::Expr, lhs)
+  (std::shared_ptr<custard::Type>, as)
 )
 
 //===----------------------------------------------------------------------===//
@@ -68,73 +68,73 @@ BOOST_FUSION_ADAPT_STRUCT(
 //===----------------------------------------------------------------------===//
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::InitializerList,
-  (std::vector<maple::ast::Expr>, inits)
+  custard::ast::InitializerList,
+  (std::vector<custard::ast::Expr>, inits)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::VariableDef,
-  (std::optional<maple::VariableQual>, qualifier)
-  (maple::ast::Identifier, name)
-  (std::optional<std::shared_ptr<maple::Type>>, type)
-  (std::optional<maple::ast::Initializer>, initializer)
+  custard::ast::VariableDef,
+  (std::optional<custard::VariableQual>, qualifier)
+  (custard::ast::Identifier, name)
+  (std::optional<std::shared_ptr<custard::Type>>, type)
+  (std::optional<custard::ast::Initializer>, initializer)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::Return,
-  (std::optional<maple::ast::Expr>, rhs)
+  custard::ast::Return,
+  (std::optional<custard::ast::Expr>, rhs)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::Assignment,
-  (maple::ast::Expr, lhs)
+  custard::ast::Assignment,
+  (custard::ast::Expr, lhs)
   (std::u32string, op)
-  (maple::ast::Expr, rhs)
+  (custard::ast::Expr, rhs)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::PrefixIncAndDec,
+  custard::ast::PrefixIncAndDec,
   (std::u32string, op)
-  (maple::ast::Expr, rhs)
+  (custard::ast::Expr, rhs)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::Break,
+  custard::ast::Break,
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::Continue,
+  custard::ast::Continue,
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::Petrify,
-  (maple::ast::Identifier, ident)
+  custard::ast::Petrify,
+  (custard::ast::Identifier, ident)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::If,
-  (maple::ast::Expr, condition)
-  (maple::ast::Stmt, then_statement)
-  (std::optional<maple::ast::Stmt>, else_statement)
+  custard::ast::If,
+  (custard::ast::Expr, condition)
+  (custard::ast::Stmt, then_statement)
+  (std::optional<custard::ast::Stmt>, else_statement)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::Loop,
-  (maple::ast::Stmt, body)
+  custard::ast::Loop,
+  (custard::ast::Stmt, body)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::While,
-  (maple::ast::Expr, cond_expr)
-  (maple::ast::Stmt, body)
+  custard::ast::While,
+  (custard::ast::Expr, cond_expr)
+  (custard::ast::Stmt, body)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::For,
-  (std::optional<maple::ast::ForInitVariant>, init_stmt)
-  (std::optional<maple::ast::Expr>, cond_expr)
-  (std::optional<maple::ast::ForLoopVariant>, loop_stmt)
-  (maple::ast::Stmt, body)
+  custard::ast::For,
+  (std::optional<custard::ast::ForInitVariant>, init_stmt)
+  (std::optional<custard::ast::Expr>, cond_expr)
+  (std::optional<custard::ast::ForLoopVariant>, loop_stmt)
+  (custard::ast::Stmt, body)
 )
 
 //===----------------------------------------------------------------------===//
@@ -142,42 +142,42 @@ BOOST_FUSION_ADAPT_STRUCT(
 //===----------------------------------------------------------------------===//
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::StructElement,
-  (maple::ast::Identifier, name)
-  (std::shared_ptr<maple::Type>, type)
+  custard::ast::StructElement,
+  (custard::ast::Identifier, name)
+  (std::shared_ptr<custard::Type>, type)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::StructDecl,
-  (maple::ast::Identifier, name)
-  (std::shared_ptr<maple::Type>, type)
+  custard::ast::StructDecl,
+  (custard::ast::Identifier, name)
+  (std::shared_ptr<custard::Type>, type)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::Parameter,
-  (maple::ast::Identifier, name)
-  (std::optional<maple::VariableQual>, qualifier)
-  (std::shared_ptr<maple::Type>, type)
+  custard::ast::Parameter,
+  (custard::ast::Identifier, name)
+  (std::optional<custard::VariableQual>, qualifier)
+  (std::shared_ptr<custard::Type>, type)
   (bool, is_variadic_args)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::ParameterList,
-  (std::vector<maple::ast::Parameter>, params)
+  custard::ast::ParameterList,
+  (std::vector<custard::ast::Parameter>, params)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::FunctionDecl,
-  (maple::Linkage, linkage)
-  (maple::ast::Identifier, name)
-  (maple::ast::ParameterList, params)
-  (std::shared_ptr<maple::Type>, return_type)
+  custard::ast::FunctionDecl,
+  (custard::Linkage, linkage)
+  (custard::ast::Identifier, name)
+  (custard::ast::ParameterList, params)
+  (std::shared_ptr<custard::Type>, return_type)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::FunctionDef,
-	(maple::ast::FunctionDecl, decl)
-  (maple::ast::Stmt, body)
+  custard::ast::FunctionDef,
+	(custard::ast::FunctionDecl, decl)
+  (custard::ast::Stmt, body)
 )
 
 // clang-format on

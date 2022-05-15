@@ -15,7 +15,7 @@
 #include <pch/pch.hpp>
 #include <codegen/codegen.hpp>
 
-namespace maple::codegen
+namespace custard::codegen
 {
 
 // Class that wraps llvm::Value.
@@ -212,6 +212,9 @@ createLogicalAnd(CGContext& ctx, const Value& lhs, const Value& rhs);
 [[nodiscard]] Value
 createLogicalOr(CGContext& ctx, const Value& lhs, const Value& rhs);
 
+[[nodiscard]] Value
+createPipeline(CGContext& ctx, const Value& lhs, const Value& rhs);
+
 [[nodiscard]] Value createLogicalNot(CGContext& ctx, const Value& value);
 
 [[nodiscard]] Value createSizeOf(CGContext& ctx, const Value& value);
@@ -221,6 +224,6 @@ createLogicalOr(CGContext& ctx, const Value& lhs, const Value& rhs);
 [[nodiscard]] bool strictEquals(const llvm::Type* const left,
                                 const llvm::Type* const right);
 
-} // namespace maple::codegen
+} // namespace custard::codegen
 
 #endif

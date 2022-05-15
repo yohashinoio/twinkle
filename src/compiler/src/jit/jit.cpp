@@ -8,7 +8,7 @@
 #include <jit/jit.hpp>
 #include <support/utils.hpp>
 
-namespace maple::jit
+namespace custard::jit
 {
 
 JitCompiler::JitCompiler(
@@ -87,4 +87,4 @@ JitCompiler::lookup(const llvm::StringRef name)
   return exec_session->lookup({&main_jd}, mangle(name.str()));
 }
 
-} // namespace maple::jit
+} // namespace custard::jit

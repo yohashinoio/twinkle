@@ -7,7 +7,7 @@
 
 #include <unicode/unicode.hpp>
 
-namespace maple::unicode
+namespace custard::unicode
 {
 
 std::string utf32toUtf8(const char32_t utf32)
@@ -26,4 +26,4 @@ std::string utf32toUtf8(const std::u32string_view utf32_str)
   return std::string(first, last);
 }
 
-} // namespace maple::unicode
+} // namespace custard::unicode

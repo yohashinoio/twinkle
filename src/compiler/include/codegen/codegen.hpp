@@ -19,7 +19,7 @@
 #include <jit/jit.hpp>
 #include <parse/parser.hpp>
 
-namespace maple::codegen
+namespace custard::codegen
 {
 
 // Function return type table.
@@ -148,6 +148,6 @@ private:
   std::vector<parse::Parser::Result> parse_results;
 };
 
-} // namespace maple::codegen
+} // namespace custard::codegen
 
 #endif

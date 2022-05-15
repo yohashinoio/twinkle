@@ -8,14 +8,14 @@
 #include <pch/pch.hpp>
 #include <support/utils.hpp>
 
-namespace maple
+namespace custard
 {
 
 [[nodiscard]] std::string getVersion()
 {
-  const auto major = MAPLE_VER / 100000;
-  const auto minor = MAPLE_VER / 100 % 1000;
-  const auto patch = MAPLE_VER % 100;
+  const auto major = CUSTARD_VER / 100000;
+  const auto minor = CUSTARD_VER / 100 % 1000;
+  const auto patch = CUSTARD_VER % 100;
 
   return boost::lexical_cast<std::string>(major) + '.'
          + boost::lexical_cast<std::string>(minor) + '.'
@@ -62,4 +62,4 @@ namespace maple
 #endif
 }
 
-} // namespace maple
+} // namespace custard

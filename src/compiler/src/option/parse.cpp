@@ -9,7 +9,7 @@
 #include <option/exception.hpp>
 #include <support/utils.hpp>
 
-namespace maple
+namespace custard
 {
 
 namespace program_options = boost::program_options;
@@ -91,4 +91,4 @@ getRelocationModel(const std::string_view                program_name,
   }
 }
 
-} // namespace maple
+} // namespace custard

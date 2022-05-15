@@ -14,7 +14,7 @@
 
 #include <support/exception.hpp>
 
-namespace maple::codegen
+namespace custard::codegen
 {
 
 struct CodegenError : public ErrorBase {
@@ -24,6 +24,6 @@ struct CodegenError : public ErrorBase {
   }
 };
 
-} // namespace maple::codegen
+} // namespace custard::codegen
 
 #endif

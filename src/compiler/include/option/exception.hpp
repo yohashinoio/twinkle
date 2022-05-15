@@ -14,7 +14,7 @@
 
 #include <support/exception.hpp>
 
-namespace maple
+namespace custard
 {
 
 struct OptionError : public ErrorBase {
@@ -24,6 +24,6 @@ struct OptionError : public ErrorBase {
   }
 };
 
-} // namespace maple
+} // namespace custard
 
 #endif

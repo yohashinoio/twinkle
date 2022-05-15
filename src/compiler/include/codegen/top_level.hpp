@@ -16,7 +16,7 @@
 #include <codegen/codegen.hpp>
 #include <codegen/common.hpp>
 
-namespace maple::codegen
+namespace custard::codegen
 {
 
 // It is not mandatory to receive a return value.
@@ -24,6 +24,6 @@ llvm::Function* createTopLevel(CGContext&                         ctx,
                                llvm::legacy::FunctionPassManager& fp_manager,
                                const ast::TopLevel&               node);
 
-} // namespace maple::codegen
+} // namespace custard::codegen
 
 #endif

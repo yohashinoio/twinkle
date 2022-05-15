@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>The Maple Programming Language</h1>
+  <h1>The Custard Programming Language</h1>
 
   [Getting Started](docs/GettingStarted.md) |
   [Language Reference](docs/LanguageReference.md) |
@@ -9,7 +9,7 @@
 ## Notes
 Since the author only understands Japanese, this document was created with translation at DeepL.
 
-## Key Features of Maple
+## Key Features of Custard
 - Syntax is like c++, swift and rust combined.
 - Language specification is similar to c++.
 - LLVM backend.
@@ -21,15 +21,16 @@ Since the author only understands Japanese, this document was created with trans
 - LLVM (Confirmed to work with 13 and 14)
 - Boost
 - CMake
-- Make (Of course, ninja will work)
+- Make (Anything that is supported by CMake)
 - C++20 compiler
+- GCC
 
 ### Install dependencies (Ubuntu)
 Here is how to install them in ubuntu.
 ```bash
 $ sudo apt update -y
 ```
-Install GCC Make CMake Boost.
+Install GCC, Make, CMake and Boost.
 ```bash
 $ sudo apt install -y build-essential cmake libboost-all-dev
 ```
@@ -39,10 +40,10 @@ $ sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
 ```
 
 ### Installation
-Clone maple repository.
+Clone custard repository.
 ```bash
-$ git clone https://github.com/GothicLoli/maple.git
-$ cd maple
+$ git clone https://github.com/GothicLoli/custard.git
+$ cd custard
 ```
 Create build directory.
 ```bash

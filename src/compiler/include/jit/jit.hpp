@@ -14,7 +14,7 @@
 
 #include <pch/pch.hpp>
 
-namespace maple::jit
+namespace custard::jit
 {
 
 struct JitCompiler {
@@ -49,6 +49,6 @@ private:
   llvm::orc::JITDylib& main_jd;
 };
 
-} // namespace maple::jit
+} // namespace custard::jit
 
 #endif

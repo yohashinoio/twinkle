@@ -1,4 +1,4 @@
-set(RUNTIME_NAME maplec)
+set(RUNTIME_NAME custc)
 
 include(GNUInstallDirs)
 
@@ -12,7 +12,7 @@ add_executable(
 target_link_libraries(
   ${RUNTIME_NAME}
   PRIVATE
-  mplc
+  custardc
 )
 
 target_compile_options(

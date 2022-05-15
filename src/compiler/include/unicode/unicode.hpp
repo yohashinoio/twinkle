@@ -17,7 +17,7 @@
 // In this program, code points are treated as std::uint32_t and encoded ones as
 // char32_t
 
-namespace maple::unicode
+namespace custard::unicode
 {
 
 using Codepoint = char32_t;
@@ -27,6 +27,6 @@ std::string utf32toUtf8(const char32_t utf32);
 
 std::string utf32toUtf8(const std::u32string_view utf32_str);
 
-} // namespace maple::unicode
+} // namespace custard::unicode
 
 #endif

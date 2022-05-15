@@ -16,7 +16,7 @@
 #include <support/utils.hpp>
 #include <support/typedef.hpp>
 
-namespace maple::parse
+namespace custard::parse
 {
 
 struct Parser {
@@ -59,6 +59,6 @@ private:
   std::filesystem::path file;
 };
 
-} // namespace maple::parse
+} // namespace custard::parse
 
 #endif

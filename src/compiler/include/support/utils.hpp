@@ -15,10 +15,10 @@
 #include <pch/pch.hpp>
 #include <deque>
 
-namespace maple
+namespace custard
 {
 
-constexpr unsigned int MAPLE_VER = 100000;
+constexpr unsigned int CUSTARD_VER = 100000;
 
 [[nodiscard]] std::string getVersion();
 
@@ -52,8 +52,8 @@ template <typename T, typename... Ts>
 
 [[noreturn]] void unreachableInternal(const std::size_t line, const char* file);
 
-#define unreachable() ::maple::unreachableInternal(__LINE__, __FILE__)
+#define unreachable() ::custard::unreachableInternal(__LINE__, __FILE__)
 
-} // namespace maple
+} // namespace custard
 
 #endif

@@ -16,7 +16,7 @@
 #include <codegen/codegen.hpp>
 #include <codegen/common.hpp>
 
-namespace maple::codegen
+namespace custard::codegen
 {
 
 struct InitializerList {
@@ -92,6 +92,6 @@ void createStatement(CGContext&        ctx,
                      llvm::BasicBlock* break_bb,
                      llvm::BasicBlock* continue_bb);
 
-} // namespace maple::codegen
+} // namespace custard::codegen
 
 #endif

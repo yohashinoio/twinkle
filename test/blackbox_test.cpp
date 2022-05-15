@@ -137,7 +137,7 @@ int main(const int argc, const char* const* const argv)
     std::cerr.setstate(std::ios::failbit);
 
     const auto result
-      = maple::compile::main(std::extent_v<decltype(c_argv)>, c_argv);
+      = custard::compile::main(std::extent_v<decltype(c_argv)>, c_argv);
 
     std::cerr.clear();
 

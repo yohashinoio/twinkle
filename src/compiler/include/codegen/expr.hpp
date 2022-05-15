@@ -16,7 +16,7 @@
 #include <codegen/codegen.hpp>
 #include <codegen/common.hpp>
 
-namespace maple::codegen
+namespace custard::codegen
 {
 
 // Be careful about the lifetime of the return value references.
@@ -27,6 +27,6 @@ findVariable(CGContext& ctx, const ast::Identifier& node, SymbolTable& scope);
 [[nodiscard]] Value
 createExpr(CGContext& ctx, SymbolTable& scope, const ast::Expr& expr);
 
-} // namespace maple::codegen
+} // namespace custard::codegen
 
 #endif

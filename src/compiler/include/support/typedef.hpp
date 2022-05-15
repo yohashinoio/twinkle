@@ -14,7 +14,7 @@
 
 #include <pch/pch.hpp>
 
-namespace maple
+namespace custard
 {
 
 //===----------------------------------------------------------------------===//
@@ -27,6 +27,6 @@ using InputIterator
 using PositionCache
   = boost::spirit::x3::position_cache<std::vector<InputIterator>>;
 
-} // namespace maple
+} // namespace custard
 
 #endif

@@ -15,7 +15,7 @@
 #include <pch/pch.hpp>
 #include <stdexcept>
 
-namespace maple
+namespace custard
 {
 
 struct ErrorBase : public std::runtime_error {
@@ -25,6 +25,6 @@ struct ErrorBase : public std::runtime_error {
   }
 };
 
-} // namespace maple
+} // namespace custard
 
 #endif

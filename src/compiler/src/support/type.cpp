@@ -8,7 +8,7 @@
 #include <support/type.hpp>
 #include <ast/ast.hpp>
 
-namespace maple
+namespace custard
 {
 
 [[nodiscard]] llvm::Type* BuiltinType::getType(llvm::LLVMContext& context) const
@@ -107,4 +107,4 @@ linkageToLLVM(const Linkage linkage) noexcept
   unreachable();
 }
 
-} // namespace maple
+} // namespace custard

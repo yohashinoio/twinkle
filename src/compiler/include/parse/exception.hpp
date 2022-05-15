@@ -14,7 +14,7 @@
 
 #include <support/exception.hpp>
 
-namespace maple::parse
+namespace custard::parse
 {
 
 struct ParseError : public ErrorBase {
@@ -24,6 +24,6 @@ struct ParseError : public ErrorBase {
   }
 };
 
-} // namespace maple::parse
+} // namespace custard::parse
 
 #endif

@@ -7,7 +7,7 @@
 
 #include <codegen/common.hpp>
 
-namespace maple::codegen
+namespace custard::codegen
 {
 
 Value::Value(llvm::Value*         value,
@@ -201,6 +201,13 @@ createLogicalOr(CGContext& ctx, const Value& lhs, const Value& rhs)
           createStack(SignKind::unsigned_)};
 }
 
+[[nodiscard]] Value
+createPipeline(CGContext& ctx, const Value& lhs, const Value& rhs)
+{
+  // TODO
+  unreachable();
+}
+
 // The code is based on https://gist.github.com/quantumsheep.
 // Thank you!
 [[nodiscard]] bool strictEquals(const llvm::Type* const left,
@@ -305,4 +312,4 @@ createLogicalOr(CGContext& ctx, const Value& lhs, const Value& rhs)
   unreachable();
 }
 
-} // namespace maple::codegen
+} // namespace custard::codegen

@@ -16,7 +16,7 @@
 
 namespace program_options = boost::program_options;
 
-namespace maple::compile
+namespace custard::compile
 {
 
 static bool isBackNewline(const char* str) noexcept
@@ -114,4 +114,4 @@ catch (const ErrorBase& err) {
   return {false, std::nullopt};
 }
 
-} // namespace maple::compile
+} // namespace custard::compile

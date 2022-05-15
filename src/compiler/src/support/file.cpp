@@ -9,7 +9,7 @@
 #include <support/utils.hpp>
 #include <support/exception.hpp>
 
-namespace maple
+namespace custard
 {
 
 // Exception class for errors related to file operations.
@@ -41,4 +41,4 @@ struct FileError : public ErrorBase {
                 fmt::format("{}: Could not open file", path.string()))};
 }
 
-} // namespace maple
+} // namespace custard

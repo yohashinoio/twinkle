@@ -16,7 +16,7 @@
 #include <unistd.h> // isatty
 #endif
 
-namespace maple::codegen
+namespace custard::codegen
 {
 
 //===----------------------------------------------------------------------===//
@@ -260,4 +260,4 @@ void CodeGenerator::initTargetTripleAndMachine()
                                     relocation_model)); // Set relocation model.
 }
 
-} // namespace maple::codegen
+} // namespace custard::codegen

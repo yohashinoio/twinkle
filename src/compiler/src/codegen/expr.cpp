@@ -8,7 +8,7 @@
 #include <codegen/expr.hpp>
 #include <codegen/exception.hpp>
 
-namespace maple::codegen
+namespace custard::codegen
 {
 
 //===----------------------------------------------------------------------===//
@@ -251,6 +251,9 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     case ast::BinOp::Kind::logical_or:
       return createLogicalOr(ctx, lhs, rhs);
 
+    case ast::BinOp::Kind::pipeline:
+      return createPipeline(ctx, lhs, rhs);
+
     case ast::BinOp::Kind::unknown:
       throw CodegenError{ctx.formatError(
         ctx.positions.position_of(node),
@@ -419,4 +422,4 @@ createExpr(CGContext& ctx, SymbolTable& scope, const ast::Expr& expr)
   return boost::apply_visitor(ExprVisitor{ctx, scope}, expr);
 }
 
-} // namespace maple::codegen
+} // namespace custard::codegen
