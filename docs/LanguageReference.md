@@ -100,7 +100,7 @@ comment.
 
 ### Assignment Operators (Statement)
 | Operator name             | Syntax |
-|; ------------------------- | ------ |
+| ------------------------- | ------ |
 | Direct assignment         | a = b  |
 | Addition assignment	      | a += b |
 | Subtraction assignment	  | a -= b |
