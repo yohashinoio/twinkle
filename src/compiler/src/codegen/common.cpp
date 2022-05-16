@@ -5,9 +5,9 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <custard/codegen/common.hpp>
+#include <maple/codegen/common.hpp>
 
-namespace custard::codegen
+namespace maple::codegen
 {
 
 Value::Value(llvm::Value*         value,
@@ -305,4 +305,4 @@ createLogicalOr(CGContext& ctx, const Value& lhs, const Value& rhs)
   unreachable();
 }
 
-} // namespace custard::codegen
+} // namespace maple::codegen

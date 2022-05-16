@@ -14,7 +14,7 @@
 
 #include <optional>
 
-namespace custard::compile
+namespace maple::compile
 {
 
 struct CompileResult {
@@ -26,6 +26,6 @@ struct CompileResult {
 // Compilation.
 CompileResult main(const int argc, const char* const* const argv);
 
-} // namespace custard::compile
+} // namespace maple::compile
 
 #endif

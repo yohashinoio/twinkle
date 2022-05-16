@@ -12,9 +12,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <custard/pch/pch.hpp>
+#include <maple/pch/pch.hpp>
 
-namespace custard
+namespace maple
 {
 
 //===----------------------------------------------------------------------===//
@@ -27,6 +27,6 @@ using InputIterator
 using PositionCache
   = boost::spirit::x3::position_cache<std::vector<InputIterator>>;
 
-} // namespace custard
+} // namespace maple
 
 #endif

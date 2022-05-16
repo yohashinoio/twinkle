@@ -12,9 +12,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <custard/support/exception.hpp>
+#include <maple/support/exception.hpp>
 
-namespace custard
+namespace maple
 {
 
 struct OptionError : public ErrorBase {
@@ -24,6 +24,6 @@ struct OptionError : public ErrorBase {
   }
 };
 
-} // namespace custard
+} // namespace maple
 
 #endif

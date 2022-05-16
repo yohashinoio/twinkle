@@ -12,9 +12,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <custard/pch/pch.hpp>
+#include <maple/pch/pch.hpp>
 
-namespace custard::jit
+namespace maple::jit
 {
 
 struct JitCompiler {
@@ -49,6 +49,6 @@ private:
   llvm::orc::JITDylib& main_jd;
 };
 
-} // namespace custard::jit
+} // namespace maple::jit
 
 #endif

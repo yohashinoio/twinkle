@@ -5,12 +5,12 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <custard/compile/main.hpp>
+#include <maple/compile/main.hpp>
 #include <cstdlib>
 
 int main(const int argc, const char* const* const argv)
 {
-  const auto c_result = custard::compile::main(argc, argv);
+  const auto c_result = maple::compile::main(argc, argv);
 
   if (!c_result.success) {
     // Failure.

@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <custard/codegen/stmt.hpp>
-#include <custard/codegen/expr.hpp>
-#include <custard/codegen/exception.hpp>
+#include <maple/codegen/stmt.hpp>
+#include <maple/codegen/expr.hpp>
+#include <maple/codegen/exception.hpp>
 
-namespace custard::codegen
+namespace maple::codegen
 {
 
 //===----------------------------------------------------------------------===//
@@ -451,9 +451,9 @@ struct StmtVisitor : public boost::static_visitor<void> {
   }
 
 private:
-  [[nodiscard]] Value createAssignableValue(
-    const ast::Identifier&                              node,
-    const boost::iterator_range<custard::InputIterator> pos) const
+  [[nodiscard]] Value
+  createAssignableValue(const ast::Identifier&                     node,
+                        const boost::iterator_range<InputIterator> pos) const
   {
     const auto& variable = findVariable(ctx, node, scope);
 
@@ -469,9 +469,9 @@ private:
             variable.isMutable()};
   }
 
-  [[nodiscard]] Value createAssignableValue(
-    const ast::Subscript&                               node,
-    const boost::iterator_range<custard::InputIterator> pos) const
+  [[nodiscard]] Value
+  createAssignableValue(const ast::Subscript&                      node,
+                        const boost::iterator_range<InputIterator> pos) const
   {
     const auto& variable = findVariable(ctx, node.ident, scope);
 
@@ -492,9 +492,9 @@ private:
             variable.isMutable()};
   }
 
-  [[nodiscard]] Value createAssignableValue(
-    const ast::Expr&                                    node,
-    const boost::iterator_range<custard::InputIterator> pos) const
+  [[nodiscard]] Value
+  createAssignableValue(const ast::Expr&                           node,
+                        const boost::iterator_range<InputIterator> pos) const
   {
     Value value;
 
@@ -729,4 +729,4 @@ void createStatement(CGContext&        ctx,
     statement);
 }
 
-} // namespace custard::codegen
+} // namespace maple::codegen

@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <custard/support/file.hpp>
-#include <custard/support/utils.hpp>
-#include <custard/support/exception.hpp>
+#include <maple/support/file.hpp>
+#include <maple/support/utils.hpp>
+#include <maple/support/exception.hpp>
 
-namespace custard
+namespace maple
 {
 
 // Exception class for errors related to file operations.
@@ -41,4 +41,4 @@ struct FileError : public ErrorBase {
                 fmt::format("{}: Could not open file", path.string()))};
 }
 
-} // namespace custard
+} // namespace maple

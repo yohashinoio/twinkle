@@ -12,11 +12,11 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <custard/ast/ast.hpp>
-#include <custard/support/utils.hpp>
-#include <custard/support/typedef.hpp>
+#include <maple/ast/ast.hpp>
+#include <maple/support/utils.hpp>
+#include <maple/support/typedef.hpp>
 
-namespace custard::parse
+namespace maple::parse
 {
 
 struct Parser {
@@ -59,6 +59,6 @@ private:
   std::filesystem::path file;
 };
 
-} // namespace custard::parse
+} // namespace maple::parse
 
 #endif

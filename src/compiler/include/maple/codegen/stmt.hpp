@@ -12,11 +12,11 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <custard/pch/pch.hpp>
-#include <custard/codegen/codegen.hpp>
-#include <custard/codegen/common.hpp>
+#include <maple/pch/pch.hpp>
+#include <maple/codegen/codegen.hpp>
+#include <maple/codegen/common.hpp>
 
-namespace custard::codegen
+namespace maple::codegen
 {
 
 struct InitializerList {
@@ -92,6 +92,6 @@ void createStatement(CGContext&        ctx,
                      llvm::BasicBlock* break_bb,
                      llvm::BasicBlock* continue_bb);
 
-} // namespace custard::codegen
+} // namespace maple::codegen
 
 #endif

@@ -12,10 +12,10 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <custard/pch/pch.hpp>
+#include <maple/pch/pch.hpp>
 #include <stdexcept>
 
-namespace custard
+namespace maple
 {
 
 struct ErrorBase : public std::runtime_error {
@@ -25,6 +25,6 @@ struct ErrorBase : public std::runtime_error {
   }
 };
 
-} // namespace custard
+} // namespace maple
 
 #endif

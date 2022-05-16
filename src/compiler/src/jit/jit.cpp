@@ -5,10 +5,10 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <custard/jit/jit.hpp>
-#include <custard/support/utils.hpp>
+#include <maple/jit/jit.hpp>
+#include <maple/support/utils.hpp>
 
-namespace custard::jit
+namespace maple::jit
 {
 
 JitCompiler::JitCompiler(
@@ -87,4 +87,4 @@ JitCompiler::lookup(const llvm::StringRef name)
   return exec_session->lookup({&main_jd}, mangle(name.str()));
 }
 
-} // namespace custard::jit
+} // namespace maple::jit

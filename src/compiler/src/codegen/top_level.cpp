@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <custard/codegen/top_level.hpp>
-#include <custard/codegen/stmt.hpp>
-#include <custard/codegen/exception.hpp>
+#include <maple/codegen/top_level.hpp>
+#include <maple/codegen/stmt.hpp>
+#include <maple/codegen/exception.hpp>
 
-namespace custard::codegen
+namespace maple::codegen
 {
 
 // Returns std::nullopt if there are multiple variadic arguments
@@ -273,4 +273,4 @@ llvm::Function* createTopLevel(CGContext&                         ctx,
   return boost::apply_visitor(TopLevelVisitor{ctx, fp_manager}, node);
 }
 
-} // namespace custard::codegen
+} // namespace maple::codegen

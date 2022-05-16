@@ -5,7 +5,7 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <custard/compile/main.hpp>
+#include <maple/compile/main.hpp>
 #include <filesystem>
 #include <sstream>
 #include <iostream>
@@ -138,7 +138,7 @@ int main(const int argc, const char* const* const argv)
     std::cerr.setstate(std::ios::failbit);
 
     const auto result
-      = custard::compile::main(std::extent_v<decltype(c_argv)>, c_argv);
+      = maple::compile::main(std::extent_v<decltype(c_argv)>, c_argv);
 
     std::cerr.clear();
 

@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>The Custard Programming Language</h1>
+  <h1>The Maple Programming Language</h1>
 
   [Getting Started](docs/GettingStarted.md) |
   [Language Reference](docs/LanguageReference.md) |
@@ -9,7 +9,7 @@
 ## Notes
 Since the author only understands Japanese, this document was created with translation at DeepL.
 
-## Key Features of Custard
+## Key Features of Maple
 - Syntax is like c++, swift and rust combined.
 - Language specification is similar to c++.
 - LLVM backend.
@@ -40,10 +40,10 @@ $ sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
 ```
 
 ### Installation
-Clone custard repository.
+Clone this repository.
 ```bash
-$ git clone https://github.com/GothicLoli/custard.git
-$ cd custard
+$ git clone https://github.com/GothicLoli/maple.git
+$ cd maple
 ```
 Create build directory.
 ```bash

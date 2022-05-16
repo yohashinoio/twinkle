@@ -1,4 +1,4 @@
-set(LIB_NAME custardc)
+set(LIB_NAME maplec1)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
@@ -37,7 +37,7 @@ add_library(
   compile/main.cpp
 )
 
-target_precompile_headers(${LIB_NAME} PRIVATE ../include/custard/pch/pch.hpp)
+target_precompile_headers(${LIB_NAME} PRIVATE ../include/maple/pch/pch.hpp)
 
 add_subdirectory(codegen)
 add_subdirectory(jit)

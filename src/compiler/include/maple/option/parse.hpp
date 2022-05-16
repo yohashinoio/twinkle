@@ -12,9 +12,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <custard/pch/pch.hpp>
+#include <maple/pch/pch.hpp>
 
-namespace custard
+namespace maple
 {
 
 namespace program_options = boost::program_options;
@@ -37,6 +37,6 @@ getInputFiles(const std::string_view                program_name,
 getRelocationModel(const std::string_view                program_name,
                    const program_options::variables_map& vmap);
 
-} // namespace custard
+} // namespace maple
 
 #endif

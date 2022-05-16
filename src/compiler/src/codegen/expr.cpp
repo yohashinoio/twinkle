@@ -5,10 +5,10 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <custard/codegen/expr.hpp>
-#include <custard/codegen/exception.hpp>
+#include <maple/codegen/expr.hpp>
+#include <maple/codegen/exception.hpp>
 
-namespace custard::codegen
+namespace maple::codegen
 {
 
 // Be careful about the lifetime of the return value references.
@@ -449,4 +449,4 @@ createExpr(CGContext& ctx, SymbolTable& scope, const ast::Expr& expr)
   return boost::apply_visitor(ExprVisitor{ctx, scope}, expr);
 }
 
-} // namespace custard::codegen
+} // namespace maple::codegen

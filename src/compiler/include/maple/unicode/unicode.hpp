@@ -12,12 +12,12 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <custard/pch/pch.hpp>
+#include <maple/pch/pch.hpp>
 
 // In this program, code points are treated as std::uint32_t and encoded ones as
 // char32_t
 
-namespace custard::unicode
+namespace maple::unicode
 {
 
 using Codepoint = char32_t;
@@ -27,6 +27,6 @@ using Codepoint = char32_t;
 
 [[nodiscard]] std::string utf32toUtf8(const std::u32string_view utf32_str);
 
-} // namespace custard::unicode
+} // namespace maple::unicode
 
 #endif

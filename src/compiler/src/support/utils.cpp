@@ -5,17 +5,17 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <custard/pch/pch.hpp>
-#include <custard/support/utils.hpp>
+#include <maple/pch/pch.hpp>
+#include <maple/support/utils.hpp>
 
-namespace custard
+namespace maple
 {
 
 [[nodiscard]] std::string getVersion()
 {
-  const auto major = CUSTARD_VER / 100000;
-  const auto minor = CUSTARD_VER / 100 % 1000;
-  const auto patch = CUSTARD_VER % 100;
+  const auto major = MAPLE_VERSION / 100000;
+  const auto minor = MAPLE_VERSION / 100 % 1000;
+  const auto patch = MAPLE_VERSION % 100;
 
   return boost::lexical_cast<std::string>(major) + '.'
          + boost::lexical_cast<std::string>(minor) + '.'
@@ -62,4 +62,4 @@ namespace custard
 #endif
 }
 
-} // namespace custard
+} // namespace maple

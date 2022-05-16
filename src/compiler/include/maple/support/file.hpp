@@ -12,15 +12,15 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <custard/pch/pch.hpp>
+#include <maple/pch/pch.hpp>
 
-namespace custard
+namespace maple
 {
 
 // Load a file to std::string.
 [[nodiscard]] std::string loadFile(const std::string_view       argv_front,
                                    const std::filesystem::path& path);
 
-} // namespace custard
+} // namespace maple
 
 #endif

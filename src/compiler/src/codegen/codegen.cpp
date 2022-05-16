@@ -5,18 +5,18 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <custard/codegen/codegen.hpp>
-#include <custard/codegen/top_level.hpp>
-#include <custard/support/type.hpp>
-#include <custard/codegen/exception.hpp>
-#include <custard/unicode/unicode.hpp>
+#include <maple/codegen/codegen.hpp>
+#include <maple/codegen/top_level.hpp>
+#include <maple/support/type.hpp>
+#include <maple/codegen/exception.hpp>
+#include <maple/unicode/unicode.hpp>
 #include <cassert>
 
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
 #include <unistd.h> // isatty
 #endif
 
-namespace custard::codegen
+namespace maple::codegen
 {
 
 //===----------------------------------------------------------------------===//
@@ -260,4 +260,4 @@ void CodeGenerator::initTargetTripleAndMachine()
                                     relocation_model)); // Set relocation model.
 }
 
-} // namespace custard::codegen
+} // namespace maple::codegen

@@ -5,18 +5,18 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <custard/compile/main.hpp>
-#include <custard/codegen/codegen.hpp>
-#include <custard/jit/jit.hpp>
-#include <custard/parse/parser.hpp>
-#include <custard/option/parse.hpp>
-#include <custard/support/file.hpp>
-#include <custard/support/utils.hpp>
-#include <custard/support/exception.hpp>
+#include <maple/compile/main.hpp>
+#include <maple/codegen/codegen.hpp>
+#include <maple/jit/jit.hpp>
+#include <maple/parse/parser.hpp>
+#include <maple/option/parse.hpp>
+#include <maple/support/file.hpp>
+#include <maple/support/utils.hpp>
+#include <maple/support/exception.hpp>
 
 namespace program_options = boost::program_options;
 
-namespace custard::compile
+namespace maple::compile
 {
 
 static bool isBackNewline(const char* str) noexcept
@@ -114,4 +114,4 @@ catch (const ErrorBase& err) {
   return {false, std::nullopt};
 }
 
-} // namespace custard::compile
+} // namespace maple::compile

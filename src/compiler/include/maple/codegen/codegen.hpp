@@ -12,14 +12,14 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <custard/pch/pch.hpp>
-#include <custard/ast/ast.hpp>
-#include <custard/support/utils.hpp>
-#include <custard/support/typedef.hpp>
-#include <custard/jit/jit.hpp>
-#include <custard/parse/parser.hpp>
+#include <maple/pch/pch.hpp>
+#include <maple/ast/ast.hpp>
+#include <maple/support/utils.hpp>
+#include <maple/support/typedef.hpp>
+#include <maple/jit/jit.hpp>
+#include <maple/parse/parser.hpp>
 
-namespace custard::codegen
+namespace maple::codegen
 {
 
 // Function return type table.
@@ -148,6 +148,6 @@ private:
   std::vector<parse::Parser::Result> parse_results;
 };
 
-} // namespace custard::codegen
+} // namespace maple::codegen
 
 #endif

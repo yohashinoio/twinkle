@@ -12,13 +12,13 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <custard/pch/pch.hpp>
+#include <maple/pch/pch.hpp>
 #include <deque>
 
-namespace custard
+namespace maple
 {
 
-constexpr unsigned int CUSTARD_VER = 100000;
+constexpr unsigned int MAPLE_VERSION = 100000;
 
 [[nodiscard]] std::string getVersion();
 
@@ -52,8 +52,8 @@ template <typename T, typename... Ts>
 
 [[noreturn]] void unreachableInternal(const std::size_t line, const char* file);
 
-#define unreachable() ::custard::unreachableInternal(__LINE__, __FILE__)
+#define unreachable() ::maple::unreachableInternal(__LINE__, __FILE__)
 
-} // namespace custard
+} // namespace maple
 
 #endif

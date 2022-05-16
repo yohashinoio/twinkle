@@ -12,14 +12,15 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <custard/pch/pch.hpp>
-#include <custard/support/utils.hpp>
+#include <maple/pch/pch.hpp>
+#include <maple/support/utils.hpp>
 #include <boost/lexical_cast.hpp>
 
-namespace custard
+namespace maple
 {
 
-enum class SignKind {
+enum class SignKind
+{
   unsigned_,
   signed_,
   struct_,
@@ -75,7 +76,8 @@ enum class SignKind {
 */
 using SignKindStack = std::stack<SignKind>;
 
-enum class BuiltinTypeKind {
+enum class BuiltinTypeKind
+{
   void_,
   i8,
   i16,
@@ -343,12 +345,14 @@ private:
 };
 
 // Variable qualifier.
-enum class VariableQual {
+enum class VariableQual
+{
   no_qualifier,
   mutable_,
 };
 
-enum class Linkage {
+enum class Linkage
+{
   unknown,
   external,
   internal,
@@ -357,6 +361,6 @@ enum class Linkage {
 [[nodiscard]] llvm::Function::LinkageTypes
 linkageToLLVM(const Linkage linkage) noexcept;
 
-} // namespace custard
+} // namespace maple
 
 #endif

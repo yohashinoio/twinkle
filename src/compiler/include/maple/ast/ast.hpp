@@ -12,16 +12,17 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <custard/pch/pch.hpp>
-#include <custard/support/type.hpp>
-#include <custard/unicode/unicode.hpp>
+#include <maple/pch/pch.hpp>
+#include <maple/support/type.hpp>
+#include <maple/unicode/unicode.hpp>
 
-namespace custard::ast
+namespace maple::ast
 {
 
 namespace x3 = boost::spirit::x3;
 
-struct Nil {};
+struct Nil {
+};
 
 //===----------------------------------------------------------------------===//
 // Expression AST
@@ -96,7 +97,8 @@ struct BinOp : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind {
+  enum class Kind
+  {
     unknown,
     add,         // Addition
     sub,         // Subtraciton
@@ -158,7 +160,8 @@ struct UnaryOp : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind {
+  enum class Kind
+  {
     unknown,
     plus,        // Unary plus
     minus,       // Unary minus
@@ -251,7 +254,8 @@ struct Assignment : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind {
+  enum class Kind
+  {
     unknown,
     direct, // Direct assignment
     add,    // Addition assignment
@@ -289,7 +293,8 @@ struct PrefixIncAndDec : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind {
+  enum class Kind
+  {
     unknown,
     increment,
     decrement,
@@ -306,9 +311,11 @@ struct PrefixIncAndDec : x3::position_tagged {
   }
 };
 
-struct Break : x3::position_tagged {};
+struct Break : x3::position_tagged {
+};
 
-struct Continue : x3::position_tagged {};
+struct Continue : x3::position_tagged {
+};
 
 struct Petrify : x3::position_tagged {
   Identifier ident;
@@ -433,6 +440,6 @@ using TopLevel = boost::variant<Nil, FunctionDecl, FunctionDef, StructDecl>;
 
 using Program = std::vector<TopLevel>;
 
-} // namespace custard::ast
+} // namespace maple::ast
 
 #endif

@@ -15,7 +15,7 @@ target_link_libraries(
   ${RUNTIME_NAME}
   PRIVATE
   Threads::Threads
-  custardc
+  maplec1
 )
 
 target_compile_options(

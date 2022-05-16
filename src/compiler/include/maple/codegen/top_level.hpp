@@ -12,11 +12,11 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <custard/pch/pch.hpp>
-#include <custard/codegen/codegen.hpp>
-#include <custard/codegen/common.hpp>
+#include <maple/pch/pch.hpp>
+#include <maple/codegen/codegen.hpp>
+#include <maple/codegen/common.hpp>
 
-namespace custard::codegen
+namespace maple::codegen
 {
 
 // It is not mandatory to receive a return value.
@@ -24,6 +24,6 @@ llvm::Function* createTopLevel(CGContext&                         ctx,
                                llvm::legacy::FunctionPassManager& fp_manager,
                                const ast::TopLevel&               node);
 
-} // namespace custard::codegen
+} // namespace maple::codegen
 
 #endif

@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <custard/option/parse.hpp>
-#include <custard/option/exception.hpp>
-#include <custard/support/utils.hpp>
+#include <maple/option/parse.hpp>
+#include <maple/option/exception.hpp>
+#include <maple/support/utils.hpp>
 
-namespace custard
+namespace maple
 {
 
 namespace program_options = boost::program_options;
@@ -91,4 +91,4 @@ getRelocationModel(const std::string_view                program_name,
   }
 }
 
-} // namespace custard
+} // namespace maple

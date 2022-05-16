@@ -5,9 +5,9 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <custard/unicode/unicode.hpp>
+#include <maple/unicode/unicode.hpp>
 
-namespace custard::unicode
+namespace maple::unicode
 {
 
 [[nodiscard]] std::string utf32toUtf8(const char32_t utf32)
@@ -26,4 +26,4 @@ namespace custard::unicode
   return std::string(first, last);
 }
 
-} // namespace custard::unicode
+} // namespace maple::unicode

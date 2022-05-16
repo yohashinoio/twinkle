@@ -12,10 +12,10 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <custard/pch/pch.hpp>
-#include <custard/codegen/codegen.hpp>
+#include <maple/pch/pch.hpp>
+#include <maple/codegen/codegen.hpp>
 
-namespace custard::codegen
+namespace maple::codegen
 {
 
 // Class that wraps llvm::Value.
@@ -221,6 +221,6 @@ createLogicalOr(CGContext& ctx, const Value& lhs, const Value& rhs);
 [[nodiscard]] bool strictEquals(const llvm::Type* const left,
                                 const llvm::Type* const right);
 
-} // namespace custard::codegen
+} // namespace maple::codegen
 
 #endif

@@ -12,9 +12,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <custard/support/exception.hpp>
+#include <maple/support/exception.hpp>
 
-namespace custard::parse
+namespace maple::parse
 {
 
 struct ParseError : public ErrorBase {
@@ -24,6 +24,6 @@ struct ParseError : public ErrorBase {
   }
 };
 
-} // namespace custard::parse
+} // namespace maple::parse
 
 #endif

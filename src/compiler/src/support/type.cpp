@@ -5,10 +5,10 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <custard/support/type.hpp>
-#include <custard/ast/ast.hpp>
+#include <maple/support/type.hpp>
+#include <maple/ast/ast.hpp>
 
-namespace custard
+namespace maple
 {
 
 [[nodiscard]] llvm::Type* BuiltinType::getType(llvm::LLVMContext& context) const
@@ -107,4 +107,4 @@ linkageToLLVM(const Linkage linkage) noexcept
   unreachable();
 }
 
-} // namespace custard
+} // namespace maple
