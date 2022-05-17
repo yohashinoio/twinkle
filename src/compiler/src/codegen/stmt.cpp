@@ -80,11 +80,11 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
     const auto name = node.name.utf8();
 
-    if (scope.exists(name)) {
-      throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(node),
-                        fmt::format("redefinition of '{}'", name))};
-    }
+    // if (scope.exists(name)) {
+    //   throw CodegenError{
+    //     ctx.formatError(ctx.positions.position_of(node),
+    //                     fmt::format("redefinition of '{}'", name))};
+    // }
 
     auto const func = ctx.builder.GetInsertBlock()->getParent();
 
@@ -92,21 +92,22 @@ struct StmtVisitor : public boost::static_visitor<void> {
       = node.qualifier && (*node.qualifier == VariableQual::mutable_);
 
     if (node.type) {
-      scope.regist(name,
-                   createVariable(ctx.positions.position_of(node),
-                                  func,
-                                  name,
-                                  **node.type,
-                                  node.initializer,
-                                  is_mutable));
+      scope.registOrShadow(name,
+                           createVariable(ctx.positions.position_of(node),
+                                          func,
+                                          name,
+                                          **node.type,
+                                          node.initializer,
+                                          is_mutable));
     }
     else {
-      scope.regist(name,
-                   createVariableTyInference(ctx.positions.position_of(node),
-                                             func,
-                                             name,
-                                             node.initializer,
-                                             is_mutable));
+      scope.registOrShadow(
+        name,
+        createVariableTyInference(ctx.positions.position_of(node),
+                                  func,
+                                  name,
+                                  node.initializer,
+                                  is_mutable));
     }
   }
 

@@ -151,10 +151,10 @@ struct SymbolTable {
     return named_values.at(name);
   }
 
-  // Regist stands for register.
-  void regist(const std::string& name, Variable&& v)
+  // If the variable already exists, shadow it.
+  void registOrShadow(const std::string& name, Variable&& v)
   {
-    named_values.emplace(name, std::move(v));
+    named_values.insert_or_assign(name, std::move(v));
   }
 
   // Returns true if the variable is already registered, false otherwise.

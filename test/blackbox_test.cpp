@@ -126,6 +126,7 @@ int main(const int argc, const char* const* const argv)
     {                 "struct_decralation",   0},
     {                           "pipeline", 116},
     {                         "block_expr",  62},
+    {                          "shadowing",  58},
   };
 
   std::size_t ok_c{};   // ok count.

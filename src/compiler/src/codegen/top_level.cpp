@@ -68,10 +68,11 @@ createArgumentTable(CGContext&                ctx,
         && (*param_node.qualifier == VariableQual::mutable_);
 
     // Add arguments to variable symbol table.
-    argument_table.regist(arg.getName().str(),
-                          {
-                            {alloca, param_node.type->createSignKindStack()},
-                            is_mutable
+    argument_table.registOrShadow(
+      arg.getName().str(),
+      {
+        {alloca, param_node.type->createSignKindStack()},
+        is_mutable
     });
   }
 

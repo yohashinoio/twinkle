@@ -22,6 +22,7 @@
   - [Definition](#definition)
   - [Mutable Variables](#mutable-variables)
   - [Type Inference](#type-inference)
+  - [Shadowing](#shadowing)
 - [Constant pointer](#constant-pointer)
 - [Implicit Conversions](#implicit-conversions)
 - [Functions](#functions)
@@ -285,6 +286,25 @@ func main() -> i32
   let c = '💕'; // char
 
   let s = "hello, world"; // *i8
+}
+```
+
+### Shadowing
+You can redefine variables of different types with the same name.
+```rust
+func main() -> i32
+{
+  let shadowed = "4810";
+
+  let shadowed = '🥀'; // OK!
+
+  let shadowed = 4810; // OK!
+
+  {
+    let shadowed = 58; // OK!
+  }
+
+  // The value of variable is 4810, not 58.
 }
 ```
 
