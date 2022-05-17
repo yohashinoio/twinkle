@@ -21,8 +21,7 @@ namespace maple::ast
 
 namespace x3 = boost::spirit::x3;
 
-struct Nil {
-};
+struct Nil {};
 
 //===----------------------------------------------------------------------===//
 // Expression AST
@@ -99,8 +98,7 @@ struct BinOp : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind
-  {
+  enum class Kind {
     unknown,
     add,         // Addition
     sub,         // Subtraciton
@@ -159,8 +157,7 @@ struct UnaryOp : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind
-  {
+  enum class Kind {
     unknown,
     plus,        // Unary plus
     minus,       // Unary minus
@@ -253,8 +250,7 @@ struct Assignment : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind
-  {
+  enum class Kind {
     unknown,
     direct, // Direct assignment
     add,    // Addition assignment
@@ -292,8 +288,7 @@ struct PrefixIncAndDec : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind
-  {
+  enum class Kind {
     unknown,
     increment,
     decrement,
@@ -310,11 +305,9 @@ struct PrefixIncAndDec : x3::position_tagged {
   }
 };
 
-struct Break : x3::position_tagged {
-};
+struct Break : x3::position_tagged {};
 
-struct Continue : x3::position_tagged {
-};
+struct Continue : x3::position_tagged {};
 
 struct If;
 struct Loop;
