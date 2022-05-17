@@ -316,10 +316,6 @@ struct Break : x3::position_tagged {
 struct Continue : x3::position_tagged {
 };
 
-struct Petrify : x3::position_tagged {
-  Identifier ident;
-};
-
 struct If;
 struct Loop;
 struct While;
@@ -335,7 +331,6 @@ using Stmt = boost::make_recursive_variant<
   PrefixIncAndDec,
   Break,
   Continue,
-  Petrify,
   boost::recursive_wrapper<If>,
   boost::recursive_wrapper<Loop>,
   boost::recursive_wrapper<While>,

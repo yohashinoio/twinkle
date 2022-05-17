@@ -123,7 +123,6 @@ int main(const int argc, const char* const* const argv)
     {                        "logical_and",  41},
     {                         "logical_or",  58},
     {       "subscript_array_of_unsigned2",  41},
-    {                       "petrifaction",  58},
     {                 "struct_decralation",   0},
     {                           "pipeline", 116},
     {                         "block_expr",  62},

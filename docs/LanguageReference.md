@@ -49,7 +49,6 @@
   - [Break Statement](#break-statement)
   - [Continue Statement](#continue-statement)
   - [Return Statement](#return-statement)
-  - [Petrifaction Statement](#petrifaction-statement)
 
 ## Notes
 Since the author only understands Japanese, this document was created with translation at DeepL.
@@ -509,8 +508,6 @@ func main() -> i32
   };
 }
 ```
-Thus, it can be used like an anonymous function.
-
 However, the use of jump statements in the block expressions is prohibited.
 ```rust
 func main() -> i32
@@ -628,26 +625,5 @@ func main() -> i32
 func main() -> i32
 {
   return 48 + 10;
-}
-```
-
-### Petrifaction Statement
-The petrifaction statement is one of the main features of the language and act to change variables into constants.<br>
-It is useful in complex situations where it is difficult to use the ternary operator.
-```rust
-func main() -> i32
-{
-  let mut a = 0;
-
-  if (some_condition1())
-    a = 1;
-  else if (some_condition2())
-    a = 2;
-  else
-    a = 3;
-
-  petrify a; // From this, variable 'a' changes to constant.
-
-  a = 4810; // Error!
 }
 ```

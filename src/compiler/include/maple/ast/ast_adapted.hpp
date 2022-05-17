@@ -120,11 +120,6 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::Petrify,
-  (maple::ast::Identifier, ident)
-)
-
-BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::If,
   (maple::ast::Expr, condition)
   (maple::ast::Stmt, then_statement)
