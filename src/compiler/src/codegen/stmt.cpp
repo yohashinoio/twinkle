@@ -17,18 +17,12 @@ namespace maple::codegen
 //===----------------------------------------------------------------------===//
 
 struct StmtVisitor : public boost::static_visitor<void> {
-  StmtVisitor(CGContext&        ctx,
-              SymbolTable&      scope,
-              llvm::AllocaInst* retvar,
-              llvm::BasicBlock* end_bb,
-              llvm::BasicBlock* break_bb,
-              llvm::BasicBlock* continue_bb) noexcept
+  StmtVisitor(CGContext&         ctx,
+              SymbolTable&       scope,
+              const StmtContext& stmt_ctx) noexcept
     : ctx{ctx}
     , scope{scope}
-    , retvar{retvar}
-    , end_bb{end_bb}
-    , break_bb{break_bb}
-    , continue_bb{continue_bb}
+    , stmt_ctx{stmt_ctx}
   {
   }
 
@@ -39,12 +33,12 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
   void operator()(const ast::CompoundStmt& node) const
   {
-    createStatement(ctx, scope, node, retvar, end_bb, break_bb, continue_bb);
+    createStatement(ctx, scope, stmt_ctx, node);
   }
 
   void operator()(const ast::Expr& node) const
   {
-    if (!createExpr(ctx, scope, node)) {
+    if (!createExpr(ctx, scope, stmt_ctx, node)) {
       throw CodegenError{
         formatError(ctx.file.string(),
                     "failed to generate expression statement")};
@@ -54,7 +48,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
   void operator()(const ast::Return& node) const
   {
     if (node.rhs) {
-      auto const retval = createExpr(ctx, scope, *node.rhs);
+      auto const retval = createExpr(ctx, scope, stmt_ctx, *node.rhs);
 
       auto const return_type
         = ctx.builder.GetInsertBlock()->getParent()->getReturnType();
@@ -70,10 +64,10 @@ struct StmtVisitor : public boost::static_visitor<void> {
                                            "failed to generate return value")};
       }
 
-      ctx.builder.CreateStore(retval.getValue(), retvar);
+      ctx.builder.CreateStore(retval.getValue(), stmt_ctx.return_var);
     }
 
-    ctx.builder.CreateBr(end_bb);
+    ctx.builder.CreateBr(stmt_ctx.end_bb);
   }
 
   void operator()(const ast::VariableDef& node) const
@@ -121,7 +115,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
     const auto lhs
       = createAssignableValue(node.lhs, ctx.positions.position_of(node));
 
-    auto const rhs = createExpr(ctx, scope, node.rhs);
+    auto const rhs = createExpr(ctx, scope, stmt_ctx, node.rhs);
 
     if (!rhs) {
       throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
@@ -221,7 +215,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
     auto const merge_bb = llvm::BasicBlock::Create(ctx.context);
 
-    auto const cond_value = createExpr(ctx, scope, node.condition);
+    auto const cond_value = createExpr(ctx, scope, stmt_ctx, node.condition);
     if (!cond_value) {
       throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
                                          "invalid condition in if statement")};
@@ -244,13 +238,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
     // Then statement codegen.
     ctx.builder.SetInsertPoint(then_bb);
 
-    createStatement(ctx,
-                    scope,
-                    node.then_statement,
-                    retvar,
-                    end_bb,
-                    break_bb,
-                    continue_bb);
+    createStatement(ctx, scope, stmt_ctx, node.then_statement);
 
     if (!ctx.builder.GetInsertBlock()->getTerminator())
       ctx.builder.CreateBr(merge_bb);
@@ -259,15 +247,8 @@ struct StmtVisitor : public boost::static_visitor<void> {
     func->getBasicBlockList().push_back(else_bb);
     ctx.builder.SetInsertPoint(else_bb);
 
-    if (node.else_statement) {
-      createStatement(ctx,
-                      scope,
-                      *node.else_statement,
-                      retvar,
-                      end_bb,
-                      break_bb,
-                      continue_bb);
-    }
+    if (node.else_statement)
+      createStatement(ctx, scope, stmt_ctx, *node.else_statement);
 
     if (!ctx.builder.GetInsertBlock()->getTerminator())
       ctx.builder.CreateBr(merge_bb);
@@ -288,13 +269,11 @@ struct StmtVisitor : public boost::static_visitor<void> {
     ctx.builder.CreateBr(body_bb);
     ctx.builder.SetInsertPoint(body_bb);
 
-    createStatement(ctx,
-                    scope,
-                    node.body,
-                    retvar,
-                    end_bb,
-                    loop_end_bb,
-                    body_bb);
+    createStatement(
+      ctx,
+      scope,
+      {stmt_ctx.return_var, stmt_ctx.end_bb, loop_end_bb, body_bb},
+      node.body);
 
     if (!ctx.builder.GetInsertBlock()->getTerminator())
       ctx.builder.CreateBr(body_bb);
@@ -315,7 +294,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
     ctx.builder.CreateBr(cond_bb);
     ctx.builder.SetInsertPoint(cond_bb);
 
-    auto const cond_value = createExpr(ctx, scope, node.cond_expr);
+    auto const cond_value = createExpr(ctx, scope, stmt_ctx, node.cond_expr);
 
     if (!cond_value) {
       throw CodegenError{
@@ -335,13 +314,11 @@ struct StmtVisitor : public boost::static_visitor<void> {
     func->getBasicBlockList().push_back(body_bb);
     ctx.builder.SetInsertPoint(body_bb);
 
-    createStatement(ctx,
-                    scope,
-                    node.body,
-                    retvar,
-                    end_bb,
-                    loop_end_bb,
-                    cond_bb);
+    createStatement(
+      ctx,
+      scope,
+      {stmt_ctx.return_var, stmt_ctx.end_bb, loop_end_bb, cond_bb},
+      node.body);
 
     if (!ctx.builder.GetInsertBlock()->getTerminator())
       ctx.builder.CreateBr(cond_bb);
@@ -363,11 +340,17 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
     auto const loop_end_bb = llvm::BasicBlock::Create(ctx.context);
 
+    const StmtContext new_stmt_ctx{stmt_ctx.return_var,
+                                   stmt_ctx.end_bb,
+                                   loop_end_bb,
+                                   loop_bb};
+
     ctx.builder.CreateBr(cond_bb);
     ctx.builder.SetInsertPoint(cond_bb);
 
     if (node.cond_expr) {
-      auto const cond_value = createExpr(ctx, scope, *node.cond_expr);
+      auto const cond_value
+        = createExpr(ctx, scope, new_stmt_ctx, *node.cond_expr);
 
       if (!cond_value) {
         throw CodegenError{
@@ -395,13 +378,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
     func->getBasicBlockList().push_back(body_bb);
     ctx.builder.SetInsertPoint(body_bb);
 
-    createStatement(ctx,
-                    scope,
-                    node.body,
-                    retvar,
-                    end_bb,
-                    loop_end_bb,
-                    loop_bb);
+    createStatement(ctx, scope, new_stmt_ctx, node.body);
 
     if (!ctx.builder.GetInsertBlock()->getTerminator())
       ctx.builder.CreateBr(loop_bb);
@@ -410,13 +387,8 @@ struct StmtVisitor : public boost::static_visitor<void> {
     ctx.builder.SetInsertPoint(loop_bb);
 
     // Generate loop statement.
-    if (node.loop_stmt) {
-      // Since variables will not declared, there is no need to create a new
-      // scope.
-      boost::apply_visitor(
-        StmtVisitor{ctx, scope, retvar, end_bb, loop_end_bb, loop_bb},
-        *node.loop_stmt);
-    }
+    if (node.loop_stmt)
+      createStatement(ctx, scope, new_stmt_ctx, *node.loop_stmt);
 
     ctx.builder.CreateBr(cond_bb);
 
@@ -426,14 +398,14 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
   void operator()(ast::Break) const
   {
-    if (break_bb) // If in a loop.
-      ctx.builder.CreateBr(break_bb);
+    if (stmt_ctx.break_bb) // If in a loop.
+      ctx.builder.CreateBr(stmt_ctx.break_bb);
   }
 
   void operator()(ast::Continue) const
   {
-    if (continue_bb) // If in a loop.
-      ctx.builder.CreateBr(continue_bb);
+    if (stmt_ctx.continue_bb) // If in a loop.
+      ctx.builder.CreateBr(stmt_ctx.continue_bb);
   }
 
   // Change variables to constants.
@@ -483,7 +455,7 @@ private:
                                     node.ident.utf8()))};
     }
 
-    const auto tmp       = createExpr(ctx, scope, node);
+    const auto tmp       = createExpr(ctx, scope, stmt_ctx, node);
     auto       tmp_stack = tmp.getSignInfo();
     tmp_stack.emplace(SignKind::unsigned_); // Pointer type.
 
@@ -505,12 +477,12 @@ private:
                   == ast::UnaryOp::Kind::indirection) {
       const auto& unary_op_node = boost::get<ast::UnaryOp>(node);
 
-      value = createExpr(ctx, scope, unary_op_node.rhs);
+      value = createExpr(ctx, scope, stmt_ctx, unary_op_node.rhs);
     }
     else if (node.type() == typeid(ast::Subscript))
       value = createAssignableValue(boost::get<ast::Subscript>(node), pos);
     else
-      value = createExpr(ctx, scope, node);
+      value = createExpr(ctx, scope, stmt_ctx, node);
 
     if (!value)
       throw CodegenError{ctx.formatError(pos, "failed to generate expression")};
@@ -529,7 +501,7 @@ private:
     InitializerList result;
 
     for (const auto& initializer : initializer_list.inits)
-      result.emplace_back(createExpr(ctx, scope, initializer));
+      result.emplace_back(createExpr(ctx, scope, stmt_ctx, initializer));
 
     return result;
   }
@@ -593,7 +565,7 @@ private:
     else {
       // Primitive types.
       auto const init_value
-        = createExpr(ctx, scope, boost::get<ast::Expr>(*initializer));
+        = createExpr(ctx, scope, stmt_ctx, boost::get<ast::Expr>(*initializer));
 
       if (!init_value) {
         throw CodegenError{ctx.formatError(
@@ -660,7 +632,7 @@ private:
     else {
       // Inference to primitive types.
       auto const init_value
-        = createExpr(ctx, scope, boost::get<ast::Expr>(*initializer));
+        = createExpr(ctx, scope, stmt_ctx, boost::get<ast::Expr>(*initializer));
 
       if (!init_value) {
         throw CodegenError{ctx.formatError(
@@ -685,48 +657,32 @@ private:
 
   SymbolTable& scope;
 
-  // Used to combine returns into one.
-  llvm::AllocaInst* retvar;
-  llvm::BasicBlock* end_bb;
-
-  // If not in loop, nullptr.
-  llvm::BasicBlock* break_bb; // Basic block transitioned by break statement.
-  llvm::BasicBlock*
-    continue_bb; // Basic block transitioned by continue statement.
+  const StmtContext& stmt_ctx;
 };
 
-void createStatement(CGContext&        ctx,
-                     SymbolTable&      scope,
-                     const ast::Stmt&  statement,
-                     llvm::AllocaInst* retvar,
-                     llvm::BasicBlock* end_bb,
-                     llvm::BasicBlock* break_bb,
-                     llvm::BasicBlock* continue_bb)
+SymbolTable createStatement(CGContext&         ctx,
+                            SymbolTable&       scope,
+                            const StmtContext& stmt_ctx,
+                            const ast::Stmt&   statement)
 {
-  SymbolTable new_scope = scope;
+  auto new_scope = scope;
 
-  // Compound statement
   if (statement.type() == typeid(ast::CompoundStmt)) {
     auto& statements = boost::get<ast::CompoundStmt>(statement);
 
     for (const auto& r : statements) {
-      boost::apply_visitor(
-        StmtVisitor{ctx, new_scope, retvar, end_bb, break_bb, continue_bb},
-        r);
+      boost::apply_visitor(StmtVisitor{ctx, new_scope, stmt_ctx}, r);
 
-      // If a terminator is present, subsequent code generation is
-      // terminated.
+      // Terminators cannot be placed in the middle of a basic block, so
+      // inspect.
       if (ctx.builder.GetInsertBlock()->getTerminator())
         break;
     }
-
-    return;
   }
+  else
+    boost::apply_visitor(StmtVisitor{ctx, new_scope, stmt_ctx}, statement);
 
-  // Other than compound statement
-  boost::apply_visitor(
-    StmtVisitor{ctx, new_scope, retvar, end_bb, break_bb, continue_bb},
-    statement);
+  return new_scope;
 }
 
 } // namespace maple::codegen

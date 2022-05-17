@@ -84,13 +84,11 @@ private:
   std::vector<Value> initializer_list;
 };
 
-void createStatement(CGContext&        ctx,
-                     SymbolTable&      scope,
-                     const ast::Stmt&  statement,
-                     llvm::AllocaInst* retvar,
-                     llvm::BasicBlock* end_bb,
-                     llvm::BasicBlock* break_bb,
-                     llvm::BasicBlock* continue_bb);
+// Returns a new symbol table.
+SymbolTable createStatement(CGContext&         ctx,
+                            SymbolTable&       scope,
+                            const StmtContext& stmt_ctx,
+                            const ast::Stmt&   statement);
 
 } // namespace maple::codegen
 

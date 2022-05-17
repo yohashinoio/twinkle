@@ -21,11 +21,14 @@ namespace maple::codegen
 
 // Be careful about the lifetime of the return value references.
 // Lifetime depends on the argument 3!
-[[nodiscard]] Variable&
-findVariable(CGContext& ctx, const ast::Identifier& node, SymbolTable& scope);
+[[nodiscard]] Variable& findVariable(const CGContext&       ctx,
+                                     const ast::Identifier& node,
+                                     SymbolTable&           scope);
 
-[[nodiscard]] Value
-createExpr(CGContext& ctx, SymbolTable& scope, const ast::Expr& expr);
+[[nodiscard]] Value createExpr(CGContext&         ctx,
+                               SymbolTable&       scope,
+                               const StmtContext& stmt_ctx,
+                               const ast::Expr&   expr);
 
 } // namespace maple::codegen
 

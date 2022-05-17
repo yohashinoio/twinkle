@@ -1,0 +1,33 @@
+func f() -> i32
+{
+  return <|{
+    48
+  };
+}
+
+func main() -> i32
+{
+  let yoha = <|{
+    f()
+  };
+
+  let mut io = <|{
+    10
+  };
+
+  io = 10;
+
+  let shino = <|{
+    let mut tmp = 0;
+    for (;;) {
+      if (tmp == 4)
+        break;
+      ++tmp;
+    }
+    if (!(tmp == 4))
+      tmp = 0;
+    tmp
+  };
+
+  return yoha + shino + io;
+}

@@ -38,7 +38,7 @@ CGContext::CGContext(llvm::LLVMContext&      context,
 [[nodiscard]] std::string
 CGContext::formatError(const boost::iterator_range<InputIterator>& pos,
                        const std::string_view                      message,
-                       const bool print_location)
+                       const bool print_location) const
 {
   // Calculate line numbers.
   std::size_t rows = 0;

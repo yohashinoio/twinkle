@@ -7,13 +7,15 @@
 
 #include <maple/codegen/expr.hpp>
 #include <maple/codegen/exception.hpp>
+#include <maple/codegen/stmt.hpp>
 
 namespace maple::codegen
 {
 
 // Be careful about the lifetime of the return value references.
-[[nodiscard]] Variable&
-findVariable(CGContext& ctx, const ast::Identifier& node, SymbolTable& scope)
+[[nodiscard]] Variable& findVariable(const CGContext&       ctx,
+                                     const ast::Identifier& node,
+                                     SymbolTable&           scope)
 {
   const auto ident = node.utf8();
 
@@ -62,9 +64,12 @@ static void integerLargerBitsCast(CGContext& ctx, Value& lhs, Value& rhs)
 //===----------------------------------------------------------------------===//
 
 struct ExprVisitor : public boost::static_visitor<Value> {
-  ExprVisitor(CGContext& ctx, SymbolTable& scope) noexcept
+  ExprVisitor(CGContext&         ctx,
+              SymbolTable&       scope,
+              const StmtContext& stmt_ctx) noexcept
     : ctx{ctx}
     , scope{scope}
+    , stmt_ctx{stmt_ctx}
   {
   }
 
@@ -373,6 +378,24 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     return this->operator()(call);
   }
 
+  [[nodiscard]] Value operator()(const ast::BlockExpr& node) const
+  {
+    auto new_scope = scope;
+
+    for (const auto& statement : node.statements) {
+      new_scope = createStatement(ctx, new_scope, stmt_ctx, statement);
+
+      // Jump statements are prohibited in block expressions.
+      if (ctx.builder.GetInsertBlock()->getTerminator()) {
+        throw CodegenError{ctx.formatError(
+          ctx.positions.position_of(node),
+          "You cannot use jump statements in a block expression")};
+      }
+    }
+
+    return createExpr(ctx, new_scope, stmt_ctx, node.last_expr);
+  }
+
 private:
   [[nodiscard]] Value createAddressOf(const Value& rhs) const
   {
@@ -441,12 +464,16 @@ private:
   CGContext& ctx;
 
   SymbolTable& scope;
+
+  const StmtContext& stmt_ctx;
 };
 
-[[nodiscard]] Value
-createExpr(CGContext& ctx, SymbolTable& scope, const ast::Expr& expr)
+[[nodiscard]] Value createExpr(CGContext&         ctx,
+                               SymbolTable&       scope,
+                               const StmtContext& stmt_ctx,
+                               const ast::Expr&   expr)
 {
-  return boost::apply_visitor(ExprVisitor{ctx, scope}, expr);
+  return boost::apply_visitor(ExprVisitor{ctx, scope, stmt_ctx}, expr);
 }
 
 } // namespace maple::codegen

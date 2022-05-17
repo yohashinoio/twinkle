@@ -18,6 +18,25 @@
 namespace maple::codegen
 {
 
+struct StmtContext {
+  // llvm ir does not allow multiple terminations(e.g. 'ret'),
+  // so instead store the return value in the variable below and 'ret' at the
+  // end.
+  llvm::AllocaInst* return_var;
+
+  // When the return statement is called, store the value in the variable for
+  // the return value and move it to the BasicBlock below.
+  llvm::BasicBlock* end_bb;
+
+  // Where to go when the break statement is called.
+  // nullptr is set if not in a loop
+  llvm::BasicBlock* break_bb;
+
+  // Where to go when the continue statement is called.
+  // nullptr is set if not in a loop
+  llvm::BasicBlock* continue_bb;
+};
+
 // Class that wraps llvm::Value.
 // Made to handle signs, etc.
 struct Value {
@@ -29,7 +48,10 @@ struct Value {
         SignKindStack&& sign_info_stack,
         const bool      is_mutable = false) noexcept;
 
-  Value() = default;
+  Value()
+    : value{nullptr}
+  {
+  }
 
   [[nodiscard]] llvm::Value* getValue() const noexcept
   {

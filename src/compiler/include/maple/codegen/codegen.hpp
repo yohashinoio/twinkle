@@ -90,7 +90,7 @@ struct CGContext {
   [[nodiscard]] std::string
   formatError(const boost::iterator_range<InputIterator>& pos,
               const std::string_view                      message,
-              const bool print_location = true);
+              const bool print_location = true) const;
 
   llvm::LLVMContext&            context;
   std::unique_ptr<llvm::Module> module;

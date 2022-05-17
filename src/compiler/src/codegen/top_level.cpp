@@ -179,11 +179,8 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
     createStatement(ctx,
                     argument_table,
-                    node.body,
-                    return_variable,
-                    end_bb,
-                    nullptr,
-                    nullptr);
+                    {return_variable, end_bb, nullptr, nullptr},
+                    node.body);
 
     // If there is no return, returns undef.
     if (!ctx.builder.GetInsertBlock()->getTerminator()

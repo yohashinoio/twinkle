@@ -348,6 +348,69 @@ const x3::rule<struct ArgListTag, std::vector<ast::Expr>> arg_list{
   "argument list"};
 const x3::rule<struct FunctionCallTag, ast::FunctionCall> function_call{
   "function call"};
+const x3::rule<struct BlockExprTag, ast::BlockExpr> block_expr{
+  "block expression"};
+
+//===----------------------------------------------------------------------===//
+// Statement rules
+//===----------------------------------------------------------------------===//
+
+const x3::rule<struct InitListTag, ast::InitializerList> initializer_list{
+  "initializer list"};
+const x3::rule<struct InitializerTag, ast::Initializer> initializer{
+  "initializer"};
+const x3::rule<struct ExprStmtTag, ast::Expr> expr_stmt{"expression statement"};
+const x3::rule<struct VariableDefTag, ast::VariableDef> variable_def{
+  "variable definition"};
+const x3::rule<struct AssignTag, ast::Assignment> assignment{
+  "assignment statement"};
+const x3::rule<struct PrefixIncOrDec, ast::PrefixIncAndDec> prefix_inc_or_dec{
+  "prefix increment or decrement"};
+const x3::rule<struct ReturnTag, ast::Return>   _return{"return statement"};
+const x3::rule<struct IfTag, ast::If>           _if{"if else statement"};
+const x3::rule<struct LoopTag, ast::Loop>       _loop{"loop statement"};
+const x3::rule<struct WhileTag, ast::While>     _while{"while statement"};
+const x3::rule<struct ForTag, ast::For>         _for{"for statement"};
+const x3::rule<struct PetrifyTag, ast::Petrify> petrify{
+  "petrifaction statement"};
+const x3::rule<struct StmtTag, ast::Stmt> stmt{"statement"};
+
+//===----------------------------------------------------------------------===//
+// Top level rules
+//===----------------------------------------------------------------------===//
+
+const x3::rule<struct StructElementTag, ast::StructElement> struct_element{
+  "struct elements"};
+const x3::rule<struct StructElementsTag, std::shared_ptr<Type>> struct_elements{
+  "struct elements"};
+const x3::rule<struct StructDeclTag, ast::StructDecl> struct_decl{
+  "struct declaration"};
+const x3::rule<struct ParameterTag, ast::Parameter> parameter{"parameter"};
+const x3::rule<struct ParameterListTag, ast::ParameterList> parameter_list{
+  "parameter list"};
+const x3::rule<struct FunctionProtoTag, ast::FunctionDecl> function_proto{
+  "function prototype"};
+const x3::rule<struct FunctionDeclTag, ast::FunctionDecl> function_decl{
+  "function declaration"};
+const x3::rule<struct FunctionDefTag, ast::FunctionDef> function_def{
+  "function definition"};
+const x3::rule<struct TopLevelTag, ast::TopLevel> top_level{"top level"};
+
+//===----------------------------------------------------------------------===//
+// Comment rules
+//===----------------------------------------------------------------------===//
+
+const x3::rule<struct BlockCommentTag> block_comment{"block comment"};
+
+//===----------------------------------------------------------------------===//
+// Program rule
+//===----------------------------------------------------------------------===//
+
+const x3::rule<struct ProgramTag, ast::Program> program{"program"};
+
+//===----------------------------------------------------------------------===//
+// Expression rules definition
+//===----------------------------------------------------------------------===//
 
 const auto subscript_def = identifier >> lit(U"[") > expr > lit(U"]");
 
@@ -386,10 +449,13 @@ const auto conversion_def          = conversion_internal | unary;
 const auto unary_internal_def = unary_operator >> primary;
 const auto unary_def          = unary_internal | primary;
 
-const auto primary_def
-  = binary_literal | octal_literal | hex_literal | int_32bit | uint_32bit
-    | int_64bit | uint_64bit | boolean_literal | string_literal | char_literal
-    | function_call | subscript | identifier | (lit(U"(") > expr > lit(U")"));
+const auto block_expr_def = lit(U"<|{") >> *stmt > expr > lit(U"}");
+
+const auto primary_def = binary_literal | octal_literal | hex_literal
+                         | int_32bit | uint_32bit | int_64bit | uint_64bit
+                         | boolean_literal | string_literal | char_literal
+                         | block_expr | function_call | subscript | identifier
+                         | (lit(U"(") > expr > lit(U")"));
 
 BOOST_SPIRIT_DEFINE(expr)
 BOOST_SPIRIT_DEFINE(binary_logical)
@@ -405,31 +471,12 @@ BOOST_SPIRIT_DEFINE(arg_list)
 BOOST_SPIRIT_DEFINE(function_call)
 BOOST_SPIRIT_DEFINE(conversion_internal)
 BOOST_SPIRIT_DEFINE(unary_internal)
+BOOST_SPIRIT_DEFINE(block_expr)
 BOOST_SPIRIT_DEFINE(primary)
 
 //===----------------------------------------------------------------------===//
-// Statement rules
+// Statement rules definition
 //===----------------------------------------------------------------------===//
-
-const x3::rule<struct InitListTag, ast::InitializerList> initializer_list{
-  "initializer list"};
-const x3::rule<struct InitializerTag, ast::Initializer> initializer{
-  "initializer"};
-const x3::rule<struct ExprStmtTag, ast::Expr> expr_stmt{"expression statement"};
-const x3::rule<struct VariableDefTag, ast::VariableDef> variable_def{
-  "variable definition"};
-const x3::rule<struct AssignTag, ast::Assignment> assignment{
-  "assignment statement"};
-const x3::rule<struct PrefixIncOrDec, ast::PrefixIncAndDec> prefix_inc_or_dec{
-  "prefix increment or decrement"};
-const x3::rule<struct ReturnTag, ast::Return>   _return{"return statement"};
-const x3::rule<struct IfTag, ast::If>           _if{"if else statement"};
-const x3::rule<struct LoopTag, ast::Loop>       _loop{"loop statement"};
-const x3::rule<struct WhileTag, ast::While>     _while{"while statement"};
-const x3::rule<struct ForTag, ast::For>         _for{"for statement"};
-const x3::rule<struct PetrifyTag, ast::Petrify> petrify{
-  "petrifaction statement"};
-const x3::rule<struct StmtTag, ast::Stmt> stmt{"statement"};
 
 const auto initializer_list_def = lit(U"{") > (expr % lit(U",")) > lit(U"}");
 
@@ -474,12 +521,13 @@ const auto _continue
 
 const auto petrify_def = lit(U"petrify") > identifier;
 
-const auto stmt_def
-  = lit(U";")                       /* Null statement */
-    | lit(U"{") > *stmt > lit(U"}") /* Compound statement */
-    | _loop | _while | _for | _if | _break > lit(U";") | _continue > lit(U";")
-    | _return > lit(U";") | petrify > lit(U";") | prefix_inc_or_dec > lit(U";")
-    | assignment > lit(U";") | variable_def > lit(U";") | expr_stmt > lit(U";");
+const auto stmt_def = lit(U";")                         /* Null statement */
+                      | lit(U"{") >> *stmt >> lit(U"}") /* Compound statement */
+                      | _loop | _while | _for | _if | _break >> lit(U";")
+                      | _continue >> lit(U";") | _return >> lit(U";")
+                      | petrify >> lit(U";") | prefix_inc_or_dec >> lit(U";")
+                      | assignment >> lit(U";") | variable_def >> lit(U";")
+                      | expr_stmt >> lit(U";");
 
 BOOST_SPIRIT_DEFINE(initializer_list)
 BOOST_SPIRIT_DEFINE(initializer)
@@ -496,25 +544,8 @@ BOOST_SPIRIT_DEFINE(petrify)
 BOOST_SPIRIT_DEFINE(stmt)
 
 //===----------------------------------------------------------------------===//
-// Top level rules
+// Top level rules definition
 //===----------------------------------------------------------------------===//
-
-const x3::rule<struct StructElementTag, ast::StructElement> struct_element{
-  "struct elements"};
-const x3::rule<struct StructElementsTag, std::shared_ptr<Type>> struct_elements{
-  "struct elements"};
-const x3::rule<struct StructDeclTag, ast::StructDecl> struct_decl{
-  "struct declaration"};
-const x3::rule<struct ParameterTag, ast::Parameter> parameter{"parameter"};
-const x3::rule<struct ParameterListTag, ast::ParameterList> parameter_list{
-  "parameter list"};
-const x3::rule<struct FunctionProtoTag, ast::FunctionDecl> function_proto{
-  "function prototype"};
-const x3::rule<struct FunctionDeclTag, ast::FunctionDecl> function_decl{
-  "function declaration"};
-const x3::rule<struct FunctionDefTag, ast::FunctionDef> function_def{
-  "function definition"};
-const x3::rule<struct TopLevelTag, ast::TopLevel> top_level{"top level"};
 
 const auto struct_element_def
   = lit(U"let") > identifier > lit(U":") > variable_type;
@@ -557,10 +588,8 @@ BOOST_SPIRIT_DEFINE(function_def)
 BOOST_SPIRIT_DEFINE(top_level)
 
 //===----------------------------------------------------------------------===//
-// Comment rules
+// Comment rules definition
 //===----------------------------------------------------------------------===//
-
-const x3::rule<struct BlockCommentTag> block_comment{"block comment"};
 
 const auto single_line_comment
   = x3::rule<struct SingleLineCommenTag>{"single line comment"}
@@ -575,17 +604,15 @@ const auto comment = x3::rule<struct CommentTag>{"comment"}
 BOOST_SPIRIT_DEFINE(block_comment)
 
 //===----------------------------------------------------------------------===//
-// Skipper rule
+// Skipper rules definition
 //===----------------------------------------------------------------------===//
 
 const auto skipper = x3::rule<struct SkipperTag>{"skipper"}
 = x3::space | comment;
 
 //===----------------------------------------------------------------------===//
-// Program rule
+// Program rules definition
 //===----------------------------------------------------------------------===//
-
-const x3::rule<struct ProgramTag, ast::Program> program{"program"};
 
 const auto program_def = *top_level > x3::eoi;
 

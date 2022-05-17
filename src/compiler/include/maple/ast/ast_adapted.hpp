@@ -70,6 +70,12 @@ BOOST_FUSION_ADAPT_STRUCT(
   (maple::ast::Expr, rhs)
 )
 
+BOOST_FUSION_ADAPT_STRUCT(
+  maple::ast::BlockExpr,
+  (std::vector<maple::ast::Stmt>, statements)
+  (maple::ast::Expr, last_expr)
+)
+
 //===----------------------------------------------------------------------===//
 // Statement AST adapt
 //===----------------------------------------------------------------------===//

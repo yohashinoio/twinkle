@@ -59,6 +59,7 @@ struct FunctionCall;
 struct Conversion;
 struct Subscript;
 struct Pipeline;
+struct BlockExpr;
 
 using Expr = boost::variant<Nil,
                             std::uint32_t, // Unsigned integer literals (32bit)
@@ -74,7 +75,8 @@ using Expr = boost::variant<Nil,
                             boost::recursive_wrapper<Subscript>,
                             boost::recursive_wrapper<FunctionCall>,
                             boost::recursive_wrapper<Conversion>,
-                            boost::recursive_wrapper<Pipeline>>;
+                            boost::recursive_wrapper<Pipeline>,
+                            boost::recursive_wrapper<BlockExpr>>;
 
 struct BinOp : x3::position_tagged {
   Expr           lhs;
@@ -113,7 +115,6 @@ struct BinOp : x3::position_tagged {
     ge,          // Greater than or equal to
     logical_and, // Logical AND
     logical_or,  // Logical OR
-    pipeline,    // Pipe line
   };
 
   Kind kind() const
@@ -144,8 +145,6 @@ struct BinOp : x3::position_tagged {
       return Kind::logical_and;
     if (op == U"||")
       return Kind::logical_or;
-    if (op == U"|>")
-      return Kind::pipeline;
 
     return Kind::unknown;
   }
@@ -367,6 +366,15 @@ struct For : x3::position_tagged {
   std::optional<Expr>           cond_expr;
   std::optional<ForLoopVariant> loop_stmt;
   Stmt                          body;
+};
+
+//===----------------------------------------------------------------------===//
+// Expression AST (Containing statements)
+//===----------------------------------------------------------------------===//
+
+struct BlockExpr : x3::position_tagged {
+  std::vector<Stmt> statements;
+  Expr              last_expr;
 };
 
 //===----------------------------------------------------------------------===//
