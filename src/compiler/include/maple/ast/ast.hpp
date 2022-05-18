@@ -369,14 +369,18 @@ struct BlockExpr : x3::position_tagged {
 // Top level AST
 //===----------------------------------------------------------------------===//
 
+struct StructDecl : x3::position_tagged {
+  Identifier name;
+};
+
 struct StructElement : x3::position_tagged {
   Identifier            name;
   std::shared_ptr<Type> type;
 };
 
-struct StructDecl : x3::position_tagged {
-  Identifier            name;
-  std::shared_ptr<Type> type;
+struct StructDef : x3::position_tagged {
+  Identifier                 name;
+  std::vector<StructElement> elements;
 };
 
 struct Parameter : x3::position_tagged {
@@ -432,7 +436,8 @@ struct FunctionDef : x3::position_tagged {
   Stmt         body;
 };
 
-using TopLevel = boost::variant<Nil, FunctionDecl, FunctionDef, StructDecl>;
+using TopLevel
+  = boost::variant<Nil, FunctionDecl, FunctionDef, StructDecl, StructDef>;
 
 using Program = std::vector<TopLevel>;
 

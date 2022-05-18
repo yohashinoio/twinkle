@@ -1,4 +1,4 @@
-extern strcmp(s1: *i8, s2: *i8) -> i32;
+declare func strcmp(s1: *i8, s2: *i8) -> i32;
 
 func main() -> i32
 {

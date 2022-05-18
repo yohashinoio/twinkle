@@ -377,12 +377,14 @@ const x3::rule<struct StmtTag, ast::Stmt>     stmt{"statement"};
 // Top level rules
 //===----------------------------------------------------------------------===//
 
-const x3::rule<struct StructElementTag, ast::StructElement> struct_element{
-  "struct elements"};
-const x3::rule<struct StructElementsTag, std::shared_ptr<Type>> struct_elements{
-  "struct elements"};
 const x3::rule<struct StructDeclTag, ast::StructDecl> struct_decl{
   "struct declaration"};
+const x3::rule<struct StructElementTag, ast::StructElement> struct_element{
+  "struct elements"};
+const x3::rule<struct StructElementsTag, std::vector<ast::StructElement>>
+  struct_elements{"struct elements"};
+const x3::rule<struct StructDefTag, ast::StructDef> struct_def{
+  "struct definition"};
 const x3::rule<struct ParameterTag, ast::Parameter> parameter{"parameter"};
 const x3::rule<struct ParameterListTag, ast::ParameterList> parameter_list{
   "parameter list"};
@@ -541,15 +543,16 @@ BOOST_SPIRIT_DEFINE(stmt)
 // Top level rules definition
 //===----------------------------------------------------------------------===//
 
+// FIXME: to expression
+const auto struct_decl_def
+  = lit(U"declare") >> lit(U"struct") > identifier > lit(U";");
+
 const auto struct_element_def
   = lit(U"let") > identifier > lit(U":") > variable_type;
 
-const auto struct_elements_def
-  = (*(struct_element > lit(U";")))[([](auto&& ctx) {
-      x3::_val(ctx) = std::make_shared<StructType>(std::move(x3::_attr(ctx)));
-    })];
+const auto struct_elements_def = *(struct_element > lit(U";"));
 
-const auto struct_decl_def
+const auto struct_def_def
   = lit(U"struct") > identifier > lit(U"{") > struct_elements > lit(U"}");
 
 const auto parameter_def
@@ -565,14 +568,18 @@ const auto function_proto_def
     > ((lit(U"->") > type)
        | x3::attr(std::make_shared<BuiltinType>(BuiltinTypeKind::void_)));
 
-const auto function_decl_def = lit(U"extern") > function_proto > lit(U";");
+// FIXME: to expression
+const auto function_decl_def
+  = lit(U"declare") >> lit(U"func") > function_proto > lit(U";");
 
 const auto function_def_def = lit(U"func") > function_proto > stmt;
 
-const auto top_level_def = function_decl | function_def | struct_decl;
+const auto top_level_def
+  = function_decl | function_def | struct_decl | struct_def;
 
 BOOST_SPIRIT_DEFINE(struct_element)
 BOOST_SPIRIT_DEFINE(struct_elements)
+BOOST_SPIRIT_DEFINE(struct_def)
 BOOST_SPIRIT_DEFINE(struct_decl)
 BOOST_SPIRIT_DEFINE(parameter)
 BOOST_SPIRIT_DEFINE(parameter_list)
@@ -772,6 +779,10 @@ struct StructElementsTag
   : ErrorHandle
   , AnnotatePosition {};
 
+struct StructDefTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
 struct StructDeclTag
   : ErrorHandle
   , AnnotatePosition {};
@@ -832,6 +843,7 @@ void Parser::parse()
 
   if (!x3::phrase_parse(u32_first, u32_last, parser, syntax::skipper, ast)
       || u32_first != u32_last) {
+    // Some error occurred in parsing.
     throw ParseError{"compilation terminated."};
   }
 }

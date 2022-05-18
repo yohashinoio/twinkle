@@ -10,17 +10,13 @@
 
 int main(const int argc, const char* const* const argv)
 {
-  const auto c_result = maple::compile::main(argc, argv);
+  const auto compile_res = maple::compile::main(argc, argv);
 
-  if (!c_result.success) {
-    // Failure.
+  if (!compile_res.success())
     return EXIT_FAILURE;
-  }
 
-  if (c_result.jit_result) {
-    // JIT compiled.
-    return *c_result.jit_result; // Return value from main.
-  }
+  if (const auto& retval_from_main = compile_res.getJitResult())
+    return *retval_from_main; // Return value from main.
 
   // TODO: link
 

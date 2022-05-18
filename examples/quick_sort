@@ -1,4 +1,4 @@
-extern printf(fmt: *i8, ...) -> i32;
+declare func printf(fmt: *i8, ...) -> i32;
 
 func swap(a: mut *i32, b: mut *i32)
 {

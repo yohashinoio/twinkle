@@ -150,15 +150,20 @@ BOOST_FUSION_ADAPT_STRUCT(
 //===----------------------------------------------------------------------===//
 
 BOOST_FUSION_ADAPT_STRUCT(
+  maple::ast::StructDecl,
+  (maple::ast::Identifier, name)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::StructElement,
   (maple::ast::Identifier, name)
   (std::shared_ptr<maple::Type>, type)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::StructDecl,
+  maple::ast::StructDef,
   (maple::ast::Identifier, name)
-  (std::shared_ptr<maple::Type>, type)
+  (std::vector<maple::ast::StructElement>, elements)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

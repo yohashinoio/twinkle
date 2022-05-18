@@ -19,12 +19,9 @@
 namespace maple
 {
 
-enum class SignKind
-{
+enum class SignKind {
   unsigned_,
   signed_,
-  struct_,
-  struct_element,
 };
 
 [[nodiscard]] inline bool isSigned(const SignKind sk) noexcept
@@ -76,8 +73,7 @@ enum class SignKind
 */
 using SignKindStack = std::stack<SignKind>;
 
-enum class BuiltinTypeKind
-{
+enum class BuiltinTypeKind {
   void_,
   i8,
   i16,
@@ -94,6 +90,13 @@ enum class BuiltinTypeKind
 struct Type {
   virtual ~Type() = default;
 
+  [[nodiscard]] virtual bool isSigned() const noexcept = 0;
+
+  [[nodiscard]] virtual SignKindStack createSignKindStack() const noexcept = 0;
+
+  [[nodiscard]] virtual llvm::Type*
+  getType(llvm::LLVMContext& context) const = 0;
+
   [[nodiscard]] virtual bool isVoid() const noexcept
   {
     return false;
@@ -104,17 +107,10 @@ struct Type {
     return false;
   }
 
-  [[nodiscard]] virtual bool isStructTy() const noexcept
-  {
-    return false;
-  }
-
   [[nodiscard]] virtual bool isPointerTy() const noexcept
   {
     return false;
   }
-
-  [[nodiscard]] virtual bool isSigned() const noexcept = 0;
 
   [[nodiscard]] bool isUnigned()
   {
@@ -126,17 +122,10 @@ struct Type {
     return isSigned() ? SignKind::signed_ : SignKind::unsigned_;
   }
 
-  [[nodiscard]] virtual SignKindStack createSignKindStack() const noexcept = 0;
-
   [[nodiscard]] virtual std::uint64_t getArraySize() const noexcept
   {
     unreachable();
   }
-
-  [[nodiscard]] virtual std::string getName() const = 0;
-
-  [[nodiscard]] virtual llvm::Type*
-  getType(llvm::LLVMContext& context) const = 0;
 };
 
 struct BuiltinType : public Type {
@@ -164,8 +153,6 @@ struct BuiltinType : public Type {
   {
     return createStack(getSignKind());
   }
-
-  [[nodiscard]] std::string getName() const override;
 
 private:
   BuiltinTypeKind kind;
@@ -211,12 +198,6 @@ struct PointerType : public Type {
     auto tmp = pointee_type->createSignKindStack();
     tmp.emplace(getSignKind());
     return tmp;
-  }
-
-  [[nodiscard]] std::string getName() const override
-  {
-    // TODO: recursive pointer (like **p)
-    return fmt::format("*{}", pointee_type->getName());
   }
 
 private:
@@ -272,87 +253,18 @@ struct ArrayType : public Type {
     return tmp;
   }
 
-  [[nodiscard]] std::string getName() const override
-  {
-    return element_type->getName() + '['
-           + boost::lexical_cast<std::string>(array_size) + ']';
-  }
-
 private:
   std::shared_ptr<Type> element_type;
   std::uint64_t         array_size;
 };
 
-// Forward declaration.
-namespace ast
-{
-
-struct StructElement;
-
-}
-
-struct StructType : public Type {
-  StructType(std::vector<ast::StructElement>&& elements) noexcept
-    : elements{std::move(elements)}
-  {
-  }
-
-  StructType()
-    : elements{}
-  {
-  }
-
-  [[nodiscard]] llvm::Type* getType(llvm::LLVMContext& context) const override;
-
-  [[nodiscard]] bool isStructTy() const noexcept override
-  {
-    return true;
-  }
-
-  [[nodiscard]] bool isSigned() const noexcept override
-  {
-    return false;
-  }
-
-  [[nodiscard]] SignKind getSignKind() const noexcept override
-  {
-    return SignKind::struct_;
-  }
-
-  /*
-    Example: { i32, i8 }
-    |----------------|
-    |         struct | <- top
-    | struct_element |
-    |----------------|
-  */
-  [[nodiscard]] SignKindStack createSignKindStack() const noexcept override
-  {
-    SignKindStack tmp;
-    tmp.emplace(SignKind::struct_element);
-    tmp.emplace(getSignKind());
-    return tmp;
-  }
-
-  [[nodiscard]] std::string getName() const override
-  {
-    // TODO
-    unreachable();
-  }
-
-private:
-  std::vector<ast::StructElement> elements;
-};
-
 // Variable qualifier.
-enum class VariableQual
-{
+enum class VariableQual {
   no_qualifier,
   mutable_,
 };
 
-enum class Linkage
-{
+enum class Linkage {
   unknown,
   external,
   internal,

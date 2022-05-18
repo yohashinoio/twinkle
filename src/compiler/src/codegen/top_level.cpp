@@ -233,13 +233,50 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
   {
     const auto name = node.name.utf8();
 
-    if (ctx.udt_table.exists(name)) {
-      throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(node),
-                        fmt::format("redefinition of '{}'", name))};
+    if (ctx.struct_table.exists(name)) {
+      // Do nothing, if already exists.
+      return nullptr;
     }
 
-    ctx.udt_table.regist(name, node.type);
+    ctx.struct_table.regist(
+      name,
+      std::make_pair(llvm::StructType::create(ctx.context, name),
+                     StructTable::SignInfo{}));
+
+    return nullptr;
+  }
+
+  llvm::Function* operator()(const ast::StructDef& node) const
+  {
+    const auto name = node.name.utf8();
+
+    // Set element types and create element sign info.
+    std::vector<llvm::Type*> element_types;
+    std::vector<SignKind>    element_sign_info;
+    for (const auto& element : node.elements) {
+      element_types.emplace_back(element.type->getType(ctx.context));
+      element_sign_info.emplace_back(element.type->getSignKind());
+    }
+
+    // Check to make sure the name does not already exist.
+    if (const auto existed_type = ctx.struct_table[name]) {
+      if (existed_type->first->isOpaque()) {
+        // Set element type if declared forward.
+        existed_type->first->setBody(element_types);
+      }
+      else {
+        throw CodegenError{
+          ctx.formatError(ctx.positions.position_of(node),
+                          fmt::format("redefinition of '{}'", name))};
+      }
+    }
+    else {
+      ctx.struct_table.regist(
+        name,
+        std::make_pair(
+          llvm::StructType::create(ctx.context, element_types, name),
+          std::move(element_sign_info)));
+    }
 
     return nullptr;
   }

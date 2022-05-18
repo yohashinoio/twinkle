@@ -1,4 +1,4 @@
-extern printf(fmt: *i8, ...) -> i32;
+declare func printf(fmt: *i8, ...) -> i32;
 
 func f(n: i32, ...) -> i32
 {

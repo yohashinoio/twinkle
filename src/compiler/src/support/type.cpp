@@ -52,46 +52,6 @@ namespace maple
   unreachable();
 }
 
-[[nodiscard]] std::string BuiltinType::getName() const
-{
-  switch (kind) {
-  case BuiltinTypeKind::void_:
-    return "void";
-  case BuiltinTypeKind::i8:
-    return "i8";
-  case BuiltinTypeKind::u8:
-    return "u8";
-  case BuiltinTypeKind::i16:
-    return "i16";
-  case BuiltinTypeKind::u16:
-    return "u16";
-  case BuiltinTypeKind::i32:
-    return "i32";
-  case BuiltinTypeKind::u32:
-    return "u32";
-  case BuiltinTypeKind::i64:
-    return "i64";
-  case BuiltinTypeKind::u64:
-    return "u64";
-  case BuiltinTypeKind::bool_:
-    return "bool";
-  case BuiltinTypeKind::char_:
-    return "char";
-  }
-
-  unreachable();
-}
-
-[[nodiscard]] llvm::Type* StructType::getType(llvm::LLVMContext& context) const
-{
-  // Set element types.
-  std::vector<llvm::Type*> element_types;
-  for (const auto& element : elements)
-    element_types.emplace_back(element.type->getType(context));
-
-  return llvm::StructType::create(context, element_types);
-}
-
 [[nodiscard]] llvm::Function::LinkageTypes
 linkageToLLVM(const Linkage linkage) noexcept
 {

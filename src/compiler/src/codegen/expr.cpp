@@ -353,9 +353,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
               createStack(node.as->getSignKind())};
     }
     else {
-      throw CodegenError{ctx.formatError(
-        ctx.positions.position_of(node),
-        fmt::format("cannot be converted to '{}' type", node.as->getName()))};
+      throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
+                                         "non-convertible type")};
     }
 
     unreachable();

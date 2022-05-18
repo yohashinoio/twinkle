@@ -26,7 +26,7 @@
 - [Constant pointer](#constant-pointer)
 - [Implicit Conversions](#implicit-conversions)
 - [Functions](#functions)
-  - [Declaration](#declaration)
+  - [Declaration (Forward Declaration)](#declaration-forward-declaration)
   - [Definition](#definition-1)
   - [Mutable Parameters](#mutable-parameters)
   - [Linkage](#linkage)
@@ -344,9 +344,9 @@ func main() -> i32
 
 ## Functions
 Similar to C/C++ language.
-### Declaration
+### Declaration (Forward Declaration)
 ```rust
-extern i32 puts(s: *i8);
+declare func i32 puts(s: *i8);
 ```
 
 ### Definition

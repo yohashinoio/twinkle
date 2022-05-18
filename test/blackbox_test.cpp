@@ -43,7 +43,7 @@ int main(const int argc, const char* const* const argv)
     {           "greater_than_or_equal_to",   1},
     {              "less_than_or_equal_to",   1},
     {               "expression_statement",  48},
-    {                             "extern",   0},
+    {                       "declare_func",   0},
     {                           "function",  58},
     {                           "variable",  58},
     {                         "assignment",  58},
@@ -123,10 +123,11 @@ int main(const int argc, const char* const* const argv)
     {                        "logical_and",  41},
     {                         "logical_or",  58},
     {       "subscript_array_of_unsigned2",  41},
-    {                 "struct_decralation",   0},
+    {                  "struct_definition",  38},
     {                           "pipeline", 116},
     {                         "block_expr",  62},
     {                          "shadowing",  58},
+    {                 "struct_declaration",  41},
   };
 
   std::size_t ok_c{};   // ok count.
@@ -138,7 +139,7 @@ int main(const int argc, const char* const* const argv)
     // Suppresses compile error output.
     std::cerr.setstate(std::ios::failbit);
 
-    const auto result
+    const auto compile_res
       = maple::compile::main(std::extent_v<decltype(c_argv)>, c_argv);
 
     std::cerr.clear();
@@ -146,18 +147,19 @@ int main(const int argc, const char* const* const argv)
     try {
       const auto expect = expects.at(r.path().stem().string());
 
-      if (result.success) {
-        if (*result.jit_result == expect) {
-          std::cerr << r.path().stem().string() << " => " << *result.jit_result
-                    << " \x1b[32mOK!\x1b[39m\n";
+      if (compile_res.success()) {
+        if (*compile_res.getJitResult() == expect) {
+          std::cerr << r.path().stem().string() << " => "
+                    << *compile_res.getJitResult() << " \x1b[32mOK!\x1b[39m\n";
           ++ok_c;
 
           continue;
         }
       }
 
-      std::cerr << r.path().stem().string() << " => " << *result.jit_result
-                << " \x1b[31mFails!\x1b[39m " << expect << " expected\n";
+      std::cerr << r.path().stem().string() << " => "
+                << *compile_res.getJitResult() << " \x1b[31mFails!\x1b[39m "
+                << expect << " expected\n";
       ++fail_c;
     }
     catch (const std::out_of_range&) {

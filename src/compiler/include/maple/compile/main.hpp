@@ -18,7 +18,25 @@ namespace maple::compile
 {
 
 struct CompileResult {
-  bool               success;
+  CompileResult(const bool success_, std::optional<int>&& jit_result)
+    : success_{success_}
+    , jit_result{std::move(jit_result)}
+  {
+  }
+
+  bool success() const noexcept
+  {
+    return success_;
+  }
+
+  const std::optional<int>& getJitResult() const noexcept
+  {
+    return jit_result;
+  }
+
+private:
+  bool success_;
+
   // If not JIT compiled, std::nullopt is stored.
   std::optional<int> jit_result;
 };

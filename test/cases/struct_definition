@@ -12,4 +12,9 @@ struct Sample3 {
 
 func main() -> i32
 {
+  return 38;
+}
+
+struct Sample4 {
+  let sample: i32;
 }

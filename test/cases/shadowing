@@ -1,5 +1,5 @@
-extern atoi(s: *i8) -> i32;
-extern strcmp(s1: *i8, s1: *i8) -> i32;
+declare func atoi(s: *i8) -> i32;
+declare func strcmp(s1: *i8, s1: *i8) -> i32;
 
 func shadowing() -> i32
 {

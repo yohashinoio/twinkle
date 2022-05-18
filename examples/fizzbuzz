@@ -1,5 +1,5 @@
-extern printf(fmt: *i8, ...) -> i32;
-extern scanf(fmt: *i8, ...) -> i32;
+declare func printf(fmt: *i8, ...) -> i32;
+declare func scanf(fmt: *i8, ...) -> i32;
 
 func main() -> i32
 {

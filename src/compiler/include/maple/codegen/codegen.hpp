@@ -27,7 +27,7 @@ struct FRTTable {
   // Regist stands for register.
   void regist(const std::string& name, const std::shared_ptr<Type> v)
   {
-    function_return_tys.insert({name, v});
+    function_return_tys.insert_or_assign(name, v);
   }
 
   [[nodiscard]] auto begin() const noexcept
@@ -54,31 +54,34 @@ private:
   std::unordered_map<std::string, std::shared_ptr<Type>> function_return_tys;
 };
 
-// User defined type table.
-struct UDTTable {
-  [[nodiscard]] std::optional<std::shared_ptr<Type>>
+struct StructTable {
+  using SignInfo = std::vector<SignKind>;
+
+  using StructTypeWithSign = std::pair<llvm::StructType*, SignInfo>;
+
+  [[nodiscard]] std::optional<StructTypeWithSign>
   operator[](const std::string& name) noexcept
   try {
-    return user_defined_tys.at(name);
+    return struct_table.at(name);
   }
   catch (const std::out_of_range&) {
     return std::nullopt;
   }
 
   // Regist stands for register.
-  void regist(const std::string& name, const std::shared_ptr<Type> type)
+  void regist(const std::string& name, StructTypeWithSign&& type)
   {
-    user_defined_tys.emplace(name, type);
+    assert(!exists(name));
+    struct_table.emplace(name, type);
   }
 
   [[nodiscard]] bool exists(const std::string& name) const
   {
-    return user_defined_tys.contains(name);
+    return struct_table.contains(name);
   }
 
 private:
-  // User defined types.
-  std::unordered_map<std::string, std::shared_ptr<Type>> user_defined_tys;
+  std::unordered_map<std::string, StructTypeWithSign> struct_table;
 };
 
 // Codegen context.
@@ -100,7 +103,7 @@ struct CGContext {
 
   PositionCache positions;
 
-  UDTTable udt_table;
+  StructTable struct_table;
 
   FRTTable frt_table;
 };

@@ -11,7 +11,7 @@ Since the author only understands Japanese, this document was created with trans
 ## Hello World
 ```rust
 // hello.txt
-extern printf(fmt: *i8, ...) -> i32;
+declare func printf(fmt: *i8, ...) -> i32;
 
 func main() -> i32
 {
