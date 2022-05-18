@@ -80,12 +80,6 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
     const auto name = node.name.utf8();
 
-    // if (scope.exists(name)) {
-    //   throw CodegenError{
-    //     ctx.formatError(ctx.positions.position_of(node),
-    //                     fmt::format("redefinition of '{}'", name))};
-    // }
-
     auto const func = ctx.builder.GetInsertBlock()->getParent();
 
     const auto is_mutable
