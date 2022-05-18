@@ -43,7 +43,7 @@ int main(const int argc, const char* const* const argv)
     {           "greater_than_or_equal_to",   1},
     {              "less_than_or_equal_to",   1},
     {               "expression_statement",  48},
-    {                       "declare_func",   0},
+    {               "function_declaration",  58},
     {                           "function",  58},
     {                           "variable",  58},
     {                         "assignment",  58},
@@ -128,6 +128,7 @@ int main(const int argc, const char* const* const argv)
     {                         "block_expr",  62},
     {                          "shadowing",  58},
     {                 "struct_declaration",  41},
+    {      "multiple_function_declaration",  58},
   };
 
   std::size_t ok_c{};   // ok count.

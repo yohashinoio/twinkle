@@ -86,16 +86,16 @@ struct StmtVisitor : public boost::static_visitor<void> {
       = node.qualifier && (*node.qualifier == VariableQual::mutable_);
 
     if (node.type) {
-      scope.registOrShadow(name,
-                           createVariable(ctx.positions.position_of(node),
-                                          func,
-                                          name,
-                                          **node.type,
-                                          node.initializer,
-                                          is_mutable));
+      scope.registOrOverwrite(name,
+                              createVariable(ctx.positions.position_of(node),
+                                             func,
+                                             name,
+                                             **node.type,
+                                             node.initializer,
+                                             is_mutable));
     }
     else {
-      scope.registOrShadow(
+      scope.registOrOverwrite(
         name,
         createVariableTyInference(ctx.positions.position_of(node),
                                   func,

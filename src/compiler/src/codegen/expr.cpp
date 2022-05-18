@@ -19,13 +19,15 @@ namespace maple::codegen
 {
   const auto ident = node.utf8();
 
-  if (!scope.exists(ident)) {
+  if (const auto variable = scope[ident])
+    return *variable;
+  else {
     throw CodegenError{
       ctx.formatError(ctx.positions.position_of(node),
                       fmt::format("unknown variable '{}' referenced", ident))};
   }
 
-  return scope[ident];
+  unreachable();
 }
 
 // This function changes the arguments.

@@ -143,39 +143,8 @@ private:
   bool  is_mutable;
 };
 
-struct SymbolTable {
-  // If the variable does not exist, an out_of_range exception is thrown.
-  [[nodiscard]] Variable& operator[](const std::string& name)
-  {
-    assert(exists(name));
-    return named_values.at(name);
-  }
-
-  // If the variable already exists, shadow it.
-  void registOrShadow(const std::string& name, Variable&& v)
-  {
-    named_values.insert_or_assign(name, std::move(v));
-  }
-
-  // Returns true if the variable is already registered, false otherwise.
-  [[nodiscard]] bool exists(const std::string& name) const
-  {
-    return named_values.contains(name);
-  }
-
-  [[nodiscard]] auto begin() const noexcept
-  {
-    return named_values.begin();
-  }
-
-  [[nodiscard]] auto end() const noexcept
-  {
-    return named_values.end();
-  }
-
-private:
-  std::unordered_map<std::string, Variable> named_values;
-};
+using SymbolTable
+  = Table<std::string, Variable, std::reference_wrapper<Variable>>;
 
 // Create an alloca instruction in the entry block of
 // the function.

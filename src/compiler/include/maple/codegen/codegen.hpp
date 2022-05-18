@@ -22,67 +22,65 @@
 namespace maple::codegen
 {
 
-// Function return type table.
-struct FRTTable {
-  // Regist stands for register.
-  void regist(const std::string& name, const std::shared_ptr<Type> v)
+/*
+  'Key' is the key type of the table.
+  'T' is the value type of the table.
+  'R' is the return type of operator[]. (std::optional<R>)
+*/
+template <typename Key, typename T, typename R = T>
+struct Table {
+  template <typename T1>
+  [[nodiscard]] std::optional<R> operator[](T1&& key) noexcept
   {
-    function_return_tys.insert_or_assign(name, v);
-  }
+    const auto iter = table.find(std::forward<T1>(key));
 
-  [[nodiscard]] auto begin() const noexcept
-  {
-    return function_return_tys.begin();
-  }
-
-  [[nodiscard]] auto end() const noexcept
-  {
-    return function_return_tys.end();
-  }
-
-  [[nodiscard]] std::optional<std::shared_ptr<Type>>
-  operator[](const std::string& name) const noexcept
-  {
-    const auto it = function_return_tys.find(name);
-    if (it == end())
+    if (iter == end())
       return std::nullopt;
+    else
+      return iter->second;
 
-    return it->second;
+    unreachable();
+  }
+
+  template <typename T1, typename T2>
+  void regist(T1&& key, T2&& value)
+  {
+    assert(!table.contains(std::forward<T1>(key)));
+    table.emplace(std::forward<T1>(key), std::forward<T2>(value));
+  }
+
+  template <typename T1, typename T2>
+  void registOrOverwrite(T1&& key, T2&& value)
+  {
+    table.insert_or_assign(std::forward<T1>(key), std::forward<T2>(value));
+  }
+
+  auto begin() const noexcept
+  {
+    return table.begin();
+  }
+
+  auto end() const noexcept
+  {
+    return table.end();
+  }
+
+  template <typename T1>
+  [[nodiscard]] bool exists(T1&& key) const
+  {
+    return table.contains(std::forward<T1>(key));
   }
 
 private:
-  std::unordered_map<std::string, std::shared_ptr<Type>> function_return_tys;
+  std::unordered_map<Key, T> table;
 };
 
-struct StructTable {
-  using SignInfo = std::vector<SignKind>;
+using FRTTable = Table<std::string, std::shared_ptr<Type>>;
 
-  using StructTypeWithSign = std::pair<llvm::StructType*, SignInfo>;
+using StructTypeWithSignInfo
+  = std::pair<llvm::StructType*, std::vector<SignKind> /* Sign info */>;
 
-  [[nodiscard]] std::optional<StructTypeWithSign>
-  operator[](const std::string& name) noexcept
-  try {
-    return struct_table.at(name);
-  }
-  catch (const std::out_of_range&) {
-    return std::nullopt;
-  }
-
-  // Regist stands for register.
-  void regist(const std::string& name, StructTypeWithSign&& type)
-  {
-    assert(!exists(name));
-    struct_table.emplace(name, type);
-  }
-
-  [[nodiscard]] bool exists(const std::string& name) const
-  {
-    return struct_table.contains(name);
-  }
-
-private:
-  std::unordered_map<std::string, StructTypeWithSign> struct_table;
-};
+using StructTable = Table<std::string, StructTypeWithSignInfo>;
 
 // Codegen context.
 struct CGContext {

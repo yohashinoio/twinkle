@@ -68,9 +68,9 @@ createArgumentTable(CGContext&                ctx,
         && (*param_node.qualifier == VariableQual::mutable_);
 
     // Add arguments to variable symbol table.
-    argument_table.registOrShadow(
+    argument_table.registOrOverwrite(
       arg.getName().str(),
-      {
+      Variable{
         {alloca, param_node.type->createSignKindStack()},
         is_mutable
     });
@@ -132,7 +132,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     const auto name = node.name.utf8();
 
     // Register return type to table.
-    ctx.frt_table.regist(name, node.return_type);
+    ctx.frt_table.registOrOverwrite(name, node.return_type);
 
     auto const func
       = createLlvmFunction(node.linkage, func_type, name, *ctx.module);
@@ -149,13 +149,16 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     const auto name = node.decl.name.utf8();
 
     auto func = ctx.module->getFunction(name);
-    if (func) {
+
+    if (func && !func->isDeclaration()) {
       throw CodegenError{
         ctx.formatError(ctx.positions.position_of(node.decl),
                         fmt::format("redefinition of '{}'", name))};
     }
 
-    func = this->operator()(node.decl);
+    if (!func)
+      func = this->operator()(node.decl);
+
     if (!func) {
       throw CodegenError{
         ctx.formatError(ctx.positions.position_of(node.decl),
@@ -241,7 +244,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     ctx.struct_table.regist(
       name,
       std::make_pair(llvm::StructType::create(ctx.context, name),
-                     StructTable::SignInfo{}));
+                     std::vector<SignKind>{}));
 
     return nullptr;
   }

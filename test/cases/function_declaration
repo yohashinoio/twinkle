@@ -1,0 +1,14 @@
+declare func clock() -> i32;
+
+declare func f() -> i32;
+
+func main() -> i32
+{
+  clock();
+  return f();
+}
+
+func f() -> i32
+{
+  return 58;
+}
