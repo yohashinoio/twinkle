@@ -18,8 +18,11 @@
   - [The Void Type](#the-void-type)
   - [Pointer Types](#pointer-types)
   - [Array Types](#array-types)
-- [Variables](#variables)
+- [Struct types](#struct-types)
+  - [Declaration](#declaration)
   - [Definition](#definition)
+- [Variables](#variables)
+  - [Definition](#definition-1)
   - [Mutable Variables](#mutable-variables)
   - [Type Inference](#type-inference)
   - [Shadowing](#shadowing)
@@ -27,7 +30,7 @@
 - [Implicit Conversions](#implicit-conversions)
 - [Functions](#functions)
   - [Declaration (Forward Declaration)](#declaration-forward-declaration)
-  - [Definition](#definition-1)
+  - [Definition](#definition-2)
   - [Mutable Parameters](#mutable-parameters)
   - [Linkage](#linkage)
 - [Identifier Naming Rules](#identifier-naming-rules)
@@ -38,7 +41,7 @@
   - [Binary](#binary)
 - [Character And String Encoding](#character-and-string-encoding)
 - [Array In Detail](#array-in-detail)
-  - [Definition](#definition-2)
+  - [Definition](#definition-3)
   - [Subscript](#subscript)
 - [Block Expression](#block-expression)
 - [Statements](#statements)
@@ -244,6 +247,22 @@ func main() -> i32
 {
   let a1: i32[4810];
   let a2 = {4, 8, 1, 0};
+}
+```
+
+## Struct types
+### Declaration
+The effect is the same as the forward declaration in C.
+```rust
+declare struct Sample;
+```
+
+### Definition
+```rust
+struct Sample {
+  let n: i32;
+  let ch: char;
+  let c_str: *i8;
 }
 ```
 
