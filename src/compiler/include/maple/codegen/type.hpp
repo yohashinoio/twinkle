@@ -14,64 +14,12 @@
 
 #include <maple/pch/pch.hpp>
 #include <maple/support/utils.hpp>
+#include <maple/support/kind.hpp>
+#include <maple/unicode/unicode.hpp>
 #include <boost/lexical_cast.hpp>
 
-namespace maple
+namespace maple::codegen
 {
-
-enum class SignKind {
-  unsigned_,
-  signed_,
-};
-
-[[nodiscard]] inline bool isSigned(const SignKind sk) noexcept
-{
-  return sk == SignKind::signed_;
-}
-
-/*
-  |--------------------|
-  |        Type | Size |
-  |--------------------|
-  | Non-pointer |    1 |
-  |     Pointer |    2 |
-  |  Double ptr |    3 |
-  |  Triple ptr |    4 |
-  |         ... |  ... |
-  |--------------------|
-
-  Example: i32
-  |-------------------------|
-  |       signed (i32 type) | <- top
-  |-------------------------|
-
-  Example: *i32
-  |-------------------------|
-  | unsigned (pointer type) | <- top
-  |       signed (i32 type) |
-  |-------------------------|
-
-  Example: **i32
-  |-------------------------|
-  | unsigned (pointer type) | <- top
-  | unsigned (pointer type) |
-  |       signed (i32 type) |
-  |-------------------------|
-
-  Example: u32[]
-  |-------------------------|
-  |   unsigned (array type) | <- top
-  |     unsigned (u32 type) |
-  |-------------------------|
-
-  Example: *i32[]
-  |-------------------------|
-  |   unsigned (array type) | <- top
-  | unsigned (pointer type) |
-  |       signed (i32 type) |
-  |-------------------------|
-*/
-using SignKindStack = std::stack<SignKind>;
 
 enum class BuiltinTypeKind {
   void_,
@@ -87,15 +35,21 @@ enum class BuiltinTypeKind {
   char_,
 };
 
+[[nodiscard]] std::optional<BuiltinTypeKind>
+matchBuildinType(const std::u32string_view type);
+
+// Forward declaration.
+struct CGContext;
+
 struct Type {
   virtual ~Type() = default;
 
-  [[nodiscard]] virtual bool isSigned() const noexcept = 0;
+  [[nodiscard]] virtual SignKind getSignKind() const noexcept = 0;
 
-  [[nodiscard]] virtual SignKindStack createSignKindStack() const noexcept = 0;
+  [[nodiscard]] virtual SignKindStack
+  createSignKindStack(CGContext& ctx) const noexcept = 0;
 
-  [[nodiscard]] virtual llvm::Type*
-  getType(llvm::LLVMContext& context) const = 0;
+  [[nodiscard]] virtual llvm::Type* getType(CGContext& ctx) const = 0;
 
   [[nodiscard]] virtual bool isVoid() const noexcept
   {
@@ -112,14 +66,14 @@ struct Type {
     return false;
   }
 
+  [[nodiscard]] bool isSigned() const noexcept
+  {
+    return getSignKind() == SignKind::signed_;
+  }
+
   [[nodiscard]] bool isUnigned()
   {
     return !isSigned();
-  }
-
-  [[nodiscard]] virtual SignKind getSignKind() const noexcept
-  {
-    return isSigned() ? SignKind::signed_ : SignKind::unsigned_;
   }
 
   [[nodiscard]] virtual std::uint64_t getArraySize() const noexcept
@@ -134,14 +88,14 @@ struct BuiltinType : public Type {
   {
   }
 
+  [[nodiscard]] SignKind getSignKind() const noexcept override;
+
   [[nodiscard]] bool isVoid() const noexcept override
   {
     return kind == BuiltinTypeKind::void_;
   }
 
-  [[nodiscard]] llvm::Type* getType(llvm::LLVMContext& context) const override;
-
-  [[nodiscard]] bool isSigned() const noexcept override;
+  [[nodiscard]] llvm::Type* getType(CGContext& ctx) const override;
 
   /*
     Example: i32
@@ -149,13 +103,34 @@ struct BuiltinType : public Type {
     | signed (i32 type) | <- top
     |-------------------|
   */
-  [[nodiscard]] SignKindStack createSignKindStack() const noexcept override
+  [[nodiscard]] SignKindStack
+  createSignKindStack(CGContext&) const noexcept override
   {
     return createStack(getSignKind());
   }
 
 private:
   BuiltinTypeKind kind;
+};
+
+struct UserDefinedType : public Type {
+  explicit UserDefinedType(const std::u32string& ident)
+    : ident{unicode::utf32toUtf8(ident)}
+  {
+  }
+
+  [[nodiscard]] SignKind getSignKind() const noexcept override
+  {
+    return SignKind::no_sign;
+  }
+
+  [[nodiscard]] SignKindStack
+  createSignKindStack(CGContext& ctx) const noexcept override;
+
+  [[nodiscard]] llvm::Type* getType(CGContext& ctx) const override;
+
+private:
+  std::string ident;
 };
 
 struct PointerType : public Type {
@@ -169,14 +144,14 @@ struct PointerType : public Type {
     return true;
   }
 
-  [[nodiscard]] llvm::Type* getType(llvm::LLVMContext& context) const override
+  [[nodiscard]] llvm::Type* getType(CGContext& ctx) const override
   {
-    return llvm::PointerType::getUnqual(pointee_type->getType(context));
+    return llvm::PointerType::getUnqual(pointee_type->getType(ctx));
   }
 
-  [[nodiscard]] bool isSigned() const noexcept override
+  [[nodiscard]] SignKind getSignKind() const noexcept override
   {
-    return false;
+    return SignKind::unsigned_;
   }
 
   /*
@@ -193,9 +168,10 @@ struct PointerType : public Type {
     |       signed (i32 type) |
     |-------------------------|
   */
-  [[nodiscard]] SignKindStack createSignKindStack() const noexcept override
+  [[nodiscard]] SignKindStack
+  createSignKindStack(CGContext& ctx) const noexcept override
   {
-    auto tmp = pointee_type->createSignKindStack();
+    auto tmp = pointee_type->createSignKindStack(ctx);
     tmp.emplace(getSignKind());
     return tmp;
   }
@@ -212,9 +188,9 @@ struct ArrayType : public Type {
   {
   }
 
-  [[nodiscard]] llvm::Type* getType(llvm::LLVMContext& context) const override
+  [[nodiscard]] llvm::Type* getType(CGContext& ctx) const override
   {
-    return llvm::ArrayType::get(element_type->getType(context), array_size);
+    return llvm::ArrayType::get(element_type->getType(ctx), array_size);
   }
 
   [[nodiscard]] bool isArrayTy() const noexcept override
@@ -227,9 +203,9 @@ struct ArrayType : public Type {
     return array_size;
   }
 
-  [[nodiscard]] bool isSigned() const noexcept override
+  [[nodiscard]] SignKind getSignKind() const noexcept override
   {
-    return false;
+    return SignKind::no_sign;
   }
 
   /*
@@ -246,9 +222,10 @@ struct ArrayType : public Type {
     |       signed (i32 type) |
     |-------------------------|
   */
-  [[nodiscard]] SignKindStack createSignKindStack() const noexcept override
+  [[nodiscard]] SignKindStack
+  createSignKindStack(CGContext& ctx) const noexcept override
   {
-    auto tmp = element_type->createSignKindStack();
+    auto tmp = element_type->createSignKindStack(ctx);
     tmp.emplace(getSignKind());
     return tmp;
   }
@@ -258,21 +235,6 @@ private:
   std::uint64_t         array_size;
 };
 
-// Variable qualifier.
-enum class VariableQual {
-  no_qualifier,
-  mutable_,
-};
-
-enum class Linkage {
-  unknown,
-  external,
-  internal,
-};
-
-[[nodiscard]] llvm::Function::LinkageTypes
-linkageToLLVM(const Linkage linkage) noexcept;
-
-} // namespace maple
+} // namespace maple::codegen
 
 #endif

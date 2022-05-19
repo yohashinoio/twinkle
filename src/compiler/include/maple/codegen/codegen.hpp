@@ -75,10 +75,11 @@ private:
   std::unordered_map<Key, T> table;
 };
 
+// Function return type table.
 using FRTTable = Table<std::string, std::shared_ptr<Type>>;
 
 using StructTypeWithSignInfo
-  = std::pair<llvm::StructType*, std::vector<SignKind> /* Sign info */>;
+  = std::pair<llvm::StructType*, std::deque<SignKind> /* Sign info */>;
 
 using StructTable = Table<std::string, StructTypeWithSignInfo>;
 

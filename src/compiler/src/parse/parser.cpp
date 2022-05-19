@@ -8,7 +8,7 @@
 #include <maple/pch/pch.hpp>
 #include <maple/ast/ast_adapted.hpp>
 #include <maple/parse/parser.hpp>
-#include <maple/support/type.hpp>
+#include <maple/codegen/type.hpp>
 #include <maple/parse/exception.hpp>
 
 namespace x3     = boost::spirit::x3;
@@ -109,27 +109,6 @@ using UnicodeSymbols
 //===----------------------------------------------------------------------===//
 // Symbol table
 //===----------------------------------------------------------------------===//
-
-struct BuintinTypeSymbolsTag : UnicodeSymbols<BuiltinTypeKind> {
-  BuintinTypeSymbolsTag()
-  {
-    // clang-format off
-    add
-      (U"void",   {BuiltinTypeKind::void_})
-      (  U"i8",      {BuiltinTypeKind::i8})
-      (  U"u8",      {BuiltinTypeKind::u8})
-      ( U"i16",     {BuiltinTypeKind::i16})
-      ( U"u16",     {BuiltinTypeKind::u16})
-      ( U"i32",     {BuiltinTypeKind::i32})
-      ( U"u32",     {BuiltinTypeKind::u32})
-      ( U"i64",     {BuiltinTypeKind::i64})
-      ( U"u64",     {BuiltinTypeKind::u64})
-      (U"bool",   {BuiltinTypeKind::bool_})
-      (U"char",   {BuiltinTypeKind::char_})
-    ;
-    // clang-format on
-  }
-} builtin_type_symbols;
 
 struct VariableQualifierSymbolsTag : UnicodeSymbols<VariableQual> {
   VariableQualifierSymbolsTag()
@@ -249,37 +228,46 @@ const auto char_literal
 = lit(U"'") >> (char_ - (lit(U"'") | x3::eol | lit(U"\\")) | escape_char)
   > lit(U"'");
 
-const auto type = x3::rule<struct TypeTag, std::shared_ptr<Type>>{"type"}
+const auto type
+  = x3::rule<struct TypeTag, std::shared_ptr<codegen::Type>>{"type"}
 = (-char_(U'*')
-   >> builtin_type_symbols /* TODO: support double (recursion) ptr */
+   >> identifier_internal /* TODO: support double (recursion) ptr */
    >> -(lit(U"[") >> x3::uint64 >> lit(U"]")))[([](auto&& ctx) {
+    const auto type_in_utf32 = fusion::at_c<1>(x3::_attr(ctx));
+
+    const auto type_kind = codegen::matchBuildinType(type_in_utf32);
+
+    std::shared_ptr<codegen::Type> base_type;
+    if (type_kind)
+      base_type = std::make_shared<codegen::BuiltinType>(*type_kind);
+    else
+      base_type = std::make_shared<codegen::UserDefinedType>(type_in_utf32);
+
     if (fusion::at_c<0>(x3::_attr(ctx))) {
       if (fusion::at_c<2>(x3::_attr(ctx))) {
         // Pointer array types.
-        x3::_val(ctx) = std::make_shared<ArrayType>(
-          std::make_shared<PointerType>(
-            std::make_shared<BuiltinType>(fusion::at_c<1>(x3::_attr(ctx)))),
+        x3::_val(ctx) = std::make_shared<codegen::ArrayType>(
+          std::make_shared<codegen::PointerType>(std::move(base_type)),
           *fusion::at_c<2>(x3::_attr(ctx)) /* Array size */);
         return;
       }
 
       // Pointer types.
-      x3::_val(ctx) = std::make_shared<PointerType>(
-        std::make_shared<BuiltinType>(fusion::at_c<1>(x3::_attr(ctx))));
+      x3::_val(ctx)
+        = std::make_shared<codegen::PointerType>(std::move(base_type));
       return;
     }
 
     if (fusion::at_c<2>(x3::_attr(ctx))) {
       // Array types.
-      x3::_val(ctx) = std::make_shared<ArrayType>(
-        std::make_shared<BuiltinType>(fusion::at_c<1>(x3::_attr(ctx))),
+      x3::_val(ctx) = std::make_shared<codegen::ArrayType>(
+        std::move(base_type),
         *fusion::at_c<2>(x3::_attr(ctx)) /* Array size */);
       return;
     }
 
     // Fundamental (built-in) types.
-    x3::_val(ctx)
-      = std::make_shared<BuiltinType>(fusion::at_c<1>(x3::_attr(ctx)));
+    x3::_val(ctx) = std::move(base_type);
   })];
 
 //===----------------------------------------------------------------------===//
@@ -489,7 +477,8 @@ const auto assignment_def = expr >> assignment_operator > expr;
 const auto prefix_inc_or_dec_def = (string(U"++") | string(U"--")) > expr;
 
 const auto variable_type
-  = x3::rule<struct variable_type_tag, std::shared_ptr<Type>>{"variable type"}
+  = x3::rule<struct variable_type_tag,
+             std::shared_ptr<codegen::Type>>{"variable type"}
 = type - lit(U"void");
 
 const auto variable_def_def = lit(U"let") > -variable_qualifier > identifier
@@ -566,7 +555,8 @@ const auto function_proto_def
   = (function_linkage | x3::attr(Linkage::external)) > identifier > lit(U"(")
     > parameter_list > lit(U")")
     > ((lit(U"->") > type)
-       | x3::attr(std::make_shared<BuiltinType>(BuiltinTypeKind::void_)));
+       | x3::attr(std::make_shared<codegen::BuiltinType>(
+         codegen::BuiltinTypeKind::void_)));
 
 // FIXME: to expression
 const auto function_decl_def

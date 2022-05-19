@@ -13,7 +13,7 @@
 #endif // _MSC_VER > 1000
 
 #include <maple/pch/pch.hpp>
-#include <maple/support/type.hpp>
+#include <maple/codegen/type.hpp>
 #include <maple/unicode/unicode.hpp>
 
 namespace maple::ast
@@ -201,7 +201,7 @@ struct FunctionCall : x3::position_tagged {
 
 struct Conversion : x3::position_tagged {
   Expr                  lhs;
-  std::shared_ptr<Type> as;
+  std::shared_ptr<codegen::Type> as;
 };
 
 struct Pipeline : x3::position_tagged {
@@ -235,7 +235,7 @@ struct Return : x3::position_tagged {
 struct VariableDef : x3::position_tagged {
   std::optional<VariableQual>          qualifier;
   Identifier                           name;
-  std::optional<std::shared_ptr<Type>> type;
+  std::optional<std::shared_ptr<codegen::Type>> type;
   // Initializer.
   std::optional<Initializer>           initializer;
 };
@@ -375,7 +375,7 @@ struct StructDecl : x3::position_tagged {
 
 struct StructElement : x3::position_tagged {
   Identifier            name;
-  std::shared_ptr<Type> type;
+  std::shared_ptr<codegen::Type> type;
 };
 
 struct StructDef : x3::position_tagged {
@@ -386,12 +386,12 @@ struct StructDef : x3::position_tagged {
 struct Parameter : x3::position_tagged {
   Identifier                  name;
   std::optional<VariableQual> qualifier;
-  std::shared_ptr<Type>       type;
+  std::shared_ptr<codegen::Type>       type;
   bool                        is_variadic_args;
 
   Parameter(Identifier&&                  name,
             std::optional<VariableQual>&& qualifier,
-            std::shared_ptr<Type>         type,
+            std::shared_ptr<codegen::Type>         type,
             const bool                    is_variadic_args)
     : name{name}
     , qualifier{qualifier}
@@ -428,7 +428,7 @@ struct FunctionDecl : x3::position_tagged {
   Linkage               linkage;
   Identifier            name;
   ParameterList         params;
-  std::shared_ptr<Type> return_type;
+  std::shared_ptr<codegen::Type> return_type;
 };
 
 struct FunctionDef : x3::position_tagged {

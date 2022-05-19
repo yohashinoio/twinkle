@@ -111,10 +111,10 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   // Boolean literals.
   [[nodiscard]] Value operator()(const bool node) const
   {
-    return {llvm::ConstantInt::get(
-              BuiltinType{BuiltinTypeKind::bool_}.getType(ctx.context),
-              node),
-            createStack(SignKind::unsigned_)};
+    return {
+      llvm::ConstantInt::get(BuiltinType{BuiltinTypeKind::bool_}.getType(ctx),
+                             node),
+      createStack(SignKind::unsigned_)};
   }
 
   [[nodiscard]] Value operator()(const ast::StringLiteral& node) const
@@ -328,7 +328,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     assert(return_type);
 
     return {ctx.builder.CreateCall(callee_func, arg_values),
-            return_type.value()->createSignKindStack()};
+            return_type.value()->createSignKindStack(ctx)};
   }
 
   [[nodiscard]] Value operator()(const ast::Conversion& node) const
@@ -341,18 +341,18 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     }
 
     // TODO: Support for non-integers and non-pointers.
-    if (node.as->getType(ctx.context)->isIntegerTy()) {
+    if (node.as->getType(ctx)->isIntegerTy()) {
       return {ctx.builder.CreateIntCast(lhs.getValue(),
-                                        node.as->getType(ctx.context),
+                                        node.as->getType(ctx),
                                         node.as->isSigned()),
               createStack(node.as->getSignKind())};
     }
     else if (node.as->isPointerTy()) {
       // FIXME: I would like to prohibit this in the regular cast because it is
       // a dangerous cast.
-      return {ctx.builder.CreatePointerCast(lhs.getValue(),
-                                            node.as->getType(ctx.context)),
-              createStack(node.as->getSignKind())};
+      return {
+        ctx.builder.CreatePointerCast(lhs.getValue(), node.as->getType(ctx)),
+        createStack(node.as->getSignKind())};
     }
     else {
       throw CodegenError{ctx.formatError(ctx.positions.position_of(node),

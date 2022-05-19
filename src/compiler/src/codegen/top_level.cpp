@@ -55,10 +55,9 @@ createArgumentTable(CGContext&                ctx,
     const auto& param_node = param_list[arg.getArgNo()];
 
     // Create an alloca for this variable.
-    auto const alloca
-      = createEntryAlloca(func,
-                          arg.getName().str(),
-                          param_node.type->getType(ctx.context));
+    auto const alloca = createEntryAlloca(func,
+                                          arg.getName().str(),
+                                          param_node.type->getType(ctx));
 
     // Store the initial value into the alloca.
     ctx.builder.CreateStore(&arg, alloca);
@@ -71,7 +70,7 @@ createArgumentTable(CGContext&                ctx,
     argument_table.registOrOverwrite(
       arg.getName().str(),
       Variable{
-        {alloca, param_node.type->createSignKindStack()},
+        {alloca, param_node.type->createSignKindStack(ctx)},
         is_mutable
     });
   }
@@ -121,11 +120,11 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
     for (std::size_t i = 0; i != named_params_length; ++i) {
       const auto& param_type = node.params[i].type;
-      param_types.at(i)      = param_type->getType(ctx.context);
+      param_types.at(i)      = param_type->getType(ctx);
     }
 
     auto const func_type
-      = llvm::FunctionType::get(node.return_type->getType(ctx.context),
+      = llvm::FunctionType::get(node.return_type->getType(ctx),
                                 param_types,
                                 *is_variadic_args);
 
@@ -177,9 +176,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     auto const return_variable
       = node.decl.return_type->isVoid()
           ? nullptr
-          : createEntryAlloca(func,
-                              "",
-                              node.decl.return_type->getType(ctx.context));
+          : createEntryAlloca(func, "", node.decl.return_type->getType(ctx));
 
     createStatement(ctx,
                     argument_table,
@@ -225,8 +222,6 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
       ctx.builder.CreateRet(nullptr);
     }
 
-    verifyFunction(func, ctx.positions.position_of(node));
-
     fp_manager.run(*func);
 
     return func;
@@ -244,7 +239,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     ctx.struct_table.regist(
       name,
       std::make_pair(llvm::StructType::create(ctx.context, name),
-                     std::vector<SignKind>{}));
+                     std::deque<SignKind>{}));
 
     return nullptr;
   }
@@ -255,9 +250,9 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
     // Set element types and create element sign info.
     std::vector<llvm::Type*> element_types;
-    std::vector<SignKind>    element_sign_info;
+    std::deque<SignKind>     element_sign_info;
     for (const auto& element : node.elements) {
-      element_types.emplace_back(element.type->getType(ctx.context));
+      element_types.emplace_back(element.type->getType(ctx));
       element_sign_info.emplace_back(element.type->getSignKind());
     }
 
@@ -285,20 +280,6 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
   }
 
 private:
-  // Throws an exception if verification fails.
-  void verifyFunction(llvm::Function* const                       func,
-                      const boost::iterator_range<InputIterator>& pos) const
-  {
-    std::string              err_string;
-    llvm::raw_string_ostream err_stream{err_string};
-
-    if (llvm::verifyFunction(*func, &err_stream)) {
-      func->eraseFromParent();
-
-      throw CodegenError{ctx.formatError(pos, err_stream.str())};
-    }
-  }
-
   CGContext& ctx;
 
   llvm::legacy::FunctionPassManager& fp_manager;

@@ -60,7 +60,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::Conversion,
   (maple::ast::Expr, lhs)
-  (std::shared_ptr<maple::Type>, as)
+  (std::shared_ptr<maple::codegen::Type>, as)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -89,7 +89,7 @@ BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::VariableDef,
   (std::optional<maple::VariableQual>, qualifier)
   (maple::ast::Identifier, name)
-  (std::optional<std::shared_ptr<maple::Type>>, type)
+  (std::optional<std::shared_ptr<maple::codegen::Type>>, type)
   (std::optional<maple::ast::Initializer>, initializer)
 )
 
@@ -157,7 +157,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::StructElement,
   (maple::ast::Identifier, name)
-  (std::shared_ptr<maple::Type>, type)
+  (std::shared_ptr<maple::codegen::Type>, type)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -170,7 +170,7 @@ BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::Parameter,
   (maple::ast::Identifier, name)
   (std::optional<maple::VariableQual>, qualifier)
-  (std::shared_ptr<maple::Type>, type)
+  (std::shared_ptr<maple::codegen::Type>, type)
   (bool, is_variadic_args)
 )
 
@@ -184,7 +184,7 @@ BOOST_FUSION_ADAPT_STRUCT(
   (maple::Linkage, linkage)
   (maple::ast::Identifier, name)
   (maple::ast::ParameterList, params)
-  (std::shared_ptr<maple::Type>, return_type)
+  (std::shared_ptr<maple::codegen::Type>, return_type)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

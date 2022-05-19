@@ -1,0 +1,11 @@
+struct Sample {
+  let n: i32;
+  let ch: char;
+}
+
+func main() -> i32
+{
+  let s: Sample;
+
+  return 41;
+}

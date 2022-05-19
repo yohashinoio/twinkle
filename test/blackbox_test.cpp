@@ -129,6 +129,9 @@ int main(const int argc, const char* const* const argv)
     {                          "shadowing",  58},
     {                 "struct_declaration",  41},
     {      "multiple_function_declaration",  58},
+    {                       "fopen_fclose",  58},
+    {                       "struct_type1",  41},
+    {                       "struct_type2",  14},
   };
 
   std::size_t ok_c{};   // ok count.

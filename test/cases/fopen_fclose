@@ -1,0 +1,17 @@
+declare struct FILE;
+
+declare func fopen(filename: *i8, mode: *i8) -> *FILE;
+declare func fclose(stream: *FILE) -> i32;
+
+declare func getc(stream: *FILE) -> i32;
+declare func putchar(ch: i32) -> i32;
+
+func main() -> i32
+{
+  let fp: *FILE = fopen("YOHA.IO", "r");
+
+  if (fp)
+    fclose(fp);
+
+  return 58;
+}

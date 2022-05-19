@@ -7,7 +7,7 @@
 
 #include <maple/codegen/codegen.hpp>
 #include <maple/codegen/top_level.hpp>
-#include <maple/support/type.hpp>
+#include <maple/codegen/type.hpp>
 #include <maple/codegen/exception.hpp>
 #include <maple/unicode/unicode.hpp>
 #include <cassert>
@@ -194,6 +194,14 @@ void CodeGenerator::codegen(const ast::Program&                ast,
 {
   for (const auto& node : ast)
     createTopLevel(ctx, fp_manager, node);
+
+  {
+    // Verify module.
+    std::string              str;
+    llvm::raw_string_ostream stream{str};
+    if (llvm::verifyModule(*ctx.module, &stream))
+      throw CodegenError{formatError(argv_front, stream.str())};
+  }
 }
 
 void CodeGenerator::emitFiles(const llvm::CodeGenFileType cgft)

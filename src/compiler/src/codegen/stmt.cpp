@@ -12,6 +12,17 @@
 namespace maple::codegen
 {
 
+// Only integer or pointer.
+[[nodiscard]] llvm::Value* createNULL(llvm::Type* const type)
+{
+  if (type->isIntegerTy())
+    return llvm::ConstantInt::get(type, 0);
+  else if (auto const p_type = llvm::dyn_cast<llvm::PointerType>(type))
+    return llvm::ConstantPointerNull::get(p_type);
+
+  unreachable();
+}
+
 //===----------------------------------------------------------------------===//
 // Statement visitor
 //===----------------------------------------------------------------------===//
@@ -216,17 +227,19 @@ struct StmtVisitor : public boost::static_visitor<void> {
                                          "invalid condition in if statement")};
     }
 
-    if (!cond_value.getType()->isIntegerTy()) {
+    if (!cond_value.getType()->isIntegerTy()
+        && !cond_value.getType()->isPointerTy()) {
       throw CodegenError{
         ctx.formatError(ctx.positions.position_of(node),
                         "condition type is incompatible with bool")};
     }
 
-    // Compare with 0 and generate a condition of type booa.
-    auto const cond
-      = ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_NE,
-                               cond_value.getValue(),
-                               llvm::ConstantInt::get(cond_value.getType(), 0));
+    // Compare to 0 or nullptr.
+    const auto zero_or_null = createNULL(cond_value.getType());
+
+    auto const cond = ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_NE,
+                                             cond_value.getValue(),
+                                             zero_or_null);
 
     ctx.builder.CreateCondBr(cond, then_bb, else_bb);
 
@@ -300,9 +313,8 @@ struct StmtVisitor : public boost::static_visitor<void> {
     auto const cond = ctx.builder.CreateICmp(
       llvm::ICmpInst::ICMP_NE,
       cond_value.getValue(),
-      llvm::ConstantInt::get(
-        BuiltinType{BuiltinTypeKind::bool_}.getType(ctx.context),
-        0));
+      llvm::ConstantInt::get(BuiltinType{BuiltinTypeKind::bool_}.getType(ctx),
+                             0));
 
     ctx.builder.CreateCondBr(cond, body_bb, loop_end_bb);
 
@@ -356,9 +368,8 @@ struct StmtVisitor : public boost::static_visitor<void> {
       auto const cond = ctx.builder.CreateICmp(
         llvm::ICmpInst::ICMP_NE,
         cond_value.getValue(),
-        llvm::ConstantInt::get(
-          BuiltinType{BuiltinTypeKind::bool_}.getType(ctx.context),
-          0));
+        llvm::ConstantInt::get(BuiltinType{BuiltinTypeKind::bool_}.getType(ctx),
+                               0));
 
       ctx.builder.CreateCondBr(cond, body_bb, loop_end_bb);
     }
@@ -509,12 +520,12 @@ private:
                  const std::optional<ast::Initializer>&      initializer,
                  const bool                                  is_mutable) const
   {
-    const auto variable_type = type.getType(ctx.context);
+    const auto variable_type = type.getType(ctx);
     auto const alloca        = createEntryAlloca(func, name, variable_type);
 
     if (!initializer) {
       return {
-        {alloca, type.createSignKindStack()},
+        {alloca, type.createSignKindStack(ctx)},
         is_mutable
       };
     }
@@ -539,7 +550,7 @@ private:
       initArray(alloca, initializer_list);
 
       return {
-        {alloca, type.createSignKindStack()},
+        {alloca, type.createSignKindStack(ctx)},
         is_mutable
       };
     }
@@ -570,7 +581,7 @@ private:
       ctx.builder.CreateStore(init_value.getValue(), alloca);
 
       return {
-        {alloca, type.createSignKindStack()},
+        {alloca, type.createSignKindStack(ctx)},
         is_mutable
       };
     }

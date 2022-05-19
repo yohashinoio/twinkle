@@ -5,4 +5,5 @@ add_library(
   expr.cpp
   stmt.cpp
   top_level.cpp
+  type.cpp
 )
