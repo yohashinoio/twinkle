@@ -47,8 +47,8 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::Subscript,
-  (maple::ast::Identifier, ident)
-  (maple::ast::Expr, nsubscript)
+  (maple::ast::Expr, lhs)
+  (maple::ast::Expr, subscript)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -74,6 +74,12 @@ BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::BlockExpr,
   (std::vector<maple::ast::Stmt>, statements)
   (maple::ast::Expr, last_expr)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+  maple::ast::MemberAccess,
+  (maple::ast::Expr, lhs)
+  (maple::ast::Identifier, rhs)
 )
 
 //===----------------------------------------------------------------------===//

@@ -59,6 +59,7 @@ struct Conversion;
 struct Subscript;
 struct Pipeline;
 struct BlockExpr;
+struct MemberAccess;
 
 using Expr = boost::variant<Nil,
                             std::uint32_t, // Unsigned integer literals (32bit)
@@ -75,7 +76,8 @@ using Expr = boost::variant<Nil,
                             boost::recursive_wrapper<FunctionCall>,
                             boost::recursive_wrapper<Conversion>,
                             boost::recursive_wrapper<Pipeline>,
-                            boost::recursive_wrapper<BlockExpr>>;
+                            boost::recursive_wrapper<BlockExpr>,
+                            boost::recursive_wrapper<MemberAccess>>;
 
 struct BinOp : x3::position_tagged {
   Expr           lhs;
@@ -187,8 +189,8 @@ struct UnaryOp : x3::position_tagged {
 };
 
 struct Subscript : x3::position_tagged {
-  Identifier ident;
-  Expr       nsubscript;
+  Expr lhs;
+  Expr subscript;
 };
 
 struct FunctionCall : x3::position_tagged {
@@ -200,7 +202,7 @@ struct FunctionCall : x3::position_tagged {
 };
 
 struct Conversion : x3::position_tagged {
-  Expr                  lhs;
+  Expr                           lhs;
   std::shared_ptr<codegen::Type> as;
 };
 
@@ -215,6 +217,11 @@ struct Pipeline : x3::position_tagged {
     , rhs{std::move(rhs)}
   {
   }
+};
+
+struct MemberAccess : x3::position_tagged {
+  Expr       lhs;
+  Identifier rhs;
 };
 
 //===----------------------------------------------------------------------===//
@@ -233,11 +240,11 @@ struct Return : x3::position_tagged {
 };
 
 struct VariableDef : x3::position_tagged {
-  std::optional<VariableQual>          qualifier;
-  Identifier                           name;
+  std::optional<VariableQual>                   qualifier;
+  Identifier                                    name;
   std::optional<std::shared_ptr<codegen::Type>> type;
   // Initializer.
-  std::optional<Initializer>           initializer;
+  std::optional<Initializer>                    initializer;
 };
 
 struct Assignment : x3::position_tagged {
@@ -374,7 +381,7 @@ struct StructDecl : x3::position_tagged {
 };
 
 struct StructElement : x3::position_tagged {
-  Identifier            name;
+  Identifier                     name;
   std::shared_ptr<codegen::Type> type;
 };
 
@@ -384,15 +391,15 @@ struct StructDef : x3::position_tagged {
 };
 
 struct Parameter : x3::position_tagged {
-  Identifier                  name;
-  std::optional<VariableQual> qualifier;
-  std::shared_ptr<codegen::Type>       type;
-  bool                        is_variadic_args;
+  Identifier                     name;
+  std::optional<VariableQual>    qualifier;
+  std::shared_ptr<codegen::Type> type;
+  bool                           is_variadic_args;
 
-  Parameter(Identifier&&                  name,
-            std::optional<VariableQual>&& qualifier,
-            std::shared_ptr<codegen::Type>         type,
-            const bool                    is_variadic_args)
+  Parameter(Identifier&&                   name,
+            std::optional<VariableQual>&&  qualifier,
+            std::shared_ptr<codegen::Type> type,
+            const bool                     is_variadic_args)
     : name{name}
     , qualifier{qualifier}
     , type{type}
@@ -425,9 +432,9 @@ struct ParameterList : x3::position_tagged {
 };
 
 struct FunctionDecl : x3::position_tagged {
-  Linkage               linkage;
-  Identifier            name;
-  ParameterList         params;
+  Linkage                        linkage;
+  Identifier                     name;
+  ParameterList                  params;
   std::shared_ptr<codegen::Type> return_type;
 };
 

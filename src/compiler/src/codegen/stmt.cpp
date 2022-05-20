@@ -437,23 +437,14 @@ private:
   createAssignableValue(const ast::Subscript&                      node,
                         const boost::iterator_range<InputIterator> pos) const
   {
-    const auto& variable = findVariable(ctx, node.ident, scope);
+    const auto value = createNoLoadSubscript(ctx, scope, stmt_ctx, node);
 
-    if (!variable.isMutable()) {
-      // Assignment of read-only variable.
+    if (!value.isMutable()) {
       throw CodegenError{
-        ctx.formatError(pos,
-                        fmt::format("assignment of read-only variable '{}'",
-                                    node.ident.utf8()))};
+        ctx.formatError(pos, "assignment of read-only variable")};
     }
 
-    const auto tmp       = createExpr(ctx, scope, stmt_ctx, node);
-    auto       tmp_stack = tmp.getSignInfo();
-    tmp_stack.emplace(SignKind::unsigned_); // Pointer type.
-
-    return {llvm::getPointerOperand(tmp.getValue()),
-            std::move(tmp_stack),
-            variable.isMutable()};
+    return value;
   }
 
   [[nodiscard]] Value

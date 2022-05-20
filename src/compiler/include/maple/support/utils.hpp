@@ -35,7 +35,7 @@ constexpr unsigned int MAPLE_VERSION = 100000;
   After stacking the argument 1, start stacking from the left of the
   argument 2.
   Example: (4, 8, 1, 0)
-  |=--|
+  |---|
   | 0 | <- top
   | 1 |
   | 8 |

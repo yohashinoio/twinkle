@@ -30,6 +30,61 @@ namespace maple::codegen
   unreachable();
 }
 
+// Normally a subscript operation calls createLoad at the end, but this function
+// does not.
+[[nodiscard]] Value createNoLoadSubscript(CGContext&            ctx,
+                                          SymbolTable&          scope,
+                                          const StmtContext&    stmt_ctx,
+                                          const ast::Subscript& node)
+{
+  auto lhs = createExpr(ctx, scope, stmt_ctx, node.lhs);
+
+  const auto is_array = lhs.getType()->isArrayTy();
+
+  if (!is_array && !lhs.getType()->isPointerTy()) {
+    throw CodegenError{
+      ctx.formatError(ctx.positions.position_of(node),
+                      "the type incompatible with the subscript operator")};
+  }
+
+  if (is_array) {
+    // Get the address of the first element of the array.
+    auto tmp = lhs.getSignInfo();
+    tmp.emplace(SignKind::unsigned_); // Pointer type.
+    lhs = {llvm::getPointerOperand(lhs.getValue()),
+           std::move(tmp),
+           lhs.isMutable()};
+  }
+
+  const auto subscript = createExpr(ctx, scope, stmt_ctx, node.subscript);
+
+  if (!subscript.isInteger()) {
+    throw CodegenError{
+      ctx.formatError(ctx.positions.position_of(node),
+                      "subscripts need to be evaluated to numbers")};
+  }
+
+  // Calculate the address of the subscript-th element.
+  auto const gep
+    = is_array
+        ? ctx.builder.CreateInBoundsGEP(
+          lhs.getType()->getPointerElementType(),
+          lhs.getValue(),
+          {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 0),
+           subscript.getValue()})
+        : ctx.builder.CreateInBoundsGEP(lhs.getType()->getPointerElementType(),
+                                        lhs.getValue(),
+                                        subscript.getValue());
+
+  {
+    // I did GEP and will pop.
+    auto tmp = lhs.getSignInfo();
+    if (is_array)
+      tmp.pop();
+    return {gep, std::move(tmp), lhs.isMutable()};
+  }
+}
+
 // This function changes the arguments.
 // Compare both operands and cast to the operand with the larger bit width.
 static void integerLargerBitsCast(CGContext& ctx, Value& lhs, Value& rhs)
@@ -144,48 +199,15 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::Subscript& node) const
   {
-    auto lhs = this->operator()(node.ident);
+    const auto value = createNoLoadSubscript(ctx, scope, stmt_ctx, node);
 
-    const auto is_array = lhs.getType()->isArrayTy();
+    // Load, so pop.
+    auto tmp = value.getSignInfo();
+    tmp.pop();
 
-    if (!is_array && !lhs.getType()->isPointerTy()) {
-      throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(node),
-                        "the type incompatible with the subscript operator")};
-    }
-
-    auto sign_info_stack = lhs.getSignInfo();
-
-    assert(2 <= sign_info_stack.size());
-    sign_info_stack.pop();
-
-    if (is_array)
-      lhs = createAddressOf(lhs);
-
-    const auto nsubscript = boost::apply_visitor(*this, node.nsubscript);
-
-    if (!nsubscript.isInteger()) {
-      throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(node),
-                        "subscripts need to be evaluated to numbers")};
-    }
-
-    auto const gep = is_array ? ctx.builder.CreateInBoundsGEP(
-                       lhs.getType()->getPointerElementType(),
-                       lhs.getValue(),
-                       {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 0),
-                        nsubscript.getValue()})
-                              : ctx.builder.CreateInBoundsGEP(
-                                lhs.getType()->getPointerElementType(),
-                                lhs.getValue(),
-                                nsubscript.getValue());
-
-    auto const element_type
-      = is_array ? lhs.getType()->getPointerElementType()->getArrayElementType()
-                 : lhs.getType()->getPointerElementType();
-
-    return {ctx.builder.CreateLoad(element_type, gep),
-            std::move(sign_info_stack)};
+    return {ctx.builder.CreateLoad(value.getType()->getPointerElementType(),
+                                   value.getValue()),
+            std::move(tmp)};
   }
 
   [[nodiscard]] Value operator()(const ast::BinOp& node) const
@@ -397,13 +419,19 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     return createExpr(ctx, new_scope, stmt_ctx, node.last_expr);
   }
 
-private:
-  [[nodiscard]] Value createAddressOf(const Value& rhs) const
+  [[nodiscard]] Value operator()(const ast::MemberAccess& node) const
   {
-    auto tmp = rhs.getSignInfo();
+    // TODO
+    unreachable();
+  }
+
+private:
+  [[nodiscard]] Value createAddressOf(const Value& value) const
+  {
+    auto tmp = value.getSignInfo();
     tmp.emplace(SignKind::unsigned_); // Pointer type.
 
-    return {llvm::getPointerOperand(rhs.getValue()), std::move(tmp)};
+    return {llvm::getPointerOperand(value.getValue()), std::move(tmp)};
   }
 
   [[nodiscard]] Value

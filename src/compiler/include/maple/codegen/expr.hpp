@@ -25,6 +25,13 @@ namespace maple::codegen
                                      const ast::Identifier& node,
                                      SymbolTable&           scope);
 
+// Normally a subscript operation calls createLoad at the end, but this function
+// does not.
+[[nodiscard]] Value createNoLoadSubscript(CGContext&            ctx,
+                                          SymbolTable&          scope,
+                                          const StmtContext&    stmt_ctx,
+                                          const ast::Subscript& node);
+
 [[nodiscard]] Value createExpr(CGContext&         ctx,
                                SymbolTable&       scope,
                                const StmtContext& stmt_ctx,

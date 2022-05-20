@@ -331,13 +331,17 @@ const x3::rule<struct ConversionInternalTag, ast::Conversion>
   conversion_internal{"conversion"};
 const x3::rule<struct UnaryInternalTag, ast::UnaryOp> unary_internal{
   "unary operation"};
-const x3::rule<struct SubscriptTag, ast::Subscript> subscript{"subscript"};
+const x3::rule<struct SubscriptInternalTag, ast::Subscript> subscript_internal{
+  "subscript"};
+const x3::rule<struct SubscriptTag, ast::Expr> subscript{"subscript"};
 const x3::rule<struct ArgListTag, std::vector<ast::Expr>> arg_list{
   "argument list"};
 const x3::rule<struct FunctionCallTag, ast::FunctionCall> function_call{
   "function call"};
 const x3::rule<struct BlockExprTag, ast::BlockExpr> block_expr{
   "block expression"};
+// const x3::rule<struct MemberAccessTag, ast::MemberAccess> member_access{
+// "member access"};
 
 //===----------------------------------------------------------------------===//
 // Statement rules
@@ -400,12 +404,14 @@ const x3::rule<struct ProgramTag, ast::Program> program{"program"};
 // Expression rules definition
 //===----------------------------------------------------------------------===//
 
-const auto subscript_def = identifier >> lit(U"[") > expr > lit(U"]");
-
 const auto arg_list_def      = -(expr % lit(U","));
 const auto function_call_def = identifier >> lit(U"(") > arg_list > lit(U")");
 
 const auto expr_def = binary_logical;
+
+const auto block_expr_def = lit(U"<|{") >> *stmt > expr > lit(U"}");
+
+// const auto member_access_def = expr >> lit(U".") > identifier;
 
 const auto binary_logical_def
   = equal[action::assignAttrToVal]
@@ -434,15 +440,16 @@ const auto mul_def
 const auto conversion_internal_def = unary >> lit(U"as") > type;
 const auto conversion_def          = conversion_internal | unary;
 
-const auto unary_internal_def = unary_operator >> primary;
-const auto unary_def          = unary_internal | primary;
+const auto unary_internal_def = unary_operator >> subscript;
+const auto unary_def          = unary_internal | subscript;
 
-const auto block_expr_def = lit(U"<|{") >> *stmt > expr > lit(U"}");
+const auto subscript_internal_def = primary >> lit(U"[") > expr > lit(U"]");
+const auto subscript_def          = subscript_internal | primary;
 
 const auto primary_def = binary_literal | octal_literal | hex_literal
                          | int_32bit | uint_32bit | int_64bit | uint_64bit
                          | boolean_literal | string_literal | char_literal
-                         | block_expr | function_call | subscript | identifier
+                         | block_expr | function_call  | identifier
                          | (lit(U"(") > expr > lit(U")"));
 
 BOOST_SPIRIT_DEFINE(expr)
@@ -454,12 +461,14 @@ BOOST_SPIRIT_DEFINE(add)
 BOOST_SPIRIT_DEFINE(mul)
 BOOST_SPIRIT_DEFINE(conversion)
 BOOST_SPIRIT_DEFINE(unary)
+BOOST_SPIRIT_DEFINE(subscript_internal)
 BOOST_SPIRIT_DEFINE(subscript)
 BOOST_SPIRIT_DEFINE(arg_list)
 BOOST_SPIRIT_DEFINE(function_call)
 BOOST_SPIRIT_DEFINE(conversion_internal)
 BOOST_SPIRIT_DEFINE(unary_internal)
 BOOST_SPIRIT_DEFINE(block_expr)
+// BOOST_SPIRIT_DEFINE(member_access)
 BOOST_SPIRIT_DEFINE(primary)
 
 //===----------------------------------------------------------------------===//
@@ -675,6 +684,10 @@ struct UnaryInternalTag
   : ErrorHandle
   , AnnotatePosition {};
 
+struct SubscriptInternalTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
 struct SubscriptTag
   : ErrorHandle
   , AnnotatePosition {};
@@ -690,6 +703,10 @@ struct PrimaryTag
   , AnnotatePosition {};
 
 struct BlockExprTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct MemberAccessTag
   : ErrorHandle
   , AnnotatePosition {};
 

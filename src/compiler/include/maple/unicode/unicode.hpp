@@ -14,15 +14,11 @@
 
 #include <maple/pch/pch.hpp>
 
-// In this program, code points are treated as std::uint32_t and encoded ones as
-// char32_t
-
 namespace maple::unicode
 {
 
 using Codepoint = char32_t;
 
-// If conversion fails, std::nullopt returns.
 [[nodiscard]] std::string utf32toUtf8(const char32_t utf32);
 
 [[nodiscard]] std::string utf32toUtf8(const std::u32string_view utf32_str);
