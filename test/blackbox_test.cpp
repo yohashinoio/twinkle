@@ -133,6 +133,7 @@ int main(const int argc, const char* const* const argv)
     {                       "struct_type1",  41},
     {                       "struct_type2",  14},
     {                     "recursive_cast",  58},
+    {                 "expr_lhs_subscript",  58},
   };
 
   std::size_t ok_c{};   // ok count.
