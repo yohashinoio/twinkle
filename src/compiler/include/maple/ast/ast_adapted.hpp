@@ -76,12 +76,6 @@ BOOST_FUSION_ADAPT_STRUCT(
   (maple::ast::Expr, last_expr)
 )
 
-BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::MemberAccess,
-  (maple::ast::Expr, lhs)
-  (maple::ast::Identifier, rhs)
-)
-
 //===----------------------------------------------------------------------===//
 // Statement AST adapt
 //===----------------------------------------------------------------------===//

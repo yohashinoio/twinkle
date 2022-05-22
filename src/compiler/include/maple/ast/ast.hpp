@@ -59,7 +59,6 @@ struct Conversion;
 struct Subscript;
 struct Pipeline;
 struct BlockExpr;
-struct MemberAccess;
 
 using Expr = boost::variant<Nil,
                             std::uint32_t, // Unsigned integer literals (32bit)
@@ -76,22 +75,17 @@ using Expr = boost::variant<Nil,
                             boost::recursive_wrapper<FunctionCall>,
                             boost::recursive_wrapper<Conversion>,
                             boost::recursive_wrapper<Pipeline>,
-                            boost::recursive_wrapper<BlockExpr>,
-                            boost::recursive_wrapper<MemberAccess>>;
+                            boost::recursive_wrapper<BlockExpr>>;
 
 struct BinOp : x3::position_tagged {
   Expr           lhs;
   std::u32string op;
   Expr           rhs;
 
-  BinOp(Expr&& lhs, std::u32string&& op, Expr&& rhs)
+  BinOp(Expr&& lhs, std::u32string&& op, Expr&& rhs) noexcept
     : lhs{std::move(lhs)}
     , op{std::move(op)}
     , rhs{std::move(rhs)}
-  {
-  }
-
-  BinOp() noexcept
   {
   }
 
@@ -191,6 +185,12 @@ struct UnaryOp : x3::position_tagged {
 struct Subscript : x3::position_tagged {
   Expr lhs;
   Expr subscript;
+
+  Subscript(Expr&& lhs, Expr&& subscript) noexcept
+    : lhs{std::move(lhs)}
+    , subscript{std::move(subscript)}
+  {
+  }
 };
 
 struct FunctionCall : x3::position_tagged {
@@ -204,6 +204,12 @@ struct FunctionCall : x3::position_tagged {
 struct Conversion : x3::position_tagged {
   Expr                           lhs;
   std::shared_ptr<codegen::Type> as;
+
+  Conversion(Expr&& lhs, std::shared_ptr<codegen::Type> as) noexcept
+    : lhs{std::move(lhs)}
+    , as{as}
+  {
+  }
 };
 
 struct Pipeline : x3::position_tagged {
@@ -211,17 +217,12 @@ struct Pipeline : x3::position_tagged {
   std::u32string op;
   Expr           rhs;
 
-  Pipeline(Expr&& lhs, std::u32string&& op, Expr&& rhs)
+  Pipeline(Expr&& lhs, std::u32string&& op, Expr&& rhs) noexcept
     : lhs{std::move(lhs)}
     , op{std::move(op)}
     , rhs{std::move(rhs)}
   {
   }
-};
-
-struct MemberAccess : x3::position_tagged {
-  Expr       lhs;
-  Identifier rhs;
 };
 
 //===----------------------------------------------------------------------===//
@@ -396,10 +397,10 @@ struct Parameter : x3::position_tagged {
   std::shared_ptr<codegen::Type> type;
   bool                           is_variadic_args;
 
-  Parameter(Identifier&&                   name,
-            std::optional<VariableQual>&&  qualifier,
-            std::shared_ptr<codegen::Type> type,
-            const bool                     is_variadic_args)
+  Parameter(Identifier&&                     name,
+            std::optional<VariableQual>&&    qualifier,
+            std::shared_ptr<codegen::Type>&& type,
+            const bool                       is_variadic_args) noexcept
     : name{name}
     , qualifier{qualifier}
     , type{type}

@@ -132,6 +132,7 @@ int main(const int argc, const char* const* const argv)
     {                       "fopen_fclose",  58},
     {                       "struct_type1",  41},
     {                       "struct_type2",  14},
+    {                     "recursive_cast",  58},
   };
 
   std::size_t ok_c{};   // ok count.

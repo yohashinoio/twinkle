@@ -68,22 +68,44 @@ const auto assignAttrToVal = [](auto&& ctx) {
   x3::_val(ctx) = std::move(x3::_attr(ctx));
 };
 
-// Only for ASTs of binary operators!
 template <typename T>
-const auto assignToValAs = [](auto&& ctx) {
-  static_assert(
-    std::is_same_v<T, ast::BinOp> || std::is_same_v<T, ast::Pipeline>,
-    "T must be a binary operation!");
+struct assignToValAs {
+  template <typename Ctx, typename Ast = T>
+  auto operator()(const Ctx& ctx) const -> std::enable_if_t<
+    std::is_same_v<Ast, ast::BinOp> || std::is_same_v<Ast, ast::Pipeline>>
+  {
+    Ast ast{std::move(x3::_val(ctx)),
+            std::move(fusion::at_c<0>(x3::_attr(ctx))),
+            std::move(fusion::at_c<1>(x3::_attr(ctx)))};
 
-  T ast{std::move(x3::_val(ctx)),
-        std::move(fusion::at_c<0>(x3::_attr(ctx))),
-        std::move(fusion::at_c<1>(x3::_attr(ctx)))};
+    assignAstToVal(ctx, std::move(ast));
+  }
 
-  // FIXME: There is a bug where the exact location is not annotated.
-  auto&& position_cache = x3::get<PositionCacheTag>(ctx);
-  position_cache.annotate(ast, x3::_where(ctx).begin(), x3::_where(ctx).end());
+  template <typename Ctx, typename Ast = T>
+  auto operator()(const Ctx& ctx) const -> std::enable_if_t<
+    std::is_same_v<Ast, ast::Conversion> || std::is_same_v<Ast, ast::Subscript>>
+  {
+    Ast ast{
+      std::move(x3::_val(ctx)),
+      std::move(fusion::at_c<1>(x3::_attr(ctx))),
+    };
 
-  x3::_val(ctx) = std::move(ast);
+    assignAstToVal(ctx, std::move(ast));
+  };
+
+private:
+  template <typename Ctx>
+  void assignAstToVal(const Ctx& ctx, T&& ast) const
+  {
+    // FIXME: There is a bug that causes the position to be annotated one
+    // position further than the actual position.
+    auto&& position_cache = x3::get<PositionCacheTag>(ctx);
+    position_cache.annotate(ast,
+                            x3::_where(ctx).begin(),
+                            x3::_where(ctx).end());
+
+    x3::_val(ctx) = std::forward<T>(ast);
+  }
 };
 
 } // namespace action
@@ -229,7 +251,7 @@ const auto char_literal
   > lit(U"'");
 
 const auto type
-  = x3::rule<struct TypeTag, std::shared_ptr<codegen::Type>>{"type"}
+  = x3::rule<struct TypeInternalTag, std::shared_ptr<codegen::Type>>{"type"}
 = (-char_(U'*')
    >> identifier_internal /* TODO: support double (recursion) ptr */
    >> -(lit(U"[") >> x3::uint64 >> lit(U"]")))[([](auto&& ctx) {
@@ -324,24 +346,18 @@ const x3::rule<struct RelationTag, ast::Expr> relation{"relational operation"};
 const x3::rule<struct PipelineTag, ast::Expr> pipeline{"pipeline operation"};
 const x3::rule<struct AddTag, ast::Expr>      add{"addition operation"};
 const x3::rule<struct MulTag, ast::Expr>      mul{"multiplication operation"};
-const x3::rule<struct UnaryTag, ast::Expr>    unary{"unary operation"};
-const x3::rule<struct ConversionTag, ast::Expr> conversion{"conversion"};
-const x3::rule<struct PrimaryTag, ast::Expr>    primary{"primary"};
-const x3::rule<struct ConversionInternalTag, ast::Conversion>
-  conversion_internal{"conversion"};
+const x3::rule<struct ConversionTag, ast::Expr>       conversion{"conversion"};
 const x3::rule<struct UnaryInternalTag, ast::UnaryOp> unary_internal{
   "unary operation"};
-const x3::rule<struct SubscriptInternalTag, ast::Subscript> subscript_internal{
-  "subscript"};
+const x3::rule<struct UnaryTag, ast::Expr>     unary{"unary operation"};
 const x3::rule<struct SubscriptTag, ast::Expr> subscript{"subscript"};
+const x3::rule<struct PrimaryTag, ast::Expr>   primary{"primary"};
 const x3::rule<struct ArgListTag, std::vector<ast::Expr>> arg_list{
   "argument list"};
 const x3::rule<struct FunctionCallTag, ast::FunctionCall> function_call{
   "function call"};
 const x3::rule<struct BlockExprTag, ast::BlockExpr> block_expr{
   "block expression"};
-// const x3::rule<struct MemberAccessTag, ast::MemberAccess> member_access{
-// "member access"};
 
 //===----------------------------------------------------------------------===//
 // Statement rules
@@ -411,46 +427,48 @@ const auto expr_def = binary_logical;
 
 const auto block_expr_def = lit(U"<|{") >> *stmt > expr > lit(U"}");
 
-// const auto member_access_def = expr >> lit(U".") > identifier;
-
 const auto binary_logical_def
   = equal[action::assignAttrToVal]
-    >> *(binary_logical_operator > equal)[action::assignToValAs<ast::BinOp>];
+    >> *(binary_logical_operator > equal)[action::assignToValAs<ast::BinOp>{}];
 
 const auto equal_def
   = relation[action::assignAttrToVal]
-    >> *(equality_operator > relation)[action::assignToValAs<ast::BinOp>];
+    >> *(equality_operator > relation)[action::assignToValAs<ast::BinOp>{}];
 
 const auto relation_def
   = pipeline[action::assignAttrToVal]
-    >> *(relational_operator > pipeline)[action::assignToValAs<ast::BinOp>];
+    >> *(relational_operator > pipeline)[action::assignToValAs<ast::BinOp>{}];
 
 const auto pipeline_def
   = add[action::assignAttrToVal]
-    >> *(pipeline_operator > add)[action::assignToValAs<ast::Pipeline>];
+    >> *(pipeline_operator > add)[action::assignToValAs<ast::Pipeline>{}];
 
 const auto add_def
   = mul[action::assignAttrToVal]
-    >> *(additive_operator > mul)[action::assignToValAs<ast::BinOp>];
+    >> *(additive_operator > mul)[action::assignToValAs<ast::BinOp>{}];
 
 const auto mul_def
   = conversion[action::assignAttrToVal]
-    >> *(multitive_operator > conversion)[action::assignToValAs<ast::BinOp>];
+    >> *(multitive_operator > conversion)[action::assignToValAs<ast::BinOp>{}];
 
-const auto conversion_internal_def = unary >> lit(U"as") > type;
-const auto conversion_def          = conversion_internal | unary;
+// Replacing string(U"as"]) with lit(U"as"]) causes an error. I don't know why.
+const auto conversion_def
+  = unary[action::assignAttrToVal]
+    >> *(string(U"as") > type)[action::assignToValAs<ast::Conversion>{}];
 
 const auto unary_internal_def = unary_operator >> subscript;
 const auto unary_def          = unary_internal | subscript;
 
-const auto subscript_internal_def = primary >> lit(U"[") > expr > lit(U"]");
-const auto subscript_def          = subscript_internal | primary;
+// Replacing string(U"["]) with lit(U"["]) causes an error. I don't know why.
+const auto subscript_def
+  = primary[action::assignAttrToVal]
+    >> *(string(U"[") > expr
+         > lit(U"]"))[action::assignToValAs<ast::Subscript>{}];
 
-const auto primary_def = binary_literal | octal_literal | hex_literal
-                         | int_32bit | uint_32bit | int_64bit | uint_64bit
-                         | boolean_literal | string_literal | char_literal
-                         | block_expr | function_call  | identifier
-                         | (lit(U"(") > expr > lit(U")"));
+const auto primary_def
+  = binary_literal | octal_literal | hex_literal | int_32bit | uint_32bit
+    | int_64bit | uint_64bit | boolean_literal | string_literal | char_literal
+    | block_expr | function_call | identifier | (lit(U"(") > expr > lit(U")"));
 
 BOOST_SPIRIT_DEFINE(expr)
 BOOST_SPIRIT_DEFINE(binary_logical)
@@ -461,14 +479,11 @@ BOOST_SPIRIT_DEFINE(add)
 BOOST_SPIRIT_DEFINE(mul)
 BOOST_SPIRIT_DEFINE(conversion)
 BOOST_SPIRIT_DEFINE(unary)
-BOOST_SPIRIT_DEFINE(subscript_internal)
 BOOST_SPIRIT_DEFINE(subscript)
 BOOST_SPIRIT_DEFINE(arg_list)
 BOOST_SPIRIT_DEFINE(function_call)
-BOOST_SPIRIT_DEFINE(conversion_internal)
 BOOST_SPIRIT_DEFINE(unary_internal)
 BOOST_SPIRIT_DEFINE(block_expr)
-// BOOST_SPIRIT_DEFINE(member_access)
 BOOST_SPIRIT_DEFINE(primary)
 
 //===----------------------------------------------------------------------===//
@@ -636,6 +651,8 @@ struct CharLiteralTag
   : ErrorHandle
   , AnnotatePosition {};
 
+struct TypeTag : AnnotatePosition {};
+
 //===----------------------------------------------------------------------===//
 // Expression tags
 //===----------------------------------------------------------------------===//
@@ -676,15 +693,7 @@ struct UnaryTag
   : ErrorHandle
   , AnnotatePosition {};
 
-struct ConversionInternalTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
 struct UnaryInternalTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct SubscriptInternalTag
   : ErrorHandle
   , AnnotatePosition {};
 

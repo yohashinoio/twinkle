@@ -44,7 +44,8 @@ namespace maple::codegen
   if (!is_array && !lhs.getType()->isPointerTy()) {
     throw CodegenError{
       ctx.formatError(ctx.positions.position_of(node),
-                      "the type incompatible with the subscript operator")};
+                      "the type incompatible with the subscript operator",
+                      false)};
   }
 
   if (is_array) {
@@ -61,7 +62,8 @@ namespace maple::codegen
   if (!subscript.isInteger()) {
     throw CodegenError{
       ctx.formatError(ctx.positions.position_of(node),
-                      "subscripts need to be evaluated to numbers")};
+                      "subscripts need to be evaluated to numbers",
+                      false)};
   }
 
   // Calculate the address of the subscript-th element.
@@ -79,8 +81,12 @@ namespace maple::codegen
   {
     // I did GEP and will pop.
     auto tmp = lhs.getSignInfo();
-    if (is_array)
+
+    if (is_array) {
+      // Because the behavior of gep changes between pointers and arrays.
       tmp.pop();
+    }
+
     return {gep, std::move(tmp), lhs.isMutable()};
   }
 }
@@ -359,7 +365,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     if (!lhs) {
       throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
-                                         "failed to generate left-hand side")};
+                                         "failed to generate left-hand side",
+                                         false)};
     }
 
     // TODO: Support for non-integers and non-pointers.
@@ -378,7 +385,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     }
     else {
       throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
-                                         "non-convertible type")};
+                                         "non-convertible type",
+                                         false)};
     }
 
     unreachable();
@@ -417,12 +425,6 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     }
 
     return createExpr(ctx, new_scope, stmt_ctx, node.last_expr);
-  }
-
-  [[nodiscard]] Value operator()(const ast::MemberAccess& node) const
-  {
-    // TODO
-    unreachable();
   }
 
 private:
