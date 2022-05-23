@@ -359,8 +359,6 @@ const x3::rule<struct ArgListTag, std::deque<ast::Expr>> arg_list{
   "argument list"};
 const x3::rule<struct FunctionCallTag, ast::Expr> function_call{
   "function call"};
-const x3::rule<struct BlockExprTag, ast::BlockExpr> block_expr{
-  "block expression"};
 
 //===----------------------------------------------------------------------===//
 // Statement rules
@@ -425,8 +423,6 @@ const x3::rule<struct ProgramTag, ast::Program> program{"program"};
 
 const auto expr_def = binary_logical;
 
-const auto block_expr_def = lit(U"<|{") >> *stmt > expr > lit(U"}");
-
 const auto binary_logical_def
   = equal[action::assignAttrToVal]
     >> *(binary_logical_operator > equal)[action::assignToValAs<ast::BinOp>{}];
@@ -473,10 +469,10 @@ const auto function_call_def
     >> *(string(U"(") > arg_list
          > lit(U")"))[action::assignToValAs<ast::FunctionCall>{}];
 
-const auto primary_def
-  = binary_literal | octal_literal | hex_literal | int_32bit | uint_32bit
-    | int_64bit | uint_64bit | boolean_literal | string_literal | char_literal
-    | block_expr | identifier | (lit(U"(") > expr > lit(U")"));
+const auto primary_def = binary_literal | octal_literal | hex_literal
+                         | int_32bit | uint_32bit | int_64bit | uint_64bit
+                         | boolean_literal | string_literal | char_literal
+                         | identifier | (lit(U"(") > expr > lit(U")"));
 
 BOOST_SPIRIT_DEFINE(expr)
 BOOST_SPIRIT_DEFINE(binary_logical)
@@ -491,7 +487,6 @@ BOOST_SPIRIT_DEFINE(subscript)
 BOOST_SPIRIT_DEFINE(arg_list)
 BOOST_SPIRIT_DEFINE(function_call)
 BOOST_SPIRIT_DEFINE(unary_internal)
-BOOST_SPIRIT_DEFINE(block_expr)
 BOOST_SPIRIT_DEFINE(primary)
 
 //===----------------------------------------------------------------------===//

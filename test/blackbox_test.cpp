@@ -125,7 +125,6 @@ int main(const int argc, const char* const* const argv)
     {       "subscript_array_of_unsigned2",  41},
     {                  "struct_definition",  38},
     {                           "pipeline", 116},
-    {                         "block_expr",  62},
     {                          "shadowing",  58},
     {                 "struct_declaration",  41},
     {      "multiple_function_declaration",  58},
@@ -134,6 +133,7 @@ int main(const int argc, const char* const* const argv)
     {                       "struct_type2",  14},
     {                     "recursive_cast",  58},
     {                 "expr_lhs_subscript",  58},
+    {                   "struct_in_struct",  14},
   };
 
   std::size_t ok_c{};   // ok count.

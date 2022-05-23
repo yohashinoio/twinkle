@@ -418,24 +418,6 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     return this->operator()(call);
   }
 
-  [[nodiscard]] Value operator()(const ast::BlockExpr& node) const
-  {
-    auto new_scope = scope;
-
-    for (const auto& statement : node.statements) {
-      new_scope = createStatement(ctx, new_scope, stmt_ctx, statement);
-
-      // Jump statements are prohibited in block expressions.
-      if (ctx.builder.GetInsertBlock()->getTerminator()) {
-        throw CodegenError{ctx.formatError(
-          ctx.positions.position_of(node),
-          "You cannot use jump statements in a block expression")};
-      }
-    }
-
-    return createExpr(ctx, new_scope, stmt_ctx, node.last_expr);
-  }
-
 private:
   [[nodiscard]] Value createAddressOf(const Value& value) const
   {

@@ -1,0 +1,12 @@
+struct Internal {
+
+}
+
+struct Sample {
+  let a: Internal;
+}
+
+func main() -> i32
+{
+  return 14;
+}

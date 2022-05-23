@@ -43,7 +43,6 @@
 - [Array In Detail](#array-in-detail)
   - [Definition](#definition-3)
   - [Subscript](#subscript)
-- [Block Expression](#block-expression)
 - [Statements](#statements)
   - [Expression Statements](#expression-statements)
   - [Compound Statement (Block)](#compound-statement-block)
@@ -513,55 +512,6 @@ func main() -> i32
 {
   let a = {4, 8, 1, 0};
   front(&a[0]);
-}
-```
-
-## Block Expression
-The block expression is one of the main features of the language.<br>
-Example without this expression.
-```rust
-func main() -> i32
-{
-  let mut a: i32;
-  if (foo())
-    a = 48;
-  else if (bar())
-    a = 10;
-  else
-    a = 58;
-}
-```
-Example with this expression.
-```rust
-func main() -> i32
-{
-  let a = <|{
-    let mut tmp: i32;
-    if (foo())
-      tmp = 48;
-    else if (bar())
-      tmp = 10;
-    else
-      tmp = 58;
-    tmp // The last expression is evaluated and returned.
-  };
-}
-```
-However, the use of jump statements in the block expressions is prohibited.
-```rust
-func main() -> i32
-{
-  <|{
-    return 58; // Error!
-  };
-
-  <|{
-    break; // Error!
-  };
-
-  <|{
-    continue; // Error!
-  };
 }
 ```
 

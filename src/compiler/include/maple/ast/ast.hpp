@@ -59,7 +59,6 @@ struct FunctionCall;
 struct Conversion;
 struct Subscript;
 struct Pipeline;
-struct BlockExpr;
 
 using Expr = boost::variant<Nil,
                             std::uint32_t, // Unsigned integer literals (32bit)
@@ -75,8 +74,7 @@ using Expr = boost::variant<Nil,
                             boost::recursive_wrapper<Subscript>,
                             boost::recursive_wrapper<FunctionCall>,
                             boost::recursive_wrapper<Conversion>,
-                            boost::recursive_wrapper<Pipeline>,
-                            boost::recursive_wrapper<BlockExpr>>;
+                            boost::recursive_wrapper<Pipeline>>;
 
 struct BinOp : x3::position_tagged {
   Expr           lhs;
@@ -374,15 +372,6 @@ struct For : x3::position_tagged {
   std::optional<Expr>           cond_expr;
   std::optional<ForLoopVariant> loop_stmt;
   Stmt                          body;
-};
-
-//===----------------------------------------------------------------------===//
-// Expression AST (Containing statements)
-//===----------------------------------------------------------------------===//
-
-struct BlockExpr : x3::position_tagged {
-  std::vector<Stmt> statements;
-  Expr              last_expr;
 };
 
 //===----------------------------------------------------------------------===//
