@@ -354,11 +354,11 @@ const x3::rule<struct UnaryInternalTag, ast::UnaryOp> unary_internal{
   "unary operation"};
 const x3::rule<struct UnaryTag, ast::Expr>     unary{"unary operation"};
 const x3::rule<struct SubscriptTag, ast::Expr> subscript{"subscript"};
-const x3::rule<struct PrimaryTag, ast::Expr>   primary{"primary"};
 const x3::rule<struct ArgListTag, std::deque<ast::Expr>> arg_list{
   "argument list"};
 const x3::rule<struct FunctionCallTag, ast::Expr> function_call{
   "function call"};
+const x3::rule<struct PrimaryTag, ast::Expr> primary{"primary"};
 
 //===----------------------------------------------------------------------===//
 // Statement rules
