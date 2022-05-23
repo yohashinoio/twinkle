@@ -331,21 +331,30 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::FunctionCall& node) const
   {
-    const auto callee = node.callee.utf8();
+    const auto pos = ctx.positions.position_of(node);
+
+    if (node.callee.type() != typeid(ast::Identifier)) {
+      throw CodegenError{
+        ctx.formatError(pos,
+                        "left-hand side of function call is not callable",
+                        false)};
+    }
+
+    const auto callee = boost::get<ast::Identifier>(node.callee).utf8();
 
     auto const callee_func = ctx.module->getFunction(callee);
 
-    const auto pos = ctx.positions.position_of(node);
-
     if (!callee_func) {
-      throw CodegenError{ctx.formatError(
-        pos,
-        fmt::format("unknown function '{}' referenced", callee))};
+      throw CodegenError{
+        ctx.formatError(pos,
+                        fmt::format("unknown function '{}' referenced", callee),
+                        false)};
     }
 
     if (!callee_func->isVarArg()
         && callee_func->arg_size() != node.args.size()) {
-      throw CodegenError{ctx.formatError(pos, "incorrect arguments passed")};
+      throw CodegenError{
+        ctx.formatError(pos, "incorrect arguments passed", false)};
     }
 
     const auto arg_values = createArgValues(node.args, callee, pos);

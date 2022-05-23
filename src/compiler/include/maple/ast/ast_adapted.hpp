@@ -53,7 +53,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::FunctionCall,
-  (maple::ast::Identifier, callee)
+  (maple::ast::Expr, callee)
   (std::deque<maple::ast::Expr>, args)
 )
 

@@ -21,7 +21,8 @@ namespace maple::ast
 
 namespace x3 = boost::spirit::x3;
 
-struct Nil {};
+struct Nil {
+};
 
 //===----------------------------------------------------------------------===//
 // Expression AST
@@ -94,7 +95,8 @@ struct BinOp : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind {
+  enum class Kind
+  {
     unknown,
     add,         // Addition
     sub,         // Subtraciton
@@ -153,7 +155,8 @@ struct UnaryOp : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind {
+  enum class Kind
+  {
     unknown,
     plus,        // Unary plus
     minus,       // Unary minus
@@ -194,11 +197,16 @@ struct Subscript : x3::position_tagged {
 };
 
 struct FunctionCall : x3::position_tagged {
-  Identifier callee;
-
+  Expr             callee;
   // Using deque instead of vector because of the possibility of adding an
   // element at the front.
   std::deque<Expr> args;
+
+  FunctionCall(Expr&& callee, std::deque<Expr>&& args) noexcept
+    : callee{std::move(callee)}
+    , args{std::move(args)}
+  {
+  }
 };
 
 struct Conversion : x3::position_tagged {
@@ -258,7 +266,8 @@ struct Assignment : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind {
+  enum class Kind
+  {
     unknown,
     direct, // Direct assignment
     add,    // Addition assignment
@@ -296,7 +305,8 @@ struct PrefixIncAndDec : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind {
+  enum class Kind
+  {
     unknown,
     increment,
     decrement,
@@ -313,9 +323,11 @@ struct PrefixIncAndDec : x3::position_tagged {
   }
 };
 
-struct Break : x3::position_tagged {};
+struct Break : x3::position_tagged {
+};
 
-struct Continue : x3::position_tagged {};
+struct Continue : x3::position_tagged {
+};
 
 struct If;
 struct Loop;
