@@ -113,8 +113,8 @@ private:
   BuiltinTypeKind kind;
 };
 
-struct UserDefinedType : public Type {
-  explicit UserDefinedType(const std::u32string& ident)
+struct StructType : public Type {
+  explicit StructType(const std::u32string& ident)
     : ident{unicode::utf32toUtf8(ident)}
   {
   }

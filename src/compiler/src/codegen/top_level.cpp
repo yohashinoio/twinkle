@@ -131,7 +131,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     const auto name = node.name.utf8();
 
     // Register return type to table.
-    ctx.frt_table.registOrOverwrite(name, node.return_type);
+    ctx.return_type_table.registOrOverwrite(name, node.return_type);
 
     auto const func
       = createLlvmFunction(node.linkage, func_type, name, *ctx.module);
@@ -238,8 +238,8 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
     ctx.struct_table.regist(
       name,
-      std::make_pair(llvm::StructType::create(ctx.context, name),
-                     std::deque<SignKind>{}));
+      std::make_pair(std::nullopt, /* std::nullopt means opaque */
+                     llvm::StructType::create(ctx.context, name)));
 
     return nullptr;
   }
@@ -250,17 +250,14 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
     // Set element types and create element sign info.
     std::vector<llvm::Type*> element_types;
-    std::deque<SignKind>     element_sign_info;
-    for (const auto& element : node.elements) {
+    for (const auto& element : node.elements)
       element_types.emplace_back(element.type->getType(ctx));
-      element_sign_info.emplace_back(element.type->getSignKind());
-    }
 
     // Check to make sure the name does not already exist.
     if (const auto existed_type = ctx.struct_table[name]) {
-      if (existed_type->first->isOpaque()) {
+      if (existed_type->second->isOpaque()) {
         // Set element type if declared forward.
-        existed_type->first->setBody(element_types);
+        existed_type->second->setBody(element_types);
       }
       else {
         throw CodegenError{
@@ -272,8 +269,8 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
       ctx.struct_table.regist(
         name,
         std::make_pair(
-          llvm::StructType::create(ctx.context, element_types, name),
-          std::move(element_sign_info)));
+          std::move(node.elements),
+          llvm::StructType::create(ctx.context, element_types, name)));
     }
 
     return nullptr;

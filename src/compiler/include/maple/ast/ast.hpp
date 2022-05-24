@@ -21,8 +21,7 @@ namespace maple::ast
 
 namespace x3 = boost::spirit::x3;
 
-struct Nil {
-};
+struct Nil {};
 
 //===----------------------------------------------------------------------===//
 // Expression AST
@@ -59,6 +58,7 @@ struct FunctionCall;
 struct Conversion;
 struct Subscript;
 struct Pipeline;
+struct MemberAccess;
 
 using Expr = boost::variant<Nil,
                             std::uint32_t, // Unsigned integer literals (32bit)
@@ -74,7 +74,8 @@ using Expr = boost::variant<Nil,
                             boost::recursive_wrapper<Subscript>,
                             boost::recursive_wrapper<FunctionCall>,
                             boost::recursive_wrapper<Conversion>,
-                            boost::recursive_wrapper<Pipeline>>;
+                            boost::recursive_wrapper<Pipeline>,
+                            boost::recursive_wrapper<MemberAccess>>;
 
 struct BinOp : x3::position_tagged {
   Expr           lhs;
@@ -93,8 +94,7 @@ struct BinOp : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind
-  {
+  enum class Kind {
     unknown,
     add,         // Addition
     sub,         // Subtraciton
@@ -153,13 +153,12 @@ struct UnaryOp : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind
-  {
+  enum class Kind {
     unknown,
     plus,        // Unary plus
     minus,       // Unary minus
     not_,        // Logical not
-    indirection, // Indirection
+    dereference, // Dereference
     address_of,  // Address-of
     size_of,     // size-of
   };
@@ -173,13 +172,24 @@ struct UnaryOp : x3::position_tagged {
     if (op == U"!")
       return Kind::not_;
     if (op == U"*")
-      return Kind::indirection;
+      return Kind::dereference;
     if (op == U"&")
       return Kind::address_of;
     if (op == U"sizeof")
       return Kind::size_of;
 
     return Kind::unknown;
+  }
+};
+
+struct MemberAccess : x3::position_tagged {
+  Expr       lhs;
+  Identifier selected_element;
+
+  MemberAccess(Expr&& lhs, Identifier&& selected_element) noexcept
+    : lhs{std::move(lhs)}
+    , selected_element{std::move(selected_element)}
+  {
   }
 };
 
@@ -264,8 +274,7 @@ struct Assignment : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind
-  {
+  enum class Kind {
     unknown,
     direct, // Direct assignment
     add,    // Addition assignment
@@ -303,8 +312,7 @@ struct PrefixIncAndDec : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind
-  {
+  enum class Kind {
     unknown,
     increment,
     decrement,
@@ -321,11 +329,9 @@ struct PrefixIncAndDec : x3::position_tagged {
   }
 };
 
-struct Break : x3::position_tagged {
-};
+struct Break : x3::position_tagged {};
 
-struct Continue : x3::position_tagged {
-};
+struct Continue : x3::position_tagged {};
 
 struct If;
 struct Loop;

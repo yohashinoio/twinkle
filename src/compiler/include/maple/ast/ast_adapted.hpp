@@ -46,6 +46,12 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
+  maple::ast::MemberAccess,
+  (maple::ast::Expr, lhs)
+  (maple::ast::Identifier, selected_element)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::Subscript,
   (maple::ast::Expr, lhs)
   (maple::ast::Expr, subscript)

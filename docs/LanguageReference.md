@@ -9,7 +9,7 @@
   - [Comparison Operators / Relational Operators](#comparison-operators--relational-operators)
   - [Logical Operators](#logical-operators)
   - [Assignment Operators (Statement)](#assignment-operators-statement)
-  - [Pointer Operators](#pointer-operators)
+  - [Member and pointer Operators](#member-and-pointer-operators)
   - [Other Operators](#other-operators)
 - [Fundamental (Built-in) Types](#fundamental-built-in-types)
   - [Integer Types](#integer-types)
@@ -21,6 +21,7 @@
 - [Struct types](#struct-types)
   - [Declaration](#declaration)
   - [Definition](#definition)
+  - [Access Members of a Structure](#access-members-of-a-structure)
 - [Variables](#variables)
   - [Definition](#definition-1)
   - [Mutable Variables](#mutable-variables)
@@ -116,12 +117,13 @@ The postfix increment and decrement is not supported because it would complicate
 
 In this language, **assignments are statements**, so a syntax such as "a = b = c" cannot be used.
 
-### Pointer Operators
+### Member and pointer Operators
 | Operator name | Syntax |
 | ------------- | ------ |
 | Subscript     | a[b]   |
 | Address-of    | &a     |
-| Indirection   | *a     |
+| Dereference   | *a     |
+| Member access | a.b    |
 
 ### Other Operators
 | Operator name | Syntax    |
@@ -262,6 +264,22 @@ struct Sample {
   let n: i32;
   let ch: char;
   let c_str: *i8;
+}
+```
+
+### Access Members of a Structure
+```rust
+struct Sample {
+  let n: i32;
+  let s: *i8;
+}
+
+func main() -> i32
+{
+  let mut s: Sample;
+
+  s.n = 4810;
+  s.s = "hello, world";
 }
 ```
 

@@ -85,11 +85,11 @@ int main(const int argc, const char* const* const argv)
     {                              "while",  58},
     {                               "loop",  58},
     {                 "variable_arguments",  58},
-    {                       "indirection1",  58},
-    {                       "indirection2",  58},
-    {                       "indirection3",  58},
+    {                       "dereference1",  58},
+    {                       "dereference2",  58},
+    {                       "dereference3",  58},
     {                  "character_literal",  58},
-    {             "indirection_assignment",  58},
+    {             "dereference_assignment",  58},
     {               "for_loop_declaration",  58},
     {           "init_time_type_inference",  58},
     {              "implicit_conversions1",  41},
@@ -112,7 +112,7 @@ int main(const int argc, const char* const* const argv)
     {                  "pointer_subscript", 168},
     {                             "sizeof",  58},
     {          "subscript_array_of_signed",  58},
-    {   "indirection_to_pointer_to_signed",  58},
+    {   "dereference_to_pointer_to_signed",  58},
     {                 "signed_return_type",  58},
     {        "subscript_array_of_unsigned",  41},
     {  "subscript_pointer_to_signed_array",  58},
@@ -134,6 +134,8 @@ int main(const int argc, const char* const* const argv)
     {                     "recursive_cast",  58},
     {                 "expr_lhs_subscript",  58},
     {                   "struct_in_struct",  14},
+    {                      "member_access",  58},
+    {                   "assign_to_member",  58},
   };
 
   std::size_t ok_c{};   // ok count.

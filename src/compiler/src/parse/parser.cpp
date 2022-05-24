@@ -82,11 +82,15 @@ struct assignToValAs {
   }
 
   template <typename Ctx, typename Ast = T>
-  auto operator()(const Ctx& ctx) const -> std::enable_if_t<
-    std::is_same_v<
-      Ast,
-      ast::
-        Conversion> || std::is_same_v<Ast, ast::Subscript> || std::is_same_v<Ast, ast::FunctionCall>>
+  auto operator()(const Ctx& ctx) const
+    // clang-format off
+    -> std::enable_if_t<
+         std::is_same_v<Ast, ast::Conversion>
+      || std::is_same_v<Ast, ast::Subscript>
+      || std::is_same_v<Ast, ast::FunctionCall>
+      || std::is_same_v<Ast, ast::MemberAccess>
+    >
+  // clang-format on
   {
     Ast ast{
       std::move(x3::_val(ctx)),
@@ -266,7 +270,7 @@ const auto type
     if (type_kind)
       base_type = std::make_shared<codegen::BuiltinType>(*type_kind);
     else
-      base_type = std::make_shared<codegen::UserDefinedType>(type_in_utf32);
+      base_type = std::make_shared<codegen::StructType>(type_in_utf32);
 
     if (fusion::at_c<0>(x3::_attr(ctx))) {
       if (fusion::at_c<2>(x3::_attr(ctx))) {
@@ -352,8 +356,10 @@ const x3::rule<struct MulTag, ast::Expr>      mul{"multiplication operation"};
 const x3::rule<struct ConversionTag, ast::Expr>       conversion{"conversion"};
 const x3::rule<struct UnaryInternalTag, ast::UnaryOp> unary_internal{
   "unary operation"};
-const x3::rule<struct UnaryTag, ast::Expr>     unary{"unary operation"};
-const x3::rule<struct SubscriptTag, ast::Expr> subscript{"subscript"};
+const x3::rule<struct UnaryTag, ast::Expr>        unary{"unary operation"};
+const x3::rule<struct MemberAccessTag, ast::Expr> member_access{
+  "member access operation"};
+const x3::rule<struct SubscriptTag, ast::Expr> subscript{"subscript operation"};
 const x3::rule<struct ArgListTag, std::deque<ast::Expr>> arg_list{
   "argument list"};
 const x3::rule<struct FunctionCallTag, ast::Expr> function_call{
@@ -452,8 +458,13 @@ const auto conversion_def
   = unary[action::assignAttrToVal]
     >> *(string(U"as") > type)[action::assignToValAs<ast::Conversion>{}];
 
-const auto unary_internal_def = unary_operator >> subscript;
-const auto unary_def          = unary_internal | subscript;
+const auto unary_internal_def = unary_operator >> member_access;
+const auto unary_def          = unary_internal | member_access;
+
+// Replacing string(U".") with lit(U".") causes an error. I don't know why.
+const auto member_access_def
+  = subscript[action::assignAttrToVal]
+    >> *(string(U".") > identifier)[action::assignToValAs<ast::MemberAccess>{}];
 
 // Replacing string(U"[") with lit(U"[") causes an error. I don't know why.
 const auto subscript_def
@@ -483,6 +494,7 @@ BOOST_SPIRIT_DEFINE(add)
 BOOST_SPIRIT_DEFINE(mul)
 BOOST_SPIRIT_DEFINE(conversion)
 BOOST_SPIRIT_DEFINE(unary)
+BOOST_SPIRIT_DEFINE(member_access)
 BOOST_SPIRIT_DEFINE(subscript)
 BOOST_SPIRIT_DEFINE(arg_list)
 BOOST_SPIRIT_DEFINE(function_call)
@@ -642,24 +654,19 @@ BOOST_SPIRIT_DEFINE(program)
 // Common tags
 //===----------------------------------------------------------------------===//
 
-struct VariableIdentTag : AnnotatePosition {
-};
+struct VariableIdentTag : AnnotatePosition {};
 
-struct IdentifierTag : AnnotatePosition {
-};
+struct IdentifierTag : AnnotatePosition {};
 
 struct StringLiteralTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct CharLiteralTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
-struct TypeTag : AnnotatePosition {
-};
+struct TypeTag : AnnotatePosition {};
 
 //===----------------------------------------------------------------------===//
 // Expression tags
@@ -667,81 +674,65 @@ struct TypeTag : AnnotatePosition {
 
 struct ExprTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct BinaryLogical
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct EqualTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct RelationTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct PipelineTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct AddTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct MulTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct ConversionTag
   : ErrorHandle
-  , AnnotatePosition {
-};
-
-struct UnaryTag
-  : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct UnaryInternalTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
-struct SubscriptTag
+struct UnaryTag
   : ErrorHandle
-  , AnnotatePosition {
-};
-
-struct ArgListTag : ErrorHandle {
-};
-
-struct FunctionCallTag
-  : ErrorHandle
-  , AnnotatePosition {
-};
-
-struct PrimaryTag
-  : ErrorHandle
-  , AnnotatePosition {
-};
-
-struct BlockExprTag
-  : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct MemberAccessTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
+
+struct SubscriptTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct ArgListTag : ErrorHandle {};
+
+struct FunctionCallTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct PrimaryTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct BlockExprTag
+  : ErrorHandle
+  , AnnotatePosition {};
 
 //===----------------------------------------------------------------------===//
 // Statement tags
@@ -749,78 +740,63 @@ struct MemberAccessTag
 
 struct StmtTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct InitListTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct InitializerTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct ExprStmtTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct VariableDefTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct AssignTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct PrefixIncOrDec
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct PrefixDecrement
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct ReturnTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct IfTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct LoopTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct WhileTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct ForTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct BreakTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct ContinueTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 //===----------------------------------------------------------------------===//
 // Top level statement tags
@@ -828,53 +804,43 @@ struct ContinueTag
 
 struct StructElementTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct StructElementsTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct StructDefTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct StructDeclTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct ParameterTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct ParameterListTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct FunctionProtoTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct FunctionDeclTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct FunctionDefTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 struct TopLevelTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 //===----------------------------------------------------------------------===//
 // Program tag
@@ -882,8 +848,7 @@ struct TopLevelTag
 
 struct ProgramTag
   : ErrorHandle
-  , AnnotatePosition {
-};
+  , AnnotatePosition {};
 
 } // namespace syntax
 

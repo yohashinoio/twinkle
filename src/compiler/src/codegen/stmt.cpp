@@ -416,66 +416,25 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
 private:
   [[nodiscard]] Value
-  createAssignableValue(const ast::Identifier&                     node,
+  createAssignableValue(const ast::Expr&                           node,
                         const boost::iterator_range<InputIterator> pos) const
   {
-    const auto& variable = findVariable(ctx, node, scope);
+    const auto value = createExpr(ctx, scope, stmt_ctx, node);
 
-    if (!variable.isMutable()) {
-      // Assignment to read-only variable.
-      throw CodegenError{ctx.formatError(
-        pos,
-        fmt::format("assignment of read-only variable '{}'", node.utf8()))};
-    }
-
-    return {variable.getAllocaInst(),
-            variable.getSignInfo(),
-            variable.isMutable()};
-  }
-
-  [[nodiscard]] Value
-  createAssignableValue(const ast::Subscript&                      node,
-                        const boost::iterator_range<InputIterator> pos) const
-  {
-    const auto value = createNoLoadSubscript(ctx, scope, stmt_ctx, node);
+    if (!value)
+      throw CodegenError{ctx.formatError(pos, "failed to generate expression")};
 
     if (!value.isMutable()) {
       throw CodegenError{
         ctx.formatError(pos, "assignment of read-only variable")};
     }
 
-    return value;
-  }
+    auto tmp = value.getSignInfo();
+    tmp.push(SignKind::unsigned_); // Pointer type.
 
-  [[nodiscard]] Value
-  createAssignableValue(const ast::Expr&                           node,
-                        const boost::iterator_range<InputIterator> pos) const
-  {
-    Value value;
-
-    if (node.type() == typeid(ast::Identifier))
-      value = createAssignableValue(boost::get<ast::Identifier>(node), pos);
-    else if (node.type() == typeid(ast::UnaryOp)
-             && boost::get<ast::UnaryOp>(node).kind()
-                  == ast::UnaryOp::Kind::indirection) {
-      const auto& unary_op_node = boost::get<ast::UnaryOp>(node);
-
-      value = createExpr(ctx, scope, stmt_ctx, unary_op_node.rhs);
-    }
-    else if (node.type() == typeid(ast::Subscript))
-      value = createAssignableValue(boost::get<ast::Subscript>(node), pos);
-    else
-      value = createExpr(ctx, scope, stmt_ctx, node);
-
-    if (!value)
-      throw CodegenError{ctx.formatError(pos, "failed to generate expression")};
-
-    if (!value.isMutable() || !value.isPointer()) {
-      throw CodegenError{
-        ctx.formatError(pos, "left-hand side value requires assignable")};
-    }
-
-    return value;
+    return {llvm::getPointerOperand(value.getValue()),
+            std::move(tmp),
+            value.isMutable()};
   }
 
   [[nodiscard]] InitializerList

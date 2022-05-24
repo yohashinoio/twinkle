@@ -75,13 +75,12 @@ private:
   std::unordered_map<Key, T> table;
 };
 
-// Function return type table.
-using FRTTable = Table<std::string, std::shared_ptr<Type>>;
+using FunctionReturnTypeTable = Table<std::string, std::shared_ptr<Type>>;
 
-using StructTypeWithSignInfo
-  = std::pair<llvm::StructType*, std::deque<SignKind> /* Sign info */>;
-
-using StructTable = Table<std::string, StructTypeWithSignInfo>;
+// std::nullopt means opaque(llvm).
+using StructTable = Table<
+  std::string,
+  std::pair<std::optional<std::vector<ast::StructElement>>, llvm::StructType*>>;
 
 // Codegen context.
 struct CGContext {
@@ -104,7 +103,7 @@ struct CGContext {
 
   StructTable struct_table;
 
-  FRTTable frt_table;
+  FunctionReturnTypeTable return_type_table;
 };
 
 struct CodeGenerator {

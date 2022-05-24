@@ -88,19 +88,24 @@ matchBuildinType(const std::u32string_view type)
   unreachable();
 }
 
-[[nodiscard]] llvm::Type* UserDefinedType::getType(CGContext& ctx) const
+[[nodiscard]] llvm::Type* StructType::getType(CGContext& ctx) const
 {
   const auto struct_type = ctx.struct_table[ident];
   assert(struct_type);
-  return struct_type->first;
+  return struct_type->second;
 }
 
 [[nodiscard]] SignKindStack
-UserDefinedType::createSignKindStack(CGContext& ctx) const noexcept
+StructType::createSignKindStack(CGContext& ctx) const noexcept
 {
   const auto struct_type = ctx.struct_table[ident];
   assert(struct_type);
-  return SignKindStack{struct_type->second};
+
+  std::stack<SignKind> tmp;
+  tmp.push(SignKind::no_sign); // Struct element type sign.
+  tmp.push(SignKind::no_sign); // Struct type sign.
+
+  return tmp;
 }
 
 } // namespace maple::codegen

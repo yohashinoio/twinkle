@@ -122,6 +122,19 @@ static void integerLargerBitsCast(CGContext& ctx, Value& lhs, Value& rhs)
   }
 }
 
+// Calculate the offset of an element of a structure.
+static std::size_t offsetByName(const std::vector<ast::StructElement>& elements,
+                                const std::string& element_name)
+{
+  for (std::size_t offset = 0; const auto& element : elements) {
+    if (element.name.utf8() == element_name)
+      return offset;
+    ++offset;
+  }
+
+  unreachable();
+}
+
 //===----------------------------------------------------------------------===//
 // Expression visitor
 //===----------------------------------------------------------------------===//
@@ -203,6 +216,44 @@ struct ExprVisitor : public boost::static_visitor<Value> {
             variable.isMutable()};
   }
 
+  [[nodiscard]] Value operator()(const ast::MemberAccess& node) const
+  {
+    const auto lhs = createExpr(ctx, scope, stmt_ctx, node.lhs);
+
+    if (!lhs.getType()->isStructTy()) {
+      throw CodegenError{
+        ctx.formatError(ctx.positions.position_of(node),
+                        "element selection cannot be used for non-structures",
+                        false)};
+    }
+
+    const auto struct_info
+      = ctx.struct_table[lhs.getType()->getStructName().str()];
+
+    if (!struct_info->first) {
+      throw CodegenError{ctx.formatError(
+        ctx.positions.position_of(node),
+        "element selection cannot be performed on undefined structures",
+        false)};
+    }
+
+    const auto offset
+      = offsetByName(struct_info->first.value(), node.selected_element.utf8());
+
+    auto const lhs_address = llvm::getPointerOperand(lhs.getValue());
+
+    auto const gep = ctx.builder.CreateInBoundsGEP(
+      lhs.getType(),
+      lhs_address,
+      {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 0),
+       llvm::ConstantInt::get(ctx.builder.getInt32Ty(), offset)});
+
+    return {
+      ctx.builder.CreateLoad(lhs.getType()->getStructElementType(offset), gep),
+      struct_info->first->at(offset).type->createSignKindStack(ctx),
+      lhs.isMutable()};
+  }
+
   [[nodiscard]] Value operator()(const ast::Subscript& node) const
   {
     const auto value = createNoLoadSubscript(ctx, scope, stmt_ctx, node);
@@ -213,7 +264,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     return {ctx.builder.CreateLoad(value.getType()->getPointerElementType(),
                                    value.getValue()),
-            std::move(tmp)};
+            std::move(tmp),
+            value.isMutable()};
   }
 
   [[nodiscard]] Value operator()(const ast::BinOp& node) const
@@ -311,8 +363,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     case ast::UnaryOp::Kind::not_:
       return createLogicalNot(ctx, rhs);
 
-    case ast::UnaryOp::Kind::indirection:
-      return createIndirection(ctx.positions.position_of(node), rhs);
+    case ast::UnaryOp::Kind::dereference:
+      return createDereference(ctx.positions.position_of(node), rhs);
 
     case ast::UnaryOp::Kind::address_of:
       return createAddressOf(rhs);
@@ -361,7 +413,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     verifyArguments(arg_values, callee_func, pos);
 
-    const auto return_type = ctx.frt_table[callee];
+    const auto return_type = ctx.return_type_table[callee];
     assert(return_type);
 
     return {ctx.builder.CreateCall(callee_func, arg_values),
@@ -428,7 +480,7 @@ private:
   }
 
   [[nodiscard]] Value
-  createIndirection(const boost::iterator_range<InputIterator>& pos,
+  createDereference(const boost::iterator_range<InputIterator>& pos,
                     const Value&                                rhs) const
   {
     auto tmp = rhs.getSignInfo();
