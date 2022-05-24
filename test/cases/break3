@@ -4,5 +4,5 @@ func main() -> i32
   for (i = 0; i != 100000; i += 1)
     break;
 
-  return i;
+  return i + 14;
 }

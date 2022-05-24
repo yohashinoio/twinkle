@@ -13,4 +13,6 @@ func main() -> i32
   unicode = '🌸';
   if (unicode != 127800)
     return 10;
+
+  return 41;
 }

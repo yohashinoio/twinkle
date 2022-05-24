@@ -1,7 +1,14 @@
+func f() -> i32
+{
+  "Io Yoha";
+  return 14;
+}
+
 func main() -> i32
 {
   "";
   " ";
   "a";
   "abc";
+  return f();
 }
