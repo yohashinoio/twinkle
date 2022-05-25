@@ -1,0 +1,14 @@
+struct Internal {
+  let io: i32;
+}
+
+struct Sample {
+  let shino: Internal;
+}
+
+func main() -> i32
+{
+  let mut yoha: Sample;
+  yoha.shino.io = 58;
+  return yoha.shino.io;
+}
