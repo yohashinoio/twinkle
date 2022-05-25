@@ -61,7 +61,7 @@ CGContext::formatError(const boost::iterator_range<InputIterator>& pos,
     std::u32string tmp;
     std::copy(cbegin(pos), cend(pos), std::back_inserter(tmp));
 
-    result += boost::algorithm::trim_copy(unicode::utf32toUtf8(tmp));
+    result += '\n' + boost::algorithm::trim_copy(unicode::utf32toUtf8(tmp));
   }
 
   return result;

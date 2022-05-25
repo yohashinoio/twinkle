@@ -26,6 +26,8 @@ static bool isBackNewline(const char* str) noexcept
       return *--str == '\n';
     ++str;
   }
+
+  unreachable();
 }
 
 static std::ostream& printHelp(std::ostream&          ostm,
