@@ -30,6 +30,49 @@ namespace maple::codegen
   unreachable();
 }
 
+[[nodiscard]] static Value createPointerToArray(const Value& array)
+{
+  auto tmp = array.getSignInfo();
+  tmp.emplace(SignKind::unsigned_); // Pointer type.
+
+  return {llvm::getPointerOperand(array.getValue()),
+          std::move(tmp),
+          array.isMutable()};
+}
+
+[[nodiscard]] static Value
+createArraySubscript(CGContext& ctx, const Value& array, const Value& index)
+{
+  const auto p_to_array = createPointerToArray(array);
+
+  // Calculate the address of the index-th element.
+  auto const gep = ctx.builder.CreateInBoundsGEP(
+    p_to_array.getType()->getPointerElementType(),
+    p_to_array.getValue(),
+    {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 0), index.getValue()});
+
+  {
+    auto tmp = p_to_array.getSignInfo();
+    tmp.pop();
+
+    return {gep, std::move(tmp), p_to_array.isMutable()};
+  }
+}
+
+[[nodiscard]] static Value
+createPointerSubscript(CGContext& ctx, const Value& p, const Value& index)
+{
+  // Calculate the address of the index-th element.
+  auto const gep
+    = ctx.builder.CreateInBoundsGEP(p.getType()->getPointerElementType(),
+                                    p.getValue(),
+                                    index.getValue());
+
+  return {gep,
+          p.getSignInfo() /* I don't know why this works. */,
+          p.isMutable()};
+}
+
 // Normally a subscript operation calls createLoad at the end, but this function
 // does not.
 [[nodiscard]] Value createNoLoadSubscript(CGContext&            ctx,
@@ -48,47 +91,17 @@ namespace maple::codegen
                       false)};
   }
 
-  if (is_array) {
-    // Get the address of the first element of the array.
-    auto tmp = lhs.getSignInfo();
-    tmp.emplace(SignKind::unsigned_); // Pointer type.
-    lhs = {llvm::getPointerOperand(lhs.getValue()),
-           std::move(tmp),
-           lhs.isMutable()};
-  }
+  const auto index = createExpr(ctx, scope, stmt_ctx, node.subscript);
 
-  const auto subscript = createExpr(ctx, scope, stmt_ctx, node.subscript);
-
-  if (!subscript.isInteger()) {
+  if (!index.isInteger()) {
     throw CodegenError{
       ctx.formatError(ctx.positions.position_of(node),
                       "subscripts need to be evaluated to numbers",
                       false)};
   }
 
-  // Calculate the address of the subscript-th element.
-  auto const gep
-    = is_array
-        ? ctx.builder.CreateInBoundsGEP(
-          lhs.getType()->getPointerElementType(),
-          lhs.getValue(),
-          {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 0),
-           subscript.getValue()})
-        : ctx.builder.CreateInBoundsGEP(lhs.getType()->getPointerElementType(),
-                                        lhs.getValue(),
-                                        subscript.getValue());
-
-  {
-    // I did GEP and will pop.
-    auto tmp = lhs.getSignInfo();
-
-    if (is_array) {
-      // Because the behavior of gep changes between pointers and arrays.
-      tmp.pop();
-    }
-
-    return {gep, std::move(tmp), lhs.isMutable()};
-  }
+  return is_array ? createArraySubscript(ctx, lhs, index)
+                  : createPointerSubscript(ctx, lhs, index);
 }
 
 // This function changes the arguments.
@@ -123,6 +136,7 @@ static void integerLargerBitsCast(CGContext& ctx, Value& lhs, Value& rhs)
 }
 
 // Calculate the offset of an element of a structure.
+// Returns std::nullopt if there is no matching element.
 static std::optional<std::size_t>
 offsetByName(const std::vector<ast::StructElement>& elements,
              const std::string&                     element_name)
