@@ -123,8 +123,9 @@ static void integerLargerBitsCast(CGContext& ctx, Value& lhs, Value& rhs)
 }
 
 // Calculate the offset of an element of a structure.
-static std::size_t offsetByName(const std::vector<ast::StructElement>& elements,
-                                const std::string& element_name)
+static std::optional<std::size_t>
+offsetByName(const std::vector<ast::StructElement>& elements,
+             const std::string&                     element_name)
 {
   for (std::size_t offset = 0; const auto& element : elements) {
     if (element.name.utf8() == element_name)
@@ -132,7 +133,7 @@ static std::size_t offsetByName(const std::vector<ast::StructElement>& elements,
     ++offset;
   }
 
-  unreachable();
+  return std::nullopt;
 }
 
 //===----------------------------------------------------------------------===//
@@ -240,17 +241,23 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     const auto offset
       = offsetByName(struct_info->first.value(), node.selected_element.utf8());
 
+    if (!offset) {
+      throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
+                                         "undefined element selected",
+                                         false)};
+    }
+
     auto const lhs_address = llvm::getPointerOperand(lhs.getValue());
 
     auto const gep = ctx.builder.CreateInBoundsGEP(
       lhs.getType(),
       lhs_address,
       {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 0),
-       llvm::ConstantInt::get(ctx.builder.getInt32Ty(), offset)});
+       llvm::ConstantInt::get(ctx.builder.getInt32Ty(), *offset)});
 
     return {
-      ctx.builder.CreateLoad(lhs.getType()->getStructElementType(offset), gep),
-      struct_info->first->at(offset).type->createSignKindStack(ctx),
+      ctx.builder.CreateLoad(lhs.getType()->getStructElementType(*offset), gep),
+      struct_info->first->at(*offset).type->createSignKindStack(ctx),
       lhs.isMutable()};
   }
 
