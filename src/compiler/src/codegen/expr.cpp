@@ -256,9 +256,11 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       = offsetByName(struct_info->first.value(), node.selected_element.utf8());
 
     if (!offset) {
-      throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
-                                         "undefined element selected",
-                                         false)};
+      throw CodegenError{
+        ctx.formatError(ctx.positions.position_of(node),
+                        fmt::format("undefined element '{}' selected",
+                                    node.selected_element.utf8()),
+                        false)};
     }
 
     auto const lhs_address = llvm::getPointerOperand(lhs.getValue());

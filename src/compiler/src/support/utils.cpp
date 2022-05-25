@@ -26,12 +26,14 @@ namespace maple
                                       const std::string_view message)
 {
   return fmt::format("{}: ", filename)
-         + fmt::format(fg(fmt::color::red), "error: ") + std::string(message);
+         + fmt::format(fg(fmt::terminal_color::bright_red), "error: ")
+         + fmt::format(fg(fmt::terminal_color::bright_white), "{}", message);
 }
 
 [[nodiscard]] std::string formatError(const std::string_view message)
 {
-  return fmt::format(fg(fmt::color::red), "error: ") + std::string(message);
+  return fmt::format(fg(fmt::terminal_color::bright_red), "error: ")
+         + fmt::format(fg(fmt::terminal_color::bright_white), "{}", message);
 }
 
 [[nodiscard]] std::string stringToLower(const std::string_view str)

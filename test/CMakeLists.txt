@@ -4,6 +4,7 @@ find_package(Threads REQUIRED)
 
 include_directories(
   ${CMAKE_SOURCE_DIR}/src/compiler/include
+  ${CMAKE_SOURCE_DIR}/third-party/fmt/include
 )
 
 add_executable(
@@ -15,6 +16,7 @@ target_link_libraries(
   ${RUNTIME_NAME}
   PRIVATE
   Threads::Threads
+  fmt::fmt
   maplec1
 )
 

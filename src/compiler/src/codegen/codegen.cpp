@@ -52,9 +52,10 @@ CGContext::formatError(const boost::iterator_range<InputIterator>& pos,
     }
   }
 
-  auto result = fmt::format("In file {}, line {}:\n", file.string(), rows)
-                + fmt::format(fg(fmt::color::red), "error: ")
-                + fmt::format("{}\n", message);
+  auto result
+    = fmt::format("In file {}, line {}:\n", file.string(), rows)
+      + fmt::format(fg(fmt::terminal_color::bright_red), "error: ")
+      + fmt::format(fg(fmt::terminal_color::bright_white), "{}", message);
 
   if (print_location) {
     std::u32string tmp;

@@ -10,6 +10,8 @@
 #include <sstream>
 #include <iostream>
 #include <unordered_map>
+#include <fmt/printf.h>
+#include <fmt/color.h>
 
 namespace fs = std::filesystem;
 
@@ -24,7 +26,7 @@ int main(const int argc, const char* const* const argv)
     std::exit(EXIT_FAILURE);
   }
 
-  const std::unordered_map<std::string, int> expects{
+  const std::unordered_map<std::string, int> expected_retcodes{
     {                             "return",  58},
     {                           "addition",  58},
     {                        "subtraction",  58},
@@ -148,39 +150,50 @@ int main(const int argc, const char* const* const argv)
     // Suppresses compile error output.
     std::cerr.setstate(std::ios::failbit);
 
-    const auto compile_res
+    const auto result
       = maple::compile::main(std::extent_v<decltype(c_argv)>, c_argv);
 
     std::cerr.clear();
 
     try {
-      const auto expect = expects.at(r.path().stem().string());
+      const auto expected_retcode
+        = expected_retcodes.at(r.path().stem().string());
 
-      if (compile_res.success()) {
-        if (*compile_res.getJitResult() == expect) {
-          std::cerr << r.path().stem().string() << " => "
-                    << *compile_res.getJitResult() << " \x1b[32mOK!\x1b[39m\n";
+      if (result.success()) {
+        if (*result.getJitResult() == expected_retcode) {
+          fmt::print(stderr, "{} => ", r.path().stem().string());
+          fmt::print(stderr,
+                     fg(fmt::terminal_color::bright_green),
+                     "{} OK!\n",
+                     *result.getJitResult());
           ++ok_c;
-
           continue;
         }
       }
 
-      std::cerr << r.path().stem().string() << " => "
-                << *compile_res.getJitResult() << " \x1b[31mFails!\x1b[39m "
-                << expect << " expected\n";
+      fmt::print(stderr, "{} => ", r.path().stem().string());
+      fmt::print(stderr,
+                 fg(fmt::terminal_color::bright_red),
+                 "{} Fails! ",
+                 *result.getJitResult());
+      fmt::print(stderr, "{} expected\n", expected_retcode);
       ++fail_c;
     }
     catch (const std::out_of_range&) {
-      std::cerr << "No expect is set: " << r.path().stem().string()
-                << std::endl;
+      fmt::print(stderr,
+                 "{} expected end code not set...",
+                 r.path().stem().string());
       std::exit(EXIT_FAILURE);
     }
   }
 
   std::cerr << "--------------------\n";
-  std::cerr << "| \x1b[31mFail\x1b[39m: " << std::setw(10) << fail_c << " |\n";
-  std::cerr << "|   \x1b[32mOK\x1b[39m: " << std::setw(10) << ok_c << " |\n";
+  std::cerr << "| " + fmt::format(fg(fmt::terminal_color::bright_red), "Fail")
+                 + ": "
+            << std::setw(10) << fail_c << " |\n";
+  std::cerr << "|   " + fmt::format(fg(fmt::terminal_color::bright_green), "OK")
+                 + ": "
+            << std::setw(10) << ok_c << " |\n";
   std::cerr << "--------------------\n";
 
   if (fail_c)
