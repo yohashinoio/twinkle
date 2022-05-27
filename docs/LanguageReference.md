@@ -198,7 +198,7 @@ And the return type of a function is optional and has the same meaning as the vo
 ```rust
 func f() -> void
 {
-  ret;
+  return;
 }
 
 // Functions returning void type do not require return.
