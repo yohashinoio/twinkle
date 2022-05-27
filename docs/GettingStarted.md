@@ -5,9 +5,6 @@
 - [AOT Compile](#aot-compile)
 - [JIT Compile](#jit-compile)
 
-## Notes
-Since the author only understands Japanese, this document was created with translation at DeepL.
-
 ## Hello World
 ```rust
 // hello.txt
