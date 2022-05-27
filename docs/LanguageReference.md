@@ -494,7 +494,7 @@ func main() -> i32
 ```
 
 ### Subscript
-Subscript numbers begin with 0.
+Indexes start at 0.
 ```rust
 func f() -> i32
 {
