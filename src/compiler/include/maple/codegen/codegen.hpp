@@ -86,13 +86,14 @@ using StructTable = Table<
 struct CGContext {
   CGContext(llvm::LLVMContext&      context,
             PositionCache&&         positions,
-            std::filesystem::path&& file) noexcept;
+            std::filesystem::path&& file,
+            const std::string&      source_code) noexcept;
 
   [[nodiscard]] std::string
   formatError(const boost::iterator_range<InputIterator>& pos,
-              const std::string_view                      message,
-              const bool print_location = true) const;
+              const std::string_view                      message) const;
 
+  // LLVM
   llvm::LLVMContext&            context;
   std::unique_ptr<llvm::Module> module;
   llvm::IRBuilder<>             builder;
@@ -101,9 +102,16 @@ struct CGContext {
 
   PositionCache positions;
 
-  StructTable struct_table;
-
+  // Table
+  StructTable             struct_table;
   FunctionReturnTypeTable return_type_table;
+
+private:
+  // Stores source code line by line as elements.
+  std::vector<std::string> source_code;
+
+  [[nodiscard]] std::size_t
+  calcRows(const boost::iterator_range<InputIterator>& pos) const;
 };
 
 struct CodeGenerator {

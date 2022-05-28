@@ -10,6 +10,7 @@
 #include <maple/codegen/type.hpp>
 #include <maple/codegen/exception.hpp>
 #include <maple/unicode/unicode.hpp>
+#include <sstream>
 #include <cassert>
 
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
@@ -19,52 +20,67 @@
 namespace maple::codegen
 {
 
+[[nodiscard]] static std::vector<std::string>
+splitLineByLine(const std::string& str)
+{
+  std::istringstream       ss{str};
+  std::vector<std::string> lines;
+
+  for (;;) {
+    std::string line;
+    if (std::getline(ss, line))
+      lines.emplace_back(line);
+    else
+      return lines;
+  }
+
+  unreachable();
+}
+
 //===----------------------------------------------------------------------===//
 // Code generator
 //===----------------------------------------------------------------------===//
 
 CGContext::CGContext(llvm::LLVMContext&      context,
                      PositionCache&&         positions,
-                     std::filesystem::path&& file) noexcept
+                     std::filesystem::path&& file,
+                     const std::string&      source_code) noexcept
   : context{context}
   , module{std::make_unique<llvm::Module>(file.filename().string(), context)}
   , builder{context}
   , file{std::move(file)}
   , positions{std::move(positions)}
   , return_type_table{}
+  , source_code{splitLineByLine(source_code)}
 {
 }
 
 [[nodiscard]] std::string
 CGContext::formatError(const boost::iterator_range<InputIterator>& pos,
-                       const std::string_view                      message,
-                       const bool print_location) const
+                       const std::string_view message) const
 {
-  // Calculate line numbers.
-  std::size_t rows = 0;
+  const auto rows = calcRows(pos);
+
+  return fmt::format("In file {}, line {}:\n", file.string(), rows)
+         + fmt::format(fg(fmt::terminal_color::bright_red), "error: ")
+         + fmt::format(fg(fmt::terminal_color::bright_white), "{}\n", message)
+         + boost::algorithm::trim_copy(source_code.at(rows - 1));
+}
+
+[[nodiscard]] std::size_t
+CGContext::calcRows(const boost::iterator_range<InputIterator>& pos) const
+{
+  std::size_t rows{};
+
   for (auto iter = pos.begin();; --iter) {
-    if (*iter == '\n')
+    if (*iter == U'\n')
       ++rows;
 
-    if (iter == positions.first()) {
-      ++rows;
-      break;
-    }
+    if (iter == positions.first())
+      return ++rows;
   }
 
-  auto result
-    = fmt::format("In file {}, line {}:\n", file.string(), rows)
-      + fmt::format(fg(fmt::terminal_color::bright_red), "error: ")
-      + fmt::format(fg(fmt::terminal_color::bright_white), "{}", message);
-
-  if (print_location) {
-    std::u32string tmp;
-    std::copy(cbegin(pos), cend(pos), std::back_inserter(tmp));
-
-    result += '\n' + boost::algorithm::trim_copy(unicode::utf32toUtf8(tmp));
-  }
-
-  return result;
+  unreachable();
 }
 
 CodeGenerator::CodeGenerator(const std::string_view               argv_front,
@@ -88,7 +104,10 @@ CodeGenerator::CodeGenerator(const std::string_view               argv_front,
 
   for (auto it = parse_results.begin(), last = parse_results.end(); it != last;
        ++it) {
-    CGContext ctx{*context, std::move(it->positions), std::move(it->file)};
+    CGContext ctx{*context,
+                  std::move(it->positions),
+                  std::move(it->file),
+                  it->input};
 
     llvm::legacy::FunctionPassManager fp_manager{ctx.module.get()};
 

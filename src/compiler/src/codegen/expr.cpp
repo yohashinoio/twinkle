@@ -87,8 +87,7 @@ createPointerSubscript(CGContext& ctx, const Value& p, const Value& index)
   if (!is_array && !lhs.getType()->isPointerTy()) {
     throw CodegenError{
       ctx.formatError(ctx.positions.position_of(node),
-                      "the type incompatible with the subscript operator",
-                      false)};
+                      "the type incompatible with the subscript operator")};
   }
 
   const auto index = createExpr(ctx, scope, stmt_ctx, node.subscript);
@@ -96,8 +95,7 @@ createPointerSubscript(CGContext& ctx, const Value& p, const Value& index)
   if (!index.isInteger()) {
     throw CodegenError{
       ctx.formatError(ctx.positions.position_of(node),
-                      "subscripts need to be evaluated to numbers",
-                      false)};
+                      "subscripts need to be evaluated to numbers")};
   }
 
   return is_array ? createArraySubscript(ctx, lhs, index)
@@ -238,8 +236,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     if (!lhs.getType()->isStructTy()) {
       throw CodegenError{
         ctx.formatError(ctx.positions.position_of(node),
-                        "element selection cannot be used for non-structures",
-                        false)};
+                        "element selection cannot be used for non-structures")};
     }
 
     const auto struct_info
@@ -248,8 +245,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     if (!struct_info->first) {
       throw CodegenError{ctx.formatError(
         ctx.positions.position_of(node),
-        "element selection cannot be performed on undefined structures",
-        false)};
+        "element selection cannot be performed on undefined structures")};
     }
 
     const auto offset
@@ -259,8 +255,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       throw CodegenError{
         ctx.formatError(ctx.positions.position_of(node),
                         fmt::format("undefined element '{}' selected",
-                                    node.selected_element.utf8()),
-                        false)};
+                                    node.selected_element.utf8()))};
     }
 
     auto const lhs_address = llvm::getPointerOperand(lhs.getValue());
@@ -298,14 +293,12 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     if (!lhs) {
       throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
-                                         "failed to generate left-hand side",
-                                         false)};
+                                         "failed to generate left-hand side")};
     }
 
     if (!rhs) {
       throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
-                                         "failed to generate right-hand side",
-                                         false)};
+                                         "failed to generate right-hand side")};
     }
 
     integerLargerBitsCast(ctx, lhs, rhs);
@@ -313,8 +306,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     if (!strictEquals(lhs.getType(), rhs.getType())) {
       throw CodegenError{ctx.formatError(
         ctx.positions.position_of(node),
-        "both operands to a binary operator are not of the same type",
-        false)};
+        "both operands to a binary operator are not of the same type")};
     }
 
     switch (node.kind()) {
@@ -360,8 +352,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     case ast::BinOp::Kind::unknown:
       throw CodegenError{ctx.formatError(
         ctx.positions.position_of(node),
-        fmt::format("unknown operator '{}' detected", node.operatorStr()),
-        false)};
+        fmt::format("unknown operator '{}' detected", node.operatorStr()))};
     }
 
     unreachable();
@@ -411,8 +402,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     if (node.callee.type() != typeid(ast::Identifier)) {
       throw CodegenError{
         ctx.formatError(pos,
-                        "left-hand side of function call is not callable",
-                        false)};
+                        "left-hand side of function call is not callable")};
     }
 
     const auto callee = boost::get<ast::Identifier>(node.callee).utf8();
@@ -420,16 +410,14 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     auto const callee_func = ctx.module->getFunction(callee);
 
     if (!callee_func) {
-      throw CodegenError{
-        ctx.formatError(pos,
-                        fmt::format("unknown function '{}' referenced", callee),
-                        false)};
+      throw CodegenError{ctx.formatError(
+        pos,
+        fmt::format("unknown function '{}' referenced", callee))};
     }
 
     if (!callee_func->isVarArg()
         && callee_func->arg_size() != node.args.size()) {
-      throw CodegenError{
-        ctx.formatError(pos, "incorrect arguments passed", false)};
+      throw CodegenError{ctx.formatError(pos, "incorrect arguments passed")};
     }
 
     const auto arg_values = createArgValues(node.args, callee, pos);
@@ -449,8 +437,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     if (!lhs) {
       throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
-                                         "failed to generate left-hand side",
-                                         false)};
+                                         "failed to generate left-hand side")};
     }
 
     // TODO: Support for non-integers and non-pointers.
@@ -469,8 +456,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     }
     else {
       throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
-                                         "non-convertible type",
-                                         false)};
+                                         "non-convertible type")};
     }
 
     unreachable();
@@ -481,8 +467,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     if (node.rhs.type() != typeid(ast::FunctionCall)) {
       throw CodegenError{ctx.formatError(
         ctx.positions.position_of(node),
-        "the right side of the pipeline requires a function call",
-        false)};
+        "the right side of the pipeline requires a function call")};
     }
 
     // Copy.

@@ -21,8 +21,9 @@ namespace maple::parse
 
 struct Parser {
   struct Result {
-    // Because positions has a reference to input, it also holds input.
-    std::string           input;
+    // Since positions has a reference to input, it also holds input.
+    std::string input;
+
     ast::Program          ast;
     PositionCache         positions;
     std::filesystem::path file;
