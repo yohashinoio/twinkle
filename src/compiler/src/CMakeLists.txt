@@ -41,6 +41,7 @@ target_precompile_headers(${LIB_NAME} PRIVATE ../include/maple/pch/pch.hpp)
 
 add_subdirectory(codegen)
 add_subdirectory(jit)
+add_subdirectory(mangle)
 add_subdirectory(parse)
 add_subdirectory(unicode)
 add_subdirectory(option)
@@ -55,6 +56,7 @@ target_link_libraries(
   ${CONFIG_OUTPUT}
   codegen
   jit
+  mangle
   parse
   unicode
   option

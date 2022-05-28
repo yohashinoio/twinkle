@@ -20,11 +20,11 @@
 namespace maple::codegen
 {
 
-[[nodiscard]] static std::vector<std::string>
-splitLineByLine(const std::string& str)
+template <typename R = std::vector<std::string>>
+[[nodiscard]] static R splitByLine(const std::string& str)
 {
-  std::istringstream       ss{str};
-  std::vector<std::string> lines;
+  std::istringstream ss{str};
+  R                  lines;
 
   for (;;) {
     std::string line;
@@ -51,7 +51,7 @@ CGContext::CGContext(llvm::LLVMContext&      context,
   , file{std::move(file)}
   , positions{std::move(positions)}
   , return_type_table{}
-  , source_code{splitLineByLine(source_code)}
+  , source_code{splitByLine(source_code)}
 {
 }
 
