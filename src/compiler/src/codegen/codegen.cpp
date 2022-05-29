@@ -10,7 +10,6 @@
 #include <maple/codegen/type.hpp>
 #include <maple/codegen/exception.hpp>
 #include <maple/unicode/unicode.hpp>
-#include <sstream>
 #include <cassert>
 
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))

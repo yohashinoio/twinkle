@@ -51,6 +51,8 @@ struct Type {
 
   [[nodiscard]] virtual llvm::Type* getType(CGContext& ctx) const = 0;
 
+  [[nodiscard]] virtual std::string getMangledName() const = 0;
+
   [[nodiscard]] virtual bool isVoid() const noexcept
   {
     return false;
@@ -97,6 +99,8 @@ struct BuiltinType : public Type {
 
   [[nodiscard]] llvm::Type* getType(CGContext& ctx) const override;
 
+  [[nodiscard]] std::string getMangledName() const override;
+
   /*
     Example: i32
     |-------------------|
@@ -129,6 +133,8 @@ struct StructType : public Type {
 
   [[nodiscard]] llvm::Type* getType(CGContext& ctx) const override;
 
+  [[nodiscard]] std::string getMangledName() const override;
+
 private:
   std::string ident;
 };
@@ -148,6 +154,8 @@ struct PointerType : public Type {
   {
     return llvm::PointerType::getUnqual(pointee_type->getType(ctx));
   }
+
+  [[nodiscard]] std::string getMangledName() const override;
 
   [[nodiscard]] SignKind getSignKind() const noexcept override
   {
@@ -192,6 +200,8 @@ struct ArrayType : public Type {
   {
     return llvm::ArrayType::get(element_type->getType(ctx), array_size);
   }
+
+  [[nodiscard]] std::string getMangledName() const override;
 
   [[nodiscard]] bool isArrayTy() const noexcept override
   {

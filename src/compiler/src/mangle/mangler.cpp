@@ -6,13 +6,32 @@
  */
 
 #include <maple/mangle/mangler.hpp>
+#include <maple/codegen/type.hpp>
 
 namespace maple::mangle
 {
 
-[[nodiscard]] std::string Mangler::mangle(const std::string_view str)
+[[nodiscard]] std::string Mangler::mangle(const ast::FunctionDecl& ast) const
 {
-  return fmt::format("_Z{}", str);
+  std::ostringstream mangled;
+
+  mangled << "_Z";
+
+  {
+    // TODO: namespace
+  }
+
+  {
+    // Add a function name.
+    const auto name = ast.name.utf8();
+    mangled << name.length() << name;
+  }
+
+  // Add argument type mangled names.
+  for (const auto& param : *ast.params)
+    mangled << param.type->getMangledName();
+
+  return mangled.str();
 }
 
 } // namespace maple::mangle

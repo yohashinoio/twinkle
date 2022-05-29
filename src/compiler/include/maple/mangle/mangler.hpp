@@ -13,13 +13,14 @@
 #endif // _MSC_VER > 1000
 
 #include <maple/pch/pch.hpp>
+#include <maple/ast/ast.hpp>
 
 namespace maple::mangle
 {
 
 class Mangler {
 public:
-  [[nodiscard]] static std::string mangle(const std::string_view str);
+  [[nodiscard]] std::string mangle(const ast::FunctionDecl& ast) const;
 };
 
 } // namespace maple::mangle

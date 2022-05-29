@@ -108,4 +108,50 @@ StructType::createSignKindStack(CGContext& ctx) const noexcept
   return tmp;
 }
 
+[[nodiscard]] std::string BuiltinType::getMangledName() const
+{
+  switch (kind) {
+  case BuiltinTypeKind::void_:
+    return "v";
+  case BuiltinTypeKind::i8:
+    return "i8";
+  case BuiltinTypeKind::i16:
+    return "i16";
+  case BuiltinTypeKind::i32:
+    return "i32";
+  case BuiltinTypeKind::i64:
+    return "i64";
+  case BuiltinTypeKind::u8:
+    return "u8";
+  case BuiltinTypeKind::u16:
+    return "u16";
+  case BuiltinTypeKind::u32:
+    return "u32";
+  case BuiltinTypeKind::u64:
+    return "u64";
+  case BuiltinTypeKind::bool_:
+    return "b";
+  case BuiltinTypeKind::char_:
+    return "c";
+  }
+
+  unreachable();
+}
+
+[[nodiscard]] std::string StructType::getMangledName() const
+{
+  return boost::lexical_cast<std::string>(ident.length()) + ident;
+}
+
+[[nodiscard]] std::string PointerType::getMangledName() const
+{
+  return "P" + pointee_type->getMangledName();
+}
+
+[[nodiscard]] std::string ArrayType::getMangledName() const
+{
+  return "A" + boost::lexical_cast<std::string>(array_size) + "_"
+         + element_type->getMangledName();
+}
+
 } // namespace maple::codegen

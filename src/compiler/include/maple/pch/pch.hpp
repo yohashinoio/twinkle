@@ -91,6 +91,7 @@
 #include <unordered_map>
 #include <fstream>
 #include <algorithm>
+#include <sstream>
 
 //===----------------------------------------------------------------------===//
 // C standard
