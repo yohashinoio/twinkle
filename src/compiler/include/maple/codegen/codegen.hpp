@@ -18,6 +18,7 @@
 #include <maple/support/typedef.hpp>
 #include <maple/jit/jit.hpp>
 #include <maple/parse/parser.hpp>
+#include <maple/mangle/mangler.hpp>
 
 namespace maple::codegen
 {
@@ -105,6 +106,9 @@ struct CGContext {
   // Table
   StructTable             struct_table;
   FunctionReturnTypeTable return_type_table;
+
+  // Mangle
+  mangle::Mangler mangler;
 
 private:
   // Stores source code line by line as elements.

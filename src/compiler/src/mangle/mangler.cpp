@@ -11,7 +11,8 @@
 namespace maple::mangle
 {
 
-[[nodiscard]] std::string Mangler::mangle(const ast::FunctionDecl& ast) const
+[[nodiscard]] std::string
+Mangler::operator()(const ast::FunctionDecl& ast) const
 {
   std::ostringstream mangled;
 

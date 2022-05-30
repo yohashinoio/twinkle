@@ -128,13 +128,15 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
                                 param_types,
                                 *is_variadic_args);
 
-    const auto name = node.name.utf8();
+    const auto name         = node.name.utf8();
+    // main function does not mangle.
+    const auto mangled_name = name == "main" ? name : ctx.mangler(node);
 
     // Register return type to table.
-    ctx.return_type_table.registOrOverwrite(name, node.return_type);
+    ctx.return_type_table.registOrOverwrite(mangled_name, node.return_type);
 
     auto const func
-      = createLlvmFunction(node.linkage, func_type, name, *ctx.module);
+      = createLlvmFunction(node.linkage, func_type, mangled_name, *ctx.module);
 
     // Set names to all arguments.
     for (std::size_t idx = 0; auto&& arg : func->args())
@@ -147,7 +149,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
   {
     const auto name = node.decl.name.utf8();
 
-    auto func = ctx.module->getFunction(name);
+    auto func = ctx.module->getFunction(ctx.mangler(node.decl));
 
     if (func && !func->isDeclaration()) {
       throw CodegenError{

@@ -506,13 +506,14 @@ private:
             rhs.isMutable()};
   }
 
-  void verifyArguments(const std::vector<llvm::Value*>&            args_value,
+  void verifyArguments(const std::vector<Value>&                   args_value,
                        llvm::Function* const                       callee,
                        const boost::iterator_range<InputIterator>& pos) const
   {
     // Verify arguments
     for (std::size_t idx = 0; auto&& arg : callee->args()) {
-      if (!strictEquals(args_value[idx++]->getType(), arg.getType())) {
+      if (!strictEquals(args_value[idx++].getValue()->getType(),
+                        arg.getType())) {
         throw CodegenError{ctx.formatError(
           pos,
           fmt::format("incompatible type for argument {} of '{}'",
@@ -522,15 +523,15 @@ private:
     }
   }
 
-  [[nodiscard]] std::vector<llvm::Value*>
+  [[nodiscard]] std::vector<Value>
   createArgValues(const std::deque<ast::Expr>&                args,
                   const std::string_view                      callee,
                   const boost::iterator_range<InputIterator>& pos) const
   {
-    std::vector<llvm::Value*> arg_values;
+    std::vector<Value> arg_values;
 
     for (std::size_t i = 0, size = args.size(); i != size; ++i) {
-      arg_values.emplace_back(boost::apply_visitor(*this, args[i]).getValue());
+      arg_values.emplace_back(boost::apply_visitor(*this, args[i]));
 
       if (!arg_values.back()) {
         throw CodegenError{ctx.formatError(
