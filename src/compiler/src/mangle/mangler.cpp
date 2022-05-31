@@ -29,8 +29,12 @@ Mangler::operator()(const ast::FunctionDecl& ast) const
   }
 
   // Add argument type mangled names.
-  for (const auto& param : *ast.params)
-    mangled << param.type->getMangledName();
+  for (const auto& param : *ast.params) {
+    if (param.is_varg)
+      mangled << "v";
+    else
+      mangled << param.type->getMangledName();
+  }
 
   return mangled.str();
 }

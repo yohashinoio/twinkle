@@ -30,47 +30,40 @@ namespace maple::codegen
   unreachable();
 }
 
-[[nodiscard]] static Value createPointerToArray(const Value& array)
+[[nodiscard]] static Value createPointerToArray(CGContext&   ctx,
+                                                const Value& array)
 {
-  auto tmp = array.getSignInfo();
-  tmp.emplace(SignKind::unsigned_); // Pointer type.
-
   return {llvm::getPointerOperand(array.getValue()),
-          std::move(tmp),
+          std::make_shared<PointerType>(array.getType()),
           array.isMutable()};
 }
 
 [[nodiscard]] static Value
 createArraySubscript(CGContext& ctx, const Value& array, const Value& index)
 {
-  const auto p_to_array = createPointerToArray(array);
+  const auto p_to_array = createPointerToArray(ctx, array);
 
   // Calculate the address of the index-th element.
   auto const gep = ctx.builder.CreateInBoundsGEP(
-    p_to_array.getType()->getPointerElementType(),
+    p_to_array.getLLVMType()->getPointerElementType(),
     p_to_array.getValue(),
     {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 0), index.getValue()});
 
-  {
-    auto tmp = p_to_array.getSignInfo();
-    tmp.pop();
-
-    return {gep, std::move(tmp), p_to_array.isMutable()};
-  }
+  return {gep,
+          p_to_array.getType()->getPointeeType()->getArrayElementType(),
+          p_to_array.isMutable()};
 }
 
 [[nodiscard]] static Value
-createPointerSubscript(CGContext& ctx, const Value& p, const Value& index)
+createPointerSubscript(CGContext& ctx, const Value& ptr, const Value& index)
 {
   // Calculate the address of the index-th element.
   auto const gep
-    = ctx.builder.CreateInBoundsGEP(p.getType()->getPointerElementType(),
-                                    p.getValue(),
+    = ctx.builder.CreateInBoundsGEP(ptr.getLLVMType()->getPointerElementType(),
+                                    ptr.getValue(),
                                     index.getValue());
 
-  return {gep,
-          p.getSignInfo() /* I don't know why this works. */,
-          p.isMutable()};
+  return {gep, ptr.getType()->getPointeeType(), ptr.isMutable()};
 }
 
 // Normally a subscript operation calls createLoad at the end, but this function
@@ -104,10 +97,11 @@ createPointerSubscript(CGContext& ctx, const Value& p, const Value& index)
 
 // This function changes the arguments.
 // Compare both operands and cast to the operand with the larger bit width.
-static void integerLargerBitsCast(CGContext& ctx, Value& lhs, Value& rhs)
+static std::pair<Value, Value>
+integerLargerBitsCast(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  if (const auto lhs_bitwidth = lhs.getType()->getIntegerBitWidth(),
-      rhs_bitwidth            = rhs.getType()->getIntegerBitWidth();
+  if (const auto lhs_bitwidth = lhs.getLLVMType()->getIntegerBitWidth(),
+      rhs_bitwidth            = rhs.getLLVMType()->getIntegerBitWidth();
       lhs_bitwidth != rhs_bitwidth) {
     const auto larger_bitwidth = std::max(lhs_bitwidth, rhs_bitwidth);
 
@@ -115,22 +109,27 @@ static void integerLargerBitsCast(CGContext& ctx, Value& lhs, Value& rhs)
 
     const auto is_target_lhs = lhs_bitwidth == larger_bitwidth;
 
-    const auto target_sign_kind
-      = is_target_lhs ? lhs.getSignKind() : rhs.getSignKind();
+    const auto target_type = resultTypeOf(lhs.getType(), rhs.getType());
 
     if (is_target_lhs) {
-      rhs = {ctx.builder.CreateIntCast(rhs.getValue(),
-                                       target,
-                                       isSigned(target_sign_kind)),
-             createStack(target_sign_kind)};
+      return std::make_pair(
+        lhs,
+        Value{ctx.builder.CreateIntCast(rhs.getValue(),
+                                        target,
+                                        target_type->isSigned()),
+              target_type});
     }
     else {
-      lhs = {ctx.builder.CreateIntCast(lhs.getValue(),
-                                       target,
-                                       isSigned(target_sign_kind)),
-             createStack(target_sign_kind)};
+      return std::make_pair(
+        Value{ctx.builder.CreateIntCast(lhs.getValue(),
+                                        target,
+                                        target_type->isSigned()),
+              target_type},
+        rhs);
     }
   }
+
+  return std::make_pair(lhs, rhs);
 }
 
 // Calculate the offset of an element of a structure.
@@ -171,51 +170,52 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   [[nodiscard]] Value operator()(const std::uint32_t node) const
   {
     return {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), node),
-            createStack(SignKind::unsigned_)};
+            std::make_shared<BuiltinType>(BuiltinTypeKind::u32)};
   }
 
   // 32bit signed integer literals.
   [[nodiscard]] Value operator()(const std::int32_t node) const
   {
     return {llvm::ConstantInt::getSigned(ctx.builder.getInt32Ty(), node),
-            createStack(SignKind::signed_)};
+            std::make_shared<BuiltinType>(BuiltinTypeKind::i32)};
   }
 
   // 64bit unsigned integer literals.
   [[nodiscard]] Value operator()(const std::uint64_t node) const
   {
     return {llvm::ConstantInt::get(ctx.builder.getInt64Ty(), node),
-            createStack(SignKind::unsigned_)};
+            std::make_shared<BuiltinType>(BuiltinTypeKind::u64)};
   }
 
   // 64bit signed integer literals.
   [[nodiscard]] Value operator()(const std::int64_t node) const
   {
     return {llvm::ConstantInt::getSigned(ctx.builder.getInt64Ty(), node),
-            createStack(SignKind::signed_)};
+            std::make_shared<BuiltinType>(BuiltinTypeKind::i64)};
   }
 
   // Boolean literals.
   [[nodiscard]] Value operator()(const bool node) const
   {
-    return {
-      llvm::ConstantInt::get(BuiltinType{BuiltinTypeKind::bool_}.getType(ctx),
-                             node),
-      createStack(SignKind::unsigned_)};
+    return {llvm::ConstantInt::get(
+              BuiltinType{BuiltinTypeKind::bool_}.getLLVMType(ctx),
+              node),
+            std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
   }
 
   [[nodiscard]] Value operator()(const ast::StringLiteral& node) const
   {
     return {
       ctx.builder.CreateGlobalStringPtr(unicode::utf32toUtf8(node.str), ".str"),
-      createStack(SignKind::unsigned_)};
+      std::make_shared<PointerType>(
+        std::make_shared<BuiltinType>(BuiltinTypeKind::u8))}; // *u8
   }
 
   [[nodiscard]] Value operator()(const ast::CharLiteral& node) const
   {
     // Unicode code point.
     return {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), node.ch),
-            createStack(SignKind::unsigned_)};
+            std::make_shared<BuiltinType>(BuiltinTypeKind::char_)};
   }
 
   [[nodiscard]] Value operator()(const ast::Identifier& node) const
@@ -225,7 +225,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     return {ctx.builder.CreateLoad(variable.getAllocaInst()->getAllocatedType(),
                                    variable.getAllocaInst()),
-            variable.getSignInfo(),
+            variable.getType(),
             variable.isMutable()};
   }
 
@@ -233,14 +233,14 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   {
     const auto lhs = createExpr(ctx, scope, stmt_ctx, node.lhs);
 
-    if (!lhs.getType()->isStructTy()) {
+    if (!lhs.getLLVMType()->isStructTy()) {
       throw CodegenError{
         ctx.formatError(ctx.positions.position_of(node),
                         "element selection cannot be used for non-structures")};
     }
 
     const auto struct_info
-      = ctx.struct_table[lhs.getType()->getStructName().str()];
+      = ctx.struct_table[lhs.getLLVMType()->getStructName().str()];
 
     if (!struct_info->first) {
       throw CodegenError{ctx.formatError(
@@ -261,14 +261,15 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     auto const lhs_address = llvm::getPointerOperand(lhs.getValue());
 
     auto const gep = ctx.builder.CreateInBoundsGEP(
-      lhs.getType(),
+      lhs.getLLVMType(),
       lhs_address,
       {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 0),
        llvm::ConstantInt::get(ctx.builder.getInt32Ty(), *offset)});
 
     return {
-      ctx.builder.CreateLoad(lhs.getType()->getStructElementType(*offset), gep),
-      struct_info->first->at(*offset).type->createSignKindStack(ctx),
+      ctx.builder.CreateLoad(lhs.getLLVMType()->getStructElementType(*offset),
+                             gep),
+      struct_info->first->at(*offset).type,
       lhs.isMutable()};
   }
 
@@ -276,34 +277,31 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   {
     const auto value = createNoLoadSubscript(ctx, scope, stmt_ctx, node);
 
-    // Load, so pop.
-    auto tmp = value.getSignInfo();
-    tmp.pop();
-
-    return {ctx.builder.CreateLoad(value.getType()->getPointerElementType(),
+    return {ctx.builder.CreateLoad(value.getLLVMType()->getPointerElementType(),
                                    value.getValue()),
-            std::move(tmp),
+            value.getType(),
             value.isMutable()};
   }
 
   [[nodiscard]] Value operator()(const ast::BinOp& node) const
   {
-    auto lhs = boost::apply_visitor(*this, node.lhs);
-    auto rhs = boost::apply_visitor(*this, node.rhs);
+    const auto uncasted_lhs = boost::apply_visitor(*this, node.lhs);
+    const auto uncasted_rhs = boost::apply_visitor(*this, node.rhs);
 
-    if (!lhs) {
+    if (!uncasted_lhs) {
       throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
                                          "failed to generate left-hand side")};
     }
 
-    if (!rhs) {
+    if (!uncasted_rhs) {
       throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
                                          "failed to generate right-hand side")};
     }
 
-    integerLargerBitsCast(ctx, lhs, rhs);
+    const auto [lhs, rhs]
+      = integerLargerBitsCast(ctx, uncasted_lhs, uncasted_rhs);
 
-    if (!strictEquals(lhs.getType(), rhs.getType())) {
+    if (!strictEquals(lhs.getLLVMType(), rhs.getLLVMType())) {
       throw CodegenError{ctx.formatError(
         ctx.positions.position_of(node),
         "both operands to a binary operator are not of the same type")};
@@ -425,10 +423,11 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     verifyArguments(arg_values, callee_func, pos);
 
     const auto return_type = ctx.return_type_table[callee];
+
     assert(return_type);
 
     return {ctx.builder.CreateCall(callee_func, arg_values),
-            return_type.value()->createSignKindStack(ctx)};
+            return_type.value()};
   }
 
   [[nodiscard]] Value operator()(const ast::Conversion& node) const
@@ -441,18 +440,18 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     }
 
     // TODO: Support for non-integers and non-pointers.
-    if (node.as->getType(ctx)->isIntegerTy()) {
+    if (node.as->getLLVMType(ctx)->isIntegerTy()) {
       return {ctx.builder.CreateIntCast(lhs.getValue(),
-                                        node.as->getType(ctx),
+                                        node.as->getLLVMType(ctx),
                                         node.as->isSigned()),
-              createStack(node.as->getSignKind())};
+              node.as};
     }
     else if (node.as->isPointerTy()) {
       // FIXME: I would like to prohibit this in the regular cast because it is
       // a dangerous cast.
-      return {
-        ctx.builder.CreatePointerCast(lhs.getValue(), node.as->getType(ctx)),
-        createStack(node.as->getSignKind())};
+      return {ctx.builder.CreatePointerCast(lhs.getValue(),
+                                            node.as->getLLVMType(ctx)),
+              node.as};
     }
     else {
       throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
@@ -481,39 +480,32 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 private:
   [[nodiscard]] Value createAddressOf(const Value& value) const
   {
-    auto tmp = value.getSignInfo();
-    tmp.emplace(SignKind::unsigned_); // Pointer type.
-
-    return {llvm::getPointerOperand(value.getValue()), std::move(tmp)};
+    return {llvm::getPointerOperand(value.getValue()),
+            std::make_shared<PointerType>(value.getType())};
   }
 
   [[nodiscard]] Value
   createDereference(const boost::iterator_range<InputIterator>& pos,
                     const Value&                                rhs) const
   {
-    auto tmp = rhs.getSignInfo();
-
-    if (!rhs.isPointer() || tmp.size() < 2) {
+    if (!rhs.isPointer() || !rhs.getType()->isPointerTy()) {
       throw CodegenError{
         ctx.formatError(pos, "unary '*' requires pointer operand")};
     }
 
-    tmp.pop();
-
-    return {ctx.builder.CreateLoad(rhs.getType()->getPointerElementType(),
+    return {ctx.builder.CreateLoad(rhs.getLLVMType()->getPointerElementType(),
                                    rhs.getValue()),
-            std::move(tmp),
+            rhs.getType()->getPointeeType(),
             rhs.isMutable()};
   }
 
-  void verifyArguments(const std::vector<Value>&                   args_value,
+  void verifyArguments(const std::vector<llvm::Value*>&            args_value,
                        llvm::Function* const                       callee,
                        const boost::iterator_range<InputIterator>& pos) const
   {
     // Verify arguments
     for (std::size_t idx = 0; auto&& arg : callee->args()) {
-      if (!strictEquals(args_value[idx++].getValue()->getType(),
-                        arg.getType())) {
+      if (!strictEquals(args_value[idx++]->getType(), arg.getType())) {
         throw CodegenError{ctx.formatError(
           pos,
           fmt::format("incompatible type for argument {} of '{}'",
@@ -523,15 +515,15 @@ private:
     }
   }
 
-  [[nodiscard]] std::vector<Value>
+  [[nodiscard]] std::vector<llvm::Value*>
   createArgValues(const std::deque<ast::Expr>&                args,
                   const std::string_view                      callee,
                   const boost::iterator_range<InputIterator>& pos) const
   {
-    std::vector<Value> arg_values;
+    std::vector<llvm::Value*> arg_values;
 
     for (std::size_t i = 0, size = args.size(); i != size; ++i) {
-      arg_values.emplace_back(boost::apply_visitor(*this, args[i]));
+      arg_values.emplace_back(boost::apply_visitor(*this, args[i]).getValue());
 
       if (!arg_values.back()) {
         throw CodegenError{ctx.formatError(

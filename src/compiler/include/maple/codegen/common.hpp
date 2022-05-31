@@ -40,16 +40,17 @@ struct StmtContext {
 // Class that wraps llvm::Value.
 // Made to handle signs, etc.
 struct Value {
-  Value(llvm::Value*         value,
-        const SignKindStack& sign_info_stack,
-        const bool           is_mutable = false);
-
-  Value(llvm::Value*    value,
-        SignKindStack&& sign_info_stack,
-        const bool      is_mutable = false) noexcept;
+  Value(llvm::Value*                 value,
+        const std::shared_ptr<Type>& type,
+        const bool                   is_mutable = false)
+    : value{value}
+    , type{type}
+    , is_mutable{is_mutable}
+  {
+  }
 
   Value()
-    : value{nullptr}
+    : value{}
   {
   }
 
@@ -58,9 +59,14 @@ struct Value {
     return value;
   }
 
-  [[nodiscard]] llvm::Type* getType() const
+  [[nodiscard]] llvm::Type* getLLVMType() const
   {
     return value->getType();
+  }
+
+  [[nodiscard]] std::shared_ptr<Type> getType() const
+  {
+    return type;
   }
 
   [[nodiscard]] bool isMutable() const noexcept
@@ -68,27 +74,9 @@ struct Value {
     return is_mutable;
   }
 
-  // Returns true if the top of the sign information stack is signed.
-  [[nodiscard]] bool isSigned() const
+  [[nodiscard]] bool isSigned() const noexcept
   {
-    assert(!sign_info_stack.empty());
-
-    const auto top = sign_info_stack.top();
-    return top == SignKind::signed_;
-  }
-
-  // Returns the top of the sign information stack.
-  [[nodiscard]] SignKind getSignKind() const
-  {
-    assert(!sign_info_stack.empty());
-
-    const auto top = sign_info_stack.top();
-    return top;
-  }
-
-  [[nodiscard]] const SignKindStack& getSignInfo() const noexcept
-  {
-    return sign_info_stack;
+    return type->isSigned();
   }
 
   [[nodiscard]] bool isPointer() const
@@ -109,22 +97,32 @@ struct Value {
 private:
   llvm::Value* value;
 
-  SignKindStack sign_info_stack;
+  std::shared_ptr<Type> type;
 
   bool is_mutable;
 };
 
 struct Variable {
-  Variable(const Value& alloca, const bool is_mutable) noexcept;
+  Variable(const Value& alloca, const bool is_mutable) noexcept
+    : alloca{alloca}
+    , is_mutable{is_mutable}
+  {
+    assert(llvm::dyn_cast<llvm::AllocaInst>(alloca.getValue()));
+  }
 
   [[nodiscard]] llvm::AllocaInst* getAllocaInst() const noexcept
   {
     return llvm::cast<llvm::AllocaInst>(alloca.getValue());
   }
 
-  [[nodiscard]] decltype(auto) getSignInfo() const noexcept
+  [[nodiscard]] std::shared_ptr<Type> getType() const
   {
-    return alloca.getSignInfo();
+    return alloca.getType();
+  }
+
+  [[nodiscard]] bool isSigned() const noexcept
+  {
+    return alloca.isSigned();
   }
 
   [[nodiscard]] bool isMutable() const noexcept
@@ -140,7 +138,8 @@ struct Variable {
 
 private:
   Value alloca;
-  bool  is_mutable;
+
+  bool is_mutable;
 };
 
 using SymbolTable
@@ -163,6 +162,13 @@ using SymbolTable
   |--------------------------------|
 */
 [[nodiscard]] SignKind logicalOrSign(const Value& lhs, const Value& rhs);
+
+// If either of them is signed, the signed type is returned. Otherwise,
+// unsigned.
+// Assuming the type is the same.
+[[nodiscard]] std::shared_ptr<Type>
+resultTypeOf(const std::shared_ptr<Type>& lhs_t,
+             const std::shared_ptr<Type>& rhs_t);
 
 [[nodiscard]] Value
 createAdd(CGContext& ctx, const Value& lhs, const Value& rhs);

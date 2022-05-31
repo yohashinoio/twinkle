@@ -147,6 +147,8 @@ int main(const int argc, const char* const* const argv)
   for (const auto& r : fs::recursive_directory_iterator(argv[1])) {
     const char* c_argv[] = {"test", "--JIT", r.path().c_str()};
 
+    std::cerr << r.path().stem().string();
+
     // Suppresses compile error output.
     std::cerr.setstate(std::ios::failbit);
 
@@ -161,7 +163,7 @@ int main(const int argc, const char* const* const argv)
 
       if (result.success()) {
         if (*result.getJitResult() == expected_retcode) {
-          fmt::print(stderr, "{} => ", r.path().stem().string());
+          std::cerr << " => ";
           fmt::print(stderr,
                      fg(fmt::terminal_color::bright_green),
                      "{} OK!\n",
@@ -171,7 +173,7 @@ int main(const int argc, const char* const* const argv)
         }
       }
 
-      fmt::print(stderr, "{} => ", r.path().stem().string());
+      std::cerr << " => ";
       fmt::print(stderr,
                  fg(fmt::terminal_color::bright_red),
                  "{} Fails! ",

@@ -264,7 +264,7 @@ const auto type
    >> -(lit(U"[") >> x3::uint64 >> lit(U"]")))[([](auto&& ctx) {
     const auto type_in_utf32 = fusion::at_c<1>(x3::_attr(ctx));
 
-    const auto type_kind = codegen::matchBuildinType(type_in_utf32);
+    const auto type_kind = codegen::matchBuiltinType(type_in_utf32);
 
     std::shared_ptr<codegen::Type> base_type;
     if (type_kind)

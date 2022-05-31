@@ -13,7 +13,7 @@ namespace maple::codegen
 {
 
 [[nodiscard]] std::optional<BuiltinTypeKind>
-matchBuildinType(const std::u32string_view type)
+matchBuiltinType(const std::u32string_view type)
 {
   static const std::unordered_map<std::u32string_view, BuiltinTypeKind>
     builtin_type_map = {
@@ -40,7 +40,7 @@ matchBuildinType(const std::u32string_view type)
   unreachable();
 }
 
-[[nodiscard]] llvm::Type* BuiltinType::getType(CGContext& ctx) const
+[[nodiscard]] llvm::Type* BuiltinType::getLLVMType(CGContext& ctx) const
 {
   switch (kind) {
   case BuiltinTypeKind::void_:
@@ -88,24 +88,11 @@ matchBuildinType(const std::u32string_view type)
   unreachable();
 }
 
-[[nodiscard]] llvm::Type* StructType::getType(CGContext& ctx) const
+[[nodiscard]] llvm::Type* StructType::getLLVMType(CGContext& ctx) const
 {
   const auto struct_type = ctx.struct_table[ident];
   assert(struct_type);
   return struct_type->second;
-}
-
-[[nodiscard]] SignKindStack
-StructType::createSignKindStack(CGContext& ctx) const noexcept
-{
-  const auto struct_type = ctx.struct_table[ident];
-  assert(struct_type);
-
-  std::stack<SignKind> tmp;
-  tmp.push(SignKind::no_sign); // Struct element type sign.
-  tmp.push(SignKind::no_sign); // Struct type sign.
-
-  return tmp;
 }
 
 [[nodiscard]] std::string BuiltinType::getMangledName() const

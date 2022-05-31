@@ -22,9 +22,6 @@ class Mangler {
 public:
   // For function definition.
   [[nodiscard]] std::string operator()(const ast::FunctionDecl& ast) const;
-
-  // For function call.
-  [[nodiscard]] std::string operator()(const std::string& name, ) const;
 };
 
 } // namespace maple::mangle

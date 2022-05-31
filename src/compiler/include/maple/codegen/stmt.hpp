@@ -47,7 +47,7 @@ struct InitializerList {
       if (it == last)
         return true;
 
-      if (tmp->getType() != it->getType())
+      if (tmp->getLLVMType() != it->getLLVMType())
         return false;
     }
 
@@ -60,24 +60,24 @@ struct InitializerList {
     if (!verify())
       return nullptr;
 
-    if (initializer_list.front().getType()->isIntegerTy()) {
+    if (initializer_list.front().getLLVMType()->isIntegerTy()) {
       const auto max_bitwidth
         = std::max_element(cbegin(initializer_list),
                            cend(initializer_list),
                            [](const Value& a, const Value& b) {
-                             return a.getType()->getIntegerBitWidth()
-                                    < b.getType()->getIntegerBitWidth();
+                             return a.getLLVMType()->getIntegerBitWidth()
+                                    < b.getLLVMType()->getIntegerBitWidth();
                            });
 
-      return max_bitwidth->getType();
+      return max_bitwidth->getLLVMType();
     }
 
-    return initializer_list.front().getType();
+    return initializer_list.front().getLLVMType();
   }
 
-  [[nodiscard]] const SignKindStack& createFrontSignKindStack() const
+  [[nodiscard]] std::shared_ptr<Type> getElementType() const
   {
-    return initializer_list.front().getSignInfo();
+    return initializer_list.front().getType();
   }
 
 private:

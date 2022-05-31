@@ -64,7 +64,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
       auto const return_type
         = ctx.builder.GetInsertBlock()->getParent()->getReturnType();
 
-      if (!strictEquals(return_type, retval.getType())) {
+      if (!strictEquals(return_type, retval.getLLVMType())) {
         throw CodegenError{
           ctx.formatError(ctx.positions.position_of(node),
                           "incompatible type for result type")};
@@ -101,7 +101,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
                               createVariable(ctx.positions.position_of(node),
                                              func,
                                              name,
-                                             **node.type,
+                                             *node.type,
                                              node.initializer,
                                              is_mutable));
     }
@@ -128,14 +128,15 @@ struct StmtVisitor : public boost::static_visitor<void> {
                                          "failed to generate right-hand side")};
     }
 
-    if (!strictEquals(lhs.getType()->getPointerElementType(), rhs.getType())) {
+    if (!strictEquals(lhs.getLLVMType()->getPointerElementType(),
+                      rhs.getLLVMType())) {
       throw CodegenError{ctx.formatError(
         ctx.positions.position_of(node),
         "both operands to a binary operator are not of the same type")};
     }
 
     auto const lhs_value
-      = ctx.builder.CreateLoad(lhs.getType()->getPointerElementType(),
+      = ctx.builder.CreateLoad(lhs.getLLVMType()->getPointerElementType(),
                                lhs.getValue());
 
     switch (node.kind()) {
@@ -187,7 +188,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
       = createAssignableValue(node.rhs, ctx.positions.position_of(node));
 
     auto const rhs_value
-      = ctx.builder.CreateLoad(rhs.getType()->getPointerElementType(),
+      = ctx.builder.CreateLoad(rhs.getLLVMType()->getPointerElementType(),
                                rhs.getValue());
 
     switch (node.kind()) {
@@ -227,15 +228,15 @@ struct StmtVisitor : public boost::static_visitor<void> {
                                          "invalid condition in if statement")};
     }
 
-    if (!cond_value.getType()->isIntegerTy()
-        && !cond_value.getType()->isPointerTy()) {
+    if (!cond_value.getLLVMType()->isIntegerTy()
+        && !cond_value.getLLVMType()->isPointerTy()) {
       throw CodegenError{
         ctx.formatError(ctx.positions.position_of(node),
                         "condition type is incompatible with bool")};
     }
 
     // Compare to 0 or nullptr.
-    const auto zero_or_null = createNULL(cond_value.getType());
+    const auto zero_or_null = createNULL(cond_value.getLLVMType());
 
     auto const cond = ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_NE,
                                              cond_value.getValue(),
@@ -313,8 +314,9 @@ struct StmtVisitor : public boost::static_visitor<void> {
     auto const cond = ctx.builder.CreateICmp(
       llvm::ICmpInst::ICMP_NE,
       cond_value.getValue(),
-      llvm::ConstantInt::get(BuiltinType{BuiltinTypeKind::bool_}.getType(ctx),
-                             0));
+      llvm::ConstantInt::get(
+        BuiltinType{BuiltinTypeKind::bool_}.getLLVMType(ctx),
+        0));
 
     ctx.builder.CreateCondBr(cond, body_bb, loop_end_bb);
 
@@ -368,8 +370,9 @@ struct StmtVisitor : public boost::static_visitor<void> {
       auto const cond = ctx.builder.CreateICmp(
         llvm::ICmpInst::ICMP_NE,
         cond_value.getValue(),
-        llvm::ConstantInt::get(BuiltinType{BuiltinTypeKind::bool_}.getType(ctx),
-                               0));
+        llvm::ConstantInt::get(
+          BuiltinType{BuiltinTypeKind::bool_}.getLLVMType(ctx),
+          0));
 
       ctx.builder.CreateCondBr(cond, body_bb, loop_end_bb);
     }
@@ -429,11 +432,8 @@ private:
         ctx.formatError(pos, "assignment of read-only variable")};
     }
 
-    auto tmp = value.getSignInfo();
-    tmp.push(SignKind::unsigned_); // Pointer type.
-
     return {llvm::getPointerOperand(value.getValue()),
-            std::move(tmp),
+            std::make_shared<PointerType>(value.getType()),
             value.isMutable()};
   }
 
@@ -466,16 +466,16 @@ private:
   createVariable(const boost::iterator_range<InputIterator>& pos,
                  llvm::Function*                             func,
                  const std::string&                          name,
-                 const Type&                                 type,
+                 const std::shared_ptr<Type>&                type,
                  const std::optional<ast::Initializer>&      initializer,
                  const bool                                  is_mutable) const
   {
-    const auto variable_type = type.getType(ctx);
+    const auto variable_type = type->getLLVMType(ctx);
     auto const alloca        = createEntryAlloca(func, name, variable_type);
 
     if (!initializer) {
       return {
-        {alloca, type.createSignKindStack(ctx)},
+        {alloca, type},
         is_mutable
       };
     }
@@ -491,7 +491,7 @@ private:
       const auto initializer_list
         = createInitializerList(boost::get<ast::InitializerList>(*initializer));
 
-      if (type.getArraySize() != initializer_list.size()) {
+      if (type->getArraySize() != initializer_list.size()) {
         throw CodegenError{
           ctx.formatError(pos,
                           "invalid number of elements in initializer list")};
@@ -500,7 +500,7 @@ private:
       initArray(alloca, initializer_list);
 
       return {
-        {alloca, type.createSignKindStack(ctx)},
+        {alloca, type},
         is_mutable
       };
     }
@@ -515,7 +515,7 @@ private:
           fmt::format("failed to generate initializer for '{}'", name))};
       }
 
-      if (!strictEquals(variable_type, init_value.getType())) {
+      if (!strictEquals(variable_type, init_value.getLLVMType())) {
         throw CodegenError{ctx.formatError(
           pos,
           "the variable type and the initializer type are incompatible")};
@@ -523,7 +523,7 @@ private:
 
       if (variable_type->isIntegerTy()
           && variable_type->getIntegerBitWidth()
-               != init_value.getType()->getIntegerBitWidth()) {
+               != init_value.getLLVMType()->getIntegerBitWidth()) {
         throw CodegenError{
           ctx.formatError(pos, "different bit widths between operands")};
       }
@@ -531,7 +531,7 @@ private:
       ctx.builder.CreateStore(init_value.getValue(), alloca);
 
       return {
-        {alloca, type.createSignKindStack(ctx)},
+        {alloca, type},
         is_mutable
       };
     }
@@ -557,17 +557,17 @@ private:
           ctx.formatError(pos, "incompatibility type between initializers")};
       }
 
-      auto const array_alloca = createEntryAlloca(
+      auto const alloca = createEntryAlloca(
         func,
         name,
         llvm::ArrayType::get(type, initializer_list.size()));
 
-      initArray(array_alloca, initializer_list);
+      initArray(alloca, initializer_list);
 
-      auto tmp = initializer_list.createFrontSignKindStack();
-      tmp.emplace(SignKind::unsigned_); // Array type.
       return {
-        {array_alloca, std::move(tmp)},
+        {alloca,
+         std::make_shared<ArrayType>(initializer_list.getElementType(),
+         initializer_list.size())},
         is_mutable
       };
     }
@@ -582,12 +582,13 @@ private:
           fmt::format("failed to generate initializer for '{}'", name))};
       }
 
-      auto const alloca = createEntryAlloca(func, name, init_value.getType());
+      auto const alloca
+        = createEntryAlloca(func, name, init_value.getLLVMType());
 
       ctx.builder.CreateStore(init_value.getValue(), alloca);
 
       return {
-        {alloca, init_value.getSignInfo()},
+        {alloca, init_value.getType()},
         is_mutable
       };
     }

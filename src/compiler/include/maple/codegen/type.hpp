@@ -36,7 +36,7 @@ enum class BuiltinTypeKind {
 };
 
 [[nodiscard]] std::optional<BuiltinTypeKind>
-matchBuildinType(const std::u32string_view type);
+matchBuiltinType(const std::u32string_view type);
 
 // Forward declaration.
 struct CGContext;
@@ -46,12 +46,19 @@ struct Type {
 
   [[nodiscard]] virtual SignKind getSignKind() const noexcept = 0;
 
-  [[nodiscard]] virtual SignKindStack
-  createSignKindStack(CGContext& ctx) const noexcept = 0;
-
-  [[nodiscard]] virtual llvm::Type* getType(CGContext& ctx) const = 0;
+  [[nodiscard]] virtual llvm::Type* getLLVMType(CGContext& ctx) const = 0;
 
   [[nodiscard]] virtual std::string getMangledName() const = 0;
+
+  [[nodiscard]] virtual std::shared_ptr<Type> getPointeeType() const
+  {
+    unreachable();
+  }
+
+  [[nodiscard]] virtual std::shared_ptr<Type> getArrayElementType() const
+  {
+    unreachable();
+  }
 
   [[nodiscard]] virtual bool isVoid() const noexcept
   {
@@ -97,21 +104,9 @@ struct BuiltinType : public Type {
     return kind == BuiltinTypeKind::void_;
   }
 
-  [[nodiscard]] llvm::Type* getType(CGContext& ctx) const override;
+  [[nodiscard]] llvm::Type* getLLVMType(CGContext& ctx) const override;
 
   [[nodiscard]] std::string getMangledName() const override;
-
-  /*
-    Example: i32
-    |-------------------|
-    | signed (i32 type) | <- top
-    |-------------------|
-  */
-  [[nodiscard]] SignKindStack
-  createSignKindStack(CGContext&) const noexcept override
-  {
-    return createStack(getSignKind());
-  }
 
 private:
   BuiltinTypeKind kind;
@@ -128,10 +123,7 @@ struct StructType : public Type {
     return SignKind::no_sign;
   }
 
-  [[nodiscard]] SignKindStack
-  createSignKindStack(CGContext& ctx) const noexcept override;
-
-  [[nodiscard]] llvm::Type* getType(CGContext& ctx) const override;
+  [[nodiscard]] llvm::Type* getLLVMType(CGContext& ctx) const override;
 
   [[nodiscard]] std::string getMangledName() const override;
 
@@ -150,9 +142,14 @@ struct PointerType : public Type {
     return true;
   }
 
-  [[nodiscard]] llvm::Type* getType(CGContext& ctx) const override
+  [[nodiscard]] llvm::Type* getLLVMType(CGContext& ctx) const override
   {
-    return llvm::PointerType::getUnqual(pointee_type->getType(ctx));
+    return llvm::PointerType::getUnqual(pointee_type->getLLVMType(ctx));
+  }
+
+  [[nodiscard]] std::shared_ptr<Type> getPointeeType() const override
+  {
+    return pointee_type;
   }
 
   [[nodiscard]] std::string getMangledName() const override;
@@ -160,28 +157,6 @@ struct PointerType : public Type {
   [[nodiscard]] SignKind getSignKind() const noexcept override
   {
     return SignKind::unsigned_;
-  }
-
-  /*
-    Example: *i32
-    |-------------------------|
-    | unsigned (pointer type) | <- top
-    |       signed (i32 type) |
-    |-------------------------|
-
-    Example: **i32
-    |-------------------------|
-    | unsigned (pointer type) | <- top
-    | unsigned (pointer type) |
-    |       signed (i32 type) |
-    |-------------------------|
-  */
-  [[nodiscard]] SignKindStack
-  createSignKindStack(CGContext& ctx) const noexcept override
-  {
-    auto tmp = pointee_type->createSignKindStack(ctx);
-    tmp.emplace(getSignKind());
-    return tmp;
   }
 
 private:
@@ -196,12 +171,17 @@ struct ArrayType : public Type {
   {
   }
 
-  [[nodiscard]] llvm::Type* getType(CGContext& ctx) const override
+  [[nodiscard]] std::string getMangledName() const override;
+
+  [[nodiscard]] llvm::Type* getLLVMType(CGContext& ctx) const override
   {
-    return llvm::ArrayType::get(element_type->getType(ctx), array_size);
+    return llvm::ArrayType::get(element_type->getLLVMType(ctx), array_size);
   }
 
-  [[nodiscard]] std::string getMangledName() const override;
+  [[nodiscard]] std::shared_ptr<Type> getArrayElementType() const override
+  {
+    return element_type;
+  }
 
   [[nodiscard]] bool isArrayTy() const noexcept override
   {
@@ -216,28 +196,6 @@ struct ArrayType : public Type {
   [[nodiscard]] SignKind getSignKind() const noexcept override
   {
     return SignKind::no_sign;
-  }
-
-  /*
-    Example: u32[]
-    |-------------------------|
-    |   unsigned (array type) | <- top
-    |     unsigned (u32 type) |
-    |-------------------------|
-
-    Example: *i32[]
-    |-------------------------|
-    |   unsigned (array type) | <- top
-    | unsigned (pointer type) |
-    |       signed (i32 type) |
-    |-------------------------|
-  */
-  [[nodiscard]] SignKindStack
-  createSignKindStack(CGContext& ctx) const noexcept override
-  {
-    auto tmp = element_type->createSignKindStack(ctx);
-    tmp.emplace(getSignKind());
-    return tmp;
   }
 
 private:

@@ -10,31 +10,6 @@
 namespace maple::codegen
 {
 
-Value::Value(llvm::Value*         value,
-             const SignKindStack& sign_info_stack,
-             const bool           is_mutable)
-  : value{value}
-  , sign_info_stack{sign_info_stack}
-  , is_mutable{is_mutable}
-{
-}
-
-Value::Value(llvm::Value*    value,
-             SignKindStack&& sign_info_stack,
-             const bool      is_mutable) noexcept
-  : value{value}
-  , sign_info_stack{std::move(sign_info_stack)}
-  , is_mutable{is_mutable}
-{
-}
-
-Variable::Variable(const Value& alloca, const bool is_mutable) noexcept
-  : alloca{alloca}
-  , is_mutable{is_mutable}
-{
-  assert(llvm::dyn_cast<llvm::AllocaInst>(alloca.getValue()));
-}
-
 [[nodiscard]] llvm::AllocaInst* createEntryAlloca(llvm::Function*    func,
                                                   const std::string& var_name,
                                                   llvm::Type*        type)
@@ -44,61 +19,76 @@ Variable::Variable(const Value& alloca, const bool is_mutable) noexcept
     .CreateAlloca(type, nullptr, var_name);
 }
 
-// A description of this function is provided in the header file.
 [[nodiscard]] SignKind logicalOrSign(const Value& lhs, const Value& rhs)
 {
   return lhs.isSigned() || rhs.isSigned() ? SignKind::signed_
                                           : SignKind::unsigned_;
 }
 
+// If either of them is signed, the signed type is returned. Otherwise,
+// unsigned.
+// Assuming the type is the same.
+[[nodiscard]] std::shared_ptr<Type>
+resultTypeOf(const std::shared_ptr<Type>& lhs_t,
+             const std::shared_ptr<Type>& rhs_t)
+{
+  if (lhs_t->isSigned())
+    return lhs_t;
+  else if (rhs_t->isSigned())
+    return rhs_t;
+
+  // If unsigned.
+  return lhs_t;
+}
+
 [[nodiscard]] Value
 createAdd(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateAdd(lhs.getValue(), rhs.getValue()),
-          createStack(logicalOrSign(lhs, rhs))};
+          resultTypeOf(lhs.getType(), rhs.getType())};
 }
 
 [[nodiscard]] Value
 createSub(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateSub(lhs.getValue(), rhs.getValue()),
-          createStack(logicalOrSign(lhs, rhs))};
+          resultTypeOf(lhs.getType(), rhs.getType())};
 }
 
 [[nodiscard]] Value
 createMul(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateMul(lhs.getValue(), rhs.getValue()),
-          createStack(logicalOrSign(lhs, rhs))};
+          resultTypeOf(lhs.getType(), rhs.getType())};
 }
 
 [[nodiscard]] Value
 createDiv(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  const auto res_sign_kind = logicalOrSign(lhs, rhs);
+  const auto result_type = resultTypeOf(lhs.getType(), rhs.getType());
 
-  if (isSigned(res_sign_kind)) {
+  if (result_type->isSigned()) {
     return {ctx.builder.CreateSDiv(lhs.getValue(), rhs.getValue()),
-            createStack(res_sign_kind)};
+            result_type};
   }
   else {
     return {ctx.builder.CreateUDiv(lhs.getValue(), rhs.getValue()),
-            createStack(res_sign_kind)};
+            result_type};
   }
 }
 
 [[nodiscard]] Value
 createMod(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  const auto res_sign_kind = logicalOrSign(lhs, rhs);
+  const auto result_type = resultTypeOf(lhs.getType(), rhs.getType());
 
-  if (isSigned(res_sign_kind)) {
+  if (result_type->isSigned()) {
     return {ctx.builder.CreateSRem(lhs.getValue(), rhs.getValue()),
-            createStack(res_sign_kind)};
+            result_type};
   }
   else {
     return {ctx.builder.CreateURem(lhs.getValue(), rhs.getValue()),
-            createStack(res_sign_kind)};
+            result_type};
   }
 }
 
@@ -108,7 +98,7 @@ createEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
   return {ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
                                  lhs.getValue(),
                                  rhs.getValue()),
-          createStack(SignKind::unsigned_)};
+          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
 }
 
 [[nodiscard]] Value
@@ -117,7 +107,7 @@ createNotEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
   return {ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_NE,
                                  lhs.getValue(),
                                  rhs.getValue()),
-          createStack(SignKind::unsigned_)};
+          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
 }
 
 [[nodiscard]] Value
@@ -128,7 +118,7 @@ createLessThan(CGContext& ctx, const Value& lhs, const Value& rhs)
                                    : llvm::ICmpInst::ICMP_ULT,
                                  lhs.getValue(),
                                  rhs.getValue()),
-          createStack(SignKind::unsigned_)};
+          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
 }
 
 [[nodiscard]] Value
@@ -139,7 +129,7 @@ createGreaterThan(CGContext& ctx, const Value& lhs, const Value& rhs)
                                    : llvm::ICmpInst::ICMP_UGT,
                                  lhs.getValue(),
                                  rhs.getValue()),
-          createStack(SignKind::unsigned_)};
+          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
 }
 
 [[nodiscard]] Value
@@ -150,7 +140,7 @@ createLessOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
                                    : llvm::ICmpInst::ICMP_ULE,
                                  lhs.getValue(),
                                  rhs.getValue()),
-          createStack(SignKind::unsigned_)};
+          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
 }
 
 [[nodiscard]] Value
@@ -161,44 +151,45 @@ createGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
                                    : llvm::ICmpInst::ICMP_UGE,
                                  lhs.getValue(),
                                  rhs.getValue()),
-          createStack(SignKind::unsigned_)};
+          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
 }
 
 [[nodiscard]] Value createLogicalNot(CGContext& ctx, const Value& value)
 {
-  return {ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
-                                 value.getValue(),
-                                 llvm::ConstantInt::get(value.getType(), 0)),
-          createStack(SignKind::unsigned_)};
+  return {
+    ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
+                           value.getValue(),
+                           llvm::ConstantInt::get(value.getLLVMType(), 0)),
+    std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
 }
 
 [[nodiscard]] Value createSizeOf(CGContext& ctx, const Value& value)
 {
   return {llvm::ConstantInt::get(
             ctx.builder.getInt64Ty(),
-            ctx.module->getDataLayout().getTypeAllocSize(value.getType())),
-          createStack(SignKind::unsigned_)};
+            ctx.module->getDataLayout().getTypeAllocSize(value.getLLVMType())),
+          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
 }
 
 [[nodiscard]] Value createAddInverse(CGContext& ctx, const Value& value)
 {
-  return {ctx.builder.CreateSub(llvm::ConstantInt::get(value.getType(), 0),
+  return {ctx.builder.CreateSub(llvm::ConstantInt::get(value.getLLVMType(), 0),
                                 value.getValue()),
-          createStack(value.getSignKind())};
+          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
 }
 
 [[nodiscard]] Value
 createLogicalAnd(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateLogicalAnd(lhs.getValue(), rhs.getValue()),
-          createStack(SignKind::unsigned_)};
+          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
 }
 
 [[nodiscard]] Value
 createLogicalOr(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateLogicalOr(lhs.getValue(), rhs.getValue()),
-          createStack(SignKind::unsigned_)};
+          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
 }
 
 // The code is based on https://gist.github.com/quantumsheep.

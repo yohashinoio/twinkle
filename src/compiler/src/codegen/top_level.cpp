@@ -16,22 +16,22 @@ namespace maple::codegen
 [[nodiscard]] static std::optional<bool>
 isVariadicArgs(const std::vector<ast::Parameter>& params)
 {
-  bool is_variadic_args = false;
+  bool is_varg = false;
 
   for (const auto& r : params) {
-    if (r.is_variadic_args) {
-      if (is_variadic_args) {
+    if (r.is_varg) {
+      if (is_varg) {
         // Multiple variadic arguments detected.
         return std::nullopt;
       }
       else {
-        is_variadic_args = true;
+        is_varg = true;
         continue;
       }
     }
   }
 
-  return is_variadic_args;
+  return is_varg;
 }
 
 [[nodiscard]] static llvm::Function*
@@ -57,7 +57,7 @@ createArgumentTable(CGContext&                ctx,
     // Create an alloca for this variable.
     auto const alloca = createEntryAlloca(func,
                                           arg.getName().str(),
-                                          param_node.type->getType(ctx));
+                                          param_node.type->getLLVMType(ctx));
 
     // Store the initial value into the alloca.
     ctx.builder.CreateStore(&arg, alloca);
@@ -67,11 +67,10 @@ createArgumentTable(CGContext&                ctx,
         && (*param_node.qualifier == VariableQual::mutable_);
 
     // Add arguments to variable symbol table.
-    argument_table.registOrOverwrite(
-      arg.getName().str(),
-      Variable{
-        {alloca, param_node.type->createSignKindStack(ctx)},
-        is_mutable
+    argument_table.registOrOverwrite(arg.getName().str(),
+                                     Variable{
+                                       {alloca, param_node.type},
+                                       is_mutable
     });
   }
 
@@ -99,34 +98,34 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
   {
     const auto& params = *node.params;
 
-    if (params.size() && params.at(0).is_variadic_args) {
+    if (params.size() && params.at(0).is_varg) {
       throw CodegenError{
         ctx.formatError(ctx.positions.position_of(node),
                         "requires a named argument before '...'")};
     }
 
-    const auto is_variadic_args = isVariadicArgs(params);
-    if (!is_variadic_args) {
+    const auto is_varg = isVariadicArgs(params);
+    if (!is_varg) {
       throw CodegenError{
         ctx.formatError(ctx.positions.position_of(node),
                         "cannot have multiple variable arguments")};
     }
 
-    assert(!(*is_variadic_args && node.params.length() == 0));
+    assert(!(*is_varg && node.params.length() == 0));
     const auto named_params_length
-      = *is_variadic_args ? node.params.length() - 1 : node.params.length();
+      = *is_varg ? node.params.length() - 1 : node.params.length();
 
     std::vector<llvm::Type*> param_types(named_params_length);
 
     for (std::size_t i = 0; i != named_params_length; ++i) {
       const auto& param_type = node.params[i].type;
-      param_types.at(i)      = param_type->getType(ctx);
+      param_types.at(i)      = param_type->getLLVMType(ctx);
     }
 
     auto const func_type
-      = llvm::FunctionType::get(node.return_type->getType(ctx),
+      = llvm::FunctionType::get(node.return_type->getLLVMType(ctx),
                                 param_types,
-                                *is_variadic_args);
+                                *is_varg);
 
     const auto name         = node.name.utf8();
     // main function does not mangle.
@@ -178,7 +177,9 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     auto const return_variable
       = node.decl.return_type->isVoid()
           ? nullptr
-          : createEntryAlloca(func, "", node.decl.return_type->getType(ctx));
+          : createEntryAlloca(func,
+                              "",
+                              node.decl.return_type->getLLVMType(ctx));
 
     createStatement(ctx,
                     argument_table,
@@ -253,7 +254,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     // Set element types and create element sign info.
     std::vector<llvm::Type*> element_types;
     for (const auto& element : node.elements)
-      element_types.emplace_back(element.type->getType(ctx));
+      element_types.emplace_back(element.type->getLLVMType(ctx));
 
     // Check to make sure the name does not already exist.
     if (const auto existed_type = ctx.struct_table[name]) {

@@ -402,16 +402,16 @@ struct Parameter : x3::position_tagged {
   Identifier                     name;
   std::optional<VariableQual>    qualifier;
   std::shared_ptr<codegen::Type> type;
-  bool                           is_variadic_args;
+  bool                           is_varg;
 
   Parameter(Identifier&&                     name,
             std::optional<VariableQual>&&    qualifier,
             std::shared_ptr<codegen::Type>&& type,
-            const bool                       is_variadic_args) noexcept
+            const bool                       is_varg) noexcept
     : name{name}
     , qualifier{qualifier}
     , type{type}
-    , is_variadic_args{is_variadic_args}
+    , is_varg{is_varg}
   {
   }
 

@@ -31,25 +31,6 @@ constexpr unsigned int MAPLE_VERSION = 100000;
 
 [[nodiscard]] std::string stringToLower(const std::string_view str);
 
-/*
-  After stacking the argument 1, start stacking from the left of the
-  argument 2.
-  Example: (4, 8, 1, 0)
-  |---|
-  | 0 | <- top
-  | 1 |
-  | 8 |
-  | 4 |
-  |---|
-*/
-template <typename T, typename... Ts>
-[[nodiscard]] auto createStack(T&& arg, Ts&&... args)
-{
-  return std::stack{
-    std::deque{std::forward<T>(arg), std::forward<Ts>(args)...}
-  };
-}
-
 [[noreturn]] void unreachableInternal(const std::size_t line, const char* file);
 
 #define unreachable() ::maple::unreachableInternal(__LINE__, __FILE__)
