@@ -21,7 +21,8 @@ namespace maple::ast
 
 namespace x3 = boost::spirit::x3;
 
-struct Nil {};
+struct Nil {
+};
 
 //===----------------------------------------------------------------------===//
 // Expression AST
@@ -94,7 +95,8 @@ struct BinOp : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind {
+  enum class Kind
+  {
     unknown,
     add,         // Addition
     sub,         // Subtraciton
@@ -153,7 +155,8 @@ struct UnaryOp : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind {
+  enum class Kind
+  {
     unknown,
     plus,        // Unary plus
     minus,       // Unary minus
@@ -274,7 +277,8 @@ struct Assignment : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind {
+  enum class Kind
+  {
     unknown,
     direct, // Direct assignment
     add,    // Addition assignment
@@ -312,7 +316,8 @@ struct PrefixIncAndDec : x3::position_tagged {
     return unicode::utf32toUtf8(op);
   }
 
-  enum class Kind {
+  enum class Kind
+  {
     unknown,
     increment,
     decrement,
@@ -329,9 +334,11 @@ struct PrefixIncAndDec : x3::position_tagged {
   }
 };
 
-struct Break : x3::position_tagged {};
+struct Break : x3::position_tagged {
+};
 
-struct Continue : x3::position_tagged {};
+struct Continue : x3::position_tagged {
+};
 
 struct If;
 struct Loop;
@@ -402,16 +409,16 @@ struct Parameter : x3::position_tagged {
   Identifier                     name;
   std::optional<VariableQual>    qualifier;
   std::shared_ptr<codegen::Type> type;
-  bool                           is_varg;
+  bool                           is_vararg;
 
   Parameter(Identifier&&                     name,
             std::optional<VariableQual>&&    qualifier,
             std::shared_ptr<codegen::Type>&& type,
-            const bool                       is_varg) noexcept
+            const bool                       is_vararg) noexcept
     : name{name}
     , qualifier{qualifier}
     , type{type}
-    , is_varg{is_varg}
+    , is_vararg{is_vararg}
   {
   }
 

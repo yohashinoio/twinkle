@@ -76,7 +76,7 @@ private:
   std::unordered_map<Key, T> table;
 };
 
-using FunctionReturnTypeTable = Table<std::string, std::shared_ptr<Type>>;
+using FunctionReturnTypeTable = Table<llvm::Function*, std::shared_ptr<Type>>;
 
 // std::nullopt means opaque(llvm).
 using StructTable = Table<

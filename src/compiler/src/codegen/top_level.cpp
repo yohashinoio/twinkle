@@ -16,22 +16,22 @@ namespace maple::codegen
 [[nodiscard]] static std::optional<bool>
 isVariadicArgs(const std::vector<ast::Parameter>& params)
 {
-  bool is_varg = false;
+  bool is_vararg = false;
 
   for (const auto& r : params) {
-    if (r.is_varg) {
-      if (is_varg) {
+    if (r.is_vararg) {
+      if (is_vararg) {
         // Multiple variadic arguments detected.
         return std::nullopt;
       }
       else {
-        is_varg = true;
+        is_vararg = true;
         continue;
       }
     }
   }
 
-  return is_varg;
+  return is_vararg;
 }
 
 [[nodiscard]] static llvm::Function*
@@ -98,22 +98,22 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
   {
     const auto& params = *node.params;
 
-    if (params.size() && params.at(0).is_varg) {
+    if (params.size() && params.at(0).is_vararg) {
       throw CodegenError{
         ctx.formatError(ctx.positions.position_of(node),
                         "requires a named argument before '...'")};
     }
 
-    const auto is_varg = isVariadicArgs(params);
-    if (!is_varg) {
+    const auto is_vararg = isVariadicArgs(params);
+    if (!is_vararg) {
       throw CodegenError{
         ctx.formatError(ctx.positions.position_of(node),
                         "cannot have multiple variable arguments")};
     }
 
-    assert(!(*is_varg && node.params.length() == 0));
+    assert(!(*is_vararg && node.params.length() == 0));
     const auto named_params_length
-      = *is_varg ? node.params.length() - 1 : node.params.length();
+      = *is_vararg ? node.params.length() - 1 : node.params.length();
 
     std::vector<llvm::Type*> param_types(named_params_length);
 
@@ -125,17 +125,16 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     auto const func_type
       = llvm::FunctionType::get(node.return_type->getLLVMType(ctx),
                                 param_types,
-                                *is_varg);
+                                *is_vararg);
 
     const auto name         = node.name.utf8();
     // main function does not mangle.
     const auto mangled_name = name == "main" ? name : ctx.mangler(node);
 
-    // Register return type to table.
-    ctx.return_type_table.registOrOverwrite(mangled_name, node.return_type);
-
     auto const func
       = createLlvmFunction(node.linkage, func_type, mangled_name, *ctx.module);
+
+    ctx.return_type_table.registOrOverwrite(func, node.return_type);
 
     // Set names to all arguments.
     for (std::size_t idx = 0; auto&& arg : func->args())

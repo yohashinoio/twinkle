@@ -97,7 +97,7 @@ createPointerSubscript(CGContext& ctx, const Value& ptr, const Value& index)
 
 // This function changes the arguments.
 // Compare both operands and cast to the operand with the larger bit width.
-static std::pair<Value, Value>
+[[nodiscard]] static std::pair<Value, Value>
 integerLargerBitsCast(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   if (const auto lhs_bitwidth = lhs.getLLVMType()->getIntegerBitWidth(),
@@ -134,7 +134,7 @@ integerLargerBitsCast(CGContext& ctx, const Value& lhs, const Value& rhs)
 
 // Calculate the offset of an element of a structure.
 // Returns std::nullopt if there is no matching element.
-static std::optional<std::size_t>
+[[nodiscard]] static std::optional<std::size_t>
 offsetByName(const std::vector<ast::StructElement>& elements,
              const std::string&                     element_name)
 {
@@ -145,6 +145,17 @@ offsetByName(const std::vector<ast::StructElement>& elements,
   }
 
   return std::nullopt;
+}
+
+[[nodiscard]] static std::vector<llvm::Value*>
+value2LLVMValue(const std::vector<Value>& v)
+{
+  std::vector<llvm::Value*> ret;
+
+  for (const auto& value : v)
+    ret.push_back(value.getValue());
+
+  return ret;
 }
 
 //===----------------------------------------------------------------------===//
@@ -403,14 +414,16 @@ struct ExprVisitor : public boost::static_visitor<Value> {
                         "left-hand side of function call is not callable")};
     }
 
-    const auto callee = boost::get<ast::Identifier>(node.callee).utf8();
+    const auto args = createArgValues(node.args, pos);
 
-    auto const callee_func = ctx.module->getFunction(callee);
+    const auto callee_name = boost::get<ast::Identifier>(node.callee).utf8();
+
+    auto const callee_func = matchFunction(callee_name, args);
 
     if (!callee_func) {
       throw CodegenError{ctx.formatError(
         pos,
-        fmt::format("unknown function '{}' referenced", callee))};
+        fmt::format("unknown function '{}' referenced", callee_name))};
     }
 
     if (!callee_func->isVarArg()
@@ -418,16 +431,14 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       throw CodegenError{ctx.formatError(pos, "incorrect arguments passed")};
     }
 
-    const auto arg_values = createArgValues(node.args, callee, pos);
+    verifyArguments(args, callee_func, pos);
 
-    verifyArguments(arg_values, callee_func, pos);
-
-    const auto return_type = ctx.return_type_table[callee];
+    const auto return_type = ctx.return_type_table[callee_func];
 
     assert(return_type);
 
-    return {ctx.builder.CreateCall(callee_func, arg_values),
-            return_type.value()};
+    return {ctx.builder.CreateCall(callee_func, value2LLVMValue(args)),
+            *return_type};
   }
 
   [[nodiscard]] Value operator()(const ast::Conversion& node) const
@@ -499,13 +510,12 @@ private:
             rhs.isMutable()};
   }
 
-  void verifyArguments(const std::vector<llvm::Value*>&            args_value,
+  void verifyArguments(const std::vector<Value>&                   args,
                        llvm::Function* const                       callee,
                        const boost::iterator_range<InputIterator>& pos) const
   {
-    // Verify arguments
     for (std::size_t idx = 0; auto&& arg : callee->args()) {
-      if (!strictEquals(args_value[idx++]->getType(), arg.getType())) {
+      if (!strictEquals(args[idx++].getValue()->getType(), arg.getType())) {
         throw CodegenError{ctx.formatError(
           pos,
           fmt::format("incompatible type for argument {} of '{}'",
@@ -515,25 +525,66 @@ private:
     }
   }
 
-  [[nodiscard]] std::vector<llvm::Value*>
-  createArgValues(const std::deque<ast::Expr>&                args,
-                  const std::string_view                      callee,
+  [[nodiscard]] std::vector<Value>
+  createArgValues(const std::deque<ast::Expr>&                arg_exprs,
                   const boost::iterator_range<InputIterator>& pos) const
   {
-    std::vector<llvm::Value*> arg_values;
+    std::vector<Value> args;
 
-    for (std::size_t i = 0, size = args.size(); i != size; ++i) {
-      arg_values.emplace_back(boost::apply_visitor(*this, args[i]).getValue());
+    for (std::size_t i = 0, size = arg_exprs.size(); i != size; ++i) {
+      args.emplace_back(boost::apply_visitor(*this, arg_exprs[i]));
 
-      if (!arg_values.back()) {
-        throw CodegenError{ctx.formatError(
-          pos,
-          fmt::format("argument set failed in call to the function '{}'",
-                      callee))};
+      if (!args.back()) {
+        throw CodegenError{
+          ctx.formatError(pos, "argument set failed in call to the function")};
       }
     }
 
-    return arg_values;
+    return args;
+  }
+
+  [[nodiscard]] llvm::Function*
+  matchVarArgFunction(const std::string_view mangled_name) const
+  {
+    for (auto& func : ctx.module->getFunctionList()) {
+      const auto func_name = func.getName();
+
+      if (func_name.endswith("v")) {
+        // _Z1fv to _Z1f
+        const auto tmp = func_name.substr(0, func_name.size() - 2);
+        if (mangled_name.starts_with(tmp))
+          return &func;
+      }
+    }
+
+    return nullptr;
+  }
+
+  [[nodiscard]] llvm::Function*
+  matchFunction(const std::string_view    unmangled_name,
+                const std::vector<Value>& args) const
+  {
+    {
+      // First look for unmangled functions.
+      auto const func = ctx.module->getFunction(unmangled_name);
+      if (func)
+        return func;
+    }
+
+    const auto mangled_name = ctx.mangler(unmangled_name, args);
+    auto const func         = ctx.module->getFunction(mangled_name);
+
+    if (!func) {
+      // Mismatch or variadic arguments.
+      auto const vararg_func = matchVarArgFunction(mangled_name);
+
+      if (vararg_func)
+        return vararg_func;
+      else
+        return nullptr;
+    }
+
+    return func;
   }
 
   CGContext& ctx;

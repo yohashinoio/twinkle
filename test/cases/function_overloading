@@ -1,0 +1,41 @@
+struct Sample {}
+
+func f(a: i32, b: i32) -> i32
+{
+  return a + b;
+}
+
+func f()
+{
+}
+
+func f(n: i64) -> i64
+{
+  return n;
+}
+
+func f(ch: char) -> i32
+{
+  return 58;
+}
+
+func f(s: Sample) -> i32
+{
+  return 58;
+}
+
+func main() -> i32
+{
+  let n1 = f(48, 10);
+
+  f();
+
+  let n2 = f(58 as i64);
+
+  if (n1 == n2 && n2 == f('💐')) {
+    let tmp: Sample;
+    return f(tmp);
+  }
+
+  return 41;
+}

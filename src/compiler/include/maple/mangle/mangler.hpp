@@ -15,15 +15,30 @@
 #include <maple/pch/pch.hpp>
 #include <maple/ast/ast.hpp>
 
-namespace maple::mangle
+namespace maple
+{
+namespace codegen
+{
+
+struct Value;
+
+} // namespace codegen
+
+namespace mangle
 {
 
 class Mangler {
 public:
   // For function definition.
   [[nodiscard]] std::string operator()(const ast::FunctionDecl& ast) const;
+
+  // For function call.
+  [[nodiscard]] std::string
+  operator()(const std::string_view             callee,
+             const std::vector<codegen::Value>& args) const;
 };
 
-} // namespace maple::mangle
+} // namespace mangle
+} // namespace maple
 
 #endif

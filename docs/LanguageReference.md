@@ -33,6 +33,7 @@
   - [Definition](#definition-2)
   - [Mutable Parameters](#mutable-parameters)
   - [Linkage](#linkage)
+  - [Overloading](#overloading)
 - [Identifier Naming Rules](#identifier-naming-rules)
 - [Integer Literal](#integer-literal)
   - [Decimal](#decimal)
@@ -416,6 +417,33 @@ func twice(n: i32) -> i32 // External linkage
 func private thrice(n: i32) -> i32 // Internal linkage
 {
   return n * 3;
+}
+```
+
+### Overloading
+Multiple functions with the same name can be defined if they have different arguments.
+Note that the different argument types cannot be overloaded.
+```rust
+func f(n :i32) -> i32
+{
+  // 1
+}
+
+func f(ch: char)
+{
+  // 2
+}
+
+func f() -> char
+{
+  // 3
+}
+
+func main() -> i32
+{
+  f(4810); // 1
+  f('💐'); // 2
+  f(); // 3
 }
 ```
 

@@ -139,6 +139,7 @@ int main(const int argc, const char* const* const argv)
     {                      "member_access",  58},
     {                   "assign_to_member",  58},
     {     "struct_in_struct_member_access",  58},
+    {               "function_overloading",  58},
   };
 
   std::size_t ok_c{};   // ok count.

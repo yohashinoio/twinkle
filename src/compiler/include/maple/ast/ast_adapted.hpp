@@ -171,7 +171,7 @@ BOOST_FUSION_ADAPT_STRUCT(
   (maple::ast::Identifier, name)
   (std::optional<maple::VariableQual>, qualifier)
   (std::shared_ptr<maple::codegen::Type>, type)
-  (bool, is_varg)
+  (bool, is_vararg)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
