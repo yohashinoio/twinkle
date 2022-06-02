@@ -1,0 +1,12 @@
+struct Sample {
+  let n: i32;
+}
+
+func main() -> i32
+{
+  let mut s: Sample;
+  s.n = -1;
+  if (s.n < 58)
+    return 14;
+  return 123;
+}
