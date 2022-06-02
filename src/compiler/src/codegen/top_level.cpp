@@ -8,9 +8,40 @@
 #include <maple/codegen/top_level.hpp>
 #include <maple/codegen/stmt.hpp>
 #include <maple/codegen/exception.hpp>
+#include <unordered_set>
 
 namespace maple::codegen
 {
+
+enum class AttrKind {
+  unknown,
+  nomangle,
+};
+
+[[nodiscard]] AttrKind matchAttr(const std::u32string_view attr)
+{
+  static const std::unordered_map<std::u32string_view, AttrKind> attr_map{
+    {U"nomangle", AttrKind::nomangle}
+  };
+
+  const auto it = attr_map.find(attr);
+
+  if (it == attr_map.end())
+    return AttrKind::unknown;
+
+  return it->second;
+}
+
+[[nodiscard]] std::unordered_set<AttrKind>
+createAttrKindsFrom(const ast::Attrs& attrs)
+{
+  std::unordered_set<AttrKind> attr_kinds;
+
+  for (const auto& attr_str : attrs)
+    attr_kinds.emplace(matchAttr(attr_str));
+
+  return attr_kinds;
+}
 
 // Returns std::nullopt if there are multiple variadic arguments
 [[nodiscard]] static std::optional<bool>
@@ -83,9 +114,11 @@ createArgumentTable(CGContext&                ctx,
 
 struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
   TopLevelVisitor(CGContext&                         ctx,
-                  llvm::legacy::FunctionPassManager& fp_manager) noexcept
+                  llvm::legacy::FunctionPassManager& fp_manager,
+                  const ast::Attrs&                  attrs) noexcept
     : ctx{ctx}
     , fp_manager{fp_manager}
+    , attr_kinds{createAttrKindsFrom(attrs)}
   {
   }
 
@@ -129,7 +162,11 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
     const auto name         = node.name.utf8();
     // main function does not mangle.
-    const auto mangled_name = name == "main" ? name : ctx.mangler(node);
+    const auto mangled_name = [&]() {
+      if (name == "main" || attr_kinds.contains(AttrKind::nomangle))
+        return name;
+      return ctx.mangler(node);
+    }();
 
     auto const func
       = createLlvmFunction(node.linkage, func_type, mangled_name, *ctx.module);
@@ -282,13 +319,16 @@ private:
   CGContext& ctx;
 
   llvm::legacy::FunctionPassManager& fp_manager;
+
+  std::unordered_set<AttrKind> attr_kinds;
 };
 
 llvm::Function* createTopLevel(CGContext&                         ctx,
                                llvm::legacy::FunctionPassManager& fp_manager,
-                               const ast::TopLevel&               node)
+                               const ast::TopLevelWithAttr&       node)
 {
-  return boost::apply_visitor(TopLevelVisitor{ctx, fp_manager}, node);
+  return boost::apply_visitor(TopLevelVisitor{ctx, fp_manager, node.attrs},
+                              node.top_level);
 }
 
 } // namespace maple::codegen

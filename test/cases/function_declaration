@@ -1,4 +1,4 @@
-declare func clock() -> i32;
+[[nomangle]] declare func clock() -> i32;
 
 declare func f() -> i32;
 

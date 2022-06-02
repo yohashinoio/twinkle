@@ -193,6 +193,12 @@ BOOST_FUSION_ADAPT_STRUCT(
   (maple::ast::Stmt, body)
 )
 
+BOOST_FUSION_ADAPT_STRUCT(
+  maple::ast::TopLevelWithAttr,
+  (maple::ast::Attrs, attrs)
+  (maple::ast::TopLevel, top_level)
+)
+
 // clang-format on
 
 #endif

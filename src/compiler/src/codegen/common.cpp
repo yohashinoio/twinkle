@@ -165,17 +165,19 @@ createGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 
 [[nodiscard]] Value createSizeOf(CGContext& ctx, const Value& value)
 {
+  // Assuming a 64-bit environment.
+  // FIXME: To work in different environments
   return {llvm::ConstantInt::get(
             ctx.builder.getInt64Ty(),
             ctx.module->getDataLayout().getTypeAllocSize(value.getLLVMType())),
-          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+          std::make_shared<BuiltinType>(BuiltinTypeKind::u64)};
 }
 
 [[nodiscard]] Value createAddInverse(CGContext& ctx, const Value& value)
 {
   return {ctx.builder.CreateSub(llvm::ConstantInt::get(value.getLLVMType(), 0),
                                 value.getValue()),
-          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+          value.getType()};
 }
 
 [[nodiscard]] Value

@@ -2,6 +2,7 @@ func main() -> i32
 {
   let n = -1;
   let p = &n;
-  if (*p < (58 as u32))
+  if (*p < 58)
     return 58;
+  return 41;
 }

@@ -1,4 +1,4 @@
-declare func printf(fmt: *i8, ...) -> i32;
+[[nomangle]] declare func printf(fmt: *i8, ...) -> i32;
 
 func fib(n: i32) -> i32
 {

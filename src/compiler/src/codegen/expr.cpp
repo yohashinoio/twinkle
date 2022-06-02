@@ -219,7 +219,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     return {
       ctx.builder.CreateGlobalStringPtr(unicode::utf32toUtf8(node.str), ".str"),
       std::make_shared<PointerType>(
-        std::make_shared<BuiltinType>(BuiltinTypeKind::u8))}; // *u8
+        std::make_shared<BuiltinType>(BuiltinTypeKind::i8))};
   }
 
   [[nodiscard]] Value operator()(const ast::CharLiteral& node) const

@@ -1,10 +1,10 @@
 declare struct FILE;
 
-declare func fopen(filename: *i8, mode: *i8) -> *FILE;
-declare func fclose(stream: *FILE) -> i32;
+[[nomangle]] declare func fopen(filename: *i8, mode: *i8) -> *FILE;
+[[nomangle]] declare func fclose(stream: *FILE) -> i32;
 
-declare func getc(stream: *FILE) -> i32;
-declare func putchar(ch: i32) -> i32;
+[[nomangle]] declare func getc(stream: *FILE) -> i32;
+[[nomangle]] declare func putchar(ch: i32) -> i32;
 
 func main() -> i32
 {

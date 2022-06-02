@@ -299,6 +299,9 @@ const auto type
     x3::_val(ctx) = std::move(base_type);
   })];
 
+const auto attribute = x3::rule<struct AttrTag, ast::Attrs>{"attribute"}
+= lit(U"[[") >> (identifier_internal % lit(U",")) > lit(U"]]");
+
 //===----------------------------------------------------------------------===//
 // Operator rules
 //===----------------------------------------------------------------------===//
@@ -410,6 +413,8 @@ const x3::rule<struct FunctionDeclTag, ast::FunctionDecl> function_decl{
 const x3::rule<struct FunctionDefTag, ast::FunctionDef> function_def{
   "function definition"};
 const x3::rule<struct TopLevelTag, ast::TopLevel> top_level{"top level"};
+const x3::rule<struct TopLevelWithAttrTag, ast::TopLevelWithAttr>
+  top_level_with_attr{"top level"};
 
 //===----------------------------------------------------------------------===//
 // Comment rules
@@ -571,7 +576,6 @@ BOOST_SPIRIT_DEFINE(stmt)
 // Top level rules definition
 //===----------------------------------------------------------------------===//
 
-// FIXME: to expression
 const auto struct_decl_def
   = lit(U"declare") >> lit(U"struct") > identifier > lit(U";");
 
@@ -597,7 +601,6 @@ const auto function_proto_def
        | x3::attr(std::make_shared<codegen::BuiltinType>(
          codegen::BuiltinTypeKind::void_)));
 
-// FIXME: to expression
 const auto function_decl_def
   = lit(U"declare") >> lit(U"func") > function_proto > lit(U";");
 
@@ -605,6 +608,8 @@ const auto function_def_def = lit(U"func") > function_proto > stmt;
 
 const auto top_level_def
   = function_decl | function_def | struct_decl | struct_def;
+
+const auto top_level_with_attr_def = -attribute >> top_level_def;
 
 BOOST_SPIRIT_DEFINE(struct_element)
 BOOST_SPIRIT_DEFINE(struct_elements)
@@ -616,6 +621,7 @@ BOOST_SPIRIT_DEFINE(function_proto)
 BOOST_SPIRIT_DEFINE(function_decl)
 BOOST_SPIRIT_DEFINE(function_def)
 BOOST_SPIRIT_DEFINE(top_level)
+BOOST_SPIRIT_DEFINE(top_level_with_attr)
 
 //===----------------------------------------------------------------------===//
 // Comment rules definition
@@ -644,7 +650,7 @@ const auto skipper = x3::rule<struct SkipperTag>{"skipper"}
 // Program rules definition
 //===----------------------------------------------------------------------===//
 
-const auto program_def = *top_level > x3::eoi;
+const auto program_def = *top_level_with_attr > x3::eoi;
 
 BOOST_SPIRIT_DEFINE(program)
 
@@ -667,6 +673,8 @@ struct CharLiteralTag
   , AnnotatePosition {};
 
 struct TypeTag : AnnotatePosition {};
+
+struct AttrTag : ErrorHandle {};
 
 //===----------------------------------------------------------------------===//
 // Expression tags
@@ -839,6 +847,10 @@ struct FunctionDefTag
   , AnnotatePosition {};
 
 struct TopLevelTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct TopLevelWithAttrTag
   : ErrorHandle
   , AnnotatePosition {};
 

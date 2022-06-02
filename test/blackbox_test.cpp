@@ -140,6 +140,7 @@ int main(const int argc, const char* const* const argv)
     {                   "assign_to_member",  58},
     {     "struct_in_struct_member_access",  58},
     {               "function_overloading",  58},
+    { "dereference_to_pointer_to_unsigned",  14},
   };
 
   std::size_t ok_c{};   // ok count.
