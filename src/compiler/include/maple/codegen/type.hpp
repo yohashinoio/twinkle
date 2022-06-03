@@ -21,8 +21,7 @@
 namespace maple::codegen
 {
 
-enum class BuiltinTypeKind
-{
+enum class BuiltinTypeKind {
   void_,
   i8,
   i16,

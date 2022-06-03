@@ -1,5 +1,5 @@
 # .clang-format
-# For clang-format 13 or later.
+# For clang-format 14 or later.
 
 Standard: Cpp11
 Language: Cpp
