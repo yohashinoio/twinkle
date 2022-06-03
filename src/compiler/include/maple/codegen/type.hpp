@@ -21,7 +21,8 @@
 namespace maple::codegen
 {
 
-enum class BuiltinTypeKind {
+enum class BuiltinTypeKind
+{
   void_,
   i8,
   i16,
@@ -82,7 +83,7 @@ struct Type {
 
   [[nodiscard]] bool isUnigned()
   {
-    return !isSigned();
+    return getSignKind() == SignKind::unsigned_;
   }
 
   [[nodiscard]] virtual std::uint64_t getArraySize() const noexcept
