@@ -84,7 +84,7 @@ using StructTable = Table<
   std::pair<std::optional<std::vector<ast::StructElement>>, llvm::StructType*>>;
 
 // Codegen context.
-struct CGContext {
+struct CGContext : private boost::noncopyable {
   CGContext(llvm::LLVMContext&      context,
             PositionCache&&         positions,
             std::filesystem::path&& file,
@@ -118,7 +118,7 @@ private:
   calcRows(const boost::iterator_range<InputIterator>& pos) const;
 };
 
-struct CodeGenerator {
+struct CodeGenerator : private boost::noncopyable {
   CodeGenerator(const std::string_view               program_name,
                 std::vector<parse::Parser::Result>&& ast,
                 const bool                           opt,

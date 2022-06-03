@@ -19,7 +19,7 @@
 namespace maple::parse
 {
 
-struct Parser {
+struct Parser : private boost::noncopyable {
   struct Result {
     // Since positions has a reference to input, it also holds input.
     std::string input;

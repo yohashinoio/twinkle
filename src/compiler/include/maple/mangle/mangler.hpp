@@ -27,7 +27,7 @@ struct Value;
 namespace mangle
 {
 
-class Mangler {
+class Mangler : private boost::noncopyable {
 public:
   // For function definition.
   [[nodiscard]] std::string operator()(const ast::FunctionDecl& ast) const;
