@@ -454,7 +454,7 @@ struct FunctionDef : x3::position_tagged {
 using TopLevel
   = boost::variant<Nil, FunctionDecl, FunctionDef, StructDecl, StructDef>;
 
-// Example: [[nodiscard, nomangle, yoha, io]]
+// Example: [[nodiscard, nomangle]]
 using Attrs = std::vector<std::u32string>;
 
 struct TopLevelWithAttr : x3::position_tagged {

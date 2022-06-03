@@ -71,9 +71,8 @@ const auto assignAttrToVal = [](auto&& ctx) {
 template <typename T>
 struct assignToValAs {
   template <typename Ctx, typename Ast = T>
-  auto operator()(const Ctx& ctx) const
-    -> std::enable_if_t<std::is_same_v<Ast, ast::BinOp>
-                        || std::is_same_v<Ast, ast::Pipeline>>
+  auto operator()(const Ctx& ctx) const -> std::enable_if_t<
+    std::is_same_v<Ast, ast::BinOp> || std::is_same_v<Ast, ast::Pipeline>>
   {
     Ast ast{std::move(x3::_val(ctx)),
             std::move(fusion::at_c<0>(x3::_attr(ctx))),

@@ -20,21 +20,25 @@ Mangler::operator()(const ast::FunctionDecl& ast) const
   mangled << "_Z";
 
   {
-    // TODO: namespace
+    // namespaces.
   }
 
   {
-    // Add a function name.
+    // Function name.
     const auto name = ast.name.utf8();
     mangled << name.length() << name;
   }
 
-  // Add argument type mangled names.
-  for (const auto& param : *ast.params) {
-    if (param.is_vararg)
-      mangled << "v";
-    else
-      mangled << param.type->getMangledName();
+  mangled << "E";
+
+  {
+    // Argument types.
+    for (const auto& param : *ast.params) {
+      if (param.is_vararg)
+        mangled << "v";
+      else
+        mangled << param.type->getMangledName();
+    }
   }
 
   return mangled.str();
@@ -46,10 +50,20 @@ Mangler::operator()(const std::string_view             callee,
 {
   std::ostringstream mangled;
 
-  mangled << "_Z" << callee.length() << callee;
+  mangled << "_Z";
 
-  for (const auto& arg : args)
-    mangled << arg.getType()->getMangledName();
+  {
+    // Function name.
+    mangled << callee.length() << callee;
+  }
+
+  mangled << "E";
+
+  {
+    // Argument types;
+    for (const auto& arg : args)
+      mangled << arg.getType()->getMangledName();
+  }
 
   return mangled.str();
 }
