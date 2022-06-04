@@ -19,6 +19,14 @@ namespace maple::codegen
     .CreateAlloca(type, nullptr, var_name);
 }
 
+[[nodiscard]] llvm::Type* getFloatNTy(CGContext& ctx, const int mantissa_width)
+{
+  assert(mantissa_width == 32 || mantissa_width == 64);
+
+  return mantissa_width == 32 ? ctx.builder.getFloatTy()
+                              : ctx.builder.getDoubleTy();
+}
+
 [[nodiscard]] SignKind logicalOrSign(const Value& lhs, const Value& rhs)
 {
   return lhs.isSigned() || rhs.isSigned() ? SignKind::signed_
@@ -44,6 +52,11 @@ resultTypeOf(const std::shared_ptr<Type>& lhs_t,
 [[nodiscard]] Value
 createAdd(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
+  if (lhs.getType()->isFloatingPointTy()) {
+    return {ctx.builder.CreateFAdd(lhs.getValue(), rhs.getValue()),
+            lhs.getType()};
+  }
+
   return {ctx.builder.CreateAdd(lhs.getValue(), rhs.getValue()),
           resultTypeOf(lhs.getType(), rhs.getType())};
 }
@@ -51,6 +64,11 @@ createAdd(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 createSub(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
+  if (lhs.getType()->isFloatingPointTy()) {
+    return {ctx.builder.CreateFSub(lhs.getValue(), rhs.getValue()),
+            lhs.getType()};
+  }
+
   return {ctx.builder.CreateSub(lhs.getValue(), rhs.getValue()),
           resultTypeOf(lhs.getType(), rhs.getType())};
 }
@@ -58,6 +76,11 @@ createSub(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 createMul(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
+  if (lhs.getType()->isFloatingPointTy()) {
+    return {ctx.builder.CreateFMul(lhs.getValue(), rhs.getValue()),
+            lhs.getType()};
+  }
+
   return {ctx.builder.CreateMul(lhs.getValue(), rhs.getValue()),
           resultTypeOf(lhs.getType(), rhs.getType())};
 }
@@ -65,6 +88,11 @@ createMul(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 createDiv(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
+  if (lhs.getType()->isFloatingPointTy()) {
+    return {ctx.builder.CreateFDiv(lhs.getValue(), rhs.getValue()),
+            lhs.getType()};
+  }
+
   const auto result_type = resultTypeOf(lhs.getType(), rhs.getType());
 
   if (result_type->isSigned()) {
@@ -80,6 +108,11 @@ createDiv(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 createMod(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
+  if (lhs.getType()->isFloatingPointTy()) {
+    return {ctx.builder.CreateFRem(lhs.getValue(), rhs.getValue()),
+            lhs.getType()};
+  }
+
   const auto result_type = resultTypeOf(lhs.getType(), rhs.getType());
 
   if (result_type->isSigned()) {

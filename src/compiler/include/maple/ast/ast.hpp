@@ -61,6 +61,7 @@ struct Pipeline;
 struct MemberAccess;
 
 using Expr = boost::variant<Nil,
+                            double,        // Floating point literals
                             std::uint32_t, // Unsigned integer literals (32bit)
                             std::int32_t,  // Signed integer literals (32bit)
                             std::uint64_t, // Unsinged integer litarals (64bit)
@@ -423,19 +424,9 @@ struct Parameter : x3::position_tagged {
 struct ParameterList : x3::position_tagged {
   std::vector<Parameter> params;
 
-  [[nodiscard]] const Parameter& operator[](const std::size_t idx) const
-  {
-    return params.at(idx);
-  }
-
   [[nodiscard]] const std::vector<Parameter>& operator*() const noexcept
   {
     return params;
-  }
-
-  [[nodiscard]] std::size_t length() const noexcept
-  {
-    return params.size();
   }
 };
 

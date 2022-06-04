@@ -236,6 +236,12 @@ const auto int_64bit
   = x3::rule<struct SignedInteger64Tag, std::int64_t>{"integral number (64bit)"}
 = x3::int64;
 
+const auto float_64bit
+  = x3::rule<struct Float64Tag,
+             double>{"double precision floating point number"}
+= boost::spirit::x3::
+  real_parser<double, boost::spirit::x3::strict_real_policies<double>>{};
+
 const auto boolean_literal
   = x3::rule<struct BooleanLiteralTag, bool>{"boolean literal"}
 = lit(U"true") >> x3::attr(true) | lit(U"false") >> x3::attr(false);
@@ -485,10 +491,10 @@ const auto function_call_def
     >> *(string(U"(") > arg_list
          > lit(U")"))[action::assignToValAs<ast::FunctionCall>{}];
 
-const auto primary_def = binary_literal | octal_literal | hex_literal
-                         | int_32bit | uint_32bit | int_64bit | uint_64bit
-                         | boolean_literal | string_literal | char_literal
-                         | identifier | (lit(U"(") > expr > lit(U")"));
+const auto primary_def
+  = float_64bit | binary_literal | octal_literal | hex_literal | int_32bit
+    | uint_32bit | int_64bit | uint_64bit | boolean_literal | string_literal
+    | char_literal | identifier | (lit(U"(") > expr > lit(U")"));
 
 BOOST_SPIRIT_DEFINE(expr)
 BOOST_SPIRIT_DEFINE(binary_logical)

@@ -61,6 +61,11 @@ struct StmtVisitor : public boost::static_visitor<void> {
     if (node.rhs) {
       auto const retval = createExpr(ctx, scope, stmt_ctx, *node.rhs);
 
+      if (!retval) {
+        throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
+                                           "failed to generate return value")};
+      }
+
       auto const return_type
         = ctx.builder.GetInsertBlock()->getParent()->getReturnType();
 
@@ -68,11 +73,6 @@ struct StmtVisitor : public boost::static_visitor<void> {
         throw CodegenError{
           ctx.formatError(ctx.positions.position_of(node),
                           "incompatible type for result type")};
-      }
-
-      if (!retval) {
-        throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
-                                           "failed to generate return value")};
       }
 
       ctx.builder.CreateStore(retval.getValue(), stmt_ctx.return_var);

@@ -28,6 +28,8 @@ matchBuiltinType(const std::u32string_view type)
       { U"u64",   BuiltinTypeKind::u64},
       {U"bool", BuiltinTypeKind::bool_},
       {U"char", BuiltinTypeKind::char_},
+      { U"f64",   BuiltinTypeKind::f64},
+      { U"f32",   BuiltinTypeKind::f32},
   };
 
   const auto iter = builtin_type_map.find(type);
@@ -61,6 +63,10 @@ matchBuiltinType(const std::u32string_view type)
     return llvm::IntegerType::getInt1Ty(ctx.context);
   case BuiltinTypeKind::char_:
     return llvm::IntegerType::getInt32Ty(ctx.context);
+  case BuiltinTypeKind::f64:
+    return llvm::Type::getDoubleTy(ctx.context);
+  case BuiltinTypeKind::f32:
+    return llvm::Type::getFloatTy(ctx.context);
   }
 
   unreachable();
@@ -74,6 +80,7 @@ matchBuiltinType(const std::u32string_view type)
   case BuiltinTypeKind::i32:
   case BuiltinTypeKind::i64:
     return SignKind::signed_;
+
   case BuiltinTypeKind::u8:
   case BuiltinTypeKind::u16:
   case BuiltinTypeKind::u32:
@@ -81,7 +88,10 @@ matchBuiltinType(const std::u32string_view type)
   case BuiltinTypeKind::bool_:
   case BuiltinTypeKind::char_:
     return SignKind::unsigned_;
+
   case BuiltinTypeKind::void_:
+  case BuiltinTypeKind::f64:
+  case BuiltinTypeKind::f32:
     return SignKind::no_sign;
   }
 
@@ -120,6 +130,10 @@ matchBuiltinType(const std::u32string_view type)
     return "b";
   case BuiltinTypeKind::char_:
     return "c";
+  case BuiltinTypeKind::f64:
+    return "f64";
+  case BuiltinTypeKind::f32:
+    return "f32";
   }
 
   unreachable();

@@ -143,6 +143,13 @@ int main(const int argc, const char* const* const argv)
     { "dereference_to_pointer_to_unsigned",  14},
     {            "access_to_signed_member",  14},
     {          "access_to_unsigned_member",  14},
+    {                "floating_point_type",  58},
+    {            "floating_point_addition",  14},
+    {         "floating_point_subtraction",  14},
+    {      "floating_point_multiplication",  41},
+    {            "floating_point_division",  41},
+    {              "floating_point_modulo",  58},
+    {                "floating_point_cast",  58},
   };
 
   std::size_t ok_c{};   // ok count.

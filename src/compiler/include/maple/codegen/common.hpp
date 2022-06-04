@@ -151,6 +151,8 @@ using SymbolTable
                                                   const std::string& var_name,
                                                   llvm::Type*        type);
 
+[[nodiscard]] llvm::Type* getFloatNTy(CGContext& ctx, const int mantissa_width);
+
 /*
   |--------------------------------|
   |     Left |    Right |   Result |

@@ -23,6 +23,7 @@ namespace maple::codegen
 
 enum class BuiltinTypeKind {
   void_,
+  // Integer types.
   i8,
   i16,
   i32,
@@ -33,6 +34,9 @@ enum class BuiltinTypeKind {
   u64,
   bool_,
   char_,
+  // Floating-point types.
+  f64,
+  f32,
 };
 
 [[nodiscard]] std::optional<BuiltinTypeKind>
@@ -75,6 +79,16 @@ struct Type {
     return false;
   }
 
+  [[nodiscard]] virtual bool isFloatingPointTy() const noexcept
+  {
+    return false;
+  }
+
+  [[nodiscard]] virtual bool isIntegerTy() const noexcept
+  {
+    return false;
+  }
+
   [[nodiscard]] bool isSigned() const noexcept
   {
     return getSignKind() == SignKind::signed_;
@@ -102,6 +116,30 @@ struct BuiltinType : public Type {
   [[nodiscard]] bool isVoid() const noexcept override
   {
     return kind == BuiltinTypeKind::void_;
+  }
+
+  [[nodiscard]] bool isFloatingPointTy() const noexcept override
+  {
+    return kind == BuiltinTypeKind::f64 || kind == BuiltinTypeKind::f32;
+  }
+
+  [[nodiscard]] bool isIntegerTy() const noexcept override
+  {
+    switch (kind) {
+    case BuiltinTypeKind::i8:
+    case BuiltinTypeKind::i16:
+    case BuiltinTypeKind::i32:
+    case BuiltinTypeKind::i64:
+    case BuiltinTypeKind::u8:
+    case BuiltinTypeKind::u16:
+    case BuiltinTypeKind::u32:
+    case BuiltinTypeKind::u64:
+      return true;
+    default:
+      return false;
+    }
+
+    unreachable();
   }
 
   [[nodiscard]] llvm::Type* getLLVMType(CGContext& ctx) const override;

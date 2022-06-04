@@ -83,7 +83,7 @@ createArgumentTable(CGContext&                ctx,
   SymbolTable argument_table;
 
   for (auto& arg : args) {
-    const auto& param_node = param_list[arg.getArgNo()];
+    const auto& param_node = (*param_list).at(arg.getArgNo());
 
     // Create an alloca for this variable.
     auto const alloca = createEntryAlloca(func,
@@ -108,6 +108,21 @@ createArgumentTable(CGContext&                ctx,
   return argument_table;
 }
 
+[[nodiscard]] static std::vector<llvm::Type*>
+createParamTypes(CGContext&                         ctx,
+                 const std::vector<ast::Parameter>& params,
+                 const std::size_t                  named_params_len)
+{
+  std::vector<llvm::Type*> types(named_params_len);
+
+  for (std::size_t i = 0; i != named_params_len; ++i) {
+    const auto& param_type = params.at(i).type;
+    types.at(i)            = param_type->getLLVMType(ctx);
+  }
+
+  return types;
+}
+
 //===----------------------------------------------------------------------===//
 // Top level statement visitor
 //===----------------------------------------------------------------------===//
@@ -129,8 +144,16 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
   llvm::Function* operator()(const ast::FunctionDecl& node) const
   {
-    const auto& params = *node.params;
+    const auto name = node.name.utf8();
 
+    if (name.length() == 4 /* For optimization */ && name == "main"
+        && !node.return_type->isIntegerTy()) {
+      throw CodegenError{
+        ctx.formatError(ctx.positions.position_of(node),
+                        "the return type of main must be an integer")};
+    }
+
+    const auto& params = *node.params;
     if (params.size() && params.at(0).is_vararg) {
       throw CodegenError{
         ctx.formatError(ctx.positions.position_of(node),
@@ -144,25 +167,18 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
                         "cannot have multiple variable arguments")};
     }
 
-    assert(!(*is_vararg && node.params.length() == 0));
-    const auto named_params_length
-      = *is_vararg ? node.params.length() - 1 : node.params.length();
+    const auto named_params_len
+      = *is_vararg ? params.size() - 1 : params.size();
 
-    std::vector<llvm::Type*> param_types(named_params_length);
-
-    for (std::size_t i = 0; i != named_params_length; ++i) {
-      const auto& param_type = node.params[i].type;
-      param_types.at(i)      = param_type->getLLVMType(ctx);
-    }
+    const auto param_types = createParamTypes(ctx, params, named_params_len);
 
     auto const func_type
       = llvm::FunctionType::get(node.return_type->getLLVMType(ctx),
                                 param_types,
                                 *is_vararg);
 
-    const auto name         = node.name.utf8();
-    // main function does not mangle.
     const auto mangled_name = [&]() {
+      // main function does not mangle.
       if (name == "main" || attr_kinds.contains(AttrKind::nomangle))
         return name;
       return ctx.mangler(node);
@@ -175,7 +191,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
     // Set names to all arguments.
     for (std::size_t idx = 0; auto&& arg : func->args())
-      arg.setName(node.params[idx++].name.utf8());
+      arg.setName(params.at(idx++).name.utf8());
 
     return func;
   }

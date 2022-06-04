@@ -1,0 +1,10 @@
+func main() -> i32
+{
+	let a = 48.10;
+	let b = 48.;
+	let c = .10;
+	let d = 58 as f64;
+	let e = 58 as f32;
+
+	return 58;
+}

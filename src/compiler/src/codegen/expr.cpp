@@ -95,34 +95,33 @@ createPointerSubscript(CGContext& ctx, const Value& ptr, const Value& index)
                   : createPointerSubscript(ctx, lhs, index);
 }
 
-// This function changes the arguments.
-// Compare both operands and cast to the operand with the larger bit width.
+// Cast to larger bit width.
 [[nodiscard]] static std::pair<Value, Value>
-integerLargerBitsCast(CGContext& ctx, const Value& lhs, const Value& rhs)
+intCastToLargerBitW(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   if (const auto lhs_bitwidth = lhs.getLLVMType()->getIntegerBitWidth(),
       rhs_bitwidth            = rhs.getLLVMType()->getIntegerBitWidth();
       lhs_bitwidth != rhs_bitwidth) {
     const auto larger_bitwidth = std::max(lhs_bitwidth, rhs_bitwidth);
 
-    const auto target = ctx.builder.getIntNTy(larger_bitwidth);
+    const auto target_llvm_type = ctx.builder.getIntNTy(larger_bitwidth);
 
     const auto is_target_lhs = lhs_bitwidth == larger_bitwidth;
 
-    const auto target_type = resultTypeOf(lhs.getType(), rhs.getType());
+    const auto target_type = is_target_lhs ? lhs.getType() : rhs.getType();
 
     if (is_target_lhs) {
       return std::make_pair(
         lhs,
         Value{ctx.builder.CreateIntCast(rhs.getValue(),
-                                        target,
+                                        target_llvm_type,
                                         target_type->isSigned()),
               target_type});
     }
     else {
       return std::make_pair(
         Value{ctx.builder.CreateIntCast(lhs.getValue(),
-                                        target,
+                                        target_llvm_type,
                                         target_type->isSigned()),
               target_type},
         rhs);
@@ -130,6 +129,51 @@ integerLargerBitsCast(CGContext& ctx, const Value& lhs, const Value& rhs)
   }
 
   return std::make_pair(lhs, rhs);
+}
+
+// Cast to larger mantissa width.
+[[nodiscard]] static std::pair<Value, Value>
+floatCastToLargerMantissaW(CGContext& ctx, const Value& lhs, const Value& rhs)
+{
+  if (const auto lhs_mantissaw = lhs.getLLVMType()->getFPMantissaWidth(),
+      rhs_mantissaw            = rhs.getLLVMType()->getFPMantissaWidth();
+      lhs_mantissaw != rhs_mantissaw) {
+    const auto larger_mantissaw = std::max(lhs_mantissaw, rhs_mantissaw);
+
+    const auto target_llvm_type = getFloatNTy(ctx, larger_mantissaw);
+
+    const auto is_target_lhs = lhs_mantissaw == larger_mantissaw;
+
+    const auto target_type = is_target_lhs ? lhs.getType() : rhs.getType();
+
+    if (is_target_lhs) {
+      return std::make_pair(
+        lhs,
+        Value{ctx.builder.CreateFPCast(rhs.getValue(), target_llvm_type),
+              target_type});
+    }
+    else {
+      return std::make_pair(
+        Value{ctx.builder.CreateFPCast(lhs.getValue(), target_llvm_type),
+              target_type},
+        rhs);
+    }
+  }
+
+  return std::make_pair(lhs, rhs);
+}
+
+// Cast to larger bit(mantissa) width.
+[[nodiscard]] static std::pair<Value, Value>
+castToLarger(CGContext& ctx, const Value& lhs, const Value& rhs)
+{
+  if (lhs.isInteger())
+    return intCastToLargerBitW(ctx, lhs, rhs);
+
+  if (lhs.getType()->isFloatingPointTy())
+    return floatCastToLargerMantissaW(ctx, lhs, rhs);
+
+  unreachable();
 }
 
 // Calculate the offset of an element of a structure.
@@ -148,7 +192,7 @@ offsetByName(const std::vector<ast::StructElement>& elements,
 }
 
 [[nodiscard]] static std::vector<llvm::Value*>
-value2LLVMValue(const std::vector<Value>& v)
+valueToLLVMValue(const std::vector<Value>& v)
 {
   std::vector<llvm::Value*> ret;
 
@@ -175,6 +219,13 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   [[nodiscard]] Value operator()(ast::Nil) const
   {
     unreachable();
+  }
+
+  // Floating point literals.
+  [[nodiscard]] Value operator()(const double node) const
+  {
+    return {llvm::ConstantFP::get(ctx.builder.getDoubleTy(), node),
+            std::make_shared<BuiltinType>(BuiltinTypeKind::f64)};
   }
 
   // 32bit unsigned integer literals.
@@ -309,8 +360,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
                                          "failed to generate right-hand side")};
     }
 
-    const auto [lhs, rhs]
-      = integerLargerBitsCast(ctx, uncasted_lhs, uncasted_rhs);
+    const auto [lhs, rhs] = castToLarger(ctx, uncasted_lhs, uncasted_rhs);
 
     if (!strictEquals(lhs.getLLVMType(), rhs.getLLVMType())) {
       throw CodegenError{ctx.formatError(
@@ -437,7 +487,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     assert(return_type);
 
-    return {ctx.builder.CreateCall(callee_func, value2LLVMValue(args)),
+    return {ctx.builder.CreateCall(callee_func, valueToLLVMValue(args)),
             *return_type};
   }
 
@@ -450,26 +500,53 @@ struct ExprVisitor : public boost::static_visitor<Value> {
                                          "failed to generate left-hand side")};
     }
 
-    // TODO: Support for non-integers and non-pointers.
+    if (node.as->isPointerTy()) {
+      // Pointer to pointer.
+      return {ctx.builder.CreatePointerCast(lhs.getValue(),
+                                            node.as->getLLVMType(ctx)),
+              node.as};
+    }
+
+    if (node.as->isFloatingPointTy()) {
+      if (lhs.getType()->isIntegerTy()) {
+        const auto cast_op = lhs.getType()->isSigned()
+                               ? llvm::CastInst::CastOps::SIToFP
+                               : llvm::CastInst::CastOps::UIToFP;
+
+        return {ctx.builder.CreateCast(cast_op,
+                                       lhs.getValue(),
+                                       node.as->getLLVMType(ctx)),
+                node.as};
+      }
+
+      // Floating point number to floating point number.
+      return {
+        ctx.builder.CreateFPCast(lhs.getValue(), node.as->getLLVMType(ctx)),
+        node.as};
+    }
+
     if (node.as->getLLVMType(ctx)->isIntegerTy()) {
+      if (lhs.getType()->isFloatingPointTy()) {
+        // Floating point number to integer.
+        const auto cast_op = node.as->isSigned()
+                               ? llvm::CastInst::CastOps::FPToSI
+                               : llvm::CastInst::CastOps::FPToUI;
+
+        return {ctx.builder.CreateCast(cast_op,
+                                       lhs.getValue(),
+                                       node.as->getLLVMType(ctx)),
+                node.as};
+      }
+
+      // Integer to integer.
       return {ctx.builder.CreateIntCast(lhs.getValue(),
                                         node.as->getLLVMType(ctx),
                                         node.as->isSigned()),
               node.as};
     }
-    else if (node.as->isPointerTy()) {
-      // FIXME: I would like to prohibit this in the regular cast because it is
-      // a dangerous cast.
-      return {ctx.builder.CreatePointerCast(lhs.getValue(),
-                                            node.as->getLLVMType(ctx)),
-              node.as};
-    }
-    else {
-      throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
-                                         "non-convertible type")};
-    }
 
-    unreachable();
+    throw CodegenError{
+      ctx.formatError(ctx.positions.position_of(node), "non-convertible type")};
   }
 
   [[nodiscard]] Value operator()(const ast::Pipeline& node) const
