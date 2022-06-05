@@ -3,8 +3,8 @@ func main() -> i32
 	let a = 48.10;
 	let b = 10.48;
 
-	a % b;
-	48.0 % 10.0;
+	let c = a % b;
+	let d = 48.0 % 10.0;
 
 	return 58;
 }
