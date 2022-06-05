@@ -1,6 +1,6 @@
 func main() -> i32
 {
-	let a = 48.10;
+	let mut a = 48.10;
 	let b = 10.48;
 
 	let c = a / b;

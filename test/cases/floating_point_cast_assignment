@@ -1,0 +1,12 @@
+func main() -> i32
+{
+	let mut a = 48.10;
+
+	a += 4810 as f64;
+	a -= -4810 as f64;
+	a *= 48 as f64;
+	a /= 10 as f64;
+	a %= 58 as f64;
+
+	return 58;
+}
