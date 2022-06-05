@@ -79,9 +79,10 @@ private:
 using FunctionReturnTypeTable = Table<llvm::Function*, std::shared_ptr<Type>>;
 
 // std::nullopt means opaque(llvm).
-using StructTable = Table<
-  std::string,
-  std::pair<std::optional<std::vector<ast::StructElement>>, llvm::StructType*>>;
+using StructTable
+  = Table<std::string,
+          std::pair<std::optional<std::vector<ast::VariableDefWithoutInit>>,
+                    llvm::StructType*>>;
 
 // Codegen context.
 struct CGContext : private boost::noncopyable {

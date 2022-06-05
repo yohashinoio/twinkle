@@ -179,8 +179,8 @@ castToLarger(CGContext& ctx, const Value& lhs, const Value& rhs)
 // Calculate the offset of an element of a structure.
 // Returns std::nullopt if there is no matching element.
 [[nodiscard]] static std::optional<std::size_t>
-offsetByName(const std::vector<ast::StructElement>& elements,
-             const std::string&                     element_name)
+offsetByName(const std::vector<ast::VariableDefWithoutInit>& elements,
+             const std::string&                              element_name)
 {
   for (std::size_t offset = 0; const auto& element : elements) {
     if (element.name.utf8() == element_name)

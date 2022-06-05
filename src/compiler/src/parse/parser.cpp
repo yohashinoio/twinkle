@@ -403,9 +403,10 @@ const x3::rule<struct StmtTag, ast::Stmt>     stmt{"statement"};
 
 const x3::rule<struct StructDeclTag, ast::StructDecl> struct_decl{
   "struct declaration"};
-const x3::rule<struct StructElementTag, ast::StructElement> struct_element{
-  "struct elements"};
-const x3::rule<struct StructElementsTag, std::vector<ast::StructElement>>
+const x3::rule<struct VariableDefWithoutInit, ast::VariableDefWithoutInit>
+  variable_def_without_init{"variable definition without initializer"};
+const x3::rule<struct StructElementsTag,
+               std::vector<ast::VariableDefWithoutInit>>
   struct_elements{"struct elements"};
 const x3::rule<struct StructDefTag, ast::StructDef> struct_def{
   "struct definition"};
@@ -585,10 +586,10 @@ BOOST_SPIRIT_DEFINE(stmt)
 const auto struct_decl_def
   = lit(U"declare") >> lit(U"struct") > identifier > lit(U";");
 
-const auto struct_element_def
+const auto variable_def_without_init_def
   = lit(U"let") > identifier > lit(U":") > variable_type;
 
-const auto struct_elements_def = *(struct_element > lit(U";"));
+const auto struct_elements_def = *(variable_def_without_init > lit(U";"));
 
 const auto struct_def_def
   = lit(U"struct") > identifier > lit(U"{") > struct_elements > lit(U"}");
@@ -617,7 +618,7 @@ const auto top_level_def
 
 const auto top_level_with_attr_def = -attribute >> top_level_def;
 
-BOOST_SPIRIT_DEFINE(struct_element)
+BOOST_SPIRIT_DEFINE(variable_def_without_init)
 BOOST_SPIRIT_DEFINE(struct_elements)
 BOOST_SPIRIT_DEFINE(struct_def)
 BOOST_SPIRIT_DEFINE(struct_decl)
@@ -816,7 +817,7 @@ struct ContinueTag
 // Top level statement tags
 //===----------------------------------------------------------------------===//
 
-struct StructElementTag
+struct VariableDefWithoutInit
   : ErrorHandle
   , AnnotatePosition {};
 

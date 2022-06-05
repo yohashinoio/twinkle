@@ -155,7 +155,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::StructElement,
+  maple::ast::VariableDefWithoutInit,
   (maple::ast::Identifier, name)
   (std::shared_ptr<maple::codegen::Type>, type)
 )
@@ -163,7 +163,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::StructDef,
   (maple::ast::Identifier, name)
-  (std::vector<maple::ast::StructElement>, elements)
+  (std::vector<maple::ast::VariableDefWithoutInit>, elements)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

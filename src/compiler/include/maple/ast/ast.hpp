@@ -389,14 +389,14 @@ struct StructDecl : x3::position_tagged {
   Identifier name;
 };
 
-struct StructElement : x3::position_tagged {
+struct VariableDefWithoutInit : x3::position_tagged {
   Identifier                     name;
   std::shared_ptr<codegen::Type> type;
 };
 
 struct StructDef : x3::position_tagged {
-  Identifier                 name;
-  std::vector<StructElement> elements;
+  Identifier                          name;
+  std::vector<VariableDefWithoutInit> elements;
 };
 
 struct Parameter : x3::position_tagged {
