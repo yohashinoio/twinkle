@@ -35,10 +35,10 @@ namespace maple::codegen
 
 // If either of them is signed, the signed type is returned. Otherwise,
 // unsigned.
-// Assuming the type is the same.
+// Assume that the two types (not considering the sign) are the same.
 [[nodiscard]] std::shared_ptr<Type>
-resultTypeOf(const std::shared_ptr<Type>& lhs_t,
-             const std::shared_ptr<Type>& rhs_t)
+resultIntegerTypeOf(const std::shared_ptr<Type>& lhs_t,
+                    const std::shared_ptr<Type>& rhs_t)
 {
   if (lhs_t->isSigned())
     return lhs_t;
@@ -58,7 +58,7 @@ createAdd(CGContext& ctx, const Value& lhs, const Value& rhs)
   }
 
   return {ctx.builder.CreateAdd(lhs.getValue(), rhs.getValue()),
-          resultTypeOf(lhs.getType(), rhs.getType())};
+          resultIntegerTypeOf(lhs.getType(), rhs.getType())};
 }
 
 [[nodiscard]] Value
@@ -70,7 +70,7 @@ createSub(CGContext& ctx, const Value& lhs, const Value& rhs)
   }
 
   return {ctx.builder.CreateSub(lhs.getValue(), rhs.getValue()),
-          resultTypeOf(lhs.getType(), rhs.getType())};
+          resultIntegerTypeOf(lhs.getType(), rhs.getType())};
 }
 
 [[nodiscard]] Value
@@ -82,7 +82,7 @@ createMul(CGContext& ctx, const Value& lhs, const Value& rhs)
   }
 
   return {ctx.builder.CreateMul(lhs.getValue(), rhs.getValue()),
-          resultTypeOf(lhs.getType(), rhs.getType())};
+          resultIntegerTypeOf(lhs.getType(), rhs.getType())};
 }
 
 [[nodiscard]] Value
@@ -93,7 +93,7 @@ createDiv(CGContext& ctx, const Value& lhs, const Value& rhs)
             lhs.getType()};
   }
 
-  const auto result_type = resultTypeOf(lhs.getType(), rhs.getType());
+  const auto result_type = resultIntegerTypeOf(lhs.getType(), rhs.getType());
 
   if (result_type->isSigned()) {
     return {ctx.builder.CreateSDiv(lhs.getValue(), rhs.getValue()),
@@ -113,7 +113,7 @@ createMod(CGContext& ctx, const Value& lhs, const Value& rhs)
             lhs.getType()};
   }
 
-  const auto result_type = resultTypeOf(lhs.getType(), rhs.getType());
+  const auto result_type = resultIntegerTypeOf(lhs.getType(), rhs.getType());
 
   if (result_type->isSigned()) {
     return {ctx.builder.CreateSRem(lhs.getValue(), rhs.getValue()),
@@ -128,6 +128,13 @@ createMod(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 createEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
+  if (lhs.getType()->isFloatingPointTy()) {
+    return {ctx.builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_UEQ,
+                                   lhs.getValue(),
+                                   rhs.getValue()),
+            std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+  }
+
   return {ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
                                  lhs.getValue(),
                                  rhs.getValue()),
@@ -137,6 +144,13 @@ createEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 createNotEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
+  if (lhs.getType()->isFloatingPointTy()) {
+    return {ctx.builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_UNE,
+                                   lhs.getValue(),
+                                   rhs.getValue()),
+            std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+  }
+
   return {ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_NE,
                                  lhs.getValue(),
                                  rhs.getValue()),
@@ -146,6 +160,13 @@ createNotEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 createLessThan(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
+  if (lhs.getType()->isFloatingPointTy()) {
+    return {ctx.builder.CreateFCmp(llvm::ICmpInst::FCMP_ULT,
+                                   lhs.getValue(),
+                                   rhs.getValue()),
+            std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+  }
+
   return {ctx.builder.CreateICmp(isSigned(logicalOrSign(lhs, rhs))
                                    ? llvm::ICmpInst::ICMP_SLT
                                    : llvm::ICmpInst::ICMP_ULT,
@@ -157,6 +178,13 @@ createLessThan(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 createGreaterThan(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
+  if (lhs.getType()->isFloatingPointTy()) {
+    return {ctx.builder.CreateFCmp(llvm::ICmpInst::FCMP_UGT,
+                                   lhs.getValue(),
+                                   rhs.getValue()),
+            std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+  }
+
   return {ctx.builder.CreateICmp(isSigned(logicalOrSign(lhs, rhs))
                                    ? llvm::ICmpInst::ICMP_SGT
                                    : llvm::ICmpInst::ICMP_UGT,
@@ -168,6 +196,13 @@ createGreaterThan(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 createLessOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
+  if (lhs.getType()->isFloatingPointTy()) {
+    return {ctx.builder.CreateFCmp(llvm::ICmpInst::FCMP_ULE,
+                                   lhs.getValue(),
+                                   rhs.getValue()),
+            std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+  }
+
   return {ctx.builder.CreateICmp(isSigned(logicalOrSign(lhs, rhs))
                                    ? llvm::ICmpInst::ICMP_SLE
                                    : llvm::ICmpInst::ICMP_ULE,
@@ -179,6 +214,13 @@ createLessOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 createGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
+  if (lhs.getType()->isFloatingPointTy()) {
+    return {ctx.builder.CreateFCmp(llvm::ICmpInst::FCMP_UGE,
+                                   lhs.getValue(),
+                                   rhs.getValue()),
+            std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+  }
+
   return {ctx.builder.CreateICmp(isSigned(logicalOrSign(lhs, rhs))
                                    ? llvm::ICmpInst::ICMP_SGE
                                    : llvm::ICmpInst::ICMP_UGE,
@@ -189,6 +231,14 @@ createGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 
 [[nodiscard]] Value createLogicalNot(CGContext& ctx, const Value& value)
 {
+  if (value.getType()->isFloatingPointTy()) {
+    return {
+      ctx.builder.CreateFCmp(llvm::ICmpInst::FCMP_OEQ,
+                             value.getValue(),
+                             llvm::ConstantFP::get(value.getLLVMType(), 0)),
+      std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+  }
+
   return {
     ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
                            value.getValue(),

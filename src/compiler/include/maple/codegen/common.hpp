@@ -169,8 +169,8 @@ using SymbolTable
 // unsigned.
 // Assuming the type is the same.
 [[nodiscard]] std::shared_ptr<Type>
-resultTypeOf(const std::shared_ptr<Type>& lhs_t,
-             const std::shared_ptr<Type>& rhs_t);
+resultIntegerTypeOf(const std::shared_ptr<Type>& lhs_t,
+                    const std::shared_ptr<Type>& rhs_t);
 
 [[nodiscard]] Value
 createAdd(CGContext& ctx, const Value& lhs, const Value& rhs);

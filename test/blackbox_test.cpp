@@ -156,6 +156,7 @@ int main(const int argc, const char* const* const argv)
     {      "floating_point_division_assignment",  41},
     {        "floating_point_modulo_assignment",  58},
     {          "floating_point_cast_assignment",  58},
+    {    "floating_point_relational_operations",  14},
   };
 
   std::size_t ok_c{};   // ok count.
