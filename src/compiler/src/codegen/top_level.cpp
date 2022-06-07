@@ -137,7 +137,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
   {
   }
 
-  llvm::Function* operator()(ast::Nil) const
+  llvm::Function* operator()(boost::blank) const
   {
     unreachable();
   }
@@ -304,9 +304,26 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     const auto name = node.name.utf8();
 
     // Set element types and create element sign info.
-    std::vector<llvm::Type*> element_types;
-    for (const auto& element : node.elements)
-      element_types.emplace_back(element.type->getLLVMType(ctx));
+    std::vector<llvm::Type*>                 element_types;
+    std::vector<ast::VariableDefWithoutInit> member_variables;
+    for (const auto& element : node.elements) {
+      if (const auto* variable
+          = boost::get<ast::VariableDefWithoutInit>(&element)) {
+        // Member variables.
+        element_types.emplace_back(variable->type->getLLVMType(ctx));
+        member_variables.push_back(*variable);
+        continue;
+      }
+
+      if (const auto* function = boost::get<ast::FunctionDef>(&element)) {
+        // Member functions.
+        // TODO
+        unreachable();
+        continue;
+      }
+
+      unreachable();
+    }
 
     // Check to make sure the name does not already exist.
     if (const auto existed_type = ctx.struct_table[name]) {
@@ -324,7 +341,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
       ctx.struct_table.regist(
         name,
         std::make_pair(
-          std::move(node.elements),
+          std::move(member_variables),
           llvm::StructType::create(ctx.context, element_types, name)));
     }
 

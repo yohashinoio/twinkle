@@ -37,7 +37,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
   {
   }
 
-  void operator()(ast::Nil) const
+  void operator()(boost::blank) const
   {
     // Empty statement, so not processed.
   }
@@ -480,7 +480,8 @@ private:
       };
     }
 
-    if (initializer->type() == typeid(ast::InitializerList)) {
+    if (const auto* init_list_node
+        = boost::get<ast::InitializerList>(&*initializer)) {
       // Array type.
       if (!variable_type->isArrayTy()) {
         throw CodegenError{ctx.formatError(
@@ -488,26 +489,25 @@ private:
           "initializing an array requires an initializer list")};
       }
 
-      const auto initializer_list
-        = createInitializerList(boost::get<ast::InitializerList>(*initializer));
+      const auto init_list = createInitializerList(*init_list_node);
 
-      if (type->getArraySize() != initializer_list.size()) {
+      if (type->getArraySize() != init_list.size()) {
         throw CodegenError{
           ctx.formatError(pos,
                           "invalid number of elements in initializer list")};
       }
 
-      initArray(alloca, initializer_list);
+      initArray(alloca, init_list);
 
       return {
         {alloca, type},
         is_mutable
       };
     }
-    else {
+
+    if (const auto* init_node = boost::get<ast::Expr>(&*initializer)) {
       // Primitive types.
-      auto const init_value
-        = createExpr(ctx, scope, stmt_ctx, boost::get<ast::Expr>(*initializer));
+      auto const init_value = createExpr(ctx, scope, stmt_ctx, *init_node);
 
       if (!init_value) {
         throw CodegenError{ctx.formatError(
@@ -546,35 +546,34 @@ private:
                             const std::optional<ast::Initializer>& initializer,
                             const bool is_mutable) const
   {
-    if (initializer->type() == typeid(ast::InitializerList)) {
+    if (const auto* init_list_node
+        = boost::get<ast::InitializerList>(&*initializer)) {
       // Inference to array types.
-      const auto initializer_list
-        = createInitializerList(boost::get<ast::InitializerList>(*initializer));
+      const auto init_list = createInitializerList(*init_list_node);
 
-      auto const type = initializer_list.getType();
+      auto const type = init_list.getType();
       if (!type) {
         throw CodegenError{
           ctx.formatError(pos, "incompatibility type between initializers")};
       }
 
-      auto const alloca = createEntryAlloca(
-        func,
-        name,
-        llvm::ArrayType::get(type, initializer_list.size()));
+      auto const alloca
+        = createEntryAlloca(func,
+                            name,
+                            llvm::ArrayType::get(type, init_list.size()));
 
-      initArray(alloca, initializer_list);
+      initArray(alloca, init_list);
 
       return {
         {alloca,
-         std::make_shared<ArrayType>(initializer_list.getElementType(),
-         initializer_list.size())},
+         std::make_shared<ArrayType>(init_list.getElementType(),
+         init_list.size())},
         is_mutable
       };
     }
-    else {
+    else if (const auto* init_node = boost::get<ast::Expr>(&*initializer)) {
       // Inference to primitive types.
-      auto const init_value
-        = createExpr(ctx, scope, stmt_ctx, boost::get<ast::Expr>(*initializer));
+      auto const init_value = createExpr(ctx, scope, stmt_ctx, *init_node);
 
       if (!init_value) {
         throw CodegenError{ctx.formatError(

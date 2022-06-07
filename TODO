@@ -12,6 +12,7 @@ constなポインタをmutableなポインタに代入（もしくは引数と�
 b'A'みたいなやつ（charじゃなくてi8になる）
 Unicodeリテラル
 クラス
+boost::variantでRTTIを使ってる場所、ビジターに置き換えたい
 演算子オーバーロード
 名前空間
 export import

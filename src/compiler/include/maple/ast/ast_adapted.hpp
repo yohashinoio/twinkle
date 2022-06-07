@@ -163,7 +163,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::StructDef,
   (maple::ast::Identifier, name)
-  (std::vector<maple::ast::VariableDefWithoutInit>, elements)
+  (maple::ast::StructElements, elements)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

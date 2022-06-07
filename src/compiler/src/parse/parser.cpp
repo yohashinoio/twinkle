@@ -405,9 +405,8 @@ const x3::rule<struct StructDeclTag, ast::StructDecl> struct_decl{
   "struct declaration"};
 const x3::rule<struct VariableDefWithoutInit, ast::VariableDefWithoutInit>
   variable_def_without_init{"variable definition without initializer"};
-const x3::rule<struct StructElementsTag,
-               std::vector<ast::VariableDefWithoutInit>>
-  struct_elements{"struct elements"};
+const x3::rule<struct StructElementsTag, ast::StructElements> struct_elements{
+  "struct elements"};
 const x3::rule<struct StructDefTag, ast::StructDef> struct_def{
   "struct definition"};
 const x3::rule<struct ParameterTag, ast::Parameter> parameter{"parameter"};
@@ -589,7 +588,8 @@ const auto struct_decl_def
 const auto variable_def_without_init_def
   = lit(U"let") > identifier > lit(U":") > variable_type;
 
-const auto struct_elements_def = *(variable_def_without_init > lit(U";"));
+const auto struct_elements_def
+  = *((variable_def_without_init > lit(U";")) | function_def);
 
 const auto struct_def_def
   = lit(U"struct") > identifier > lit(U"{") > struct_elements > lit(U"}");
@@ -667,9 +667,13 @@ BOOST_SPIRIT_DEFINE(program)
 // Common tags
 //===----------------------------------------------------------------------===//
 
-struct VariableIdentTag : AnnotatePosition {};
+struct VariableIdentTag
+  : ErrorHandle
+  , AnnotatePosition {};
 
-struct IdentifierTag : AnnotatePosition {};
+struct IdentifierTag
+  : ErrorHandle
+  , AnnotatePosition {};
 
 struct StringLiteralTag
   : ErrorHandle
@@ -679,9 +683,13 @@ struct CharLiteralTag
   : ErrorHandle
   , AnnotatePosition {};
 
-struct TypeTag : AnnotatePosition {};
+struct TypeTag
+  : ErrorHandle
+  , AnnotatePosition {};
 
-struct AttrTag : ErrorHandle {};
+struct AttrTag
+  : ErrorHandle
+  , AnnotatePosition {};
 
 //===----------------------------------------------------------------------===//
 // Expression tags
@@ -735,7 +743,9 @@ struct SubscriptTag
   : ErrorHandle
   , AnnotatePosition {};
 
-struct ArgListTag : ErrorHandle {};
+struct ArgListTag
+  : ErrorHandle
+  , AnnotatePosition {};
 
 struct FunctionCallTag
   : ErrorHandle

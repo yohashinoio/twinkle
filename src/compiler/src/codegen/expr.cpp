@@ -216,7 +216,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   {
   }
 
-  [[nodiscard]] Value operator()(ast::Nil) const
+  [[nodiscard]] Value operator()(boost::blank) const
   {
     unreachable();
   }

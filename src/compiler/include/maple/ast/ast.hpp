@@ -21,8 +21,6 @@ namespace maple::ast
 
 namespace x3 = boost::spirit::x3;
 
-struct Nil {};
-
 //===----------------------------------------------------------------------===//
 // Expression AST
 //===----------------------------------------------------------------------===//
@@ -60,7 +58,7 @@ struct Subscript;
 struct Pipeline;
 struct MemberAccess;
 
-using Expr = boost::variant<Nil,
+using Expr = boost::variant<boost::blank,
                             double,        // Floating point literals
                             std::uint32_t, // Unsigned integer literals (32bit)
                             std::int32_t,  // Signed integer literals (32bit)
@@ -251,7 +249,7 @@ struct InitializerList : x3::position_tagged {
   std::vector<Expr> inits;
 };
 
-using Initializer = boost::variant<Expr, InitializerList>;
+using Initializer = boost::variant<boost::blank, Expr, InitializerList>;
 
 struct Return : x3::position_tagged {
   std::optional<Expr> rhs;
@@ -340,7 +338,7 @@ struct While;
 struct For;
 
 using Stmt = boost::make_recursive_variant<
-  Nil,
+  boost::blank,
   std::vector<boost::recursive_variant_>, // Compound statement
   Expr,
   Return,
@@ -371,8 +369,9 @@ struct While : x3::position_tagged {
   Stmt body;
 };
 
-using ForInitVariant = boost::variant<Assignment, VariableDef>;
-using ForLoopVariant = boost::variant<PrefixIncAndDec, Assignment>;
+using ForInitVariant = boost::variant<boost::blank, Assignment, VariableDef>;
+using ForLoopVariant
+  = boost::variant<boost::blank, PrefixIncAndDec, Assignment>;
 
 struct For : x3::position_tagged {
   std::optional<ForInitVariant> init_stmt;
@@ -384,20 +383,6 @@ struct For : x3::position_tagged {
 //===----------------------------------------------------------------------===//
 // Top level AST
 //===----------------------------------------------------------------------===//
-
-struct StructDecl : x3::position_tagged {
-  Identifier name;
-};
-
-struct VariableDefWithoutInit : x3::position_tagged {
-  Identifier                     name;
-  std::shared_ptr<codegen::Type> type;
-};
-
-struct StructDef : x3::position_tagged {
-  Identifier                          name;
-  std::vector<VariableDefWithoutInit> elements;
-};
 
 struct Parameter : x3::position_tagged {
   Identifier                     name;
@@ -442,8 +427,27 @@ struct FunctionDef : x3::position_tagged {
   Stmt         body;
 };
 
-using TopLevel
-  = boost::variant<Nil, FunctionDecl, FunctionDef, StructDecl, StructDef>;
+struct StructDecl : x3::position_tagged {
+  Identifier name;
+};
+
+struct VariableDefWithoutInit : x3::position_tagged {
+  Identifier                     name;
+  std::shared_ptr<codegen::Type> type;
+};
+
+using StructElement
+  = boost::variant<boost::blank, VariableDefWithoutInit, FunctionDef>;
+
+using StructElements = std::vector<StructElement>;
+
+struct StructDef : x3::position_tagged {
+  Identifier     name;
+  StructElements elements;
+};
+
+using TopLevel = boost::
+  variant<boost::blank, FunctionDecl, FunctionDef, StructDecl, StructDef>;
 
 // Example: [[nodiscard, nomangle]]
 using Attrs = std::vector<std::u32string>;
