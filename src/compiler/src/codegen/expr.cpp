@@ -684,6 +684,7 @@ private:
 
     func_call.args.push_front(ast::UnaryOp{std::u32string{U"&"}, lhs});
 
+    // FIXME: More efficient
     const auto lhs_value = createExpr(ctx, scope, stmt_ctx, lhs);
 
     assert(lhs_value.getType()->isStructTy());
