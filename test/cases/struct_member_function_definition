@@ -1,0 +1,29 @@
+struct Sample {
+  let n: i32;
+
+  func a() -> i32
+  {
+    return 58;
+  }
+
+  func b(n: i32, ...)
+  {
+  }
+
+  func b(a: char, b: *i8)
+  {
+  }
+}
+
+func twice(n: i32) -> i32
+{
+  return n * 2;
+}
+
+func main() -> i32
+{
+  let mut s: Sample;
+  s.n = 4810;
+
+  return twice(58);
+}
