@@ -475,7 +475,7 @@ const auto unary_def          = unary_internal | member_access;
 // Replacing string(U".") with lit(U".") causes an error. I don't know why.
 const auto member_access_def
   = subscript[action::assignAttrToVal]
-    >> *(string(U".") > identifier)[action::assignToValAs<ast::MemberAccess>{}];
+    >> *(string(U".") > subscript)[action::assignToValAs<ast::MemberAccess>{}];
 
 // Replacing string(U"[") with lit(U"[") causes an error. I don't know why.
 const auto subscript_def

@@ -293,46 +293,15 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::MemberAccess& node) const
   {
-    const auto lhs = createExpr(ctx, scope, stmt_ctx, node.lhs);
+    if (const auto* rhs = boost::get<ast::Identifier>(&node.rhs))
+      return memberVariableAccess(node.lhs, *rhs);
 
-    if (!lhs.getLLVMType()->isStructTy()) {
-      throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(node),
-                        "element selection cannot be used for non-structures")};
-    }
+    if (const auto* rhs = boost::get<ast::FunctionCall>(&node.rhs))
+      return memberFunctionAccess(node.lhs, *rhs);
 
-    const auto struct_info
-      = ctx.struct_table[lhs.getLLVMType()->getStructName().str()];
-
-    if (!struct_info->first) {
-      throw CodegenError{ctx.formatError(
-        ctx.positions.position_of(node),
-        "element selection cannot be performed on undefined structures")};
-    }
-
-    const auto offset
-      = offsetByName(struct_info->first.value(), node.selected_element.utf8());
-
-    if (!offset) {
-      throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(node),
-                        fmt::format("undefined element '{}' selected",
-                                    node.selected_element.utf8()))};
-    }
-
-    auto const lhs_address = llvm::getPointerOperand(lhs.getValue());
-
-    auto const gep = ctx.builder.CreateInBoundsGEP(
-      lhs.getLLVMType(),
-      lhs_address,
-      {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 0),
-       llvm::ConstantInt::get(ctx.builder.getInt32Ty(), *offset)});
-
-    return {
-      ctx.builder.CreateLoad(lhs.getLLVMType()->getStructElementType(*offset),
-                             gep),
-      struct_info->first->at(*offset).type,
-      lhs.isMutable()};
+    throw CodegenError{ctx.formatError(
+      ctx.positions.position_of(node),
+      "the right-hand side of that member access cannot be generated")};
   }
 
   [[nodiscard]] Value operator()(const ast::Subscript& node) const
@@ -663,6 +632,69 @@ private:
     }
 
     return func;
+  }
+
+  [[nodiscard]] Value memberVariableAccess(const ast::Expr&       lhs,
+                                           const ast::Identifier& rhs) const
+  {
+    const auto lhs_value = createExpr(ctx, scope, stmt_ctx, lhs);
+
+    if (!lhs_value.getLLVMType()->isStructTy()) {
+      throw CodegenError{
+        ctx.formatError(ctx.positions.position_of(rhs),
+                        "element selection cannot be used for non-structures")};
+    }
+
+    const auto struct_info
+      = ctx.struct_table[lhs_value.getLLVMType()->getStructName().str()];
+
+    if (!struct_info->first) {
+      throw CodegenError{ctx.formatError(
+        ctx.positions.position_of(rhs),
+        "element selection cannot be performed on undefined structures")};
+    }
+
+    const auto offset = offsetByName(struct_info->first.value(), rhs.utf8());
+
+    if (!offset) {
+      throw CodegenError{ctx.formatError(
+        ctx.positions.position_of(rhs),
+        fmt::format("undefined element '{}' selected", rhs.utf8()))};
+    }
+
+    auto const lhs_address = llvm::getPointerOperand(lhs_value.getValue());
+
+    auto const gep = ctx.builder.CreateInBoundsGEP(
+      lhs_value.getLLVMType(),
+      lhs_address,
+      {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 0),
+       llvm::ConstantInt::get(ctx.builder.getInt32Ty(), *offset)});
+
+    return {ctx.builder.CreateLoad(
+              lhs_value.getLLVMType()->getStructElementType(*offset),
+              gep),
+            struct_info->first->at(*offset).type,
+            lhs_value.isMutable()};
+  }
+
+  [[nodiscard]] Value memberFunctionAccess(const ast::Expr&         lhs,
+                                           const ast::FunctionCall& rhs) const
+  {
+    auto func_call = rhs; // Copy!
+
+    func_call.args.push_front(ast::UnaryOp{std::u32string{U"&"}, lhs});
+
+    const auto lhs_value = createExpr(ctx, scope, stmt_ctx, lhs);
+
+    assert(lhs_value.getType()->isStructTy());
+
+    ctx.namespaces.push(lhs_value.getType()->getStructName());
+
+    const auto retval = (*this)(func_call);
+
+    ctx.namespaces.pop();
+
+    return retval;
   }
 
   CGContext& ctx;

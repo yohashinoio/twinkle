@@ -46,12 +46,12 @@ struct Identifier : x3::position_tagged {
 
   Identifier() = default;
 
-  std::string utf8() const
+  [[nodiscard]] std::string utf8() const
   {
     return unicode::utf32toUtf8(name);
   }
 
-  const std::u32string& utf32() const
+  [[nodiscard]] const std::u32string& utf32() const
   {
     return name;
   }
@@ -95,7 +95,7 @@ struct BinOp : x3::position_tagged {
   {
   }
 
-  std::string operatorStr() const
+  [[nodiscard]] std::string operatorStr() const
   {
     return unicode::utf32toUtf8(op);
   }
@@ -117,7 +117,7 @@ struct BinOp : x3::position_tagged {
     logical_or,  // Logical OR
   };
 
-  Kind kind() const
+  [[nodiscard]] Kind kind() const
   {
     if (op == U"+")
       return Kind::add;
@@ -154,7 +154,21 @@ struct UnaryOp : x3::position_tagged {
   std::u32string op;
   Expr           rhs;
 
-  std::string operatorStr() const
+  UnaryOp(std::u32string&& op, Expr&& rhs)
+    : op{std::move(op)}
+    , rhs{std::move(rhs)}
+  {
+  }
+
+  UnaryOp(const std::u32string& op, const Expr& rhs)
+    : op{op}
+    , rhs{rhs}
+  {
+  }
+
+  UnaryOp() = default;
+
+  [[nodiscard]] std::string operatorStr() const
   {
     return unicode::utf32toUtf8(op);
   }
@@ -169,7 +183,7 @@ struct UnaryOp : x3::position_tagged {
     size_of,     // size-of
   };
 
-  Kind kind() const
+  [[nodiscard]] Kind kind() const
   {
     if (op == U"+")
       return Kind::plus;
@@ -189,12 +203,12 @@ struct UnaryOp : x3::position_tagged {
 };
 
 struct MemberAccess : x3::position_tagged {
-  Expr       lhs;
-  Identifier selected_element;
+  Expr lhs;
+  Expr rhs;
 
-  MemberAccess(Expr&& lhs, Identifier&& selected_element) noexcept
+  MemberAccess(Expr&& lhs, Expr&& rhs) noexcept
     : lhs{std::move(lhs)}
-    , selected_element{std::move(selected_element)}
+    , rhs{std::move(rhs)}
   {
   }
 };

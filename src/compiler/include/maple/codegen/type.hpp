@@ -69,7 +69,7 @@ struct Type {
     return false;
   }
 
-  [[nodiscard]] virtual bool isArrayTy() const noexcept
+  [[nodiscard]] virtual bool isFloatingPointTy() const noexcept
   {
     return false;
   }
@@ -79,7 +79,17 @@ struct Type {
     return false;
   }
 
-  [[nodiscard]] virtual bool isFloatingPointTy() const noexcept
+  [[nodiscard]] virtual bool isStructTy() const noexcept
+  {
+    return false;
+  }
+
+  [[nodiscard]] virtual const std::string& getStructName() const
+  {
+    unreachable();
+  }
+
+  [[nodiscard]] virtual bool isArrayTy() const noexcept
   {
     return false;
   }
@@ -162,6 +172,16 @@ struct StructType : public Type {
   }
 
   [[nodiscard]] llvm::Type* getLLVMType(CGContext& ctx) const override;
+
+  [[nodiscard]] bool isStructTy() const noexcept override
+  {
+    return true;
+  }
+
+  [[nodiscard]] const std::string& getStructName() const override
+  {
+    return ident;
+  }
 
   [[nodiscard]] std::string getMangledName() const override;
 

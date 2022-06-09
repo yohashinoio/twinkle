@@ -48,7 +48,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::MemberAccess,
   (maple::ast::Expr, lhs)
-  (maple::ast::Identifier, selected_element)
+  (maple::ast::Expr, rhs)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

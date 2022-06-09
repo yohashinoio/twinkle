@@ -1,0 +1,35 @@
+// No member variable reference
+
+struct Sample {
+  let n: i32;
+
+  func twice(n: i32) -> i32
+  {
+    return n * 2;
+  }
+
+  func varg(n: i32, ...) -> i32
+  {
+    return n;
+  }
+
+  func nothing()
+  {
+  }
+}
+
+func twice(n: i32) -> i32
+{
+  return n * 2;
+}
+
+func main() -> i32
+{
+  let mut s: Sample;
+  s.n = 4810;
+
+  let n = s.twice(58);
+  s.nothing();
+
+  return n / s.varg(2, 4, 8, 1, 0);
+}
