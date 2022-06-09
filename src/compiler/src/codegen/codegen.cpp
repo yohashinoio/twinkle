@@ -49,8 +49,6 @@ CGContext::CGContext(llvm::LLVMContext&      context,
   , builder{context}
   , file{std::move(file)}
   , positions{std::move(positions)}
-  , return_type_table{}
-  , mangler{}
   , source_code{splitByLine(source_code)}
 {
 }

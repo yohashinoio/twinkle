@@ -176,7 +176,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::ParameterList,
-  (std::vector<maple::ast::Parameter>, params)
+  (std::deque<maple::ast::Parameter>, params)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

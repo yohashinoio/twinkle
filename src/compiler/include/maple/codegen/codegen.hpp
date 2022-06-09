@@ -84,6 +84,36 @@ using StructTable
           std::pair<std::optional<std::vector<ast::VariableDefWithoutInit>>,
                     llvm::StructType*>>;
 
+struct NamespaceHierarchy {
+  void push(const std::string& space)
+  {
+    spaces.push_back(space);
+  }
+
+  void pop()
+  {
+    spaces.pop_back();
+  }
+
+  decltype(auto) begin() const noexcept
+  {
+    return spaces.begin();
+  }
+
+  decltype(auto) end() const noexcept
+  {
+    return spaces.end();
+  }
+
+  decltype(auto) empty() const noexcept
+  {
+    return spaces.empty();
+  }
+
+private:
+  std::deque<std::string> spaces;
+};
+
 // Codegen context.
 struct CGContext : private boost::noncopyable {
   CGContext(llvm::LLVMContext&      context,
@@ -107,6 +137,9 @@ struct CGContext : private boost::noncopyable {
   // Table
   StructTable             struct_table;
   FunctionReturnTypeTable return_type_table;
+
+  // Namespace
+  NamespaceHierarchy namespaces;
 
   // Mangle
   mangle::Mangler mangler;

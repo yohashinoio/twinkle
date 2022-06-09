@@ -17,9 +17,12 @@
 
 namespace maple
 {
+
 namespace codegen
 {
 
+struct NamespaceHierarchy;
+struct CGContext;
 struct Value;
 
 } // namespace codegen
@@ -27,18 +30,26 @@ struct Value;
 namespace mangle
 {
 
-class Mangler : private boost::noncopyable {
-public:
+struct Mangler : private boost::noncopyable {
   // For function definition.
-  [[nodiscard]] std::string operator()(const ast::FunctionDecl& ast) const;
+  [[nodiscard]] std::string mangleFunction(codegen::CGContext&      ctx,
+                                           const ast::FunctionDecl& ast) const;
 
   // For function call.
   [[nodiscard]] std::string
-  operator()(const std::string_view             callee,
-             const std::vector<codegen::Value>& args) const;
+  mangleFunctionCall(codegen::CGContext&                ctx,
+                     const std::string_view             callee,
+                     const std::vector<codegen::Value>& args) const;
+
+private:
+  [[nodiscard]] std::string mangleFunctionName(const std::string& name) const;
+
+  [[nodiscard]] std::string
+  mangleNamespace(const codegen::NamespaceHierarchy& namespaces) const;
 };
 
 } // namespace mangle
+
 } // namespace maple
 
 #endif

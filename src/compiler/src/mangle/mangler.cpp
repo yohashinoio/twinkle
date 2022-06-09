@@ -13,21 +13,15 @@ namespace maple::mangle
 {
 
 [[nodiscard]] std::string
-Mangler::operator()(const ast::FunctionDecl& ast) const
+Mangler::mangleFunction(codegen::CGContext&      ctx,
+                        const ast::FunctionDecl& ast) const
 {
   std::ostringstream mangled;
 
   mangled << "_Z";
 
-  {
-    // namespaces.
-  }
-
-  {
-    // Function name.
-    const auto name = ast.name.utf8();
-    mangled << name.length() << name;
-  }
+  mangled << mangleNamespace(ctx.namespaces);
+  mangled << mangleFunctionName(ast.name.utf8());
 
   mangled << "E";
 
@@ -45,17 +39,16 @@ Mangler::operator()(const ast::FunctionDecl& ast) const
 }
 
 [[nodiscard]] std::string
-Mangler::operator()(const std::string_view             callee,
-                    const std::vector<codegen::Value>& args) const
+Mangler::mangleFunctionCall(codegen::CGContext&                ctx,
+                            const std::string_view             callee,
+                            const std::vector<codegen::Value>& args) const
 {
   std::ostringstream mangled;
 
   mangled << "_Z";
 
-  {
-    // Function name.
-    mangled << callee.length() << callee;
-  }
+  mangled << mangleNamespace(ctx.namespaces);
+  mangled << mangleFunctionName(std::string{callee});
 
   mangled << "E";
 
@@ -64,6 +57,28 @@ Mangler::operator()(const std::string_view             callee,
     for (const auto& arg : args)
       mangled << arg.getType()->getMangledName();
   }
+
+  return mangled.str();
+}
+
+[[nodiscard]] std::string
+Mangler::mangleFunctionName(const std::string& name) const
+{
+  return boost::lexical_cast<std::string>(name.length()) + name;
+}
+
+[[nodiscard]] std::string
+Mangler::mangleNamespace(const codegen::NamespaceHierarchy& namespaces) const
+{
+  if (namespaces.empty())
+    return {};
+
+  std::ostringstream mangled;
+
+  mangled << "N";
+
+  for (const auto& r : namespaces)
+    mangled << r.length() << r;
 
   return mangled.str();
 }

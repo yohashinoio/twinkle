@@ -562,7 +562,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     call.args.push_front(node.lhs);
 
-    return this->operator()(call);
+    return (*this)(call);
   }
 
 private:
@@ -648,8 +648,9 @@ private:
         return func;
     }
 
-    const auto mangled_name = ctx.mangler(unmangled_name, args);
-    auto const func         = ctx.module->getFunction(mangled_name);
+    const auto mangled_name
+      = ctx.mangler.mangleFunctionCall(ctx, unmangled_name, args);
+    auto const func = ctx.module->getFunction(mangled_name);
 
     if (!func) {
       // Mismatch or variadic arguments.

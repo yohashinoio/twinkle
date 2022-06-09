@@ -39,6 +39,13 @@ struct CharLiteral : x3::position_tagged {
 struct Identifier : x3::position_tagged {
   std::u32string name;
 
+  explicit Identifier(std::u32string&& name)
+    : name{std::move(name)}
+  {
+  }
+
+  Identifier() = default;
+
   std::string utf8() const
   {
     return unicode::utf32toUtf8(name);
@@ -407,11 +414,21 @@ struct Parameter : x3::position_tagged {
 };
 
 struct ParameterList : x3::position_tagged {
-  std::vector<Parameter> params;
+  std::deque<Parameter> params;
 
-  [[nodiscard]] const std::vector<Parameter>& operator*() const noexcept
+  [[nodiscard]] const std::deque<Parameter>& operator*() const noexcept
   {
     return params;
+  }
+
+  const std::deque<Parameter>* operator->() const noexcept
+  {
+    return &params;
+  }
+
+  std::deque<Parameter>* operator->() noexcept
+  {
+    return &params;
   }
 };
 
