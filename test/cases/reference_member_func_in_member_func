@@ -1,0 +1,29 @@
+struct Test {
+  func variadic(num: i64, ...) -> i64
+  {
+    return num;
+  }
+
+  func add(a: i32, b: i32) -> i32
+  {
+    if (variadic(4810 as i64, 4, 8, 1, 0) == 4810 as i64)
+      return a + b;
+    return 0;
+  }
+
+  func twice(n: i32) -> i32
+  {
+    return add(n, n);
+  }
+
+  func f() -> i32
+  {
+    return twice(29);
+  }
+}
+
+func main() -> i32
+{
+  let s: Test;
+  return s.f();
+}

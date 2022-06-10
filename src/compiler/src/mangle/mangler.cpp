@@ -39,9 +39,9 @@ Mangler::mangleFunction(codegen::CGContext&      ctx,
 }
 
 [[nodiscard]] std::string
-Mangler::mangleFunctionCall(codegen::CGContext&                ctx,
-                            const std::string_view             callee,
-                            const std::vector<codegen::Value>& args) const
+Mangler::mangleFunctionCall(codegen::CGContext&               ctx,
+                            const std::string_view            callee,
+                            const std::deque<codegen::Value>& args) const
 {
   std::ostringstream mangled;
 
@@ -51,6 +51,33 @@ Mangler::mangleFunctionCall(codegen::CGContext&                ctx,
   mangled << mangleFunctionName(std::string{callee});
 
   mangled << "E";
+
+  {
+    // Argument types;
+    for (const auto& arg : args)
+      mangled << arg.getType()->getMangledName();
+  }
+
+  return mangled.str();
+}
+
+[[nodiscard]] std::string
+Mangler::mangleMemberFunctionCall(codegen::CGContext&    ctx,
+                                  const std::string_view callee,
+                                  const std::string_view type_name_of_this,
+                                  const std::deque<codegen::Value>& args) const
+{
+  std::ostringstream mangled;
+
+  mangled << "_Z";
+
+  mangled << mangleNamespace(ctx.namespaces);
+  mangled << mangleFunctionName(std::string{callee});
+
+  mangled << "E";
+
+  // Insert this pointer.
+  mangled << "P" << type_name_of_this.length() << type_name_of_this;
 
   {
     // Argument types;
@@ -78,7 +105,7 @@ Mangler::mangleNamespace(const codegen::NamespaceHierarchy& namespaces) const
   mangled << "N";
 
   for (const auto& r : namespaces)
-    mangled << r.length() << r;
+    mangled << r.name.length() << r.name;
 
   return mangled.str();
 }

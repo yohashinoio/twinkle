@@ -28,7 +28,7 @@ offsetByName(const std::vector<ast::VariableDefWithoutInit>& elements,
 }
 
 [[nodiscard]] static std::vector<llvm::Value*>
-valueToLLVMValue(const std::vector<Value>& v)
+valueToLLVMValue(const std::deque<Value>& v)
 {
   std::vector<llvm::Value*> ret;
 
@@ -284,31 +284,19 @@ struct ExprVisitor : public boost::static_visitor<Value> {
                         "left-hand side of function call is not callable")};
     }
 
-    const auto args = createArgValues(node.args, pos);
-
     const auto callee_name = boost::get<ast::Identifier>(node.callee).utf8();
 
-    auto const callee_func = matchFunction(callee_name, args);
+    auto args = createArgValues(node.args, pos);
 
-    if (!callee_func) {
-      throw CodegenError{ctx.formatError(
-        pos,
-        fmt::format("unknown function '{}' referenced", callee_name))};
-    }
+    if (auto const func = lookupMemberFunction(callee_name, args))
+      return createFunctionCall(func, args, true, pos);
 
-    if (!callee_func->isVarArg()
-        && callee_func->arg_size() != node.args.size()) {
-      throw CodegenError{ctx.formatError(pos, "incorrect arguments passed")};
-    }
+    if (auto const func = lookupFunction(callee_name, args))
+      return createFunctionCall(func, args, false, pos);
 
-    verifyArguments(args, callee_func, pos);
-
-    const auto return_type = ctx.return_type_table[callee_func];
-
-    assert(return_type);
-
-    return {ctx.builder.CreateCall(callee_func, valueToLLVMValue(args)),
-            *return_type};
+    throw CodegenError{ctx.formatError(
+      pos,
+      fmt::format("unknown function '{}' referenced", callee_name))};
   }
 
   [[nodiscard]] Value operator()(const ast::Conversion& node) const
@@ -386,6 +374,28 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   }
 
 private:
+  [[nodiscard]] Value createFunctionCall(
+    llvm::Function* const                              callee_func,
+    std::deque<Value>&                                 args,
+    const bool                                         insert_this_p,
+    const boost::iterator_range<maple::InputIterator>& pos) const
+  {
+    if (insert_this_p)
+      args.push_front((*this)(ast::Identifier{std::u32string{U"this"}}));
+
+    if (!callee_func->isVarArg() && callee_func->arg_size() != args.size())
+      throw CodegenError{ctx.formatError(pos, "incorrect arguments passed")};
+
+    verifyArguments(args, callee_func, pos);
+
+    const auto return_type = ctx.return_type_table[callee_func];
+
+    assert(return_type);
+
+    return {ctx.builder.CreateCall(callee_func, valueToLLVMValue(args)),
+            *return_type};
+  }
+
   // Be careful about the lifetime of the return value references.
   [[nodiscard]] std::optional<std::reference_wrapper<Variable>>
   findVariable(const ast::Identifier& node) const
@@ -602,7 +612,7 @@ private:
             value.isMutable()};
   }
 
-  void verifyArguments(const std::vector<Value>&                   args,
+  void verifyArguments(const std::deque<Value>&                    args,
                        llvm::Function* const                       callee,
                        const boost::iterator_range<InputIterator>& pos) const
   {
@@ -617,11 +627,11 @@ private:
     }
   }
 
-  [[nodiscard]] std::vector<Value>
+  [[nodiscard]] std::deque<Value>
   createArgValues(const std::deque<ast::Expr>&                arg_exprs,
                   const boost::iterator_range<InputIterator>& pos) const
   {
-    std::vector<Value> args;
+    std::deque<Value> args;
 
     for (std::size_t i = 0, size = arg_exprs.size(); i != size; ++i) {
       args.emplace_back(boost::apply_visitor(*this, arg_exprs[i]));
@@ -636,7 +646,30 @@ private:
   }
 
   [[nodiscard]] llvm::Function*
-  matchVarArgFunction(const std::string_view mangled_name) const
+  lookupMemberFunction(const std::string&       unmangled_name,
+                       const std::deque<Value>& args) const
+  {
+    if (ctx.namespaces.empty() || !ctx.namespaces.top().is_structure)
+      return nullptr;
+
+    const auto mangled_name
+      = ctx.mangler.mangleMemberFunctionCall(ctx,
+                                             unmangled_name,
+                                             ctx.namespaces.top().name,
+                                             args);
+
+    const auto func = ctx.module->getFunction(mangled_name);
+
+    if (func)
+      return func;
+    else
+      return lookupVarArgFunction(mangled_name);
+
+    unreachable();
+  }
+
+  [[nodiscard]] llvm::Function*
+  lookupVarArgFunction(const std::string_view mangled_name) const
   {
     for (auto& func : ctx.module->getFunctionList()) {
       const auto func_name = func.getName();
@@ -653,8 +686,8 @@ private:
   }
 
   [[nodiscard]] llvm::Function*
-  matchFunction(const std::string_view    unmangled_name,
-                const std::vector<Value>& args) const
+  lookupFunction(const std::string_view   unmangled_name,
+                 const std::deque<Value>& args) const
   {
     {
       // First look for unmangled functions.
@@ -665,11 +698,12 @@ private:
 
     const auto mangled_name
       = ctx.mangler.mangleFunctionCall(ctx, unmangled_name, args);
+
     auto const func = ctx.module->getFunction(mangled_name);
 
     if (!func) {
       // Mismatch or variadic arguments.
-      auto const vararg_func = matchVarArgFunction(mangled_name);
+      auto const vararg_func = lookupVarArgFunction(mangled_name);
 
       if (vararg_func)
         return vararg_func;
@@ -742,7 +776,7 @@ private:
 
       assert(lhs_value.getType()->isStructTy());
 
-      ctx.namespaces.push(lhs_value.getType()->getStructName());
+      ctx.namespaces.push({lhs_value.getType()->getStructName(), true});
     }
 
     const auto retval = (*this)(func_call);

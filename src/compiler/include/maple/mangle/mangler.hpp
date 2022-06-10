@@ -31,15 +31,20 @@ namespace mangle
 {
 
 struct Mangler : private boost::noncopyable {
-  // For function definition.
   [[nodiscard]] std::string mangleFunction(codegen::CGContext&      ctx,
                                            const ast::FunctionDecl& ast) const;
 
-  // For function call.
   [[nodiscard]] std::string
-  mangleFunctionCall(codegen::CGContext&                ctx,
-                     const std::string_view             callee,
-                     const std::vector<codegen::Value>& args) const;
+  mangleFunctionCall(codegen::CGContext&               ctx,
+                     const std::string_view            callee,
+                     const std::deque<codegen::Value>& args) const;
+
+  [[nodiscard]] std::string mangleMemberFunctionCall(
+    codegen::CGContext&    ctx,
+    const std::string_view callee,
+    const std::string_view type_name_of_this, // If the function is in a Sample
+                                              // structure, set "Sample".
+    const std::deque<codegen::Value>& args) const;
 
 private:
   [[nodiscard]] std::string mangleFunctionName(const std::string& name) const;

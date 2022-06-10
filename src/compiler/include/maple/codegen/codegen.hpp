@@ -85,33 +85,44 @@ using StructTable
                     llvm::StructType*>>;
 
 struct NamespaceHierarchy {
-  void push(const std::string& space)
+  struct Namespace {
+    std::string name;
+    bool        is_structure;
+  };
+
+  [[nodiscard]] bool empty() const noexcept
   {
-    spaces.push_back(space);
+    return namespaces.empty();
+  }
+
+  void push(const Namespace& n)
+  {
+    namespaces.push_back(n);
   }
 
   void pop()
   {
-    spaces.pop_back();
+    namespaces.pop_back();
+  }
+
+  [[nodiscard]] const Namespace& top() const
+  {
+    assert(!empty());
+    return namespaces.back();
   }
 
   decltype(auto) begin() const noexcept
   {
-    return spaces.begin();
+    return namespaces.begin();
   }
 
   decltype(auto) end() const noexcept
   {
-    return spaces.end();
-  }
-
-  decltype(auto) empty() const noexcept
-  {
-    return spaces.empty();
+    return namespaces.end();
   }
 
 private:
-  std::deque<std::string> spaces;
+  std::deque<Namespace> namespaces;
 };
 
 // Codegen context.

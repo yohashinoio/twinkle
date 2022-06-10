@@ -120,8 +120,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     const auto named_params_len
       = *is_vararg ? node.params->size() - 1 : node.params->size();
 
-    const auto param_types
-      = createParamTypes(node.params, named_params_len);
+    const auto param_types = createParamTypes(node.params, named_params_len);
 
     auto const func_type
       = llvm::FunctionType::get(node.return_type->getLLVMType(ctx),
@@ -311,7 +310,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
       // Generate the member functions.
       // Because it will result in an error if the structure type is not
       // registered.
-      ctx.namespaces.push(name);
+      ctx.namespaces.push({name, true});
       for (const auto& r : member_functions)
         (*this)(r);
       ctx.namespaces.pop();
