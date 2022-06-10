@@ -159,6 +159,7 @@ int main(const int argc, const char* const* const argv)
     {    "floating_point_relational_operations",  14},
     {                  "struct_member_func_def", 116},
     {                 "struct_member_func_call",  58},
+    {                            "this_pointer",  14},
   };
 
   std::size_t ok_c{};   // ok count.

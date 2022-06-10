@@ -1,0 +1,16 @@
+struct Sample {
+  let n: i32;
+
+  func f() -> i32
+  {
+    return (*this).n;
+  }
+}
+
+func main() -> i32
+{
+  let mut s: Sample;
+  s.n = 14;
+
+  return s.f();
+}
