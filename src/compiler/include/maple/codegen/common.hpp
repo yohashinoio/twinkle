@@ -130,12 +130,6 @@ struct Variable {
     return is_mutable;
   }
 
-  // If already constant, do nothing.
-  void changeToConstant() noexcept
-  {
-    is_mutable = false;
-  }
-
 private:
   Value alloca;
 

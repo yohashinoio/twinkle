@@ -1,0 +1,24 @@
+[[nomangle]]
+declare func strcmp(a: *i8, b: *i8) -> i32;
+
+struct Sample {
+  let n: i32;
+  let s: *i8;
+
+  func f() -> i32
+  {
+    if (strcmp(s, "Yoha and Io") == 0)
+      return n;
+    return 0;
+  }
+}
+
+func main() -> i32
+{
+  let mut s: Sample;
+
+  s.n = 58;
+  s.s = "Yoha and Io";
+
+  return s.f();
+}

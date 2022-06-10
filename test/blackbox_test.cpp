@@ -160,6 +160,7 @@ int main(const int argc, const char* const* const argv)
     {                  "struct_member_func_def", 116},
     {                 "struct_member_func_call",  58},
     {                            "this_pointer",  14},
+    {     "reference_member_var_in_member_func",  58},
   };
 
   std::size_t ok_c{};   // ok count.

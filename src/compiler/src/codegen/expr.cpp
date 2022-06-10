@@ -119,18 +119,33 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   [[nodiscard]] Value operator()(const ast::Identifier& node) const
   {
     // TODO: support function identifier
-    const auto& variable = findVariable(node);
+    const auto variable = findVariable(node);
 
-    return {ctx.builder.CreateLoad(variable.getAllocaInst()->getAllocatedType(),
-                                   variable.getAllocaInst()),
-            variable.getType(),
-            variable.isMutable()};
+    if (!variable) {
+      // Assume it is in a member function.
+      // Search for a member of '*this'.
+      const auto member = findMemberOfThis(node);
+
+      if (member)
+        return *member;
+      else {
+        throw CodegenError{ctx.formatError(
+          ctx.positions.position_of(node),
+          fmt::format("unknown variable '{}' referenced", node.utf8()))};
+      }
+    }
+
+    return {ctx.builder.CreateLoad(
+              variable->get().getAllocaInst()->getAllocatedType(),
+              variable->get().getAllocaInst()),
+            variable->get().getType(),
+            variable->get().isMutable()};
   }
 
   [[nodiscard]] Value operator()(const ast::MemberAccess& node) const
   {
     if (const auto* rhs = boost::get<ast::Identifier>(&node.rhs))
-      return memberVariableAccess(node.lhs, *rhs);
+      return memberVariableAccess(node.lhs, rhs->utf8());
 
     if (const auto* rhs = boost::get<ast::FunctionCall>(&node.rhs))
       return memberFunctionAccess(node.lhs, *rhs);
@@ -372,16 +387,35 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
 private:
   // Be careful about the lifetime of the return value references.
-  [[nodiscard]] Variable& findVariable(const ast::Identifier& node) const
+  [[nodiscard]] std::optional<std::reference_wrapper<Variable>>
+  findVariable(const ast::Identifier& node) const
   {
     const auto ident = node.utf8();
 
     if (const auto variable = scope[ident])
-      return *variable;
+      return variable;
 
-    throw CodegenError{
-      ctx.formatError(ctx.positions.position_of(node),
-                      fmt::format("unknown variable '{}' referenced", ident))};
+    return std::nullopt;
+  }
+
+  // Find a member of '*this'
+  [[nodiscard]] std::optional<Value>
+  findMemberOfThis(const ast::Identifier& node) const
+  {
+    if (scope["this"]) {
+      const auto this_p
+        = findVariable(ast::Identifier{std::u32string{U"this"}});
+
+      if (!this_p)
+        return std::nullopt;
+
+      const auto this_v
+        = createDereference(ctx.positions.position_of(node), *this_p);
+
+      return memberVariableAccess(this_v, node.utf8());
+    }
+
+    return std::nullopt;
   }
 
   // Cast to larger bit width.
@@ -547,6 +581,27 @@ private:
             rhs.isMutable()};
   }
 
+  [[nodiscard]] Value
+  createDereference(const boost::iterator_range<InputIterator>& pos,
+                    const Variable&                             rhs) const
+  {
+    const auto value
+      = Value{ctx.builder.CreateLoad(rhs.getAllocaInst()->getAllocatedType(),
+                                     rhs.getAllocaInst()),
+              rhs.getType(),
+              rhs.isMutable()};
+
+    if (!value.isPointer() || !value.getType()->isPointerTy()) {
+      throw CodegenError{
+        ctx.formatError(pos, "unary '*' requires pointer operand")};
+    }
+
+    return {ctx.builder.CreateLoad(value.getLLVMType()->getPointerElementType(),
+                                   value.getValue()),
+            value.getType()->getPointeeType(),
+            value.isMutable()};
+  }
+
   void verifyArguments(const std::vector<Value>&                   args,
                        llvm::Function* const                       callee,
                        const boost::iterator_range<InputIterator>& pos) const
@@ -625,47 +680,52 @@ private:
     return func;
   }
 
-  [[nodiscard]] Value memberVariableAccess(const ast::Expr&       lhs,
-                                           const ast::Identifier& rhs) const
+  [[nodiscard]] Value memberVariableAccess(const Value&       structure,
+                                           const std::string& member_name) const
   {
-    const auto lhs_value = createExpr(ctx, scope, stmt_ctx, lhs);
-
-    if (!lhs_value.getLLVMType()->isStructTy()) {
+    if (!structure.getLLVMType()->isStructTy()) {
       throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(rhs),
+        ctx.formatError(ctx.positions.position_of(member_name),
                         "element selection cannot be used for non-structures")};
     }
 
     const auto struct_info
-      = ctx.struct_table[lhs_value.getLLVMType()->getStructName().str()];
+      = ctx.struct_table[structure.getLLVMType()->getStructName().str()];
 
     if (!struct_info->first) {
       throw CodegenError{ctx.formatError(
-        ctx.positions.position_of(rhs),
+        ctx.positions.position_of(member_name),
         "element selection cannot be performed on undefined structures")};
     }
 
-    const auto offset = offsetByName(struct_info->first.value(), rhs.utf8());
+    const auto offset = offsetByName(struct_info->first.value(), member_name);
 
     if (!offset) {
       throw CodegenError{ctx.formatError(
-        ctx.positions.position_of(rhs),
-        fmt::format("undefined element '{}' selected", rhs.utf8()))};
+        ctx.positions.position_of(member_name),
+        fmt::format("undefined element '{}' selected", member_name))};
     }
 
-    auto const lhs_address = llvm::getPointerOperand(lhs_value.getValue());
+    auto const lhs_address = llvm::getPointerOperand(structure.getValue());
 
     auto const gep = ctx.builder.CreateInBoundsGEP(
-      lhs_value.getLLVMType(),
+      structure.getLLVMType(),
       lhs_address,
       {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 0),
        llvm::ConstantInt::get(ctx.builder.getInt32Ty(), *offset)});
 
     return {ctx.builder.CreateLoad(
-              lhs_value.getLLVMType()->getStructElementType(*offset),
+              structure.getLLVMType()->getStructElementType(*offset),
               gep),
             struct_info->first->at(*offset).type,
-            lhs_value.isMutable()};
+            structure.isMutable()};
+  }
+
+  [[nodiscard]] Value memberVariableAccess(const ast::Expr&   structure,
+                                           const std::string& member_name) const
+  {
+    return memberVariableAccess(createExpr(ctx, scope, stmt_ctx, structure),
+                                member_name);
   }
 
   [[nodiscard]] Value memberFunctionAccess(const ast::Expr&         lhs,
@@ -673,14 +733,17 @@ private:
   {
     auto func_call = rhs; // Copy!
 
+    // Insert this pointer at the beginning of the arguments
     func_call.args.push_front(ast::UnaryOp{std::u32string{U"&"}, lhs});
 
-    // FIXME: More efficient
-    const auto lhs_value = createExpr(ctx, scope, stmt_ctx, lhs);
+    {
+      // FIXME: More efficient
+      const auto lhs_value = createExpr(ctx, scope, stmt_ctx, lhs);
 
-    assert(lhs_value.getType()->isStructTy());
+      assert(lhs_value.getType()->isStructTy());
 
-    ctx.namespaces.push(lhs_value.getType()->getStructName());
+      ctx.namespaces.push(lhs_value.getType()->getStructName());
+    }
 
     const auto retval = (*this)(func_call);
 
