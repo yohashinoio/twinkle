@@ -12,170 +12,6 @@
 namespace maple::codegen
 {
 
-// Be careful about the lifetime of the return value references.
-[[nodiscard]] Variable& findVariable(const CGContext&       ctx,
-                                     const ast::Identifier& node,
-                                     SymbolTable&           scope)
-{
-  const auto ident = node.utf8();
-
-  if (const auto variable = scope[ident])
-    return *variable;
-  else {
-    throw CodegenError{
-      ctx.formatError(ctx.positions.position_of(node),
-                      fmt::format("unknown variable '{}' referenced", ident))};
-  }
-
-  unreachable();
-}
-
-[[nodiscard]] static Value createPointerToArray(CGContext&   ctx,
-                                                const Value& array)
-{
-  return {llvm::getPointerOperand(array.getValue()),
-          std::make_shared<PointerType>(array.getType()),
-          array.isMutable()};
-}
-
-[[nodiscard]] static Value
-createArraySubscript(CGContext& ctx, const Value& array, const Value& index)
-{
-  const auto p_to_array = createPointerToArray(ctx, array);
-
-  // Calculate the address of the index-th element.
-  auto const gep = ctx.builder.CreateInBoundsGEP(
-    p_to_array.getLLVMType()->getPointerElementType(),
-    p_to_array.getValue(),
-    {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 0), index.getValue()});
-
-  return {gep,
-          p_to_array.getType()->getPointeeType()->getArrayElementType(),
-          p_to_array.isMutable()};
-}
-
-[[nodiscard]] static Value
-createPointerSubscript(CGContext& ctx, const Value& ptr, const Value& index)
-{
-  // Calculate the address of the index-th element.
-  auto const gep
-    = ctx.builder.CreateInBoundsGEP(ptr.getLLVMType()->getPointerElementType(),
-                                    ptr.getValue(),
-                                    index.getValue());
-
-  return {gep, ptr.getType()->getPointeeType(), ptr.isMutable()};
-}
-
-// Normally a subscript operation calls createLoad at the end, but this function
-// does not.
-[[nodiscard]] Value createNoLoadSubscript(CGContext&            ctx,
-                                          SymbolTable&          scope,
-                                          const StmtContext&    stmt_ctx,
-                                          const ast::Subscript& node)
-{
-  auto lhs = createExpr(ctx, scope, stmt_ctx, node.lhs);
-
-  const auto is_array = lhs.getType()->isArrayTy();
-
-  if (!is_array && !lhs.getType()->isPointerTy()) {
-    throw CodegenError{
-      ctx.formatError(ctx.positions.position_of(node),
-                      "the type incompatible with the subscript operator")};
-  }
-
-  const auto index = createExpr(ctx, scope, stmt_ctx, node.subscript);
-
-  if (!index.isInteger()) {
-    throw CodegenError{
-      ctx.formatError(ctx.positions.position_of(node),
-                      "subscripts need to be evaluated to numbers")};
-  }
-
-  return is_array ? createArraySubscript(ctx, lhs, index)
-                  : createPointerSubscript(ctx, lhs, index);
-}
-
-// Cast to larger bit width.
-[[nodiscard]] static std::pair<Value, Value>
-intCastToLargerBitW(CGContext& ctx, const Value& lhs, const Value& rhs)
-{
-  if (const auto lhs_bitwidth = lhs.getLLVMType()->getIntegerBitWidth(),
-      rhs_bitwidth            = rhs.getLLVMType()->getIntegerBitWidth();
-      lhs_bitwidth != rhs_bitwidth) {
-    const auto larger_bitwidth = std::max(lhs_bitwidth, rhs_bitwidth);
-
-    const auto target_llvm_type = ctx.builder.getIntNTy(larger_bitwidth);
-
-    const auto is_target_lhs = lhs_bitwidth == larger_bitwidth;
-
-    const auto target_type = is_target_lhs ? lhs.getType() : rhs.getType();
-
-    if (is_target_lhs) {
-      return std::make_pair(
-        lhs,
-        Value{ctx.builder.CreateIntCast(rhs.getValue(),
-                                        target_llvm_type,
-                                        target_type->isSigned()),
-              target_type});
-    }
-    else {
-      return std::make_pair(
-        Value{ctx.builder.CreateIntCast(lhs.getValue(),
-                                        target_llvm_type,
-                                        target_type->isSigned()),
-              target_type},
-        rhs);
-    }
-  }
-
-  return std::make_pair(lhs, rhs);
-}
-
-// Cast to larger mantissa width.
-[[nodiscard]] static std::pair<Value, Value>
-floatCastToLargerMantissaW(CGContext& ctx, const Value& lhs, const Value& rhs)
-{
-  if (const auto lhs_mantissaw = lhs.getLLVMType()->getFPMantissaWidth(),
-      rhs_mantissaw            = rhs.getLLVMType()->getFPMantissaWidth();
-      lhs_mantissaw != rhs_mantissaw) {
-    const auto larger_mantissaw = std::max(lhs_mantissaw, rhs_mantissaw);
-
-    const auto target_llvm_type = getFloatNTy(ctx, larger_mantissaw);
-
-    const auto is_target_lhs = lhs_mantissaw == larger_mantissaw;
-
-    const auto target_type = is_target_lhs ? lhs.getType() : rhs.getType();
-
-    if (is_target_lhs) {
-      return std::make_pair(
-        lhs,
-        Value{ctx.builder.CreateFPCast(rhs.getValue(), target_llvm_type),
-              target_type});
-    }
-    else {
-      return std::make_pair(
-        Value{ctx.builder.CreateFPCast(lhs.getValue(), target_llvm_type),
-              target_type},
-        rhs);
-    }
-  }
-
-  return std::make_pair(lhs, rhs);
-}
-
-// Cast to larger bit(mantissa) width.
-[[nodiscard]] static std::pair<Value, Value>
-castToLarger(CGContext& ctx, const Value& lhs, const Value& rhs)
-{
-  if (lhs.isInteger())
-    return intCastToLargerBitW(ctx, lhs, rhs);
-
-  if (lhs.getType()->isFloatingPointTy())
-    return floatCastToLargerMantissaW(ctx, lhs, rhs);
-
-  unreachable();
-}
-
 // Calculate the offset of an element of a structure.
 // Returns std::nullopt if there is no matching element.
 [[nodiscard]] static std::optional<std::size_t>
@@ -283,7 +119,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   [[nodiscard]] Value operator()(const ast::Identifier& node) const
   {
     // TODO: support function identifier
-    const auto& variable = findVariable(ctx, node, scope);
+    const auto& variable = findVariable(node);
 
     return {ctx.builder.CreateLoad(variable.getAllocaInst()->getAllocatedType(),
                                    variable.getAllocaInst()),
@@ -306,7 +142,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::Subscript& node) const
   {
-    const auto value = createNoLoadSubscript(ctx, scope, stmt_ctx, node);
+    const auto value = createNoLoadSubscript(node);
 
     return {ctx.builder.CreateLoad(value.getLLVMType()->getPointerElementType(),
                                    value.getValue()),
@@ -329,7 +165,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
                                          "failed to generate right-hand side")};
     }
 
-    const auto [lhs, rhs] = castToLarger(ctx, uncasted_lhs, uncasted_rhs);
+    const auto [lhs, rhs] = castToLarger(uncasted_lhs, uncasted_rhs);
 
     if (!strictEquals(lhs.getLLVMType(), rhs.getLLVMType())) {
       throw CodegenError{ctx.formatError(
@@ -535,6 +371,161 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   }
 
 private:
+  // Be careful about the lifetime of the return value references.
+  [[nodiscard]] Variable& findVariable(const ast::Identifier& node) const
+  {
+    const auto ident = node.utf8();
+
+    if (const auto variable = scope[ident])
+      return *variable;
+
+    throw CodegenError{
+      ctx.formatError(ctx.positions.position_of(node),
+                      fmt::format("unknown variable '{}' referenced", ident))};
+  }
+
+  // Cast to larger bit width.
+  [[nodiscard]] std::pair<Value, Value>
+  intCastToLargerBitW(const Value& lhs, const Value& rhs) const
+  {
+    if (const auto lhs_bitwidth = lhs.getLLVMType()->getIntegerBitWidth(),
+        rhs_bitwidth            = rhs.getLLVMType()->getIntegerBitWidth();
+        lhs_bitwidth != rhs_bitwidth) {
+      const auto larger_bitwidth = std::max(lhs_bitwidth, rhs_bitwidth);
+
+      const auto target_llvm_type = ctx.builder.getIntNTy(larger_bitwidth);
+
+      const auto is_target_lhs = lhs_bitwidth == larger_bitwidth;
+
+      const auto target_type = is_target_lhs ? lhs.getType() : rhs.getType();
+
+      if (is_target_lhs) {
+        return std::make_pair(
+          lhs,
+          Value{ctx.builder.CreateIntCast(rhs.getValue(),
+                                          target_llvm_type,
+                                          target_type->isSigned()),
+                target_type});
+      }
+      else {
+        return std::make_pair(
+          Value{ctx.builder.CreateIntCast(lhs.getValue(),
+                                          target_llvm_type,
+                                          target_type->isSigned()),
+                target_type},
+          rhs);
+      }
+    }
+
+    return std::make_pair(lhs, rhs);
+  }
+
+  // Cast to larger mantissa width.
+  [[nodiscard]] std::pair<Value, Value>
+  floatCastToLargerMantissaW(const Value& lhs, const Value& rhs) const
+  {
+    if (const auto lhs_mantissaw = lhs.getLLVMType()->getFPMantissaWidth(),
+        rhs_mantissaw            = rhs.getLLVMType()->getFPMantissaWidth();
+        lhs_mantissaw != rhs_mantissaw) {
+      const auto larger_mantissaw = std::max(lhs_mantissaw, rhs_mantissaw);
+
+      const auto target_llvm_type = getFloatNTy(ctx, larger_mantissaw);
+
+      const auto is_target_lhs = lhs_mantissaw == larger_mantissaw;
+
+      const auto target_type = is_target_lhs ? lhs.getType() : rhs.getType();
+
+      if (is_target_lhs) {
+        return std::make_pair(
+          lhs,
+          Value{ctx.builder.CreateFPCast(rhs.getValue(), target_llvm_type),
+                target_type});
+      }
+      else {
+        return std::make_pair(
+          Value{ctx.builder.CreateFPCast(lhs.getValue(), target_llvm_type),
+                target_type},
+          rhs);
+      }
+    }
+
+    return std::make_pair(lhs, rhs);
+  }
+
+  // Cast to larger bit(mantissa) width.
+  [[nodiscard]] std::pair<Value, Value> castToLarger(const Value& lhs,
+                                                     const Value& rhs) const
+  {
+    if (lhs.isInteger())
+      return intCastToLargerBitW(lhs, rhs);
+
+    if (lhs.getType()->isFloatingPointTy())
+      return floatCastToLargerMantissaW(lhs, rhs);
+
+    unreachable();
+  }
+
+  [[nodiscard]] Value createPointerToArray(const Value& array) const
+  {
+    return {llvm::getPointerOperand(array.getValue()),
+            std::make_shared<PointerType>(array.getType()),
+            array.isMutable()};
+  }
+
+  [[nodiscard]] Value createArraySubscript(const Value& array,
+                                           const Value& index) const
+  {
+    const auto p_to_array = createPointerToArray(array);
+
+    // Calculate the address of the index-th element.
+    auto const gep = ctx.builder.CreateInBoundsGEP(
+      p_to_array.getLLVMType()->getPointerElementType(),
+      p_to_array.getValue(),
+      {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 0), index.getValue()});
+
+    return {gep,
+            p_to_array.getType()->getPointeeType()->getArrayElementType(),
+            p_to_array.isMutable()};
+  }
+
+  [[nodiscard]] Value createPointerSubscript(const Value& ptr,
+                                             const Value& index) const
+  {
+    // Calculate the address of the index-th element.
+    auto const gep = ctx.builder.CreateInBoundsGEP(
+      ptr.getLLVMType()->getPointerElementType(),
+      ptr.getValue(),
+      index.getValue());
+
+    return {gep, ptr.getType()->getPointeeType(), ptr.isMutable()};
+  }
+
+  // Normally a subscript operation calls createLoad at the end, but this
+  // function does not.
+  [[nodiscard]] Value createNoLoadSubscript(const ast::Subscript& node) const
+  {
+    auto lhs = createExpr(ctx, scope, stmt_ctx, node.lhs);
+
+    const auto is_array = lhs.getType()->isArrayTy();
+
+    if (!is_array && !lhs.getType()->isPointerTy()) {
+      throw CodegenError{
+        ctx.formatError(ctx.positions.position_of(node),
+                        "the type incompatible with the subscript operator")};
+    }
+
+    const auto index = createExpr(ctx, scope, stmt_ctx, node.subscript);
+
+    if (!index.isInteger()) {
+      throw CodegenError{
+        ctx.formatError(ctx.positions.position_of(node),
+                        "subscripts need to be evaluated to numbers")};
+    }
+
+    return is_array ? createArraySubscript(lhs, index)
+                    : createPointerSubscript(lhs, index);
+  }
+
   [[nodiscard]] Value createAddressOf(const Value& value) const
   {
     return {llvm::getPointerOperand(value.getValue()),

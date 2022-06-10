@@ -74,55 +74,6 @@ createLlvmFunction(const Linkage             linkage,
   return llvm::Function::Create(type, linkageToLLVM(linkage), name, module);
 }
 
-SymbolTable
-createArgumentTable(CGContext&                ctx,
-                    llvm::Function* const     func,
-                    const ast::ParameterList& param_list,
-                    llvm::iterator_range<llvm::Function::arg_iterator>&& args)
-{
-  SymbolTable argument_table;
-
-  for (auto& arg : args) {
-    const auto& param_node = param_list->at(arg.getArgNo());
-
-    // Create an alloca for this variable.
-    auto const alloca = createEntryAlloca(func,
-                                          arg.getName().str(),
-                                          param_node.type->getLLVMType(ctx));
-
-    // Store the initial value into the alloca.
-    ctx.builder.CreateStore(&arg, alloca);
-
-    const auto is_mutable
-      = param_node.qualifier
-        && (*param_node.qualifier == VariableQual::mutable_);
-
-    // Add arguments to variable symbol table.
-    argument_table.registOrOverwrite(arg.getName().str(),
-                                     Variable{
-                                       {alloca, param_node.type},
-                                       is_mutable
-    });
-  }
-
-  return argument_table;
-}
-
-[[nodiscard]] static std::vector<llvm::Type*>
-createParamTypes(CGContext&                ctx,
-                 const ast::ParameterList& params,
-                 const std::size_t         named_params_len)
-{
-  std::vector<llvm::Type*> types(named_params_len);
-
-  for (std::size_t i = 0; i != named_params_len; ++i) {
-    const auto& param_type = params->at(i).type;
-    types.at(i)            = param_type->getLLVMType(ctx);
-  }
-
-  return types;
-}
-
 //===----------------------------------------------------------------------===//
 // Top level statement visitor
 //===----------------------------------------------------------------------===//
@@ -170,7 +121,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
       = *is_vararg ? node.params->size() - 1 : node.params->size();
 
     const auto param_types
-      = createParamTypes(ctx, node.params, named_params_len);
+      = createParamTypes(node.params, named_params_len);
 
     auto const func_type
       = llvm::FunctionType::get(node.return_type->getLLVMType(ctx),
@@ -222,7 +173,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     ctx.builder.SetInsertPoint(entry_bb);
 
     auto argument_table
-      = createArgumentTable(ctx, func, node.decl.params, func->args());
+      = createArgumentTable(func, node.decl.params, func->args());
 
     // Used to combine returns into one.
     auto const end_bb = llvm::BasicBlock::Create(ctx.context);
@@ -370,6 +321,53 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
   }
 
 private:
+  SymbolTable createArgumentTable(
+    llvm::Function* const                                func,
+    const ast::ParameterList&                            param_list,
+    llvm::iterator_range<llvm::Function::arg_iterator>&& args) const
+  {
+    SymbolTable argument_table;
+
+    for (auto& arg : args) {
+      const auto& param_node = param_list->at(arg.getArgNo());
+
+      // Create an alloca for this variable.
+      auto const alloca = createEntryAlloca(func,
+                                            arg.getName().str(),
+                                            param_node.type->getLLVMType(ctx));
+
+      // Store the initial value into the alloca.
+      ctx.builder.CreateStore(&arg, alloca);
+
+      const auto is_mutable
+        = param_node.qualifier
+          && (*param_node.qualifier == VariableQual::mutable_);
+
+      // Add arguments to variable symbol table.
+      argument_table.registOrOverwrite(arg.getName().str(),
+                                       Variable{
+                                         {alloca, param_node.type},
+                                         is_mutable
+      });
+    }
+
+    return argument_table;
+  }
+
+  [[nodiscard]] std::vector<llvm::Type*>
+  createParamTypes(const ast::ParameterList& params,
+                   const std::size_t         named_params_len) const
+  {
+    std::vector<llvm::Type*> types(named_params_len);
+
+    for (std::size_t i = 0; i != named_params_len; ++i) {
+      const auto& param_type = params->at(i).type;
+      types.at(i)            = param_type->getLLVMType(ctx);
+    }
+
+    return types;
+  }
+
   CGContext& ctx;
 
   llvm::legacy::FunctionPassManager& fp_manager;

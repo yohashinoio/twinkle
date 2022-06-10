@@ -19,19 +19,6 @@
 namespace maple::codegen
 {
 
-// Be careful about the lifetime of the return value references.
-// Lifetime depends on the argument 3!
-[[nodiscard]] Variable& findVariable(const CGContext&       ctx,
-                                     const ast::Identifier& node,
-                                     SymbolTable&           scope);
-
-// Normally a subscript operation calls createLoad at the end, but this function
-// does not.
-[[nodiscard]] Value createNoLoadSubscript(CGContext&            ctx,
-                                          SymbolTable&          scope,
-                                          const StmtContext&    stmt_ctx,
-                                          const ast::Subscript& node);
-
 [[nodiscard]] Value createExpr(CGContext&         ctx,
                                SymbolTable&       scope,
                                const StmtContext& stmt_ctx,
