@@ -52,11 +52,8 @@ Mangler::mangleFunctionCall(codegen::CGContext&               ctx,
 
   mangled << "E";
 
-  {
-    // Argument types;
-    for (const auto& arg : args)
-      mangled << arg.getType()->getMangledName();
-  }
+  for (const auto& arg : args)
+    mangled << arg.getType()->getMangledName();
 
   return mangled.str();
 }
@@ -64,7 +61,7 @@ Mangler::mangleFunctionCall(codegen::CGContext&               ctx,
 [[nodiscard]] std::string
 Mangler::mangleMemberFunctionCall(codegen::CGContext&    ctx,
                                   const std::string_view callee,
-                                  const std::string_view type_name_of_this,
+                                  const std::string&     typename_of_this,
                                   const std::deque<codegen::Value>& args) const
 {
   std::ostringstream mangled;
@@ -77,13 +74,12 @@ Mangler::mangleMemberFunctionCall(codegen::CGContext&    ctx,
   mangled << "E";
 
   // Insert this pointer.
-  mangled << "P" << type_name_of_this.length() << type_name_of_this;
+  mangled << codegen::PointerType{std::make_shared<codegen::StructType>(
+                                    typename_of_this)}
+               .getMangledName();
 
-  {
-    // Argument types;
-    for (const auto& arg : args)
-      mangled << arg.getType()->getMangledName();
-  }
+  for (const auto& arg : args)
+    mangled << arg.getType()->getMangledName();
 
   return mangled.str();
 }

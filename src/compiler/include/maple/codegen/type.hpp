@@ -166,6 +166,11 @@ struct StructType : public Type {
   {
   }
 
+  explicit StructType(const std::string& ident)
+    : ident{ident}
+  {
+  }
+
   [[nodiscard]] SignKind getSignKind() const noexcept override
   {
     return SignKind::no_sign;

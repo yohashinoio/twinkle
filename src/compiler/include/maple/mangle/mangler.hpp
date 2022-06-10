@@ -42,8 +42,8 @@ struct Mangler : private boost::noncopyable {
   [[nodiscard]] std::string mangleMemberFunctionCall(
     codegen::CGContext&    ctx,
     const std::string_view callee,
-    const std::string_view type_name_of_this, // If the function is in a Sample
-                                              // structure, set "Sample".
+    const std::string&     typename_of_this, // If the function is in a Sample
+                                             // structure, set "Sample".
     const std::deque<codegen::Value>& args) const;
 
 private:

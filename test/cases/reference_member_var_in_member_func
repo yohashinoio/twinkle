@@ -1,6 +1,11 @@
 [[nomangle]]
 declare func strcmp(a: *i8, b: *i8) -> i32;
 
+func f() -> i32
+{
+  return 0;
+}
+
 struct Sample {
   let n: i32;
   let s: *i8;

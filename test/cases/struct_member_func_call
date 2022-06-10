@@ -1,4 +1,7 @@
-// No member variable reference
+func twice(n: i32) -> i32
+{
+  return 0;
+}
 
 struct Sample {
   let n: i32;
@@ -16,11 +19,6 @@ struct Sample {
   func nothing()
   {
   }
-}
-
-func twice(n: i32) -> i32
-{
-  return n * 2;
 }
 
 func main() -> i32

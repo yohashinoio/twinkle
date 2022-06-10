@@ -1,3 +1,8 @@
+func a() -> i32
+{
+  return 0;
+}
+
 struct Sample {
   let n: i32;
 
