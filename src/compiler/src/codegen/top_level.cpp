@@ -257,7 +257,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     // Set element types and create element sign info.
     std::vector<llvm::Type*>                 element_types;
     std::vector<ast::VariableDefWithoutInit> member_variables;
-    std::vector<ast::FunctionDef>            member_functions;
+    std::vector<ast::FunctionDef>            methods;
     for (const auto& element : node.elements) {
       if (const auto* variable
           = boost::get<ast::VariableDefWithoutInit>(&element)) {
@@ -268,7 +268,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
       }
 
       if (const auto* function = boost::get<ast::FunctionDef>(&element)) {
-        // Member functions
+        // Methods
         auto function_clone = *function;
 
         // Push 'this*'
@@ -279,7 +279,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
              std::make_shared<StructType>(node.name.utf32())),
            false});
 
-        member_functions.push_back(std::move(function_clone));
+        methods.push_back(std::move(function_clone));
         continue;
       }
 
@@ -307,11 +307,11 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     }
 
     {
-      // Generate the member functions.
+      // Generate the methods.
       // Because it will result in an error if the structure type is not
       // registered.
       ctx.namespaces.push({name, true});
-      for (const auto& r : member_functions)
+      for (const auto& r : methods)
         (*this)(r);
       ctx.namespaces.pop();
     }

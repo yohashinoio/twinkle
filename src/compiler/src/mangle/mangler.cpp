@@ -59,10 +59,10 @@ Mangler::mangleFunctionCall(codegen::CGContext&               ctx,
 }
 
 [[nodiscard]] std::string
-Mangler::mangleMemberFunctionCall(codegen::CGContext&    ctx,
-                                  const std::string_view callee,
-                                  const std::string&     typename_of_this,
-                                  const std::deque<codegen::Value>& args) const
+Mangler::mangleMethod(codegen::CGContext&               ctx,
+                      const std::string_view            callee,
+                      const std::string&                typename_of_this,
+                      const std::deque<codegen::Value>& args) const
 {
   std::ostringstream mangled;
 

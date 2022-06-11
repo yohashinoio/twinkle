@@ -123,7 +123,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     if (!variable) {
       // Assume it is in a member function.
-      // Search for a member of '*this'.
+      // Look for a member of '*this'.
       const auto member = findMemberOfThis(node);
 
       if (member)
@@ -148,7 +148,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       return memberVariableAccess(node.lhs, rhs->utf8());
 
     if (const auto* rhs = boost::get<ast::FunctionCall>(&node.rhs))
-      return memberFunctionAccess(node.lhs, *rhs);
+      return methodAccess(node.lhs, *rhs);
 
     throw CodegenError{ctx.formatError(
       ctx.positions.position_of(node),
@@ -288,10 +288,10 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     auto args = createArgValues(node.args, pos);
 
-    if (auto const func = lookupMemberFunction(callee_name, args))
+    if (auto const func = findMethod(callee_name, args))
       return createFunctionCall(func, args, true, pos);
 
-    if (auto const func = lookupFunction(callee_name, args))
+    if (auto const func = findFunction(callee_name, args))
       return createFunctionCall(func, args, false, pos);
 
     throw CodegenError{ctx.formatError(
@@ -645,31 +645,30 @@ private:
     return args;
   }
 
-  [[nodiscard]] llvm::Function*
-  lookupMemberFunction(const std::string&       unmangled_name,
-                       const std::deque<Value>& args) const
+  [[nodiscard]] llvm::Function* findMethod(const std::string& unmangled_name,
+                                           const std::deque<Value>& args) const
   {
     if (ctx.namespaces.empty() || !ctx.namespaces.top().is_structure)
       return nullptr;
 
     const auto mangled_name
-      = ctx.mangler.mangleMemberFunctionCall(ctx,
-                                             unmangled_name,
-                                             ctx.namespaces.top().name,
-                                             args);
+      = ctx.mangler.mangleMethod(ctx,
+                                 unmangled_name,
+                                 ctx.namespaces.top().name,
+                                 args);
 
     const auto func = ctx.module->getFunction(mangled_name);
 
     if (func)
       return func;
     else
-      return lookupVarArgFunction(mangled_name);
+      return findVarArgFunction(mangled_name);
 
     unreachable();
   }
 
   [[nodiscard]] llvm::Function*
-  lookupVarArgFunction(const std::string_view mangled_name) const
+  findVarArgFunction(const std::string_view mangled_name) const
   {
     for (auto& func : ctx.module->getFunctionList()) {
       const auto func_name = func.getName();
@@ -686,8 +685,8 @@ private:
   }
 
   [[nodiscard]] llvm::Function*
-  lookupFunction(const std::string_view   unmangled_name,
-                 const std::deque<Value>& args) const
+  findFunction(const std::string_view   unmangled_name,
+               const std::deque<Value>& args) const
   {
     {
       // First look for unmangled functions.
@@ -703,7 +702,7 @@ private:
 
     if (!func) {
       // Mismatch or variadic arguments.
-      auto const vararg_func = lookupVarArgFunction(mangled_name);
+      auto const vararg_func = findVarArgFunction(mangled_name);
 
       if (vararg_func)
         return vararg_func;
@@ -762,8 +761,8 @@ private:
                                 member_name);
   }
 
-  [[nodiscard]] Value memberFunctionAccess(const ast::Expr&         lhs,
-                                           const ast::FunctionCall& rhs) const
+  [[nodiscard]] Value methodAccess(const ast::Expr&         lhs,
+                                   const ast::FunctionCall& rhs) const
   {
     auto func_call = rhs; // Copy!
 

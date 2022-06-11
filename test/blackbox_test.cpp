@@ -157,11 +157,11 @@ int main(const int argc, const char* const* const argv)
     {        "floating_point_modulo_assignment",  58},
     {          "floating_point_cast_assignment",  58},
     {    "floating_point_relational_operations",  14},
-    {                  "struct_member_func_def", 116},
-    {                 "struct_member_func_call",  58},
+    {                      "struct_methods_def", 116},
+    {                     "struct_methods_call",  58},
     {                            "this_pointer",  14},
-    {     "reference_member_var_in_member_func",  58},
-    {    "reference_member_func_in_member_func",  58},
+    {         "reference_member_var_in_methods",  58},
+    {            "reference_methods_in_methods",  58},
   };
 
   std::size_t ok_c{};   // ok count.

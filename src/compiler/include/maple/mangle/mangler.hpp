@@ -39,7 +39,7 @@ struct Mangler : private boost::noncopyable {
                      const std::string_view            callee,
                      const std::deque<codegen::Value>& args) const;
 
-  [[nodiscard]] std::string mangleMemberFunctionCall(
+  [[nodiscard]] std::string mangleMethod(
     codegen::CGContext&    ctx,
     const std::string_view callee,
     const std::string&     typename_of_this, // If the function is in a Sample
