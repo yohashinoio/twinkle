@@ -18,18 +18,16 @@ Mangler::mangleFunction(codegen::CGContext&      ctx,
 {
   std::ostringstream mangled;
 
-  mangled << "_Z";
+  mangled << prefix;
 
   mangled << mangleNamespace(ctx.namespaces);
   mangled << mangleFunctionName(ast.name.utf8());
-
-  mangled << "E";
 
   {
     // Argument types.
     for (const auto& param : *ast.params) {
       if (param.is_vararg)
-        mangled << "v";
+        mangled << "z";
       else
         mangled << param.type->getMangledName();
     }
@@ -45,12 +43,10 @@ Mangler::mangleFunctionCall(codegen::CGContext&               ctx,
 {
   std::ostringstream mangled;
 
-  mangled << "_Z";
+  mangled << prefix;
 
   mangled << mangleNamespace(ctx.namespaces);
   mangled << mangleFunctionName(std::string{callee});
-
-  mangled << "E";
 
   for (const auto& arg : args)
     mangled << arg.getType()->getMangledName();
@@ -66,14 +62,12 @@ Mangler::mangleMethod(codegen::CGContext&               ctx,
 {
   std::ostringstream mangled;
 
-  mangled << "_Z";
+  mangled << prefix;
 
   mangled << mangleNamespace(ctx.namespaces);
   mangled << mangleFunctionName(std::string{callee});
 
-  mangled << "E";
-
-  // Insert this pointer.
+  // Insert 'this' pointer.
   mangled << codegen::PointerType{std::make_shared<codegen::StructType>(
                                     typename_of_this)}
                .getMangledName();

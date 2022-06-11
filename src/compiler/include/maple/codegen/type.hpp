@@ -194,8 +194,37 @@ private:
   std::string ident;
 };
 
+struct FunctionType : public Type {
+  FunctionType(const std::shared_ptr<Type>&              return_type,
+               const std::vector<std::shared_ptr<Type>>& param_types)
+    : return_type{return_type}
+    , param_types{param_types}
+  {
+  }
+
+  FunctionType(const std::shared_ptr<Type>&         return_type,
+               std::vector<std::shared_ptr<Type>>&& param_types) noexcept
+    : return_type{return_type}
+    , param_types{std::move(param_types)}
+  {
+  }
+
+  [[nodiscard]] SignKind getSignKind() const noexcept override
+  {
+    return SignKind::no_sign;
+  }
+
+  [[nodiscard]] llvm::Type* getLLVMType(CGContext& ctx) const override;
+
+  [[nodiscard]] std::string getMangledName() const override;
+
+private:
+  std::shared_ptr<Type>              return_type;
+  std::vector<std::shared_ptr<Type>> param_types;
+};
+
 struct PointerType : public Type {
-  explicit PointerType(std::shared_ptr<Type> pointee_type) noexcept
+  explicit PointerType(const std::shared_ptr<Type>& pointee_type) noexcept
     : pointee_type{pointee_type}
   {
   }
@@ -227,8 +256,8 @@ private:
 };
 
 struct ArrayType : public Type {
-  ArrayType(std::shared_ptr<Type> element_type,
-            const std::uint64_t   array_size) noexcept
+  ArrayType(const std::shared_ptr<Type>& element_type,
+            const std::uint64_t          array_size) noexcept
     : element_type{element_type}
     , array_size{array_size}
   {

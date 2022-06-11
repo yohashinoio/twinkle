@@ -30,6 +30,10 @@ struct Value;
 namespace mangle
 {
 
+constexpr const char* ellipsis = "z";
+
+constexpr const char* prefix = "_Z";
+
 struct Mangler : private boost::noncopyable {
   [[nodiscard]] std::string mangleFunction(codegen::CGContext&      ctx,
                                            const ast::FunctionDecl& ast) const;

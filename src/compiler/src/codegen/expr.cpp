@@ -673,7 +673,7 @@ private:
     for (auto& func : ctx.module->getFunctionList()) {
       const auto func_name = func.getName();
 
-      if (func_name.endswith("v")) {
+      if (func_name.endswith(mangle::ellipsis)) {
         // _Z1fv to _Z1f
         const auto tmp = func_name.substr(0, func_name.size() - 2);
         if (mangled_name.starts_with(tmp))

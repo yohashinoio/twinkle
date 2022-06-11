@@ -144,6 +144,32 @@ matchBuiltinType(const std::u32string_view type)
   return boost::lexical_cast<std::string>(ident.length()) + ident;
 }
 
+[[nodiscard]] llvm::Type* FunctionType::getLLVMType(CGContext& ctx) const
+{
+  if (param_types.empty())
+    return llvm::FunctionType::get(return_type->getLLVMType(ctx), false);
+
+  std::vector<llvm::Type*> params;
+  params.reserve(param_types.size());
+
+  for (const auto& r : param_types)
+    params.push_back(r->getLLVMType(ctx));
+
+  return llvm::FunctionType::get(return_type->getLLVMType(ctx), params, false);
+}
+
+[[nodiscard]] std::string FunctionType::getMangledName() const
+{
+  std::ostringstream mangled;
+
+  mangled << "F" << return_type->getMangledName();
+
+  for (const auto& r : param_types)
+    mangled << r->getMangledName();
+
+  return mangled.str();
+}
+
 [[nodiscard]] std::string PointerType::getMangledName() const
 {
   return "P" + pointee_type->getMangledName();
