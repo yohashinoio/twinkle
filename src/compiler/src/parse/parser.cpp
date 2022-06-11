@@ -64,7 +64,7 @@ struct AnnotatePosition {
 namespace action
 {
 
-const auto assignAttrToVal = [](auto&& ctx) {
+const auto assignAttrToVal = [](const auto& ctx) {
   x3::_val(ctx) = std::move(x3::_attr(ctx));
 };
 
