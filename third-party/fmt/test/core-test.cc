@@ -128,7 +128,7 @@ TEST(core_test, buffer_appender) {
 #if !FMT_GCC_VERSION || FMT_GCC_VERSION >= 470
 TEST(buffer_test, noncopyable) {
   EXPECT_FALSE(std::is_copy_constructible<buffer<char>>::value);
-#  if !FMT_MSC_VER
+#  if !FMT_MSC_VERSION
   // std::is_copy_assignable is broken in MSVC2013.
   EXPECT_FALSE(std::is_copy_assignable<buffer<char>>::value);
 #  endif
@@ -136,7 +136,7 @@ TEST(buffer_test, noncopyable) {
 
 TEST(buffer_test, nonmoveable) {
   EXPECT_FALSE(std::is_move_constructible<buffer<char>>::value);
-#  if !FMT_MSC_VER
+#  if !FMT_MSC_VERSION
   // std::is_move_assignable is broken in MSVC2013.
   EXPECT_FALSE(std::is_move_assignable<buffer<char>>::value);
 #  endif
@@ -385,11 +385,11 @@ VISIT_TYPE(unsigned long, unsigned long long);
 
 template <typename T> class numeric_arg_test : public testing::Test {};
 
-using types =
+using test_types =
     testing::Types<bool, signed char, unsigned char, short, unsigned short, int,
                    unsigned, long, unsigned long, long long, unsigned long long,
                    float, double, long double>;
-TYPED_TEST_SUITE(numeric_arg_test, types);
+TYPED_TEST_SUITE(numeric_arg_test, test_types);
 
 template <typename T, fmt::enable_if_t<std::is_integral<T>::value, int> = 0>
 T test_value() {
@@ -804,7 +804,7 @@ TEST(core_test, is_formattable) {
   static_assert(fmt::is_formattable<const const_formattable&>::value, "");
 
   static_assert(fmt::is_formattable<nonconst_formattable&>::value, "");
-#if !FMT_MSC_VER || FMT_MSC_VER >= 1910
+#if !FMT_MSC_VERSION || FMT_MSC_VERSION >= 1910
   static_assert(!fmt::is_formattable<const nonconst_formattable&>::value, "");
 #endif
 
@@ -896,7 +896,7 @@ TEST(core_test, format_implicitly_convertible_to_string_view) {
 }
 
 // std::is_constructible is broken in MSVC until version 2015.
-#if !FMT_MSC_VER || FMT_MSC_VER >= 1900
+#if !FMT_MSC_VERSION || FMT_MSC_VERSION >= 1900
 struct explicitly_convertible_to_string_view {
   explicit operator fmt::string_view() const { return "foo"; }
 };

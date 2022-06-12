@@ -209,6 +209,10 @@ template and implement ``parse`` and ``format`` methods::
       // parse specifiers until '}' or the end of the range. In this example
       // the formatter should parse the 'f' specifier and return an iterator
       // pointing to '}'.
+      
+      // Please also note that this character range may be empty, in case of
+      // the "{}" format string, so therefore you should check ctx.begin()
+      // for equality with ctx.end().
 
       // Parse the presentation format and store it in the formatter:
       auto it = ctx.begin(), end = ctx.end();
@@ -227,8 +231,8 @@ template and implement ``parse`` and ``format`` methods::
     auto format(const point& p, FormatContext& ctx) const -> decltype(ctx.out()) {
       // ctx.out() is an output iterator to write to.
       return presentation == 'f'
-                ? format_to(ctx.out(), "({:.1f}, {:.1f})", p.x, p.y)
-                : format_to(ctx.out(), "({:.1e}, {:.1e})", p.x, p.y);
+                ? fmt::format_to(ctx.out(), "({:.1f}, {:.1f})", p.x, p.y)
+                : fmt::format_to(ctx.out(), "({:.1e}, {:.1e})", p.x, p.y);
     }
   };
 
@@ -321,8 +325,6 @@ Utilities
 .. doxygenfunction:: fmt::underlying(Enum e) -> typename std::underlying_type<Enum>::type
 
 .. doxygenfunction:: fmt::to_string(const T &value) -> std::string
-
-.. doxygenfunction:: fmt::to_string_view(const Char *s) -> basic_string_view<Char>
 
 .. doxygenfunction:: fmt::join(Range &&range, string_view sep) -> join_view<detail::iterator_t<Range>, detail::sentinel_t<Range>>
 

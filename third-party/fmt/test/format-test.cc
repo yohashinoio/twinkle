@@ -1493,7 +1493,11 @@ TEST(format_test, format_pointer) {
   EXPECT_EQ("0x0", fmt::format("{0}", static_cast<void*>(nullptr)));
   EXPECT_EQ("0x1234", fmt::format("{0}", reinterpret_cast<void*>(0x1234)));
   EXPECT_EQ("0x1234", fmt::format("{0:p}", reinterpret_cast<void*>(0x1234)));
-  EXPECT_EQ("0x" + std::string(sizeof(void*) * CHAR_BIT / 4, 'f'),
+  // On CHERI (or other fat-pointer) systems, the size of a pointer is greater
+  // than the size an integer that can hold a virtual address.  There is no
+  // portable address-as-an-integer type (yet) in C++, so we use `size_t` as
+  // the closest equivalent for now.
+  EXPECT_EQ("0x" + std::string(sizeof(size_t) * CHAR_BIT / 4, 'f'),
             fmt::format("{0}", reinterpret_cast<void*>(~uintptr_t())));
   EXPECT_EQ("0x1234",
             fmt::format("{}", fmt::ptr(reinterpret_cast<int*>(0x1234))));
@@ -1829,15 +1833,15 @@ fmt::string_view to_string_view(string_like) { return "foo"; }
 
 constexpr char with_null[3] = {'{', '}', '\0'};
 constexpr char no_null[2] = {'{', '}'};
-static FMT_CONSTEXPR_DECL const char static_with_null[3] = {'{', '}', '\0'};
-static FMT_CONSTEXPR_DECL const char static_no_null[2] = {'{', '}'};
+static constexpr const char static_with_null[3] = {'{', '}', '\0'};
+static constexpr const char static_no_null[2] = {'{', '}'};
 
 TEST(format_test, compile_time_string) {
   EXPECT_EQ("foo", fmt::format(FMT_STRING("foo")));
   EXPECT_EQ("42", fmt::format(FMT_STRING("{}"), 42));
   EXPECT_EQ("foo", fmt::format(FMT_STRING("{}"), string_like()));
 
-#if FMT_USE_NONTYPE_TEMPLATE_PARAMETERS
+#if FMT_USE_NONTYPE_TEMPLATE_ARGS
   using namespace fmt::literals;
   EXPECT_EQ("foobar", fmt::format(FMT_STRING("{foo}{bar}"), "bar"_a = "bar",
                                   "foo"_a = "foo"));
@@ -1875,38 +1879,8 @@ TEST(format_test, custom_format_compile_time_string) {
 }
 
 #if FMT_USE_USER_DEFINED_LITERALS
-// Passing user-defined literals directly to EXPECT_EQ causes problems
-// with macro argument stringification (#) on some versions of GCC.
-// Workaround: Assing the UDL result to a variable before the macro.
-
-using namespace fmt::literals;
-
-#  if FMT_GCC_VERSION
-#    define FMT_CHECK_DEPRECATED_UDL_FORMAT 1
-#  elif FMT_CLANG_VERSION && defined(__has_warning)
-#    if __has_warning("-Wdeprecated-declarations")
-#      define FMT_CHECK_DEPRECATED_UDL_FORMAT 1
-#    endif
-#  endif
-#  ifndef FMT_CHECK_DEPRECATED_UDL_FORMAT
-#    define FMT_CHECK_DEPRECATED_UDL_FORMAT 0
-#  endif
-
-#  if FMT_CHECK_DEPRECATED_UDL_FORMAT
-#    pragma GCC diagnostic push
-#    pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-
-TEST(format_test, format_udl) {
-  EXPECT_EQ("{}c{}"_format("ab", 1), fmt::format("{}c{}", "ab", 1));
-  EXPECT_EQ("foo"_format(), "foo");
-  EXPECT_EQ("{0:10}"_format(42), "        42");
-  EXPECT_EQ("{}"_format(date(2015, 10, 21)), "2015-10-21");
-}
-
-#    pragma GCC diagnostic pop
-#  endif
-
 TEST(format_test, named_arg_udl) {
+  using namespace fmt::literals;
   auto udl_a = fmt::format("{first}{second}{first}{third}", "first"_a = "abra",
                            "second"_a = "cad", "third"_a = 99);
   EXPECT_EQ(
@@ -2012,6 +1986,10 @@ TEST(format_test, to_string) {
 
   enum foo : unsigned char { zero };
   EXPECT_EQ(fmt::to_string(zero), "0");
+
+#if FMT_USE_FLOAT128
+  EXPECT_EQ(fmt::to_string(__float128(0.5)), "0.5");
+#endif
 }
 
 TEST(format_test, output_iterators) {
@@ -2176,7 +2154,7 @@ TEST(format_test, format_string_errors) {
   EXPECT_ERROR_NOARGS("foo", nullptr);
   EXPECT_ERROR_NOARGS("}", "unmatched '}' in format string");
   EXPECT_ERROR("{0:s", "unknown format specifier", date);
-#  if !FMT_MSC_VER || FMT_MSC_VER >= 1916
+#  if !FMT_MSC_VERSION || FMT_MSC_VERSION >= 1916
   // This causes an detail compiler error in MSVC2017.
   EXPECT_ERROR("{:{<}", "invalid fill character '{'", int);
   EXPECT_ERROR("{:10000000000}", "number is too big", int);
@@ -2208,7 +2186,8 @@ TEST(format_test, format_string_errors) {
 #  else
   fmt::print("warning: constexpr is broken in this version of MSVC\n");
 #  endif
-#  if FMT_USE_NONTYPE_TEMPLATE_PARAMETERS
+#  if FMT_USE_NONTYPE_TEMPLATE_ARGS
+  using namespace fmt::literals;
   EXPECT_ERROR("{foo}", "named argument is not found", decltype("bar"_a = 42));
   EXPECT_ERROR("{foo}", "named argument is not found",
                decltype(fmt::arg("foo", 42)));

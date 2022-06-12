@@ -33,6 +33,8 @@ help victims of the war in Ukraine: https://www.stopputin.net/.
 
 `Documentation <https://fmt.dev>`__
 
+`Cheat Sheets <https://hackingcpp.com/cpp/libs/fmt.html>`__
+
 Q&A: ask questions on `StackOverflow with the tag fmt
 <https://stackoverflow.com/questions/tagged/fmt>`_.
 
@@ -342,9 +344,12 @@ Projects using this library
 
 * `Folly <https://github.com/facebook/folly>`_: Facebook open-source library
 
+* `GemRB <https://gemrb.org/>`_: a portable open-source implementation of
+  Bioware’s Infinity Engine
+
 * `Grand Mountain Adventure
   <https://store.steampowered.com/app/1247360/Grand_Mountain_Adventure/>`_:
-  A beautiful open-world ski & snowboarding game
+  a beautiful open-world ski & snowboarding game
 
 * `HarpyWar/pvpgn <https://github.com/pvpgn/pvpgn-server>`_:
   Player vs Player Gaming Network with tweaks

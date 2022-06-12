@@ -21,7 +21,7 @@
 #  define FMT_RANGES_TEST_ENABLE_C_STYLE_ARRAY
 #endif
 
-#if !FMT_MSC_VER || FMT_MSC_VER > 1910
+#if !FMT_MSC_VERSION || FMT_MSC_VERSION > 1910
 #  define FMT_RANGES_TEST_ENABLE_JOIN
 #  define FMT_RANGES_TEST_ENABLE_FORMAT_STRUCT
 #endif
@@ -70,13 +70,9 @@ struct box {
   int value;
 };
 
-auto begin(const box& b) -> const int* {
-  return &b.value;
-}
+auto begin(const box& b) -> const int* { return &b.value; }
 
-auto end(const box& b) -> const int* {
-  return &b.value + 1;
-}
+auto end(const box& b) -> const int* { return &b.value + 1; }
 }  // namespace adl
 
 TEST(ranges_test, format_adl_begin_end) {
@@ -223,7 +219,7 @@ TEST(ranges_test, enum_range) {
   EXPECT_EQ(fmt::format("{}", v), "[0]");
 }
 
-#if !FMT_MSC_VER
+#if !FMT_MSC_VERSION
 struct unformattable {};
 
 TEST(ranges_test, unformattable_range) {
@@ -370,6 +366,7 @@ TEST(ranges_test, escape_string) {
     EXPECT_EQ(fmt::format("{}", vec{"\xf0\xaa\x9b\x9e"}), "[\"\\U0002a6de\"]");
     EXPECT_EQ(fmt::format("{}", vec{"\xf4\x8f\xbf\xc0"}),
               "[\"\\xf4\\x8f\\xbf\\xc0\"]");
+    EXPECT_EQ(fmt::format("{}", vec{"понедельник"}), "[\"понедельник\"]");
   }
 }
 

@@ -55,7 +55,7 @@ template <typename T> class is_std_string_like {
   template <typename> static void check(...);
 
  public:
-  static FMT_CONSTEXPR_DECL const bool value =
+  static constexpr const bool value =
       is_string<T>::value ||
       std::is_convertible<T, std_string_view<char>>::value ||
       !std::is_void<decltype(check<T>(nullptr))>::value;
@@ -70,9 +70,9 @@ template <typename T> class is_map {
 
  public:
 #ifdef FMT_FORMAT_MAP_AS_LIST
-  static FMT_CONSTEXPR_DECL const bool value = false;
+  static constexpr const bool value = false;
 #else
-  static FMT_CONSTEXPR_DECL const bool value =
+  static constexpr const bool value =
       !std::is_void<decltype(check<T>(nullptr))>::value;
 #endif
 };
@@ -83,9 +83,9 @@ template <typename T> class is_set {
 
  public:
 #ifdef FMT_FORMAT_SET_AS_LIST
-  static FMT_CONSTEXPR_DECL const bool value = false;
+  static constexpr const bool value = false;
 #else
-  static FMT_CONSTEXPR_DECL const bool value =
+  static constexpr const bool value =
       !std::is_void<decltype(check<T>(nullptr))>::value && !is_map<T>::value;
 #endif
 };
@@ -94,7 +94,7 @@ template <typename... Ts> struct conditional_helper {};
 
 template <typename T, typename _ = void> struct is_range_ : std::false_type {};
 
-#if !FMT_MSC_VER || FMT_MSC_VER > 1800
+#if !FMT_MSC_VERSION || FMT_MSC_VERSION > 1800
 
 #  define FMT_DECLTYPE_RETURN(val)  \
     ->decltype(val) { return val; } \
@@ -174,12 +174,12 @@ template <typename T> class is_tuple_like_ {
   template <typename> static void check(...);
 
  public:
-  static FMT_CONSTEXPR_DECL const bool value =
+  static constexpr const bool value =
       !std::is_void<decltype(check<T>(nullptr))>::value;
 };
 
 // Check for integer_sequence
-#if defined(__cpp_lib_integer_sequence) || FMT_MSC_VER >= 1900
+#if defined(__cpp_lib_integer_sequence) || FMT_MSC_VERSION >= 1900
 template <typename T, T... N>
 using integer_sequence = std::integer_sequence<T, N...>;
 template <size_t... N> using index_sequence = std::index_sequence<N...>;
@@ -221,7 +221,7 @@ template <class Tuple, class F> void for_each(Tuple&& tup, F&& f) {
   for_each(indexes, std::forward<Tuple>(tup), std::forward<F>(f));
 }
 
-#if FMT_MSC_VER
+#if FMT_MSC_VERSION
 // Older MSVC doesn't get the reference type correctly for arrays.
 template <typename R> struct range_reference_type_impl {
   using type = decltype(*detail::range_begin(std::declval<R&>()));
@@ -279,7 +279,7 @@ OutputIt write_range_entry(OutputIt out, const Arg& v) {
 }  // namespace detail
 
 template <typename T> struct is_tuple_like {
-  static FMT_CONSTEXPR_DECL const bool value =
+  static constexpr const bool value =
       detail::is_tuple_like_<T>::value && !detail::is_range_<T>::value;
 };
 
@@ -315,7 +315,7 @@ struct formatter<TupleT, Char, enable_if_t<fmt::is_tuple_like<TupleT>::value>> {
 };
 
 template <typename T, typename Char> struct is_range {
-  static FMT_CONSTEXPR_DECL const bool value =
+  static constexpr const bool value =
       detail::is_range_<T>::value && !detail::is_std_string_like<T>::value &&
       !detail::is_map<T>::value &&
       !std::is_convertible<T, std::basic_string<Char>>::value &&
@@ -358,7 +358,7 @@ struct formatter<
     enable_if_t<
         fmt::is_range<R, Char>::value
 // Workaround a bug in MSVC 2019 and earlier.
-#if !FMT_MSC_VER
+#if !FMT_MSC_VERSION
         &&
         (is_formattable<detail::uncvref_type<detail::maybe_const_range<R>>,
                         Char>::value ||
@@ -391,13 +391,8 @@ struct formatter<
   template <typename FormatContext>
   auto format(range_type& range, FormatContext& ctx) const
       -> decltype(ctx.out()) {
-#ifdef FMT_DEPRECATED_BRACED_RANGES
-    Char prefix = '{';
-    Char postfix = '}';
-#else
     Char prefix = detail::is_set<R>::value ? '{' : '[';
     Char postfix = detail::is_set<R>::value ? '}' : ']';
-#endif
     detail::range_mapper<buffer_context<Char>> mapper;
     auto out = ctx.out();
     *out++ = prefix;
@@ -424,7 +419,7 @@ struct formatter<
     T, Char,
     enable_if_t<detail::is_map<T>::value
 // Workaround a bug in MSVC 2019 and earlier.
-#if !FMT_MSC_VER
+#if !FMT_MSC_VERSION
                 && (is_formattable<detail::uncvref_type<T>, Char>::value ||
                     detail::has_fallback_formatter<detail::uncvref_type<T>,
                                                    Char>::value)

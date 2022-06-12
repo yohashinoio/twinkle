@@ -93,7 +93,7 @@ inline bool write(std::wfilebuf&, fmt::basic_string_view<wchar_t>) {
 // It is a separate function rather than a part of vprint to simplify testing.
 template <typename Char>
 void write_buffer(std::basic_ostream<Char>& os, buffer<Char>& buf) {
-  if (const_check(FMT_MSC_VER)) {
+  if (const_check(FMT_MSC_VERSION)) {
     auto filebuf = dynamic_cast<std::basic_filebuf<Char>*>(os.rdbuf());
     if (filebuf && write(*filebuf, {buf.data(), buf.size()})) return;
   }
@@ -144,15 +144,8 @@ template <typename T, typename Char>
 struct fallback_formatter<T, Char, enable_if_t<is_streamable<T, Char>::value>>
     : basic_ostream_formatter<Char> {
   using basic_ostream_formatter<Char>::format;
-  // DEPRECATED!
-  template <typename OutputIt>
-  auto format(const T& value, basic_printf_context<OutputIt, Char>& ctx) const
-      -> OutputIt {
-    auto buffer = basic_memory_buffer<Char>();
-    format_value(buffer, value, ctx.locale());
-    return std::copy(buffer.begin(), buffer.end(), ctx.out());
-  }
 };
+
 }  // namespace detail
 
 FMT_MODULE_EXPORT

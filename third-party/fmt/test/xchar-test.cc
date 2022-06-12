@@ -66,7 +66,7 @@ TYPED_TEST(is_string_test, is_string) {
 }
 
 // std::is_constructible is broken in MSVC until version 2015.
-#if !FMT_MSC_VER || FMT_MSC_VER >= 1900
+#if !FMT_MSC_VERSION || FMT_MSC_VERSION >= 1900
 struct explicitly_convertible_to_wstring_view {
   explicit operator fmt::wstring_view() const { return L"foo"; }
 };
@@ -240,28 +240,6 @@ TEST(xchar_test, sign_not_truncated) {
   EXPECT_THROW(fmt::format(format_str, 42), fmt::format_error);
 }
 
-namespace fake_qt {
-class QString {
- public:
-  QString(const wchar_t* s) : s_(s) {}
-  const wchar_t* utf16() const noexcept { return s_.data(); }
-  int size() const noexcept { return static_cast<int>(s_.size()); }
-
- private:
-  std::wstring s_;
-};
-
-fmt::basic_string_view<wchar_t> to_string_view(const QString& s) noexcept {
-  return {s.utf16(), static_cast<size_t>(s.size())};
-}
-}  // namespace fake_qt
-
-TEST(format_test, format_foreign_strings) {
-  using fake_qt::QString;
-  EXPECT_EQ(fmt::format(QString(L"{}"), 42), L"42");
-  EXPECT_EQ(fmt::format(QString(L"{}"), QString(L"42")), L"42");
-}
-
 TEST(xchar_test, chrono) {
   auto tm = std::tm();
   tm.tm_year = 116;
@@ -335,6 +313,17 @@ TEST(xchar_test, ostream) {
   fmt::print(wos, L"Don't {}!", L"panic");
   EXPECT_EQ(wos.str(), L"Don't panic!");
 #endif
+}
+
+TEST(xchar_test, format_map) {
+  auto m = std::map<std::wstring, int>{{L"one", 1}, {L"t\"wo", 2}};
+  EXPECT_EQ(fmt::format(L"{}", m), L"{\"one\": 1, \"t\\\"wo\": 2}");
+}
+
+TEST(xchar_test, escape_string) {
+  using vec = std::vector<std::wstring>;
+  EXPECT_EQ(fmt::format(L"{}", vec{L"\n\r\t\"\\"}), L"[\"\\n\\r\\t\\\"\\\\\"]");
+  EXPECT_EQ(fmt::format(L"{}", vec{L"понедельник"}), L"[\"понедельник\"]");
 }
 
 TEST(xchar_test, to_wstring) { EXPECT_EQ(L"42", fmt::to_wstring(42)); }
