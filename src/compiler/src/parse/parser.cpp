@@ -182,6 +182,29 @@ struct EscapeCharSymbolsTag : UnicodeSymbols<char32_t> {
   }
 } escape_char_symbols;
 
+struct BuiltinTypeNameSymbolsTag : UnicodeSymbols<codegen::BuiltinTypeKind> {
+  BuiltinTypeNameSymbolsTag()
+  {
+    // clang-format off
+    add
+      (U"void", codegen::BuiltinTypeKind::void_)
+      (U"i8", codegen::BuiltinTypeKind::i8)
+      (U"i16", codegen::BuiltinTypeKind::i16)
+      (U"i32", codegen::BuiltinTypeKind::i32)
+      (U"i64", codegen::BuiltinTypeKind::i64)
+      (U"u8", codegen::BuiltinTypeKind::u8)
+      (U"u16", codegen::BuiltinTypeKind::u16)
+      (U"u32", codegen::BuiltinTypeKind::u32)
+      (U"u64", codegen::BuiltinTypeKind::u64)
+      (U"bool", codegen::BuiltinTypeKind::bool_)
+      (U"char", codegen::BuiltinTypeKind::char_)
+      (U"f64", codegen::BuiltinTypeKind::f64)
+      (U"f32", codegen::BuiltinTypeKind::f32)
+    ;
+    // clang-format on
+  }
+} builtin_type_symbols;
+
 //===----------------------------------------------------------------------===//
 // Common rules
 //===----------------------------------------------------------------------===//
@@ -198,7 +221,7 @@ const auto identifier_internal
 
 const auto identifier
   = x3::rule<struct IdentifierTag, ast::Identifier>{"identifier"}
-= identifier_internal;
+= identifier_internal - (lit(U"true") | lit(U"false"));
 
 const auto variable_qualifier
   = x3::rule<struct VariableQualifierTag, VariableQual>{"variable qualifier"}
@@ -263,50 +286,103 @@ const auto char_literal
 = lit(U"'") >> (char_ - (lit(U"'") | x3::eol | lit(U"\\")) | escape_char)
   > lit(U"'");
 
-const auto type
-  = x3::rule<struct TypeInternalTag, std::shared_ptr<codegen::Type>>{"type"}
-= (-char_(U'*')
-   >> identifier_internal /* TODO: support double (recursion) ptr */
-   >> -(lit(U"[") >> x3::uint64 >> lit(U"]")))[([](auto&& ctx) {
-    const auto type_in_utf32 = fusion::at_c<1>(x3::_attr(ctx));
-
-    const auto type_kind = codegen::matchBuiltinType(type_in_utf32);
-
-    std::shared_ptr<codegen::Type> base_type;
-    if (type_kind)
-      base_type = std::make_shared<codegen::BuiltinType>(*type_kind);
-    else
-      base_type = std::make_shared<codegen::StructType>(type_in_utf32);
-
-    if (fusion::at_c<0>(x3::_attr(ctx))) {
-      if (fusion::at_c<2>(x3::_attr(ctx))) {
-        // Pointer array types.
-        x3::_val(ctx) = std::make_shared<codegen::ArrayType>(
-          std::make_shared<codegen::PointerType>(std::move(base_type)),
-          *fusion::at_c<2>(x3::_attr(ctx)) /* Array size */);
-        return;
-      }
-
-      // Pointer types.
-      x3::_val(ctx)
-        = std::make_shared<codegen::PointerType>(std::move(base_type));
-      return;
-    }
-
-    if (fusion::at_c<2>(x3::_attr(ctx))) {
-      // Array types.
-      x3::_val(ctx) = std::make_shared<codegen::ArrayType>(
-        std::move(base_type),
-        *fusion::at_c<2>(x3::_attr(ctx)) /* Array size */);
-      return;
-    }
-
-    // Fundamental (built-in) types.
-    x3::_val(ctx) = std::move(base_type);
-  })];
-
 const auto attribute = x3::rule<struct AttrTag, ast::Attrs>{"attribute"}
 = lit(U"[[") >> (identifier_internal % lit(U",")) > lit(U"]]");
+
+//===----------------------------------------------------------------------===//
+// Type name rules
+//===----------------------------------------------------------------------===//
+
+const auto builtin_type
+  = x3::rule<struct BuiltinTypeTag,
+             codegen::BuiltinTypeKind>{"builtin type name"}
+= builtin_type_symbols;
+
+const x3::rule<struct PointerTypeTag, ast::PointerType> pointer_type{
+  "pointer type"};
+
+const x3::rule<struct ArrayTypeTag, ast::ArrayType> array_type{"array type"};
+
+const x3::rule<struct UserDefinedTypeTag, ast::UserDefinedType>
+  user_defined_type{"user defined type"};
+
+const x3::rule<struct TypeTag, ast::Type> type{"type"};
+
+const auto array_type_def = type >> lit(U"[") > x3::uint64 > lit(U"]");
+
+const auto pointer_type_def = lit(U"*") >> type;
+
+const auto user_defined_type_def = identifier;
+
+const auto type_def = builtin_type | array_type | pointer_type_def
+                      | user_defined_type | (lit(U"") > type > lit(U""));
+
+BOOST_SPIRIT_DEFINE(type)
+BOOST_SPIRIT_DEFINE(pointer_type)
+BOOST_SPIRIT_DEFINE(array_type)
+BOOST_SPIRIT_DEFINE(user_defined_type)
+
+// const auto type
+//   = x3::rule<struct TypeInternalTag, std::shared_ptr<codegen::Type>>{"type"}
+// = (-char_(U'*')
+//    >> identifier_internal /* TODO: support double (recursion) ptr */
+//    >> -(lit(U"[") >> x3::uint64 >> lit(U"]")))[([](auto&& ctx) {
+//     const auto type_in_utf32 = fusion::at_c<1>(x3::_attr(ctx));
+
+//     const auto type_kind = codegen::matchBuiltinType(type_in_utf32);
+
+//     std::shared_ptr<codegen::Type> base_type;
+//     if (type_kind)
+//       base_type = std::make_shared<codegen::BuiltinType>(*type_kind);
+//     else
+//       base_type = std::make_shared<codegen::StructType>(type_in_utf32);
+
+//     if (fusion::at_c<0>(x3::_attr(ctx))) {
+//       if (fusion::at_c<2>(x3::_attr(ctx))) {
+//         // Pointer array types.
+//         x3::_val(ctx) = std::make_shared<codegen::ArrayType>(
+//           std::make_shared<codegen::PointerType>(std::move(base_type)),
+//           *fusion::at_c<2>(x3::_attr(ctx)) /* Array size */);
+//         return;
+//       }
+
+//       // Pointer types.
+//       x3::_val(ctx)
+//         = std::make_shared<codegen::PointerType>(std::move(base_type));
+//       return;
+//     }
+
+//     if (fusion::at_c<2>(x3::_attr(ctx))) {
+//       // Array types.
+//       x3::_val(ctx) = std::make_shared<codegen::ArrayType>(
+//         std::move(base_type),
+//         *fusion::at_c<2>(x3::_attr(ctx)) /* Array size */);
+//       return;
+//     }
+
+//     // Fundamental (built-in) types.
+//     x3::_val(ctx) = std::move(base_type);
+//   })];
+
+struct BuiltinTypeTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct TypeTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct PointerTypeTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct ArrayTypeTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct UserDefinedTypeTag
+  : ErrorHandle
+  , AnnotatePosition {};
 
 //===----------------------------------------------------------------------===//
 // Operator rules
@@ -492,9 +568,9 @@ const auto function_call_def
          > lit(U")"))[action::assignToValAs<ast::FunctionCall>{}];
 
 const auto primary_def
-  = float_64bit | binary_literal | octal_literal | hex_literal | int_32bit
-    | uint_32bit | int_64bit | uint_64bit | boolean_literal | string_literal
-    | char_literal | identifier | (lit(U"(") > expr > lit(U")"));
+  = identifier | float_64bit | binary_literal | octal_literal | hex_literal
+    | int_32bit | uint_32bit | int_64bit | uint_64bit | boolean_literal
+    | string_literal | char_literal | (lit(U"(") > expr > lit(U")"));
 
 BOOST_SPIRIT_DEFINE(expr)
 BOOST_SPIRIT_DEFINE(binary_logical)
