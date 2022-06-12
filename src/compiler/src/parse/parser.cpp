@@ -759,10 +759,6 @@ struct CharLiteralTag
   : ErrorHandle
   , AnnotatePosition {};
 
-struct TypeTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
 struct AttrTag
   : ErrorHandle
   , AnnotatePosition {};
