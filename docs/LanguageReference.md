@@ -20,7 +20,8 @@
 - [Struct types](#struct-types)
   - [Declaration](#declaration)
   - [Definition](#definition)
-  - [Access Members of a Structure](#access-members-of-a-structure)
+  - [Member Variables](#member-variables)
+  - [Methods](#methods)
 - [Variables](#variables)
   - [Definition](#definition-1)
   - [Mutable Variables](#mutable-variables)
@@ -44,6 +45,8 @@
 - [Array In Detail](#array-in-detail)
   - [Definition](#definition-3)
   - [Subscript](#subscript)
+  - [Multidimensional Arrays](#multidimensional-arrays)
+  - [Pointer To Arrays](#pointer-to-arrays)
 - [Statements](#statements)
   - [Expression Statements](#expression-statements)
   - [Compound Statement (Block)](#compound-statement-block)
@@ -259,12 +262,16 @@ declare struct Sample;
 ```rust
 struct Sample {
   let n: i32;
-  let ch: char;
-  let c_str: *i8;
+
+  // Methods
+  func f() -> i32
+  {
+    return n;
+  }
 }
 ```
 
-### Access Members of a Structure
+### Member Variables
 ```rust
 struct Sample {
   let n: i32;
@@ -275,8 +282,29 @@ func main() -> i32
 {
   let mut s: Sample;
 
+  // Access to members
   s.n = 4810;
   s.s = "hello, world";
+}
+```
+
+### Methods
+```rust
+struct Sample {
+  let n: i32;
+
+  func twice() -> i32
+  {
+    return n * 2;
+  }
+}
+
+func main() -> i32
+{
+  let s: Sample;
+  s.n = 32;
+
+  let n = s.twice(); // n == 64
 }
 ```
 
@@ -554,6 +582,29 @@ func main() -> i32
 {
   let a = {4, 8, 1, 0};
   front(&a[0]);
+}
+```
+
+### Multidimensional Arrays
+Almost the same syntax as C/C++.
+```rust
+func main() -> i32
+{
+  // Two-dimensional array
+  let two: i32[5][8];
+
+  // Four-dimensional array
+  let four: i32[4][8][1][0];
+
+  // ...
+}
+```
+
+### Pointer To Arrays
+```rust
+func main() -> I32
+{
+  let p: *(i32[58]);
 }
 ```
 
