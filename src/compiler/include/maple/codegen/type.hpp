@@ -17,6 +17,7 @@
 #include <maple/support/kind.hpp>
 #include <maple/unicode/unicode.hpp>
 #include <boost/lexical_cast.hpp>
+#include <maple/ast/ast.hpp>
 
 namespace maple::codegen
 {
@@ -294,6 +295,8 @@ private:
   std::shared_ptr<Type> element_type;
   std::uint64_t         array_size;
 };
+
+[[nodiscard]] std::shared_ptr<Type> createType(const ast::Type& ast);
 
 } // namespace maple::codegen
 

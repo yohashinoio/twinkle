@@ -14,6 +14,7 @@
 
 #include <maple/pch/pch.hpp>
 #include <maple/ast/ast.hpp>
+#include <maple/codegen/type.hpp>
 #include <maple/support/utils.hpp>
 #include <maple/support/typedef.hpp>
 #include <maple/jit/jit.hpp>
@@ -78,11 +79,48 @@ private:
 
 using FunctionReturnTypeTable = Table<llvm::Function*, std::shared_ptr<Type>>;
 
-// std::nullopt means opaque(llvm).
-using StructTable
-  = Table<std::string,
-          std::pair<std::optional<std::vector<ast::VariableDefWithoutInit>>,
-                    llvm::StructType*>>;
+struct StructInfo {
+  struct Member {
+    std::string           name;
+    std::shared_ptr<Type> type;
+  };
+
+  StructInfo(llvm::StructType* const llvmtype,
+             std::vector<Member>&&   members,
+             const bool              is_opaque) noexcept
+    : llvmtype{llvmtype}
+    , members{std::move(members)}
+    , is_opaque{is_opaque}
+  {
+  }
+
+  llvm::StructType* getLLVMType() const noexcept
+  {
+    return llvmtype;
+  }
+
+  const Member& getMember(const std::size_t idx) const
+  {
+    return members.at(idx);
+  }
+
+  const std::vector<Member>& getMembers() const noexcept
+  {
+    return members;
+  }
+
+  [[nodiscard]] bool isOpaque() const noexcept
+  {
+    return is_opaque;
+  }
+
+private:
+  llvm::StructType*   llvmtype;
+  std::vector<Member> members;
+  bool                is_opaque;
+};
+
+using StructTable = Table<std::string, StructInfo>;
 
 struct NamespaceHierarchy {
   struct Namespace {

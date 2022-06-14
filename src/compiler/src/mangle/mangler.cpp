@@ -28,8 +28,10 @@ Mangler::mangleFunction(codegen::CGContext&      ctx,
     for (const auto& param : *ast.params) {
       if (param.is_vararg)
         mangled << "z";
-      else
-        mangled << param.type->getMangledName();
+      else {
+        // TODO: Optimization
+        mangled << codegen::createType(param.type)->getMangledName();
+      }
     }
   }
 

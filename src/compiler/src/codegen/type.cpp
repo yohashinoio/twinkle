@@ -7,7 +7,6 @@
 
 #include <maple/codegen/type.hpp>
 #include <maple/codegen/codegen.hpp>
-#include <maple/ast/ast.hpp>
 
 namespace maple::codegen
 {
@@ -102,7 +101,7 @@ matchBuiltinType(const std::u32string_view type)
 {
   const auto struct_type = ctx.struct_table[ident];
   assert(struct_type);
-  return struct_type->second;
+  return struct_type->getLLVMType();
 }
 
 [[nodiscard]] std::string BuiltinType::getMangledName() const
@@ -179,6 +178,46 @@ matchBuiltinType(const std::u32string_view type)
 {
   return "A" + boost::lexical_cast<std::string>(array_size) + "_"
          + element_type->getMangledName();
+}
+
+// Type AST to std::shared_ptr<Type>
+struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
+  [[nodiscard]] std::shared_ptr<Type> operator()(boost::blank) const
+  {
+    unreachable();
+  }
+
+  [[nodiscard]] std::shared_ptr<Type>
+  operator()(const ast::BuiltinType& node) const
+  {
+    return std::make_shared<BuiltinType>(node.kind);
+  }
+
+  [[nodiscard]] std::shared_ptr<Type>
+  operator()(const ast::ArrayType& node) const
+  {
+    return std::make_shared<ArrayType>(
+      boost::apply_visitor(*this, node.element_type),
+      node.size);
+  }
+
+  [[nodiscard]] std::shared_ptr<Type>
+  operator()(const ast::PointerType& node) const
+  {
+    return std::make_shared<PointerType>(
+      boost::apply_visitor(*this, node.pointee_type));
+  }
+
+  [[nodiscard]] std::shared_ptr<Type>
+  operator()(const ast::UserDefinedType& node) const
+  {
+    return std::make_shared<StructType>(node.name.utf32());
+  }
+};
+
+[[nodiscard]] std::shared_ptr<Type> createType(const ast::Type& ast)
+{
+  return boost::apply_visitor(TypeVisitor(), ast);
 }
 
 } // namespace maple::codegen

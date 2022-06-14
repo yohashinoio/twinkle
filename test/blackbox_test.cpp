@@ -162,6 +162,8 @@ int main(const int argc, const char* const* const argv)
     {                            "this_pointer",  14},
     {         "reference_member_var_in_methods",  58},
     {            "reference_methods_in_methods",  58},
+    {              "multidimensional_array_def",  58},
+    {                        "pointer_to_array",  58},
   };
 
   std::size_t ok_c{};   // ok count.

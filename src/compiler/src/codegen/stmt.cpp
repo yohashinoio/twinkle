@@ -83,7 +83,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
   void operator()(const ast::VariableDef& node) const
   {
-    if (!node.type.has_value() && !node.initializer.has_value()) {
+    if (!node.type && !node.initializer) {
       throw CodegenError{
         ctx.formatError(ctx.positions.position_of(node),
                         "type inference requires an initializer")};
@@ -101,7 +101,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
                               createVariable(ctx.positions.position_of(node),
                                              func,
                                              name,
-                                             *node.type,
+                                             createType(*node.type),
                                              node.initializer,
                                              is_mutable));
     }

@@ -74,11 +74,10 @@ struct assignToValAs {
   auto operator()(const Ctx& ctx) const -> std::enable_if_t<
     std::is_same_v<Ast, ast::BinOp> || std::is_same_v<Ast, ast::Pipeline>>
   {
-    Ast ast{std::move(x3::_val(ctx)),
-            std::move(fusion::at_c<0>(x3::_attr(ctx))),
-            std::move(fusion::at_c<1>(x3::_attr(ctx)))};
-
-    assignAstToVal(ctx, std::move(ast));
+    assignAstToVal(ctx,
+                   Ast{std::move(x3::_val(ctx)),
+                       std::move(fusion::at_c<0>(x3::_attr(ctx))),
+                       std::move(fusion::at_c<1>(x3::_attr(ctx)))});
   }
 
   template <typename Ctx, typename Ast = T>
@@ -92,12 +91,22 @@ struct assignToValAs {
     >
   // clang-format on
   {
-    Ast ast{
-      std::move(x3::_val(ctx)),
-      std::move(fusion::at_c<1>(x3::_attr(ctx))),
-    };
+    assignAstToVal(ctx,
+                   Ast{
+                     std::move(x3::_val(ctx)),
+                     std::move(fusion::at_c<1>(x3::_attr(ctx))),
+                   });
+  };
 
-    assignAstToVal(ctx, std::move(ast));
+  template <typename Ctx, typename Ast = T>
+  auto operator()(const Ctx& ctx) const
+    -> std::enable_if_t<std::is_same_v<Ast, ast::ArrayType>>
+  {
+    assignAstToVal(ctx,
+                   Ast{
+                     std::move(x3::_val(ctx)),
+                     std::move(fusion::at_c<1>(x3::_attr(ctx))),
+                   });
   };
 
 private:
@@ -293,96 +302,60 @@ const auto attribute = x3::rule<struct AttrTag, ast::Attrs>{"attribute"}
 // Type name rules
 //===----------------------------------------------------------------------===//
 
-const auto builtin_type
-  = x3::rule<struct BuiltinTypeTag,
-             codegen::BuiltinTypeKind>{"builtin type name"}
-= builtin_type_symbols;
+const x3::rule<struct TypeTag, ast::Type> type_name{"type name"};
 
-const x3::rule<struct PointerTypeTag, ast::PointerType> pointer_type{
-  "pointer type"};
+const x3::rule<struct ArrayTypeTag, ast::Type> array_type{"array type"};
 
-const x3::rule<struct ArrayTypeTag, ast::ArrayType> array_type{"array type"};
+const x3::rule<struct PointerTypeInternalTag, ast::PointerType>
+  pointer_type_internal{"pointer type"};
+
+const x3::rule<struct PointerTypeTag, ast::Type> pointer_type{"pointer type"};
 
 const x3::rule<struct UserDefinedTypeTag, ast::UserDefinedType>
   user_defined_type{"user defined type"};
 
-const x3::rule<struct TypeTag, ast::Type> type{"type"};
+const auto builtin_type
+  = x3::rule<struct BuiltinTypeTag, ast::BuiltinType>{"builtin type name"}
+= builtin_type_symbols;
 
-const auto array_type_def = type >> lit(U"[") > x3::uint64 > lit(U"]");
+const x3::rule<struct TypePrimaryTag, ast::Type> type_primary{"type primary"};
 
-const auto pointer_type_def = lit(U"*") >> type;
+const auto type_name_def = array_type;
+
+const auto array_type_def
+  = pointer_type[action::assignAttrToVal]
+    >> *(string(U"[") > x3::uint64
+         > lit(U"]"))[action::assignToValAs<ast::ArrayType>{}];
+
+const auto pointer_type_internal_def = lit(U"*") > type_primary;
+
+const auto pointer_type_def = type_primary | pointer_type_internal;
 
 const auto user_defined_type_def = identifier;
 
-const auto type_def = builtin_type | array_type | pointer_type_def
-                      | user_defined_type | (lit(U"") > type > lit(U""));
+const auto type_primary_def
+  = builtin_type | user_defined_type | (lit(U"(") > type_name > lit(U")"));
 
-BOOST_SPIRIT_DEFINE(type)
-BOOST_SPIRIT_DEFINE(pointer_type)
+BOOST_SPIRIT_DEFINE(type_name)
 BOOST_SPIRIT_DEFINE(array_type)
+BOOST_SPIRIT_DEFINE(pointer_type_internal)
+BOOST_SPIRIT_DEFINE(pointer_type)
 BOOST_SPIRIT_DEFINE(user_defined_type)
+BOOST_SPIRIT_DEFINE(type_primary)
 
-// const auto type
-//   = x3::rule<struct TypeInternalTag, std::shared_ptr<codegen::Type>>{"type"}
-// = (-char_(U'*')
-//    >> identifier_internal /* TODO: support double (recursion) ptr */
-//    >> -(lit(U"[") >> x3::uint64 >> lit(U"]")))[([](auto&& ctx) {
-//     const auto type_in_utf32 = fusion::at_c<1>(x3::_attr(ctx));
+struct BuiltinTypeTag : ErrorHandle {};
 
-//     const auto type_kind = codegen::matchBuiltinType(type_in_utf32);
+struct TypePrimaryTag : ErrorHandle {};
 
-//     std::shared_ptr<codegen::Type> base_type;
-//     if (type_kind)
-//       base_type = std::make_shared<codegen::BuiltinType>(*type_kind);
-//     else
-//       base_type = std::make_shared<codegen::StructType>(type_in_utf32);
+struct TypeTag : ErrorHandle {};
 
-//     if (fusion::at_c<0>(x3::_attr(ctx))) {
-//       if (fusion::at_c<2>(x3::_attr(ctx))) {
-//         // Pointer array types.
-//         x3::_val(ctx) = std::make_shared<codegen::ArrayType>(
-//           std::make_shared<codegen::PointerType>(std::move(base_type)),
-//           *fusion::at_c<2>(x3::_attr(ctx)) /* Array size */);
-//         return;
-//       }
+struct PointerTypeInternalTag : ErrorHandle {};
 
-//       // Pointer types.
-//       x3::_val(ctx)
-//         = std::make_shared<codegen::PointerType>(std::move(base_type));
-//       return;
-//     }
+struct PointerTypeTag : ErrorHandle {};
 
-//     if (fusion::at_c<2>(x3::_attr(ctx))) {
-//       // Array types.
-//       x3::_val(ctx) = std::make_shared<codegen::ArrayType>(
-//         std::move(base_type),
-//         *fusion::at_c<2>(x3::_attr(ctx)) /* Array size */);
-//       return;
-//     }
+struct ArrayTypeTag : ErrorHandle {};
 
-//     // Fundamental (built-in) types.
-//     x3::_val(ctx) = std::move(base_type);
-//   })];
-
-struct BuiltinTypeTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct TypeTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct PointerTypeTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct ArrayTypeTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct UserDefinedTypeTag
-  : ErrorHandle
-  , AnnotatePosition {};
+struct UserDefinedTypeTag : ErrorHandle {};
 
 //===----------------------------------------------------------------------===//
 // Operator rules
@@ -481,7 +454,7 @@ const x3::rule<struct StructDeclTag, ast::StructDecl> struct_decl{
   "struct declaration"};
 const x3::rule<struct VariableDefWithoutInit, ast::VariableDefWithoutInit>
   variable_def_without_init{"variable definition without initializer"};
-const x3::rule<struct StructElementsTag, ast::StructElements> struct_elements{
+const x3::rule<struct StructElementsTag, ast::StructMemberList> struct_elements{
   "struct elements"};
 const x3::rule<struct StructDefTag, ast::StructDef> struct_def{
   "struct definition"};
@@ -543,7 +516,7 @@ const auto mul_def
 // Replacing string(U"as") with lit(U"as") causes an error. I don't know why.
 const auto conversion_def
   = unary[action::assignAttrToVal]
-    >> *(string(U"as") > type)[action::assignToValAs<ast::Conversion>{}];
+    >> *(string(U"as") > type_name)[action::assignToValAs<ast::Conversion>{}];
 
 const auto unary_internal_def = unary_operator >> member_access;
 const auto unary_def          = unary_internal | member_access;
@@ -603,9 +576,8 @@ const auto assignment_def = expr >> assignment_operator > expr;
 const auto prefix_inc_or_dec_def = (string(U"++") | string(U"--")) > expr;
 
 const auto variable_type
-  = x3::rule<struct variable_type_tag,
-             std::shared_ptr<codegen::Type>>{"variable type"}
-= type - lit(U"void");
+  = x3::rule<struct variable_type_tag, ast::Type>{"variable type"}
+= type_name - lit(U"void");
 
 const auto variable_def_def = lit(U"let") > -variable_qualifier > identifier
                               > -(lit(U":") > variable_type)
@@ -671,7 +643,7 @@ const auto struct_def_def
   = lit(U"struct") > identifier > lit(U"{") > struct_elements > lit(U"}");
 
 const auto parameter_def
-  = (identifier > lit(U":") > -variable_qualifier > type > x3::attr(false))
+  = (identifier > lit(U":") > -variable_qualifier > type_name > x3::attr(false))
     | lit(U"...")
         >> x3::attr(ast::Parameter{ast::Identifier{}, std::nullopt, {}, true});
 
@@ -680,9 +652,8 @@ const auto parameter_list_def = -(parameter % lit(U","));
 const auto function_proto_def
   = (function_linkage | x3::attr(Linkage::external)) > identifier > lit(U"(")
     > parameter_list > lit(U")")
-    > ((lit(U"->") > type)
-       | x3::attr(std::make_shared<codegen::BuiltinType>(
-         codegen::BuiltinTypeKind::void_)));
+    > ((lit(U"->") > type_name)
+       | x3::attr(ast::BuiltinType{codegen::BuiltinTypeKind::void_}));
 
 const auto function_decl_def
   = lit(U"declare") >> lit(U"func") > function_proto > lit(U";");

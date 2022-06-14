@@ -12,14 +12,15 @@
 namespace maple::codegen
 {
 
-// Calculate the offset of an element of a structure.
-// Returns std::nullopt if there is no matching element.
+// Calculate the offset of a member variable of a structure.
+// Returns std::nullopt if there is no matching member.
 [[nodiscard]] static std::optional<std::size_t>
-offsetByName(const std::vector<ast::VariableDefWithoutInit>& elements,
-             const std::string&                              element_name)
+offsetByName(const StructInfo& struct_info, const std::string& member_name)
 {
-  for (std::size_t offset = 0; const auto& element : elements) {
-    if (element.name.utf8() == element_name)
+  const auto members = struct_info.getMembers();
+
+  for (std::size_t offset = 0; const auto& member : members) {
+    if (member.name == member_name)
       return offset;
     ++offset;
   }
@@ -303,54 +304,52 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   {
     auto const lhs = boost::apply_visitor(*this, node.lhs);
 
+    const auto as = createType(node.as);
+
     if (!lhs) {
       throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
                                          "failed to generate left-hand side")};
     }
 
-    if (node.as->isPointerTy()) {
+    if (as->isPointerTy()) {
       // Pointer to pointer.
-      return {ctx.builder.CreatePointerCast(lhs.getValue(),
-                                            node.as->getLLVMType(ctx)),
-              node.as};
+      return {
+        ctx.builder.CreatePointerCast(lhs.getValue(), as->getLLVMType(ctx)),
+        as};
     }
 
-    if (node.as->isFloatingPointTy()) {
+    if (as->isFloatingPointTy()) {
       if (lhs.getType()->isIntegerTy()) {
         const auto cast_op = lhs.getType()->isSigned()
                                ? llvm::CastInst::CastOps::SIToFP
                                : llvm::CastInst::CastOps::UIToFP;
 
-        return {ctx.builder.CreateCast(cast_op,
-                                       lhs.getValue(),
-                                       node.as->getLLVMType(ctx)),
-                node.as};
+        return {
+          ctx.builder.CreateCast(cast_op, lhs.getValue(), as->getLLVMType(ctx)),
+          as};
       }
 
       // Floating point number to floating point number.
-      return {
-        ctx.builder.CreateFPCast(lhs.getValue(), node.as->getLLVMType(ctx)),
-        node.as};
+      return {ctx.builder.CreateFPCast(lhs.getValue(), as->getLLVMType(ctx)),
+              as};
     }
 
-    if (node.as->getLLVMType(ctx)->isIntegerTy()) {
+    if (as->getLLVMType(ctx)->isIntegerTy()) {
       if (lhs.getType()->isFloatingPointTy()) {
         // Floating point number to integer.
-        const auto cast_op = node.as->isSigned()
-                               ? llvm::CastInst::CastOps::FPToSI
-                               : llvm::CastInst::CastOps::FPToUI;
+        const auto cast_op = as->isSigned() ? llvm::CastInst::CastOps::FPToSI
+                                            : llvm::CastInst::CastOps::FPToUI;
 
-        return {ctx.builder.CreateCast(cast_op,
-                                       lhs.getValue(),
-                                       node.as->getLLVMType(ctx)),
-                node.as};
+        return {
+          ctx.builder.CreateCast(cast_op, lhs.getValue(), as->getLLVMType(ctx)),
+          as};
       }
 
       // Integer to integer.
       return {ctx.builder.CreateIntCast(lhs.getValue(),
-                                        node.as->getLLVMType(ctx),
-                                        node.as->isSigned()),
-              node.as};
+                                        as->getLLVMType(ctx),
+                                        as->isSigned()),
+              as};
     }
 
     throw CodegenError{
@@ -725,13 +724,13 @@ private:
     const auto struct_info
       = ctx.struct_table[structure.getLLVMType()->getStructName().str()];
 
-    if (!struct_info->first) {
+    if (!struct_info || struct_info->isOpaque()) {
       throw CodegenError{ctx.formatError(
         ctx.positions.position_of(member_name),
         "element selection cannot be performed on undefined structures")};
     }
 
-    const auto offset = offsetByName(struct_info->first.value(), member_name);
+    const auto offset = offsetByName(*struct_info, member_name);
 
     if (!offset) {
       throw CodegenError{ctx.formatError(
@@ -750,7 +749,7 @@ private:
     return {ctx.builder.CreateLoad(
               structure.getLLVMType()->getStructElementType(*offset),
               gep),
-            struct_info->first->at(*offset).type,
+            struct_info->getMember(*offset).type,
             structure.isMutable()};
   }
 

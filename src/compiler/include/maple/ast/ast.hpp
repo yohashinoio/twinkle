@@ -13,28 +13,27 @@
 #endif // _MSC_VER > 1000
 
 #include <maple/pch/pch.hpp>
-#include <maple/codegen/type.hpp>
 #include <maple/unicode/unicode.hpp>
+#include <maple/support/kind.hpp>
 
-namespace maple::ast
+namespace maple
+{
+
+namespace codegen
+{
+
+enum class BuiltinTypeKind;
+
+}
+
+namespace ast
 {
 
 namespace x3 = boost::spirit::x3;
 
 //===----------------------------------------------------------------------===//
-// Expression AST
+// Common AST
 //===----------------------------------------------------------------------===//
-
-struct StringLiteral : x3::position_tagged {
-  using value_type = std::u32string::value_type;
-
-  std::u32string str;
-};
-
-struct CharLiteral : x3::position_tagged {
-  // Unicode code point.
-  unicode::Codepoint ch;
-};
 
 struct Identifier : x3::position_tagged {
   std::u32string name;
@@ -55,6 +54,85 @@ struct Identifier : x3::position_tagged {
   {
     return name;
   }
+};
+
+//===----------------------------------------------------------------------===//
+// Type AST
+//===----------------------------------------------------------------------===//
+
+struct BuiltinType : x3::position_tagged {
+  explicit BuiltinType(const codegen::BuiltinTypeKind kind)
+    : kind{kind}
+  {
+  }
+
+  BuiltinType() = default;
+
+  codegen::BuiltinTypeKind kind;
+};
+
+struct UserDefinedType : x3::position_tagged {
+  // Default constructor causes bugs
+  // Cause unknown
+  explicit UserDefinedType(Identifier&& name)
+    : name{name}
+  {
+  }
+
+  explicit UserDefinedType(const Identifier& name)
+    : name{name}
+  {
+  }
+
+  UserDefinedType() = default;
+
+  Identifier name;
+};
+
+struct ArrayType;
+struct PointerType;
+
+using Type = boost::variant<boost::blank,
+                            BuiltinType,
+                            UserDefinedType,
+                            boost::recursive_wrapper<ArrayType>,
+                            boost::recursive_wrapper<PointerType>>;
+
+struct ArrayType : x3::position_tagged {
+  ArrayType(Type&& element_type, const std::uint64_t size)
+    : element_type{std::move(element_type)}
+    , size{size}
+  {
+  }
+
+  Type          element_type;
+  std::uint64_t size;
+};
+
+struct PointerType : x3::position_tagged {
+  explicit PointerType(Type&& pointee_type) noexcept
+    : pointee_type{std::move(pointee_type)}
+  {
+  }
+
+  PointerType() = default;
+
+  Type pointee_type;
+};
+
+//===----------------------------------------------------------------------===//
+// Expression AST
+//===----------------------------------------------------------------------===//
+
+struct StringLiteral : x3::position_tagged {
+  using value_type = std::u32string::value_type;
+
+  std::u32string str;
+};
+
+struct CharLiteral : x3::position_tagged {
+  // Unicode code point.
+  unicode::Codepoint ch;
 };
 
 struct BinOp;
@@ -226,8 +304,6 @@ struct Subscript : x3::position_tagged {
 
 struct FunctionCall : x3::position_tagged {
   Expr             callee;
-  // Using deque instead of vector because of the possibility of adding an
-  // element at the front.
   std::deque<Expr> args;
 
   FunctionCall(Expr&& callee, std::deque<Expr>&& args) noexcept
@@ -238,10 +314,10 @@ struct FunctionCall : x3::position_tagged {
 };
 
 struct Conversion : x3::position_tagged {
-  Expr                           lhs;
-  std::shared_ptr<codegen::Type> as;
+  Expr      lhs;
+  ast::Type as;
 
-  Conversion(Expr&& lhs, std::shared_ptr<codegen::Type> as) noexcept
+  Conversion(Expr&& lhs, ast::Type as) noexcept
     : lhs{std::move(lhs)}
     , as{as}
   {
@@ -277,11 +353,11 @@ struct Return : x3::position_tagged {
 };
 
 struct VariableDef : x3::position_tagged {
-  std::optional<VariableQual>                   qualifier;
-  Identifier                                    name;
-  std::optional<std::shared_ptr<codegen::Type>> type;
+  std::optional<VariableQual> qualifier;
+  Identifier                  name;
+  std::optional<ast::Type>    type;
   // Initializer.
-  std::optional<Initializer>                    initializer;
+  std::optional<Initializer>  initializer;
 };
 
 struct Assignment : x3::position_tagged {
@@ -406,15 +482,15 @@ struct For : x3::position_tagged {
 //===----------------------------------------------------------------------===//
 
 struct Parameter : x3::position_tagged {
-  Identifier                     name;
-  std::optional<VariableQual>    qualifier;
-  std::shared_ptr<codegen::Type> type;
-  bool                           is_vararg;
+  Identifier                  name;
+  std::optional<VariableQual> qualifier;
+  ast::Type                   type;
+  bool                        is_vararg;
 
-  Parameter(Identifier&&                     name,
-            std::optional<VariableQual>&&    qualifier,
-            std::shared_ptr<codegen::Type>&& type,
-            const bool                       is_vararg) noexcept
+  Parameter(Identifier&&                  name,
+            std::optional<VariableQual>&& qualifier,
+            ast::Type&&                   type,
+            const bool                    is_vararg) noexcept
     : name{name}
     , qualifier{qualifier}
     , type{type}
@@ -447,10 +523,10 @@ struct ParameterList : x3::position_tagged {
 };
 
 struct FunctionDecl : x3::position_tagged {
-  Linkage                        linkage;
-  Identifier                     name;
-  ParameterList                  params;
-  std::shared_ptr<codegen::Type> return_type;
+  Linkage       linkage;
+  Identifier    name;
+  ParameterList params;
+  ast::Type     return_type;
 };
 
 struct FunctionDef : x3::position_tagged {
@@ -463,18 +539,18 @@ struct StructDecl : x3::position_tagged {
 };
 
 struct VariableDefWithoutInit : x3::position_tagged {
-  Identifier                     name;
-  std::shared_ptr<codegen::Type> type;
+  Identifier name;
+  ast::Type  type;
 };
 
-using StructElement
+using StructMember
   = boost::variant<boost::blank, VariableDefWithoutInit, FunctionDef>;
 
-using StructElements = std::vector<StructElement>;
+using StructMemberList = std::vector<StructMember>;
 
 struct StructDef : x3::position_tagged {
-  Identifier     name;
-  StructElements elements;
+  Identifier       name;
+  StructMemberList members;
 };
 
 using TopLevel = boost::
@@ -490,6 +566,8 @@ struct TopLevelWithAttr : x3::position_tagged {
 
 using Program = std::vector<TopLevelWithAttr>;
 
-} // namespace maple::ast
+} // namespace ast
+
+} // namespace maple
 
 #endif

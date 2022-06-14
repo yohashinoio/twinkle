@@ -1,0 +1,10 @@
+func main() -> i32
+{
+  let mut two: i32[5][8];
+
+  let three: char[48][4][10];
+
+  let four: *i8[4][8][1][0];
+
+  return 58;
+}

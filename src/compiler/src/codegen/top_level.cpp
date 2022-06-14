@@ -97,8 +97,10 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
   {
     const auto name = node.name.utf8();
 
+    const auto return_type = createType(node.return_type);
+
     if (name.length() == 4 /* For optimization */ && name == "main"
-        && !node.return_type->isIntegerTy()) {
+        && !return_type->isIntegerTy()) {
       throw CodegenError{
         ctx.formatError(ctx.positions.position_of(node),
                         "the return type of main must be an integer")};
@@ -123,7 +125,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     const auto param_types = createParamTypes(node.params, named_params_len);
 
     auto const func_type
-      = llvm::FunctionType::get(node.return_type->getLLVMType(ctx),
+      = llvm::FunctionType::get(return_type->getLLVMType(ctx),
                                 param_types,
                                 *is_vararg);
 
@@ -137,7 +139,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     auto const func
       = createLlvmFunction(node.linkage, func_type, mangled_name, *ctx.module);
 
-    ctx.return_type_table.registOrOverwrite(func, node.return_type);
+    ctx.return_type_table.registOrOverwrite(func, return_type);
 
     // Set names to all arguments.
     for (std::size_t idx = 0; auto&& arg : func->args())
@@ -174,15 +176,16 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     auto argument_table
       = createArgumentTable(func, node.decl.params, func->args());
 
+    const auto return_type = createType(node.decl.return_type);
+
     // Used to combine returns into one.
     auto const end_bb = llvm::BasicBlock::Create(ctx.context);
+
     // Return variable.
     auto const return_variable
-      = node.decl.return_type->isVoid()
+      = return_type->isVoid()
           ? nullptr
-          : createEntryAlloca(func,
-                              "",
-                              node.decl.return_type->getLLVMType(ctx));
+          : createEntryAlloca(func, "", return_type->getLLVMType(ctx));
 
     createStatement(ctx,
                     argument_table,
@@ -191,7 +194,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
     // If there is no return, returns undef.
     if (!ctx.builder.GetInsertBlock()->getTerminator()
-        && !(node.decl.return_type->isVoid())) {
+        && !(return_type->isVoid())) {
       // Return 0 specially for main.
       if (name == "main") {
         ctx.builder.CreateStore(
@@ -208,7 +211,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
     // Inserts a terminator if the function returning void does not have
     // one.
-    if (node.decl.return_type->isVoid()
+    if (return_type->isVoid()
         && !ctx.builder.GetInsertBlock()->getTerminator()) {
       ctx.builder.CreateBr(end_bb);
     }
@@ -244,8 +247,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
     ctx.struct_table.regist(
       name,
-      std::make_pair(std::nullopt, /* std::nullopt means opaque */
-                     llvm::StructType::create(ctx.context, name)));
+      StructInfo{llvm::StructType::create(ctx.context, name), {}, true});
 
     return nullptr;
   }
@@ -254,20 +256,21 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
   {
     const auto name = node.name.utf8();
 
-    // Set element types and create element sign info.
-    std::vector<llvm::Type*>                 element_types;
-    std::vector<ast::VariableDefWithoutInit> member_variables;
-    std::vector<ast::FunctionDef>            methods;
-    for (const auto& element : node.elements) {
+    std::vector<llvm::Type*>        member_var_types;
+    std::vector<StructInfo::Member> member_variables;
+    std::vector<ast::FunctionDef>   methods;
+    for (const auto& member : node.members) {
       if (const auto* variable
-          = boost::get<ast::VariableDefWithoutInit>(&element)) {
+          = boost::get<ast::VariableDefWithoutInit>(&member)) {
         // Member variables
-        element_types.emplace_back(variable->type->getLLVMType(ctx));
-        member_variables.push_back(*variable);
+        const auto type = createType(variable->type);
+
+        member_var_types.emplace_back(type->getLLVMType(ctx));
+        member_variables.push_back({variable->name.utf8(), type});
         continue;
       }
 
-      if (const auto* function = boost::get<ast::FunctionDef>(&element)) {
+      if (const auto* function = boost::get<ast::FunctionDef>(&member)) {
         // Methods
         auto function_clone = *function;
 
@@ -275,8 +278,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
         function_clone.decl.params->push_front(
           {ast::Identifier{std::u32string{U"this"}},
            VariableQual::mutable_,
-           std::make_shared<PointerType>(
-             std::make_shared<StructType>(node.name.utf32())),
+           ast::PointerType{ast::UserDefinedType{node.name}},
            false});
 
         methods.push_back(std::move(function_clone));
@@ -288,9 +290,9 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
     // Check to make sure the name does not already exist.
     if (const auto existed_type = ctx.struct_table[name]) {
-      if (existed_type->second->isOpaque()) {
-        // Set element type if declared forward.
-        existed_type->second->setBody(element_types);
+      if (existed_type->isOpaque()) {
+        // Set member type if declared forward.
+        existed_type->getLLVMType()->setBody(member_var_types);
       }
       else {
         throw CodegenError{
@@ -301,9 +303,10 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     else {
       ctx.struct_table.regist(
         name,
-        std::make_pair(
+        StructInfo{
+          llvm::StructType::create(ctx.context, member_var_types, name),
           std::move(member_variables),
-          llvm::StructType::create(ctx.context, element_types, name)));
+          false});
     }
 
     {
@@ -320,7 +323,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
   }
 
 private:
-  SymbolTable createArgumentTable(
+  [[nodiscard]] SymbolTable createArgumentTable(
     llvm::Function* const                                func,
     const ast::ParameterList&                            param_list,
     llvm::iterator_range<llvm::Function::arg_iterator>&& args) const
@@ -330,10 +333,12 @@ private:
     for (auto& arg : args) {
       const auto& param_node = param_list->at(arg.getArgNo());
 
+      const auto& param_type = createType(param_node.type);
+
       // Create an alloca for this variable.
       auto const alloca = createEntryAlloca(func,
                                             arg.getName().str(),
-                                            param_node.type->getLLVMType(ctx));
+                                            param_type->getLLVMType(ctx));
 
       // Store the initial value into the alloca.
       ctx.builder.CreateStore(&arg, alloca);
@@ -345,7 +350,7 @@ private:
       // Add arguments to variable symbol table.
       argument_table.registOrOverwrite(arg.getName().str(),
                                        Variable{
-                                         {alloca, param_node.type},
+                                         {alloca, param_type},
                                          is_mutable
       });
     }
@@ -361,7 +366,8 @@ private:
 
     for (std::size_t i = 0; i != named_params_len; ++i) {
       const auto& param_type = params->at(i).type;
-      types.at(i)            = param_type->getLLVMType(ctx);
+      // TODO: Optimizaiton
+      types.at(i)            = createType(param_type)->getLLVMType(ctx);
     }
 
     return types;
