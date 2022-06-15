@@ -285,6 +285,11 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
         continue;
       }
 
+      if (const auto* access_specifier = boost::get<AccessSpecifier>(&member)) {
+        // TODO
+        unreachable();
+      }
+
       unreachable();
     }
 

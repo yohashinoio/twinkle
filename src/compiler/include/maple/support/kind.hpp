@@ -37,6 +37,12 @@ enum class Linkage {
   internal,
 };
 
+enum class AccessSpecifier {
+  unknown,
+  public_,
+  private_,
+};
+
 [[nodiscard]] llvm::Function::LinkageTypes
 linkageToLLVM(const Linkage linkage) noexcept;
 

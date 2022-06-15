@@ -149,8 +149,8 @@ using UnicodeSymbols
 // Symbol table
 //===----------------------------------------------------------------------===//
 
-struct VariableQualifierSymbolsTag : UnicodeSymbols<VariableQual> {
-  VariableQualifierSymbolsTag()
+struct VariableQualifierSymbols : UnicodeSymbols<VariableQual> {
+  VariableQualifierSymbols()
   {
     // clang-format off
     add
@@ -160,8 +160,8 @@ struct VariableQualifierSymbolsTag : UnicodeSymbols<VariableQual> {
   }
 } variable_qualifier_symbols;
 
-struct FunctionLinkageSymbolsTag : UnicodeSymbols<Linkage> {
-  FunctionLinkageSymbolsTag()
+struct FunctionLinkageSymbols : UnicodeSymbols<Linkage> {
+  FunctionLinkageSymbols()
   {
     // clang-format off
     add
@@ -171,8 +171,20 @@ struct FunctionLinkageSymbolsTag : UnicodeSymbols<Linkage> {
   }
 } function_linkage_symbols;
 
-struct EscapeCharSymbolsTag : UnicodeSymbols<char32_t> {
-  EscapeCharSymbolsTag()
+struct AccessSpecifierSymbols : UnicodeSymbols<AccessSpecifier> {
+  AccessSpecifierSymbols()
+  {
+    // clang-format off
+    add
+      (U"public", AccessSpecifier::public_)
+      (U"private", AccessSpecifier::private_)
+    ;
+    // clang-format on
+  }
+} access_specifier_symbols;
+
+struct EscapeCharSymbols : UnicodeSymbols<char32_t> {
+  EscapeCharSymbols()
   {
     // clang-format off
     add
@@ -240,6 +252,10 @@ const auto variable_qualifier
 const auto function_linkage
   = x3::rule<struct FunctionLinkageTag, Linkage>{"function linkage"}
 = function_linkage_symbols;
+
+const auto access_specifier
+  = x3::rule<struct AccessSpecifierTag, AccessSpecifier>{"access specifier"}
+= access_specifier_symbols;
 
 const auto binary_literal
   = x3::rule<struct BinaryLiteralTag, std::uint32_t>{"binary literal"}
@@ -455,8 +471,8 @@ const x3::rule<struct StructDeclTag, ast::StructDecl> struct_decl{
   "struct declaration"};
 const x3::rule<struct VariableDefWithoutInit, ast::VariableDefWithoutInit>
   variable_def_without_init{"variable definition without initializer"};
-const x3::rule<struct StructElementsTag, ast::StructMemberList> struct_elements{
-  "struct elements"};
+const x3::rule<struct StructElementsTag, ast::StructMemberList>
+  struct_member_list{"struct elements"};
 const x3::rule<struct StructDefTag, ast::StructDef> struct_def{
   "struct definition"};
 const x3::rule<struct ParameterTag, ast::Parameter> parameter{"parameter"};
@@ -638,11 +654,12 @@ const auto struct_decl_def
 const auto variable_def_without_init_def
   = lit(U"let") > identifier > lit(U":") > variable_type;
 
-const auto struct_elements_def
-  = *((variable_def_without_init > lit(U";")) | function_def);
+const auto struct_member_list_def
+  = *((variable_def_without_init > lit(U";")) | function_def
+      | (access_specifier > lit(U":")));
 
 const auto struct_def_def
-  = lit(U"struct") > identifier > lit(U"{") > struct_elements > lit(U"}");
+  = lit(U"struct") > identifier > lit(U"{") > struct_member_list > lit(U"}");
 
 const auto parameter_def
   = (identifier > lit(U":") > -variable_qualifier > type_name > x3::attr(false))
@@ -668,7 +685,7 @@ const auto top_level_def
 const auto top_level_with_attr_def = -attribute >> top_level_def;
 
 BOOST_SPIRIT_DEFINE(variable_def_without_init)
-BOOST_SPIRIT_DEFINE(struct_elements)
+BOOST_SPIRIT_DEFINE(struct_member_list)
 BOOST_SPIRIT_DEFINE(struct_def)
 BOOST_SPIRIT_DEFINE(struct_decl)
 BOOST_SPIRIT_DEFINE(parameter)

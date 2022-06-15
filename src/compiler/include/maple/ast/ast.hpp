@@ -543,8 +543,8 @@ struct VariableDefWithoutInit : x3::position_tagged {
   ast::Type  type;
 };
 
-using StructMember
-  = boost::variant<boost::blank, VariableDefWithoutInit, FunctionDef>;
+using StructMember = boost::
+  variant<boost::blank, VariableDefWithoutInit, FunctionDef, AccessSpecifier>;
 
 using StructMemberList = std::vector<StructMember>;
 
