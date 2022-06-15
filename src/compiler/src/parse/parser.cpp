@@ -23,8 +23,8 @@ namespace maple::parse
 
 struct ErrorHandle {
   template <typename Iterator, typename Context>
-  x3::error_handler_result on_error([[maybe_unused]] Iterator&       first,
-                                    [[maybe_unused]] const Iterator& last,
+  x3::error_handler_result on_error(Iterator&,
+                                    const Iterator&,
                                     const x3::expectation_failure<Iterator>& x,
                                     Context const& context) const
   {
@@ -71,8 +71,9 @@ const auto assignAttrToVal = [](const auto& ctx) {
 template <typename T>
 struct assignToValAs {
   template <typename Ctx, typename Ast = T>
-  auto operator()(const Ctx& ctx) const -> std::enable_if_t<
-    std::is_same_v<Ast, ast::BinOp> || std::is_same_v<Ast, ast::Pipeline>>
+  auto operator()(const Ctx& ctx) const
+    -> std::enable_if_t<std::is_same_v<Ast, ast::BinOp>
+                        || std::is_same_v<Ast, ast::Pipeline>>
   {
     assignAstToVal(ctx,
                    Ast{std::move(x3::_val(ctx)),
