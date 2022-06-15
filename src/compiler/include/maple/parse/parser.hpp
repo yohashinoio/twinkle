@@ -24,7 +24,7 @@ struct Parser : private boost::noncopyable {
     // Since positions has a reference to input, it also holds input.
     std::string input;
 
-    ast::Program          ast;
+    ast::TranslationUnit  ast;
     PositionCache         positions;
     std::filesystem::path file;
   };
@@ -54,8 +54,8 @@ private:
   InputIterator       u32_first;
   const InputIterator u32_last;
 
-  ast::Program  ast;
-  PositionCache positions;
+  ast::TranslationUnit ast;
+  PositionCache        positions;
 
   std::filesystem::path file;
 };

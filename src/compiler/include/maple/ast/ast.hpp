@@ -564,7 +564,7 @@ struct TopLevelWithAttr : x3::position_tagged {
   TopLevel top_level;
 };
 
-using Program = std::vector<TopLevelWithAttr>;
+using TranslationUnit = std::vector<TopLevelWithAttr>;
 
 } // namespace ast
 

@@ -206,7 +206,7 @@ void CodeGenerator::emitObjectFiles()
   return main_addr();
 }
 
-void CodeGenerator::codegen(const ast::Program&                ast,
+void CodeGenerator::codegen(const ast::TranslationUnit&        ast,
                             CGContext&                         ctx,
                             llvm::legacy::FunctionPassManager& fp_manager)
 {

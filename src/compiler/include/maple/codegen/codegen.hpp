@@ -220,7 +220,7 @@ private:
   using Result
     = std::tuple<std::unique_ptr<llvm::Module>, std::filesystem::path>;
 
-  void codegen(const ast::Program&                ast,
+  void codegen(const ast::TranslationUnit&        ast,
                CGContext&                         ctx,
                llvm::legacy::FunctionPassManager& fp_manager);
 

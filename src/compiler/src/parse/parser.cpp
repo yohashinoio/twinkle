@@ -479,10 +479,11 @@ const x3::rule<struct TopLevelWithAttrTag, ast::TopLevelWithAttr>
 const x3::rule<struct BlockCommentTag> block_comment{"block comment"};
 
 //===----------------------------------------------------------------------===//
-// Program rule
+// Translation unit rule
 //===----------------------------------------------------------------------===//
 
-const x3::rule<struct ProgramTag, ast::Program> program{"program"};
+const x3::rule<struct TranslationUnitTag, ast::TranslationUnit>
+  translation_unit{"translation unit"};
 
 //===----------------------------------------------------------------------===//
 // Expression rules definition
@@ -702,12 +703,12 @@ const auto skipper = x3::rule<struct SkipperTag>{"skipper"}
 = x3::space | comment;
 
 //===----------------------------------------------------------------------===//
-// Program rules definition
+// Translation unit rules definition
 //===----------------------------------------------------------------------===//
 
-const auto program_def = *top_level_with_attr > x3::eoi;
+const auto translation_unit_def = *top_level_with_attr > x3::eoi;
 
-BOOST_SPIRIT_DEFINE(program)
+BOOST_SPIRIT_DEFINE(translation_unit)
 
 #pragma clang diagnostic pop
 
@@ -916,10 +917,10 @@ struct TopLevelWithAttrTag
   , AnnotatePosition {};
 
 //===----------------------------------------------------------------------===//
-// Program tag
+// Translation unit tag
 //===----------------------------------------------------------------------===//
 
-struct ProgramTag
+struct TranslationUnitTag
   : ErrorHandle
   , AnnotatePosition {};
 
@@ -942,8 +943,9 @@ void Parser::parse()
                                                  std::cerr,
                                                  file.string()};
 
-  const auto parser = x3::with<x3::error_handler_tag>(std::ref(
-    error_handler))[x3::with<PositionCacheTag>(positions)[syntax::program]];
+  const auto parser = x3::with<x3::error_handler_tag>(
+    std::ref(error_handler))[x3::with<PositionCacheTag>(
+    positions)[syntax::translation_unit]];
 
   if (!x3::phrase_parse(u32_first, u32_last, parser, syntax::skipper, ast)
       || u32_first != u32_last) {
