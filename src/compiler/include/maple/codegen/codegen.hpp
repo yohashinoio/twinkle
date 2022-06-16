@@ -83,7 +83,7 @@ struct StructInfo {
   struct Member {
     std::string           name;
     std::shared_ptr<Type> type;
-    AccessSpecifier       access_spec;
+    AccessSpecifier       accessibility;
   };
 
   StructInfo(llvm::StructType* const llvmtype,

@@ -421,7 +421,7 @@ private:
       const auto this_v
         = createDereference(ctx.positions.position_of(node), *this_p);
 
-      return memberVariableAccess(this_v, node);
+      return memberVariableAccess(this_v, node, false);
     }
 
     return std::nullopt;
@@ -714,7 +714,8 @@ private:
 
   [[nodiscard]] Value
   memberVariableAccess(const Value&           structure,
-                       const ast::Identifier& member_name_ast) const
+                       const ast::Identifier& member_name_ast,
+                       const bool             external_access = true) const
   {
     const auto member_name = member_name_ast.utf8();
 
@@ -741,6 +742,14 @@ private:
         fmt::format("undefined member '{}' selected", member_name))};
     }
 
+    if (external_access
+        && !isExternallyAccessible(
+          struct_info->getMember(*offset).accessibility)) {
+      throw CodegenError{ctx.formatError(
+        ctx.positions.position_of(member_name_ast),
+        fmt::format("member '{}' is not accessible", member_name))};
+    }
+
     auto const lhs_address = llvm::getPointerOperand(structure.getValue());
 
     auto const gep = ctx.builder.CreateInBoundsGEP(
@@ -758,10 +767,12 @@ private:
 
   [[nodiscard]] Value
   memberVariableAccess(const ast::Expr&       structure,
-                       const ast::Identifier& member_name_ast) const
+                       const ast::Identifier& member_name_ast,
+                       const bool             external_access = true) const
   {
     return memberVariableAccess(createExpr(ctx, scope, stmt_ctx, structure),
-                                member_name_ast);
+                                member_name_ast,
+                                external_access);
   }
 
   [[nodiscard]] Value methodAccess(const ast::Expr&         lhs,

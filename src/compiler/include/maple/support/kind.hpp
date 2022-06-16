@@ -43,6 +43,9 @@ enum class AccessSpecifier {
   private_,
 };
 
+[[nodiscard]] bool
+isExternallyAccessible(const AccessSpecifier& access) noexcept;
+
 [[nodiscard]] llvm::Function::LinkageTypes
 linkageToLLVM(const Linkage linkage) noexcept;
 

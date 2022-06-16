@@ -40,4 +40,19 @@ linkageToLLVM(const Linkage linkage) noexcept
   unreachable();
 }
 
+[[nodiscard]] bool
+isExternallyAccessible(const AccessSpecifier& access) noexcept
+{
+  switch (access) {
+  case AccessSpecifier::public_:
+    return true;
+  case AccessSpecifier::private_:
+    return false;
+  case AccessSpecifier::unknown:
+    unreachable();
+  }
+
+  unreachable();
+}
+
 } // namespace maple
