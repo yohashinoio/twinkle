@@ -256,9 +256,12 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
   {
     const auto name = node.name.utf8();
 
+    auto access_spec = AccessSpecifier::public_;
+
     std::vector<llvm::Type*>        member_var_types;
     std::vector<StructInfo::Member> member_variables;
     std::vector<ast::FunctionDef>   methods;
+
     for (const auto& member : node.members) {
       if (const auto* variable
           = boost::get<ast::VariableDefWithoutInit>(&member)) {
@@ -266,7 +269,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
         const auto type = createType(variable->type);
 
         member_var_types.emplace_back(type->getLLVMType(ctx));
-        member_variables.push_back({variable->name.utf8(), type});
+        member_variables.push_back({variable->name.utf8(), type, access_spec});
         continue;
       }
 
@@ -286,8 +289,17 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
       }
 
       if (const auto* access_specifier = boost::get<AccessSpecifier>(&member)) {
-        // TODO
-        unreachable();
+        switch (*access_specifier) {
+        case AccessSpecifier::public_:
+          access_spec = AccessSpecifier::public_;
+          continue;
+        case AccessSpecifier::private_:
+          access_spec = AccessSpecifier::private_;
+          continue;
+        case AccessSpecifier::unknown:
+          access_spec = AccessSpecifier::unknown;
+          continue;
+        }
       }
 
       unreachable();

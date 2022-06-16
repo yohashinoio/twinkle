@@ -146,7 +146,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   [[nodiscard]] Value operator()(const ast::MemberAccess& node) const
   {
     if (const auto* rhs = boost::get<ast::Identifier>(&node.rhs))
-      return memberVariableAccess(node.lhs, rhs->utf8());
+      return memberVariableAccess(node.lhs, *rhs);
 
     if (const auto* rhs = boost::get<ast::FunctionCall>(&node.rhs))
       return methodAccess(node.lhs, *rhs);
@@ -421,7 +421,7 @@ private:
       const auto this_v
         = createDereference(ctx.positions.position_of(node), *this_p);
 
-      return memberVariableAccess(this_v, node.utf8());
+      return memberVariableAccess(this_v, node);
     }
 
     return std::nullopt;
@@ -712,30 +712,33 @@ private:
     return func;
   }
 
-  [[nodiscard]] Value memberVariableAccess(const Value&       structure,
-                                           const std::string& member_name) const
+  [[nodiscard]] Value
+  memberVariableAccess(const Value&           structure,
+                       const ast::Identifier& member_name_ast) const
   {
+    const auto member_name = member_name_ast.utf8();
+
     if (!structure.getLLVMType()->isStructTy()) {
       throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(member_name),
-                        "element selection cannot be used for non-structures")};
+        ctx.formatError(ctx.positions.position_of(member_name_ast),
+                        "member access cannot be used for non-struct")};
     }
 
     const auto struct_info
       = ctx.struct_table[structure.getLLVMType()->getStructName().str()];
 
     if (!struct_info || struct_info->isOpaque()) {
-      throw CodegenError{ctx.formatError(
-        ctx.positions.position_of(member_name),
-        "element selection cannot be performed on undefined structures")};
+      throw CodegenError{
+        ctx.formatError(ctx.positions.position_of(member_name_ast),
+                        "member access to undefined struct is not allowed.")};
     }
 
     const auto offset = offsetByName(*struct_info, member_name);
 
     if (!offset) {
       throw CodegenError{ctx.formatError(
-        ctx.positions.position_of(member_name),
-        fmt::format("undefined element '{}' selected", member_name))};
+        ctx.positions.position_of(member_name_ast),
+        fmt::format("undefined member '{}' selected", member_name))};
     }
 
     auto const lhs_address = llvm::getPointerOperand(structure.getValue());
@@ -753,11 +756,12 @@ private:
             structure.isMutable()};
   }
 
-  [[nodiscard]] Value memberVariableAccess(const ast::Expr&   structure,
-                                           const std::string& member_name) const
+  [[nodiscard]] Value
+  memberVariableAccess(const ast::Expr&       structure,
+                       const ast::Identifier& member_name_ast) const
   {
     return memberVariableAccess(createExpr(ctx, scope, stmt_ctx, structure),
-                                member_name);
+                                member_name_ast);
   }
 
   [[nodiscard]] Value methodAccess(const ast::Expr&         lhs,
