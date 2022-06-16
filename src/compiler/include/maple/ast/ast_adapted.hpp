@@ -14,6 +14,15 @@
 // clang-format off
 
 //===----------------------------------------------------------------------===//
+// Common AST adapt
+//===----------------------------------------------------------------------===//
+
+BOOST_FUSION_ADAPT_STRUCT(
+  maple::ast::Identifier,
+  (std::u32string, name)
+)
+
+//===----------------------------------------------------------------------===//
 // Type AST adapt
 //===----------------------------------------------------------------------===//
 
@@ -50,11 +59,6 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::CharLiteral,
   (maple::unicode::Codepoint, ch)
-)
-
-BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::Identifier,
-  (std::u32string, name)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
