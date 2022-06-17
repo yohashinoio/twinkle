@@ -71,9 +71,8 @@ const auto assignAttrToVal = [](const auto& ctx) {
 template <typename T>
 struct assignToValAs {
   template <typename Ctx, typename Ast = T>
-  auto operator()(const Ctx& ctx) const
-    -> std::enable_if_t<std::is_same_v<Ast, ast::BinOp>
-                        || std::is_same_v<Ast, ast::Pipeline>>
+  auto operator()(const Ctx& ctx) const -> std::enable_if_t<
+    std::is_same_v<Ast, ast::BinOp> || std::is_same_v<Ast, ast::Pipeline>>
   {
     assignAstToVal(ctx,
                    Ast{std::move(x3::_val(ctx)),
@@ -171,13 +170,13 @@ struct FunctionLinkageSymbols : UnicodeSymbols<Linkage> {
   }
 } function_linkage_symbols;
 
-struct AccessSpecifierSymbols : UnicodeSymbols<AccessSpecifier> {
+struct AccessSpecifierSymbols : UnicodeSymbols<Accessibility> {
   AccessSpecifierSymbols()
   {
     // clang-format off
     add
-      (U"public", AccessSpecifier::public_)
-      (U"private", AccessSpecifier::private_)
+      (U"public", Accessibility::public_)
+      (U"private", Accessibility::private_)
     ;
     // clang-format on
   }
@@ -254,7 +253,7 @@ const auto function_linkage
 = function_linkage_symbols;
 
 const auto access_specifier
-  = x3::rule<struct AccessSpecifierTag, AccessSpecifier>{"access specifier"}
+  = x3::rule<struct AccessSpecifierTag, Accessibility>{"access specifier"}
 = access_specifier_symbols;
 
 const auto binary_literal

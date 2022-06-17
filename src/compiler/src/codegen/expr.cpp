@@ -15,9 +15,9 @@ namespace maple::codegen
 // Calculate the offset of a member variable of a structure.
 // Returns std::nullopt if there is no matching member.
 [[nodiscard]] static std::optional<std::size_t>
-offsetByName(const StructInfo& struct_info, const std::string& member_name)
+offsetByName(const Struct& struct_info, const std::string& member_name)
 {
-  const auto members = struct_info.getMembers();
+  const auto members = struct_info.getMemberVariables();
 
   for (std::size_t offset = 0; const auto& member : members) {
     if (member.name == member_name)
@@ -650,18 +650,28 @@ private:
     if (ctx.namespaces.empty() || !ctx.namespaces.top().is_structure)
       return nullptr;
 
-    const auto mangled_name
-      = ctx.mangler.mangleMethod(ctx,
-                                 unmangled_name,
-                                 ctx.namespaces.top().name,
-                                 args);
+    const auto f = [&](const Accessibility accessibility) {
+      const auto mangled_name
+        = ctx.mangler.mangleMethod(ctx,
+                                   unmangled_name,
+                                   ctx.namespaces.top().name,
+                                   args,
+                                   accessibility);
 
-    const auto func = ctx.module->getFunction(mangled_name);
+      const auto func = ctx.module->getFunction(mangled_name);
 
-    if (func)
+      if (func)
+        return func;
+      else
+        return findVarArgFunction(mangled_name);
+    };
+
+    if (auto const func = f(Accessibility::public_))
+      return func;
+    else if (auto const func = f(Accessibility::private_))
       return func;
     else
-      return findVarArgFunction(mangled_name);
+      return nullptr;
 
     unreachable();
   }
@@ -744,7 +754,7 @@ private:
 
     if (external_access
         && !isExternallyAccessible(
-          struct_info->getMember(*offset).accessibility)) {
+          struct_info->getMemberVariable(*offset).accessibility)) {
       throw CodegenError{ctx.formatError(
         ctx.positions.position_of(member_name_ast),
         fmt::format("member '{}' is not accessible", member_name))};
@@ -761,7 +771,7 @@ private:
     return {ctx.builder.CreateLoad(
               structure.getLLVMType()->getStructElementType(*offset),
               gep),
-            struct_info->getMember(*offset).type,
+            struct_info->getMemberVariable(*offset).type,
             structure.isMutable()};
   }
 

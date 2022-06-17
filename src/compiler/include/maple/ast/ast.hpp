@@ -527,6 +527,7 @@ struct FunctionDecl : x3::position_tagged {
   Identifier    name;
   ParameterList params;
   ast::Type     return_type;
+  Accessibility accessibility = Accessibility::non_method;
 };
 
 struct FunctionDef : x3::position_tagged {
@@ -544,7 +545,7 @@ struct VariableDefWithoutInit : x3::position_tagged {
 };
 
 using StructMember = boost::
-  variant<boost::blank, VariableDefWithoutInit, FunctionDef, AccessSpecifier>;
+  variant<boost::blank, VariableDefWithoutInit, FunctionDef, Accessibility>;
 
 using StructMemberList = std::vector<StructMember>;
 

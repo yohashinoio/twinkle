@@ -79,35 +79,35 @@ private:
 
 using FunctionReturnTypeTable = Table<llvm::Function*, std::shared_ptr<Type>>;
 
-struct StructInfo {
-  struct Member {
+struct Struct {
+  struct MemberVariable {
     std::string           name;
     std::shared_ptr<Type> type;
-    AccessSpecifier       accessibility;
+    Accessibility         accessibility;
   };
 
-  StructInfo(llvm::StructType* const llvmtype,
-             std::vector<Member>&&   members,
-             const bool              is_opaque) noexcept
-    : llvmtype{llvmtype}
-    , members{std::move(members)}
+  Struct(llvm::StructType* const       llvmtype,
+         std::vector<MemberVariable>&& variables,
+         const bool                    is_opaque) noexcept
+    : llvm_ty{llvmtype}
+    , variables{std::move(variables)}
     , is_opaque{is_opaque}
   {
   }
 
   llvm::StructType* getLLVMType() const noexcept
   {
-    return llvmtype;
+    return llvm_ty;
   }
 
-  const Member& getMember(const std::size_t idx) const
+  const MemberVariable& getMemberVariable(const std::size_t idx) const
   {
-    return members.at(idx);
+    return variables.at(idx);
   }
 
-  const std::vector<Member>& getMembers() const noexcept
+  const std::vector<MemberVariable>& getMemberVariables() const noexcept
   {
-    return members;
+    return variables;
   }
 
   [[nodiscard]] bool isOpaque() const noexcept
@@ -116,12 +116,12 @@ struct StructInfo {
   }
 
 private:
-  llvm::StructType*   llvmtype;
-  std::vector<Member> members;
-  bool                is_opaque;
+  llvm::StructType*           llvm_ty;
+  std::vector<MemberVariable> variables;
+  bool                        is_opaque;
 };
 
-using StructTable = Table<std::string, StructInfo>;
+using StructTable = Table<std::string, Struct>;
 
 struct NamespaceHierarchy {
   struct Namespace {

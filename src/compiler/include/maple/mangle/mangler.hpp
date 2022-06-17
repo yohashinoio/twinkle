@@ -36,7 +36,9 @@ constexpr const char* prefix = "_Z";
 
 struct Mangler : private boost::noncopyable {
   [[nodiscard]] std::string mangleFunction(codegen::CGContext&      ctx,
-                                           const ast::FunctionDecl& ast) const;
+                                           const ast::FunctionDecl& ast,
+                                           const Accessibility accessibility
+                                           = Accessibility::non_method) const;
 
   [[nodiscard]] std::string
   mangleFunctionCall(codegen::CGContext&               ctx,
@@ -48,7 +50,8 @@ struct Mangler : private boost::noncopyable {
     const std::string_view callee,
     const std::string&     typename_of_this, // If the function is in a Sample
                                              // structure, set "Sample".
-    const std::deque<codegen::Value>& args) const;
+    const std::deque<codegen::Value>& args,
+    const Accessibility               accessibility) const;
 
 private:
   [[nodiscard]] std::string mangleFunctionName(const std::string& name) const;

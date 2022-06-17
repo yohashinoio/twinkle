@@ -40,15 +40,28 @@ linkageToLLVM(const Linkage linkage) noexcept
   unreachable();
 }
 
-[[nodiscard]] bool
-isExternallyAccessible(const AccessSpecifier& access) noexcept
+[[nodiscard]] std::string
+getMangledAccessibility(const Accessibility accessibility)
+{
+  switch (accessibility) {
+  case Accessibility::private_:
+    return "P";
+  default:
+    return "";
+  }
+
+  unreachable();
+}
+
+[[nodiscard]] bool isExternallyAccessible(const Accessibility& access) noexcept
 {
   switch (access) {
-  case AccessSpecifier::public_:
+  case Accessibility::public_:
     return true;
-  case AccessSpecifier::private_:
+  case Accessibility::private_:
+  case Accessibility::non_method:
     return false;
-  case AccessSpecifier::unknown:
+  case Accessibility::unknown:
     unreachable();
   }
 

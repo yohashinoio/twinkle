@@ -14,11 +14,14 @@ namespace maple::mangle
 
 [[nodiscard]] std::string
 Mangler::mangleFunction(codegen::CGContext&      ctx,
-                        const ast::FunctionDecl& ast) const
+                        const ast::FunctionDecl& ast,
+                        const Accessibility      accessibility) const
 {
   std::ostringstream mangled;
 
   mangled << prefix;
+
+  mangled << getMangledAccessibility(accessibility);
 
   mangled << mangleNamespace(ctx.namespaces);
   mangled << mangleFunctionName(ast.name.utf8());
@@ -60,11 +63,14 @@ Mangler::mangleFunctionCall(codegen::CGContext&               ctx,
 Mangler::mangleMethod(codegen::CGContext&               ctx,
                       const std::string_view            callee,
                       const std::string&                typename_of_this,
-                      const std::deque<codegen::Value>& args) const
+                      const std::deque<codegen::Value>& args,
+                      const Accessibility               accessibility) const
 {
   std::ostringstream mangled;
 
   mangled << prefix;
+
+  mangled << getMangledAccessibility(accessibility);
 
   mangled << mangleNamespace(ctx.namespaces);
   mangled << mangleFunctionName(std::string{callee});

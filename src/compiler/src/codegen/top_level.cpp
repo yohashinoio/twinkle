@@ -129,12 +129,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
                                 param_types,
                                 *is_vararg);
 
-    const auto mangled_name = [&]() {
-      // main function does not mangle.
-      if (name == "main" || attr_kinds.contains(AttrKind::nomangle))
-        return name;
-      return ctx.mangler.mangleFunction(ctx, node);
-    }();
+    const auto mangled_name = mangleFunction(node);
 
     auto const func
       = createLlvmFunction(node.linkage, func_type, mangled_name, *ctx.module);
@@ -152,8 +147,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
   {
     const auto name = node.decl.name.utf8();
 
-    auto func
-      = ctx.module->getFunction(ctx.mangler.mangleFunction(ctx, node.decl));
+    auto func = ctx.module->getFunction(mangleFunction(node.decl));
 
     if (func && !func->isDeclaration()) {
       throw CodegenError{
@@ -247,7 +241,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
     ctx.struct_table.regist(
       name,
-      StructInfo{llvm::StructType::create(ctx.context, name), {}, true});
+      Struct{llvm::StructType::create(ctx.context, name), {}, true});
 
     return nullptr;
   }
@@ -256,53 +250,50 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
   {
     const auto name = node.name.utf8();
 
-    auto accessibility = AccessSpecifier::public_;
+    auto accessibility = STRUCT_DEFAULT_ACCESSIBILITY;
 
-    std::vector<llvm::Type*>        member_var_types;
-    std::vector<StructInfo::Member> member_variables;
-    std::vector<ast::FunctionDef>   methods;
+    std::vector<llvm::Type*>            member_var_types;
+    std::vector<Struct::MemberVariable> member_variables;
+    std::vector<ast::FunctionDef>       method_def_asts;
 
     for (const auto& member : node.members) {
       if (const auto* variable
           = boost::get<ast::VariableDefWithoutInit>(&member)) {
-        // Member variables
         const auto type = createType(variable->type);
 
         member_var_types.emplace_back(type->getLLVMType(ctx));
         member_variables.push_back(
           {variable->name.utf8(), type, accessibility});
-        continue;
       }
-
-      if (const auto* function = boost::get<ast::FunctionDef>(&member)) {
-        // Methods
+      else if (const auto* function = boost::get<ast::FunctionDef>(&member)) {
         auto function_clone = *function;
 
-        // Push 'this*'
+        // Push this pointer to front
         function_clone.decl.params->push_front(
           {ast::Identifier{std::u32string{U"this"}},
            VariableQual::mutable_,
            ast::PointerType{ast::UserDefinedType{node.name}},
            false});
 
-        methods.push_back(std::move(function_clone));
-        continue;
-      }
+        function_clone.decl.accessibility = accessibility;
 
-      if (const auto* access_specifier = boost::get<AccessSpecifier>(&member)) {
+        method_def_asts.push_back(std::move(function_clone));
+      }
+      else if (const auto* access_specifier
+               = boost::get<Accessibility>(&member)) {
         switch (*access_specifier) {
-        case AccessSpecifier::public_:
-          accessibility = AccessSpecifier::public_;
+        case Accessibility::public_:
+          accessibility = Accessibility::public_;
           continue;
-        case AccessSpecifier::private_:
-          accessibility = AccessSpecifier::private_;
+        case Accessibility::private_:
+          accessibility = Accessibility::private_;
           continue;
-        case AccessSpecifier::unknown:
+        case Accessibility::unknown:
           unreachable();
         }
       }
-
-      unreachable();
+      else
+        unreachable();
     }
 
     // Check to make sure the name does not already exist.
@@ -320,10 +311,9 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     else {
       ctx.struct_table.regist(
         name,
-        StructInfo{
-          llvm::StructType::create(ctx.context, member_var_types, name),
-          std::move(member_variables),
-          false});
+        Struct{llvm::StructType::create(ctx.context, member_var_types, name),
+               std::move(member_variables),
+               false});
     }
 
     {
@@ -331,7 +321,9 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
       // Because it will result in an error if the structure type is not
       // registered.
       ctx.namespaces.push({name, true});
-      for (const auto& r : methods)
+      for (const auto& r : method_def_asts)
+        (*this)(r.decl);
+      for (const auto& r : method_def_asts)
         (*this)(r);
       ctx.namespaces.pop();
     }
@@ -340,6 +332,16 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
   }
 
 private:
+  [[nodiscard]] std::string mangleFunction(const ast::FunctionDecl& node) const
+  {
+    const auto name = node.name.utf8();
+
+    if (name == "main" || attr_kinds.contains(AttrKind::nomangle))
+      return name;
+
+    return ctx.mangler.mangleFunction(ctx, node, node.accessibility);
+  }
+
   [[nodiscard]] SymbolTable createArgumentTable(
     llvm::Function* const                                func,
     const ast::ParameterList&                            param_list,

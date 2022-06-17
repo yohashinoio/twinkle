@@ -1,0 +1,19 @@
+struct Sample {
+private:
+  func f() -> i32
+  {
+    return 58;
+  }
+
+public:
+  func invoke_f() -> i32
+  {
+    return f();
+  }
+}
+
+func main() -> i32
+{
+  let s: Sample;
+  return s.invoke_f();
+}

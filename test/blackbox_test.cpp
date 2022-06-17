@@ -164,6 +164,8 @@ int main(const int argc, const char* const* const argv)
     {            "reference_methods_in_methods",  58},
     {              "multidimensional_array_def",  58},
     {                        "pointer_to_array",  58},
+    {                         "private_methods",  58},
+    {    "refers_to_declared_undefined_methods",  58},
   };
 
   std::size_t ok_c{};   // ok count.

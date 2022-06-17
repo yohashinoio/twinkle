@@ -37,14 +37,20 @@ enum class Linkage {
   internal,
 };
 
-enum class AccessSpecifier {
+// Specify to function
+enum class Accessibility {
   unknown,
+  non_method,
   public_,
   private_,
 };
 
-[[nodiscard]] bool
-isExternallyAccessible(const AccessSpecifier& access) noexcept;
+constexpr Accessibility STRUCT_DEFAULT_ACCESSIBILITY = Accessibility::public_;
+
+[[nodiscard]] std::string
+getMangledAccessibility(const Accessibility accessibility);
+
+[[nodiscard]] bool isExternallyAccessible(const Accessibility& access) noexcept;
 
 [[nodiscard]] llvm::Function::LinkageTypes
 linkageToLLVM(const Linkage linkage) noexcept;
