@@ -144,6 +144,9 @@ template <typename T>
 using UnicodeSymbols
   = x3::symbols_parser<boost::spirit::char_encoding::unicode, T>;
 
+// The reason for using x3::rule where a rule is not a recursive rule is to
+// speed up compilation.
+
 //===----------------------------------------------------------------------===//
 // Symbol table
 //===----------------------------------------------------------------------===//
@@ -227,11 +230,102 @@ struct BuiltinTypeNameSymbolsTag : UnicodeSymbols<codegen::BuiltinTypeKind> {
 } builtin_type_symbols;
 
 //===----------------------------------------------------------------------===//
-// Common rules
+// Common rules declaration
 //===----------------------------------------------------------------------===//
 
-// The reason for using x3::rule where a rule is not a recursive rule is to
-// speed up compilation.
+const x3::rule<struct UniformInitTag, ast::UniformInit> uniform_init{
+  "uniform initialization"};
+
+//===----------------------------------------------------------------------===//
+// Expression rules declaration
+//===----------------------------------------------------------------------===//
+
+const x3::rule<struct ExprTag, ast::Expr>          expr{"expression"};
+const x3::rule<struct BinaryLogicalTag, ast::Expr> binary_logical{
+  "binary logical operation"};
+const x3::rule<struct EqualTag, ast::Expr>    equal{"equality operation"};
+const x3::rule<struct RelationTag, ast::Expr> relation{"relational operation"};
+const x3::rule<struct PipelineTag, ast::Expr> pipeline{"pipeline operation"};
+const x3::rule<struct AddTag, ast::Expr>      add{"addition operation"};
+const x3::rule<struct MulTag, ast::Expr>      mul{"multiplication operation"};
+const x3::rule<struct ConversionTag, ast::Expr>       conversion{"conversion"};
+const x3::rule<struct UnaryInternalTag, ast::UnaryOp> unary_internal{
+  "unary operation"};
+const x3::rule<struct UnaryTag, ast::Expr>        unary{"unary operation"};
+const x3::rule<struct MemberAccessTag, ast::Expr> member_access{
+  "member access operation"};
+const x3::rule<struct SubscriptTag, ast::Expr> subscript{"subscript operation"};
+const x3::rule<struct ArgListTag, std::deque<ast::Expr>> arg_list{
+  "argument list"};
+const x3::rule<struct FunctionCallTag, ast::Expr> function_call{
+  "function call"};
+const x3::rule<struct PrimaryTag, ast::Expr> primary{"primary"};
+
+//===----------------------------------------------------------------------===//
+// Statement rules declaration
+//===----------------------------------------------------------------------===//
+
+const x3::rule<struct InitListTag, ast::InitializerList> initializer_list{
+  "initializer list"};
+const x3::rule<struct InitializerTag, ast::Initializer> initializer{
+  "initializer"};
+const x3::rule<struct ExprStmtTag, ast::Expr> expr_stmt{"expression statement"};
+const x3::rule<struct VariableDefTag, ast::VariableDef> variable_def{
+  "variable definition"};
+const x3::rule<struct AssignTag, ast::Assignment> assignment{
+  "assignment statement"};
+const x3::rule<struct PrefixIncOrDec, ast::PrefixIncAndDec> prefix_inc_or_dec{
+  "prefix increment or decrement"};
+const x3::rule<struct ReturnTag, ast::Return> _return{"return statement"};
+const x3::rule<struct IfTag, ast::If>         _if{"if else statement"};
+const x3::rule<struct LoopTag, ast::Loop>     _loop{"loop statement"};
+const x3::rule<struct WhileTag, ast::While>   _while{"while statement"};
+const x3::rule<struct ForTag, ast::For>       _for{"for statement"};
+const x3::rule<struct StmtTag, ast::Stmt>     stmt{"statement"};
+
+//===----------------------------------------------------------------------===//
+// Top level rules declaration
+//===----------------------------------------------------------------------===//
+
+const x3::rule<struct StructDeclTag, ast::StructDecl> struct_decl{
+  "struct declaration"};
+const x3::rule<struct VariableDefWithoutInit, ast::VariableDefWithoutInit>
+  variable_def_without_init{"variable definition without initializer"};
+const x3::rule<struct ConstructorTag, ast::Constructor> constructor{
+  "constructor"};
+const x3::rule<struct StructMemberListTag, ast::StructMemberList>
+  struct_member_list{"struct member list"};
+const x3::rule<struct StructDefTag, ast::StructDef> struct_def{
+  "struct definition"};
+const x3::rule<struct ParameterTag, ast::Parameter> parameter{"parameter"};
+const x3::rule<struct ParameterListTag, ast::ParameterList> parameter_list{
+  "parameter list"};
+const x3::rule<struct FunctionProtoTag, ast::FunctionDecl> function_proto{
+  "function prototype"};
+const x3::rule<struct FunctionDeclTag, ast::FunctionDecl> function_decl{
+  "function declaration"};
+const x3::rule<struct FunctionDefTag, ast::FunctionDef> function_def{
+  "function definition"};
+const x3::rule<struct TopLevelTag, ast::TopLevel> top_level{"top level"};
+const x3::rule<struct TopLevelWithAttrTag, ast::TopLevelWithAttr>
+  top_level_with_attr{"top level"};
+
+//===----------------------------------------------------------------------===//
+// Comment rules declaration
+//===----------------------------------------------------------------------===//
+
+const x3::rule<struct BlockCommentTag> block_comment{"block comment"};
+
+//===----------------------------------------------------------------------===//
+// Translation unit rule declaration
+//===----------------------------------------------------------------------===//
+
+const x3::rule<struct TranslationUnitTag, ast::TranslationUnit>
+  translation_unit{"translation unit"};
+
+//===----------------------------------------------------------------------===//
+// Common rules definition
+//===----------------------------------------------------------------------===//
 
 const auto identifier_internal
   = x3::rule<struct IdentifierInternalTag, std::u32string>{"identifier"}
@@ -314,8 +408,41 @@ const auto char_literal
 const auto attribute = x3::rule<struct AttrTag, ast::Attrs>{"attribute"}
 = lit(U"[[") >> (identifier_internal % lit(U",")) > lit(U"]]");
 
+const auto uniform_init_def
+  = identifier >> lit(U"{") > (expr % lit(U",")) > lit(U"}");
+
+BOOST_SPIRIT_DEFINE(uniform_init)
+
 //===----------------------------------------------------------------------===//
-// Type name rules
+// Common rule tags
+//===----------------------------------------------------------------------===//
+
+struct VariableIdentTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct IdentifierTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct StringLiteralTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct CharLiteralTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct AttrTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct UniformInitTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+//===----------------------------------------------------------------------===//
+// Type name rules declaration and definition
 //===----------------------------------------------------------------------===//
 
 const x3::rule<struct TypeTag, ast::Type> type_name{"type name"};
@@ -358,6 +485,10 @@ BOOST_SPIRIT_DEFINE(pointer_type_internal)
 BOOST_SPIRIT_DEFINE(pointer_type)
 BOOST_SPIRIT_DEFINE(user_defined_type)
 BOOST_SPIRIT_DEFINE(type_primary)
+
+//===----------------------------------------------------------------------===//
+// Type name rule tags
+//===----------------------------------------------------------------------===//
 
 struct BuiltinTypeTag : ErrorHandle {};
 
@@ -414,95 +545,6 @@ const auto unary_operator
   = x3::rule<struct UnaryOperatorTag, std::u32string>{"unary operator"}
 = string(U"+") | string(U"-") | string(U"!") | string(U"*") | string(U"&")
   | string(U"sizeof");
-
-//===----------------------------------------------------------------------===//
-// Expression rules
-//===----------------------------------------------------------------------===//
-
-const x3::rule<struct ExprTag, ast::Expr>          expr{"expression"};
-const x3::rule<struct BinaryLogicalTag, ast::Expr> binary_logical{
-  "binary logical operation"};
-const x3::rule<struct EqualTag, ast::Expr>    equal{"equality operation"};
-const x3::rule<struct RelationTag, ast::Expr> relation{"relational operation"};
-const x3::rule<struct PipelineTag, ast::Expr> pipeline{"pipeline operation"};
-const x3::rule<struct AddTag, ast::Expr>      add{"addition operation"};
-const x3::rule<struct MulTag, ast::Expr>      mul{"multiplication operation"};
-const x3::rule<struct ConversionTag, ast::Expr>       conversion{"conversion"};
-const x3::rule<struct UnaryInternalTag, ast::UnaryOp> unary_internal{
-  "unary operation"};
-const x3::rule<struct UnaryTag, ast::Expr>        unary{"unary operation"};
-const x3::rule<struct MemberAccessTag, ast::Expr> member_access{
-  "member access operation"};
-const x3::rule<struct SubscriptTag, ast::Expr> subscript{"subscript operation"};
-const x3::rule<struct ArgListTag, std::deque<ast::Expr>> arg_list{
-  "argument list"};
-const x3::rule<struct FunctionCallTag, ast::Expr> function_call{
-  "function call"};
-const x3::rule<struct UniformInitTag, ast::UniformInit> uniform_init{
-  "uniform initialization"};
-const x3::rule<struct PrimaryTag, ast::Expr> primary{"primary"};
-
-//===----------------------------------------------------------------------===//
-// Statement rules
-//===----------------------------------------------------------------------===//
-
-const x3::rule<struct InitListTag, ast::InitializerList> initializer_list{
-  "initializer list"};
-const x3::rule<struct InitializerTag, ast::Initializer> initializer{
-  "initializer"};
-const x3::rule<struct ExprStmtTag, ast::Expr> expr_stmt{"expression statement"};
-const x3::rule<struct VariableDefTag, ast::VariableDef> variable_def{
-  "variable definition"};
-const x3::rule<struct AssignTag, ast::Assignment> assignment{
-  "assignment statement"};
-const x3::rule<struct PrefixIncOrDec, ast::PrefixIncAndDec> prefix_inc_or_dec{
-  "prefix increment or decrement"};
-const x3::rule<struct ReturnTag, ast::Return> _return{"return statement"};
-const x3::rule<struct IfTag, ast::If>         _if{"if else statement"};
-const x3::rule<struct LoopTag, ast::Loop>     _loop{"loop statement"};
-const x3::rule<struct WhileTag, ast::While>   _while{"while statement"};
-const x3::rule<struct ForTag, ast::For>       _for{"for statement"};
-const x3::rule<struct StmtTag, ast::Stmt>     stmt{"statement"};
-
-//===----------------------------------------------------------------------===//
-// Top level rules
-//===----------------------------------------------------------------------===//
-
-const x3::rule<struct StructDeclTag, ast::StructDecl> struct_decl{
-  "struct declaration"};
-const x3::rule<struct VariableDefWithoutInit, ast::VariableDefWithoutInit>
-  variable_def_without_init{"variable definition without initializer"};
-const x3::rule<struct ConstructorTag, ast::Constructor> constructor{
-  "constructor"};
-const x3::rule<struct StructMemberListTag, ast::StructMemberList>
-  struct_member_list{"struct member list"};
-const x3::rule<struct StructDefTag, ast::StructDef> struct_def{
-  "struct definition"};
-const x3::rule<struct ParameterTag, ast::Parameter> parameter{"parameter"};
-const x3::rule<struct ParameterListTag, ast::ParameterList> parameter_list{
-  "parameter list"};
-const x3::rule<struct FunctionProtoTag, ast::FunctionDecl> function_proto{
-  "function prototype"};
-const x3::rule<struct FunctionDeclTag, ast::FunctionDecl> function_decl{
-  "function declaration"};
-const x3::rule<struct FunctionDefTag, ast::FunctionDef> function_def{
-  "function definition"};
-const x3::rule<struct TopLevelTag, ast::TopLevel> top_level{"top level"};
-const x3::rule<struct TopLevelWithAttrTag, ast::TopLevelWithAttr>
-  top_level_with_attr{"top level"};
-
-//===----------------------------------------------------------------------===//
-// Comment rules
-//===----------------------------------------------------------------------===//
-
-const x3::rule<struct BlockCommentTag> block_comment{"block comment"};
-
-//===----------------------------------------------------------------------===//
-// Translation unit rule
-//===----------------------------------------------------------------------===//
-
-const x3::rule<struct TranslationUnitTag, ast::TranslationUnit>
-  translation_unit{"translation unit"};
 
 //===----------------------------------------------------------------------===//
 // Expression rules definition
@@ -567,9 +609,6 @@ const auto primary_def = uniform_init | identifier | float_64bit
                          | boolean_literal | string_literal | char_literal
                          | (lit(U"(") > expr > lit(U")"));
 
-const auto uniform_init_def
-  = identifier >> lit(U"{") > (expr % lit(U",")) > lit(U"}");
-
 BOOST_SPIRIT_DEFINE(expr)
 BOOST_SPIRIT_DEFINE(binary_logical)
 BOOST_SPIRIT_DEFINE(equal)
@@ -585,7 +624,70 @@ BOOST_SPIRIT_DEFINE(arg_list)
 BOOST_SPIRIT_DEFINE(function_call)
 BOOST_SPIRIT_DEFINE(unary_internal)
 BOOST_SPIRIT_DEFINE(primary)
-BOOST_SPIRIT_DEFINE(uniform_init)
+
+//===----------------------------------------------------------------------===//
+// Expression rule tags
+//===----------------------------------------------------------------------===//
+
+struct ExprTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct BinaryLogical
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct EqualTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct RelationTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct PipelineTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct AddTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct MulTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct ConversionTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct UnaryInternalTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct UnaryTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct MemberAccessTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct SubscriptTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct ArgListTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct FunctionCallTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct PrimaryTag
+  : ErrorHandle
+  , AnnotatePosition {};
 
 //===----------------------------------------------------------------------===//
 // Statement rules definition
@@ -653,187 +755,7 @@ BOOST_SPIRIT_DEFINE(_for)
 BOOST_SPIRIT_DEFINE(stmt)
 
 //===----------------------------------------------------------------------===//
-// Top level rules definition
-//===----------------------------------------------------------------------===//
-
-const auto struct_decl_def
-  = lit(U"declare") >> lit(U"struct") > identifier > lit(U";");
-
-const auto variable_def_without_init_def
-  = lit(U"let") > identifier > lit(U":") > variable_type;
-
-const auto constructor_def = function_proto > stmt;
-
-const auto struct_member_list_def
-  = *((variable_def_without_init > lit(U";")) | (access_specifier > lit(U":"))
-      | function_def | constructor);
-
-const auto struct_def_def
-  = lit(U"struct") > identifier > lit(U"{") > struct_member_list > lit(U"}");
-
-const auto parameter_def
-  = (identifier > lit(U":") > -variable_qualifier > type_name > x3::attr(false))
-    | lit(U"...")
-        >> x3::attr(ast::Parameter{ast::Identifier{}, std::nullopt, {}, true});
-
-const auto parameter_list_def = -(parameter % lit(U","));
-
-const auto function_proto_def
-  = (function_linkage | x3::attr(Linkage::external)) >> identifier > lit(U"(")
-    > parameter_list > lit(U")")
-    > ((lit(U"->") > type_name)
-       | x3::attr(ast::BuiltinType{codegen::BuiltinTypeKind::void_}));
-
-const auto function_decl_def
-  = lit(U"declare") >> lit(U"func") > function_proto > lit(U";");
-
-const auto function_def_def = lit(U"func") > function_proto > stmt;
-
-const auto top_level_def
-  = function_decl | function_def | struct_decl | struct_def;
-
-const auto top_level_with_attr_def = -attribute >> top_level_def;
-
-BOOST_SPIRIT_DEFINE(variable_def_without_init)
-BOOST_SPIRIT_DEFINE(constructor)
-BOOST_SPIRIT_DEFINE(struct_member_list)
-BOOST_SPIRIT_DEFINE(struct_def)
-BOOST_SPIRIT_DEFINE(struct_decl)
-BOOST_SPIRIT_DEFINE(parameter)
-BOOST_SPIRIT_DEFINE(parameter_list)
-BOOST_SPIRIT_DEFINE(function_proto)
-BOOST_SPIRIT_DEFINE(function_decl)
-BOOST_SPIRIT_DEFINE(function_def)
-BOOST_SPIRIT_DEFINE(top_level)
-BOOST_SPIRIT_DEFINE(top_level_with_attr)
-
-//===----------------------------------------------------------------------===//
-// Comment rules definition
-//===----------------------------------------------------------------------===//
-
-const auto single_line_comment
-  = x3::rule<struct SingleLineCommenTag>{"single line comment"}
-= lit(U"//") >> *(char_ - x3::eol) >> (x3::eol | x3::eoi);
-
-const auto block_comment_def
-  = lit(U"/*") >> *(block_comment | (char_ - lit(U"*/"))) >> lit(U"*/");
-
-const auto comment = x3::rule<struct CommentTag>{"comment"}
-= single_line_comment | block_comment;
-
-BOOST_SPIRIT_DEFINE(block_comment)
-
-//===----------------------------------------------------------------------===//
-// Skipper rules definition
-//===----------------------------------------------------------------------===//
-
-const auto skipper = x3::rule<struct SkipperTag>{"skipper"}
-= x3::space | comment;
-
-//===----------------------------------------------------------------------===//
-// Translation unit rules definition
-//===----------------------------------------------------------------------===//
-
-const auto translation_unit_def = *top_level_with_attr > x3::eoi;
-
-BOOST_SPIRIT_DEFINE(translation_unit)
-
-#pragma clang diagnostic pop
-
-//===----------------------------------------------------------------------===//
-// Common tags
-//===----------------------------------------------------------------------===//
-
-struct VariableIdentTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct IdentifierTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct StringLiteralTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct CharLiteralTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct AttrTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-//===----------------------------------------------------------------------===//
-// Expression tags
-//===----------------------------------------------------------------------===//
-
-struct ExprTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct BinaryLogical
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct EqualTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct RelationTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct PipelineTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct AddTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct MulTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct ConversionTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct UnaryInternalTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct UnaryTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct MemberAccessTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct SubscriptTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct ArgListTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct FunctionCallTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct PrimaryTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct UniformInitTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-//===----------------------------------------------------------------------===//
-// Statement tags
+// Statement rule tags
 //===----------------------------------------------------------------------===//
 
 struct StmtTag
@@ -897,7 +819,62 @@ struct ContinueTag
   , AnnotatePosition {};
 
 //===----------------------------------------------------------------------===//
-// Top level statement tags
+// Top level rules definition
+//===----------------------------------------------------------------------===//
+
+const auto struct_decl_def
+  = lit(U"declare") >> lit(U"struct") > identifier > lit(U";");
+
+const auto variable_def_without_init_def
+  = lit(U"let") > identifier > lit(U":") > variable_type;
+
+const auto constructor_def = function_proto > stmt;
+
+const auto struct_member_list_def
+  = *((variable_def_without_init > lit(U";")) | (access_specifier > lit(U":"))
+      | function_def | constructor);
+
+const auto struct_def_def
+  = lit(U"struct") > identifier > lit(U"{") > struct_member_list > lit(U"}");
+
+const auto parameter_def
+  = (identifier > lit(U":") > -variable_qualifier > type_name > x3::attr(false))
+    | lit(U"...")
+        >> x3::attr(ast::Parameter{ast::Identifier{}, std::nullopt, {}, true});
+
+const auto parameter_list_def = -(parameter % lit(U","));
+
+const auto function_proto_def
+  = (function_linkage | x3::attr(Linkage::external)) >> identifier > lit(U"(")
+    > parameter_list > lit(U")")
+    > ((lit(U"->") > type_name)
+       | x3::attr(ast::BuiltinType{codegen::BuiltinTypeKind::void_}));
+
+const auto function_decl_def
+  = lit(U"declare") >> lit(U"func") > function_proto > lit(U";");
+
+const auto function_def_def = lit(U"func") > function_proto > stmt;
+
+const auto top_level_def
+  = function_decl | function_def | struct_decl | struct_def;
+
+const auto top_level_with_attr_def = -attribute >> top_level_def;
+
+BOOST_SPIRIT_DEFINE(variable_def_without_init)
+BOOST_SPIRIT_DEFINE(constructor)
+BOOST_SPIRIT_DEFINE(struct_member_list)
+BOOST_SPIRIT_DEFINE(struct_def)
+BOOST_SPIRIT_DEFINE(struct_decl)
+BOOST_SPIRIT_DEFINE(parameter)
+BOOST_SPIRIT_DEFINE(parameter_list)
+BOOST_SPIRIT_DEFINE(function_proto)
+BOOST_SPIRIT_DEFINE(function_decl)
+BOOST_SPIRIT_DEFINE(function_def)
+BOOST_SPIRIT_DEFINE(top_level)
+BOOST_SPIRIT_DEFINE(top_level_with_attr)
+
+//===----------------------------------------------------------------------===//
+// Top level statement rule tags
 //===----------------------------------------------------------------------===//
 
 struct VariableDefWithoutInit
@@ -949,12 +926,45 @@ struct TopLevelWithAttrTag
   , AnnotatePosition {};
 
 //===----------------------------------------------------------------------===//
-// Translation unit tag
+// Comment rules definition
+//===----------------------------------------------------------------------===//
+
+const auto single_line_comment
+  = x3::rule<struct SingleLineCommenTag>{"single line comment"}
+= lit(U"//") >> *(char_ - x3::eol) >> (x3::eol | x3::eoi);
+
+const auto block_comment_def
+  = lit(U"/*") >> *(block_comment | (char_ - lit(U"*/"))) >> lit(U"*/");
+
+const auto comment = x3::rule<struct CommentTag>{"comment"}
+= single_line_comment | block_comment;
+
+BOOST_SPIRIT_DEFINE(block_comment)
+
+//===----------------------------------------------------------------------===//
+// Skipper rules definition
+//===----------------------------------------------------------------------===//
+
+const auto skipper = x3::rule<struct SkipperTag>{"skipper"}
+= x3::space | comment;
+
+//===----------------------------------------------------------------------===//
+// Translation unit rules definition
+//===----------------------------------------------------------------------===//
+
+const auto translation_unit_def = *top_level_with_attr > x3::eoi;
+
+BOOST_SPIRIT_DEFINE(translation_unit)
+
+//===----------------------------------------------------------------------===//
+// Translation unit rule tags
 //===----------------------------------------------------------------------===//
 
 struct TranslationUnitTag
   : ErrorHandle
   , AnnotatePosition {};
+
+#pragma clang diagnostic pop
 
 } // namespace syntax
 
