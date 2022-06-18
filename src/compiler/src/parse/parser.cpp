@@ -324,7 +324,7 @@ const x3::rule<struct TranslationUnitTag, ast::TranslationUnit>
   translation_unit{"translation unit"};
 
 //===----------------------------------------------------------------------===//
-// Common rules definition
+// Common rules and tags definition
 //===----------------------------------------------------------------------===//
 
 const auto identifier_internal
@@ -413,10 +413,6 @@ const auto uniform_init_def
 
 BOOST_SPIRIT_DEFINE(uniform_init)
 
-//===----------------------------------------------------------------------===//
-// Common rule tags
-//===----------------------------------------------------------------------===//
-
 struct VariableIdentTag
   : ErrorHandle
   , AnnotatePosition {};
@@ -442,7 +438,7 @@ struct UniformInitTag
   , AnnotatePosition {};
 
 //===----------------------------------------------------------------------===//
-// Type name rules declaration and definition
+// Type name rules and tags definition
 //===----------------------------------------------------------------------===//
 
 const x3::rule<struct TypeTag, ast::Type> type_name{"type name"};
@@ -486,10 +482,6 @@ BOOST_SPIRIT_DEFINE(pointer_type)
 BOOST_SPIRIT_DEFINE(user_defined_type)
 BOOST_SPIRIT_DEFINE(type_primary)
 
-//===----------------------------------------------------------------------===//
-// Type name rule tags
-//===----------------------------------------------------------------------===//
-
 struct BuiltinTypeTag : ErrorHandle {};
 
 struct TypePrimaryTag : ErrorHandle {};
@@ -505,7 +497,7 @@ struct ArrayTypeTag : ErrorHandle {};
 struct UserDefinedTypeTag : ErrorHandle {};
 
 //===----------------------------------------------------------------------===//
-// Operator rules
+// Operator rules definition
 //===----------------------------------------------------------------------===//
 
 const auto assignment_operator = x3::rule<struct AssignmentOperatorTag,
@@ -547,7 +539,7 @@ const auto unary_operator
   | string(U"sizeof");
 
 //===----------------------------------------------------------------------===//
-// Expression rules definition
+// Expression rules and tags definition
 //===----------------------------------------------------------------------===//
 
 const auto expr_def = binary_logical;
@@ -625,10 +617,6 @@ BOOST_SPIRIT_DEFINE(function_call)
 BOOST_SPIRIT_DEFINE(unary_internal)
 BOOST_SPIRIT_DEFINE(primary)
 
-//===----------------------------------------------------------------------===//
-// Expression rule tags
-//===----------------------------------------------------------------------===//
-
 struct ExprTag
   : ErrorHandle
   , AnnotatePosition {};
@@ -690,7 +678,7 @@ struct PrimaryTag
   , AnnotatePosition {};
 
 //===----------------------------------------------------------------------===//
-// Statement rules definition
+// Statement rules and tags definition
 //===----------------------------------------------------------------------===//
 
 const auto initializer_list_def = lit(U"{") > (expr % lit(U",")) > lit(U"}");
@@ -754,10 +742,6 @@ BOOST_SPIRIT_DEFINE(_while)
 BOOST_SPIRIT_DEFINE(_for)
 BOOST_SPIRIT_DEFINE(stmt)
 
-//===----------------------------------------------------------------------===//
-// Statement rule tags
-//===----------------------------------------------------------------------===//
-
 struct StmtTag
   : ErrorHandle
   , AnnotatePosition {};
@@ -819,7 +803,7 @@ struct ContinueTag
   , AnnotatePosition {};
 
 //===----------------------------------------------------------------------===//
-// Top level rules definition
+// Top level rules and tags definition
 //===----------------------------------------------------------------------===//
 
 const auto struct_decl_def
@@ -872,10 +856,6 @@ BOOST_SPIRIT_DEFINE(function_decl)
 BOOST_SPIRIT_DEFINE(function_def)
 BOOST_SPIRIT_DEFINE(top_level)
 BOOST_SPIRIT_DEFINE(top_level_with_attr)
-
-//===----------------------------------------------------------------------===//
-// Top level statement rule tags
-//===----------------------------------------------------------------------===//
 
 struct VariableDefWithoutInit
   : ErrorHandle
@@ -949,16 +929,12 @@ const auto skipper = x3::rule<struct SkipperTag>{"skipper"}
 = x3::space | comment;
 
 //===----------------------------------------------------------------------===//
-// Translation unit rules definition
+// Translation unit rule and tag definition
 //===----------------------------------------------------------------------===//
 
 const auto translation_unit_def = *top_level_with_attr > x3::eoi;
 
 BOOST_SPIRIT_DEFINE(translation_unit)
-
-//===----------------------------------------------------------------------===//
-// Translation unit rule tags
-//===----------------------------------------------------------------------===//
 
 struct TranslationUnitTag
   : ErrorHandle
