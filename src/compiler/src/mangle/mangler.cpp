@@ -14,17 +14,22 @@ namespace maple::mangle
 
 [[nodiscard]] std::string
 Mangler::mangleFunction(codegen::CGContext&      ctx,
-                        const ast::FunctionDecl& ast,
-                        const Accessibility      accessibility) const
+                        const ast::FunctionDecl& ast) const
 {
   std::ostringstream mangled;
 
   mangled << prefix;
 
-  mangled << getMangledAccessibility(accessibility);
+  mangled << getMangledAccessibility(ast.accessibility);
 
   mangled << mangleNamespace(ctx.namespaces);
-  mangled << mangleFunctionName(ast.name.utf8());
+
+  if (ast.is_constructor)
+    mangled << "C";
+  else
+    mangled << mangleFunctionName(ast.name.utf8());
+
+  mangled << "E";
 
   {
     // Argument types.
@@ -51,7 +56,7 @@ Mangler::mangleFunctionCall(codegen::CGContext&               ctx,
   mangled << prefix;
 
   mangled << mangleNamespace(ctx.namespaces);
-  mangled << mangleFunctionName(std::string{callee});
+  mangled << mangleFunctionName(std::string{callee}) << "E";
 
   for (const auto& arg : args)
     mangled << arg.getType()->getMangledName();
@@ -62,7 +67,7 @@ Mangler::mangleFunctionCall(codegen::CGContext&               ctx,
 [[nodiscard]] std::string
 Mangler::mangleMethod(codegen::CGContext&               ctx,
                       const std::string_view            callee,
-                      const std::string&                typename_of_this,
+                      const std::string&                object_name,
                       const std::deque<codegen::Value>& args,
                       const Accessibility               accessibility) const
 {
@@ -73,12 +78,26 @@ Mangler::mangleMethod(codegen::CGContext&               ctx,
   mangled << getMangledAccessibility(accessibility);
 
   mangled << mangleNamespace(ctx.namespaces);
-  mangled << mangleFunctionName(std::string{callee});
+  mangled << mangleFunctionName(std::string{callee}) << "E";
 
-  // Insert 'this' pointer.
-  mangled << codegen::PointerType{std::make_shared<codegen::StructType>(
-                                    typename_of_this)}
-               .getMangledName();
+  mangled << mangleThisPointer(object_name);
+
+  for (const auto& arg : args)
+    mangled << arg.getType()->getMangledName();
+
+  return mangled.str();
+}
+
+[[nodiscard]] std::string
+Mangler::mangleConstructor(codegen::CGContext&               ctx,
+                           const std::deque<codegen::Value>& args) const
+{
+  std::ostringstream mangled;
+
+  mangled << prefix;
+
+  mangled << mangleNamespace(ctx.namespaces);
+  mangled << 'C' << 'E';
 
   for (const auto& arg : args)
     mangled << arg.getType()->getMangledName();
@@ -106,6 +125,14 @@ Mangler::mangleNamespace(const codegen::NamespaceHierarchy& namespaces) const
     mangled << r.name.length() << r.name;
 
   return mangled.str();
+}
+
+[[nodiscard]] std::string
+Mangler::mangleThisPointer(const std::string& object_name) const
+{
+  return codegen::PointerType{
+    std::make_shared<codegen::StructType>(object_name)}
+    .getMangledName();
 }
 
 } // namespace maple::mangle

@@ -164,66 +164,11 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
                         fmt::format("failed to create function '{}'", name))};
     }
 
-    auto const entry_bb = llvm::BasicBlock::Create(ctx.context, "", func);
-    ctx.builder.SetInsertPoint(entry_bb);
-
-    auto argument_table
-      = createArgumentTable(func, node.decl.params, func->args());
-
-    const auto return_type = createType(node.decl.return_type);
-
-    // Used to combine returns into one.
-    auto const end_bb = llvm::BasicBlock::Create(ctx.context);
-
-    // Return variable.
-    auto const return_variable
-      = return_type->isVoid()
-          ? nullptr
-          : createEntryAlloca(func, "", return_type->getLLVMType(ctx));
-
-    createStatement(ctx,
-                    argument_table,
-                    {return_variable, end_bb, nullptr, nullptr},
-                    node.body);
-
-    // If there is no return, returns undef.
-    if (!ctx.builder.GetInsertBlock()->getTerminator()
-        && !(return_type->isVoid())) {
-      // Return 0 specially for main.
-      if (name == "main") {
-        ctx.builder.CreateStore(
-          llvm::ConstantInt::getSigned(func->getReturnType(), 0),
-          return_variable);
-        ctx.builder.CreateBr(end_bb);
-      }
-      else {
-        ctx.builder.CreateStore(llvm::UndefValue::get(func->getReturnType()),
-                                return_variable);
-        ctx.builder.CreateBr(end_bb);
-      }
-    }
-
-    // Inserts a terminator if the function returning void does not have
-    // one.
-    if (return_type->isVoid()
-        && !ctx.builder.GetInsertBlock()->getTerminator()) {
-      ctx.builder.CreateBr(end_bb);
-    }
-
-    // Return.
-    func->getBasicBlockList().push_back(end_bb);
-    ctx.builder.SetInsertPoint(end_bb);
-
-    if (return_variable) {
-      auto const retval
-        = ctx.builder.CreateLoad(return_variable->getAllocatedType(),
-                                 return_variable);
-      ctx.builder.CreateRet(retval);
-    }
-    else {
-      // Function that returns void.
-      ctx.builder.CreateRet(nullptr);
-    }
+    createFunctionBody(func,
+                       name,
+                       node.decl.params,
+                       createType(node.decl.return_type),
+                       node.body);
 
     fp_manager.run(*func);
 
@@ -256,8 +201,16 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     std::vector<Struct::MemberVariable> member_variables;
     std::vector<ast::FunctionDef>       method_def_asts;
 
+    const auto pushThisPtr = [&](ast::FunctionDecl& decl) {
+      decl.params->push_front(
+        {ast::Identifier{std::u32string{U"this"}},
+         VariableQual::mutable_,
+         ast::PointerType{ast::UserDefinedType{node.name}},
+         false});
+    };
+
     for (const auto& member : node.members) {
-      if (const auto* variable
+      if (const auto variable
           = boost::get<ast::VariableDefWithoutInit>(&member)) {
         const auto type = createType(variable->type);
 
@@ -265,21 +218,17 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
         member_variables.push_back(
           {variable->name.utf8(), type, accessibility});
       }
-      else if (const auto* function = boost::get<ast::FunctionDef>(&member)) {
+      else if (const auto function = boost::get<ast::FunctionDef>(&member)) {
         auto function_clone = *function;
 
         // Push this pointer to front
-        function_clone.decl.params->push_front(
-          {ast::Identifier{std::u32string{U"this"}},
-           VariableQual::mutable_,
-           ast::PointerType{ast::UserDefinedType{node.name}},
-           false});
+        pushThisPtr(function_clone.decl);
 
         function_clone.decl.accessibility = accessibility;
 
         method_def_asts.push_back(std::move(function_clone));
       }
-      else if (const auto* access_specifier
+      else if (const auto access_specifier
                = boost::get<Accessibility>(&member)) {
         switch (*access_specifier) {
         case Accessibility::public_:
@@ -291,6 +240,22 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
         case Accessibility::unknown:
           unreachable();
         }
+      }
+      else if (const auto constructor = boost::get<ast::Constructor>(&member)) {
+        if (accessibility != Accessibility::public_) {
+          throw CodegenError{
+            ctx.formatError(ctx.positions.position_of(*constructor),
+                            "constructor must be public")};
+        }
+
+        auto clone = *constructor;
+
+        clone.decl.is_constructor = true;
+
+        pushThisPtr(clone.decl);
+
+        method_def_asts.push_back(
+          ast::FunctionDef{std::move(clone.decl), std::move(clone.body)});
       }
       else
         unreachable();
@@ -339,7 +304,72 @@ private:
     if (name == "main" || attr_kinds.contains(AttrKind::nomangle))
       return name;
 
-    return ctx.mangler.mangleFunction(ctx, node, node.accessibility);
+    return ctx.mangler.mangleFunction(ctx, node);
+  }
+
+  void createFunctionBody(llvm::Function* const       func,
+                          const std::string_view      name,
+                          const ast::ParameterList&   params,
+                          const std::shared_ptr<Type> return_type,
+                          const ast::Stmt&            body) const
+  {
+    auto const entry_bb = llvm::BasicBlock::Create(ctx.context, "", func);
+    ctx.builder.SetInsertPoint(entry_bb);
+
+    auto argument_table = createArgumentTable(func, params, func->args());
+
+    // Used to combine returns into one.
+    auto const end_bb = llvm::BasicBlock::Create(ctx.context);
+
+    // Return variable.
+    auto const return_variable
+      = return_type->isVoid()
+          ? nullptr
+          : createEntryAlloca(func, "", return_type->getLLVMType(ctx));
+
+    createStatement(ctx,
+                    argument_table,
+                    {return_variable, end_bb, nullptr, nullptr},
+                    body);
+
+    // If there is no return, returns undef.
+    if (!ctx.builder.GetInsertBlock()->getTerminator()
+        && !(return_type->isVoid())) {
+      // Return 0 specially for main.
+      if (name == "main") {
+        ctx.builder.CreateStore(
+          llvm::ConstantInt::getSigned(func->getReturnType(), 0),
+          return_variable);
+        ctx.builder.CreateBr(end_bb);
+      }
+      else {
+        ctx.builder.CreateStore(llvm::UndefValue::get(func->getReturnType()),
+                                return_variable);
+        ctx.builder.CreateBr(end_bb);
+      }
+    }
+
+    // Inserts a terminator if the function returning void does not have
+    // one.
+    if (return_type->isVoid()
+        && !ctx.builder.GetInsertBlock()->getTerminator()) {
+      ctx.builder.CreateBr(end_bb);
+    }
+
+    // Return.
+    func->getBasicBlockList().push_back(end_bb);
+    ctx.builder.SetInsertPoint(end_bb);
+
+    if (return_variable) {
+      auto const retval
+        = ctx.builder.CreateLoad(return_variable->getAllocatedType(),
+                                 return_variable);
+      ctx.builder.CreateRet(retval);
+    }
+    else {
+      // Function that returns void.
+      ctx.builder.CreateRet(nullptr);
+    }
   }
 
   [[nodiscard]] SymbolTable createArgumentTable(

@@ -472,8 +472,10 @@ const x3::rule<struct StructDeclTag, ast::StructDecl> struct_decl{
   "struct declaration"};
 const x3::rule<struct VariableDefWithoutInit, ast::VariableDefWithoutInit>
   variable_def_without_init{"variable definition without initializer"};
-const x3::rule<struct StructElementsTag, ast::StructMemberList>
-  struct_member_list{"struct elements"};
+const x3::rule<struct ConstructorTag, ast::Constructor> constructor{
+  "constructor"};
+const x3::rule<struct StructMemberListTag, ast::StructMemberList>
+  struct_member_list{"struct member list"};
 const x3::rule<struct StructDefTag, ast::StructDef> struct_def{
   "struct definition"};
 const x3::rule<struct ParameterTag, ast::Parameter> parameter{"parameter"};
@@ -660,9 +662,11 @@ const auto struct_decl_def
 const auto variable_def_without_init_def
   = lit(U"let") > identifier > lit(U":") > variable_type;
 
+const auto constructor_def = function_proto > stmt;
+
 const auto struct_member_list_def
-  = *((variable_def_without_init > lit(U";")) | function_def
-      | (access_specifier > lit(U":")));
+  = *((variable_def_without_init > lit(U";")) | (access_specifier > lit(U":"))
+      | function_def | constructor);
 
 const auto struct_def_def
   = lit(U"struct") > identifier > lit(U"{") > struct_member_list > lit(U"}");
@@ -675,7 +679,7 @@ const auto parameter_def
 const auto parameter_list_def = -(parameter % lit(U","));
 
 const auto function_proto_def
-  = (function_linkage | x3::attr(Linkage::external)) > identifier > lit(U"(")
+  = (function_linkage | x3::attr(Linkage::external)) >> identifier > lit(U"(")
     > parameter_list > lit(U")")
     > ((lit(U"->") > type_name)
        | x3::attr(ast::BuiltinType{codegen::BuiltinTypeKind::void_}));
@@ -691,6 +695,7 @@ const auto top_level_def
 const auto top_level_with_attr_def = -attribute >> top_level_def;
 
 BOOST_SPIRIT_DEFINE(variable_def_without_init)
+BOOST_SPIRIT_DEFINE(constructor)
 BOOST_SPIRIT_DEFINE(struct_member_list)
 BOOST_SPIRIT_DEFINE(struct_def)
 BOOST_SPIRIT_DEFINE(struct_decl)
@@ -899,7 +904,11 @@ struct VariableDefWithoutInit
   : ErrorHandle
   , AnnotatePosition {};
 
-struct StructElementsTag
+struct ConstructorTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct StructMemberListTag
   : ErrorHandle
   , AnnotatePosition {};
 

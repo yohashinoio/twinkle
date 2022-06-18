@@ -1,0 +1,25 @@
+struct Sample {
+  Sample(yoha_arg: i32, shino: i32)
+  {
+    yoha = yoha_arg;
+    (*this).shino = shino;
+  }
+
+  func get() -> i32
+  {
+    return yoha + shino + io;
+  }
+
+  let io: i32;
+  let shino: i32;
+
+private:
+  let yoha: i32;
+}
+
+func main() -> i32
+{
+  let mut s = Sample{48, 42};
+  s.io = 10;
+  return s.get();
+}

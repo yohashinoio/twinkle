@@ -340,7 +340,7 @@ struct Pipeline : x3::position_tagged {
 };
 
 struct UniformInit : x3::position_tagged {
-  Identifier        ident;
+  Identifier        object_name;
   std::vector<Expr> initializer_list;
 };
 
@@ -534,10 +534,19 @@ struct FunctionDecl : x3::position_tagged {
   Identifier    name;
   ParameterList params;
   ast::Type     return_type;
-  Accessibility accessibility = Accessibility::non_method;
+  Accessibility accessibility  = Accessibility::non_method;
+  bool          is_constructor = false;
 };
 
 struct FunctionDef : x3::position_tagged {
+  FunctionDef(FunctionDecl&& decl, Stmt&& body)
+    : decl{std::move(decl)}
+    , body(std::move(body))
+  {
+  }
+
+  FunctionDef() = default;
+
   FunctionDecl decl;
   Stmt         body;
 };
@@ -551,8 +560,16 @@ struct VariableDefWithoutInit : x3::position_tagged {
   ast::Type  type;
 };
 
-using StructMember = boost::
-  variant<boost::blank, VariableDefWithoutInit, FunctionDef, Accessibility>;
+struct Constructor : x3::position_tagged {
+  FunctionDecl decl;
+  Stmt         body;
+};
+
+using StructMember = boost::variant<boost::blank,
+                                    VariableDefWithoutInit,
+                                    FunctionDef,
+                                    Constructor,
+                                    Accessibility>;
 
 using StructMemberList = std::vector<StructMember>;
 

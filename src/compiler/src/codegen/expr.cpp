@@ -374,12 +374,55 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::UniformInit& node) const
   {
-    // TODO
-    unreachable();
+    const auto object_name = node.object_name.utf8();
+
+    const auto object_info = ctx.struct_table[object_name];
+
+    const auto pos = ctx.positions.position_of(node);
+
+    if (!object_info) {
+      throw CodegenError{
+        ctx.formatError(pos,
+                        fmt::format("object {} is undefined", object_name))};
+    }
+
+    auto const alloca
+      = createEntryAlloca(ctx.builder.GetInsertBlock()->getParent(),
+                          "",
+                          object_info->getLLVMType());
+
+    const auto this_pointer_type = std::make_shared<PointerType>(
+      std::make_shared<StructType>(object_name));
+
+    std::deque<Value> args;
+
+    // Push this pointer
+    args.push_back({alloca, this_pointer_type});
+
+    for (const auto& r : node.initializer_list)
+      args.push_back(boost::apply_visitor(*this, r));
+
+    ctx.namespaces.push({object_name, true});
+
+    const auto mangled_constructor = ctx.mangler.mangleConstructor(ctx, args);
+
+    ctx.namespaces.pop();
+
+    if (auto func = ctx.module->getFunction(mangled_constructor))
+      createFunctionCall(func, args, false, pos);
+    else {
+      throw CodegenError{ctx.formatError(
+        pos,
+        fmt::format("no matching constructor for initialization of {}",
+                    object_name))};
+    }
+
+    return {ctx.builder.CreateLoad(alloca->getAllocatedType(), alloca),
+            this_pointer_type->getPointeeType()};
   }
 
 private:
-  [[nodiscard]] Value createFunctionCall(
+  Value createFunctionCall(
     llvm::Function* const                              callee_func,
     std::deque<Value>&                                 args,
     const bool                                         insert_this_p,
@@ -575,10 +618,12 @@ private:
                     : createPointerSubscript(lhs, index);
   }
 
-  [[nodiscard]] Value createAddressOf(const Value& value) const
+  // Do not use for constants!
+  [[nodiscard]] Value createAddressOf(const Value& val) const
   {
-    return {llvm::getPointerOperand(value.getValue()),
-            std::make_shared<PointerType>(value.getType())};
+    auto tmp = llvm::getPointerOperand(val.getValue());
+    assert(tmp);
+    return {tmp, std::make_shared<PointerType>(val.getType())};
   }
 
   [[nodiscard]] Value
@@ -600,21 +645,21 @@ private:
   createDereference(const boost::iterator_range<InputIterator>& pos,
                     const Variable&                             rhs) const
   {
-    const auto value
+    const auto val
       = Value{ctx.builder.CreateLoad(rhs.getAllocaInst()->getAllocatedType(),
                                      rhs.getAllocaInst()),
               rhs.getType(),
               rhs.isMutable()};
 
-    if (!value.isPointer() || !value.getType()->isPointerTy()) {
+    if (!val.isPointer() || !val.getType()->isPointerTy()) {
       throw CodegenError{
         ctx.formatError(pos, "unary '*' requires pointer operand")};
     }
 
-    return {ctx.builder.CreateLoad(value.getLLVMType()->getPointerElementType(),
-                                   value.getValue()),
-            value.getType()->getPointeeType(),
-            value.isMutable()};
+    return {ctx.builder.CreateLoad(val.getLLVMType()->getPointerElementType(),
+                                   val.getValue()),
+            val.getType()->getPointeeType(),
+            val.isMutable()};
   }
 
   void verifyArguments(const std::deque<Value>&                    args,
@@ -653,7 +698,7 @@ private:
   [[nodiscard]] llvm::Function* findMethod(const std::string& unmangled_name,
                                            const std::deque<Value>& args) const
   {
-    if (ctx.namespaces.empty() || !ctx.namespaces.top().is_structure)
+    if (ctx.namespaces.empty() || !ctx.namespaces.top().is_object)
       return nullptr;
 
     const auto f = [&](const Accessibility accessibility) {

@@ -126,7 +126,7 @@ using StructTable = Table<std::string, Struct>;
 struct NamespaceHierarchy {
   struct Namespace {
     std::string name;
-    bool        is_structure;
+    bool        is_object;
   };
 
   [[nodiscard]] bool empty() const noexcept

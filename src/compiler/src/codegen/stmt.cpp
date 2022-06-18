@@ -12,17 +12,6 @@
 namespace maple::codegen
 {
 
-// Only integer or pointer.
-[[nodiscard]] llvm::Value* createNULL(llvm::Type* const type)
-{
-  if (type->isIntegerTy())
-    return llvm::ConstantInt::get(type, 0);
-  else if (auto const p_type = llvm::dyn_cast<llvm::PointerType>(type))
-    return llvm::ConstantPointerNull::get(p_type);
-
-  unreachable();
-}
-
 //===----------------------------------------------------------------------===//
 // Statement visitor
 //===----------------------------------------------------------------------===//
@@ -235,12 +224,10 @@ struct StmtVisitor : public boost::static_visitor<void> {
                         "condition type is incompatible with bool")};
     }
 
-    // Compare to 0 or nullptr.
-    const auto zero_or_null = createNULL(cond_value.getLLVMType());
-
-    auto const cond = ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_NE,
-                                             cond_value.getValue(),
-                                             zero_or_null);
+    auto const cond = ctx.builder.CreateICmp(
+      llvm::ICmpInst::ICMP_NE,
+      cond_value.getValue(),
+      llvm::Constant::getNullValue(cond_value.getLLVMType()));
 
     ctx.builder.CreateCondBr(cond, then_bb, else_bb);
 

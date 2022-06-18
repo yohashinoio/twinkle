@@ -36,28 +36,32 @@ constexpr const char* prefix = "_Z";
 
 struct Mangler : private boost::noncopyable {
   [[nodiscard]] std::string mangleFunction(codegen::CGContext&      ctx,
-                                           const ast::FunctionDecl& ast,
-                                           const Accessibility accessibility
-                                           = Accessibility::non_method) const;
+                                           const ast::FunctionDecl& ast) const;
 
   [[nodiscard]] std::string
   mangleFunctionCall(codegen::CGContext&               ctx,
                      const std::string_view            callee,
                      const std::deque<codegen::Value>& args) const;
 
-  [[nodiscard]] std::string mangleMethod(
-    codegen::CGContext&    ctx,
-    const std::string_view callee,
-    const std::string&     typename_of_this, // If the function is in a Sample
-                                             // structure, set "Sample".
-    const std::deque<codegen::Value>& args,
-    const Accessibility               accessibility) const;
+  [[nodiscard]] std::string
+  mangleMethod(codegen::CGContext&               ctx,
+               const std::string_view            callee,
+               const std::string&                object_name,
+               const std::deque<codegen::Value>& args,
+               const Accessibility               accessibility) const;
+
+  [[nodiscard]] std::string
+  mangleConstructor(codegen::CGContext&               ctx,
+                    const std::deque<codegen::Value>& args) const;
 
 private:
   [[nodiscard]] std::string mangleFunctionName(const std::string& name) const;
 
   [[nodiscard]] std::string
   mangleNamespace(const codegen::NamespaceHierarchy& namespaces) const;
+
+  [[nodiscard]] std::string
+  mangleThisPointer(const std::string& object_name) const;
 };
 
 } // namespace mangle

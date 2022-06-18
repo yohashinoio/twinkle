@@ -107,7 +107,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::UniformInit,
-  (maple::ast::Identifier, ident)
+  (maple::ast::Identifier, object_name)
   (std::vector<maple::ast::Expr>, initializer_list)
 )
 
@@ -224,6 +224,12 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::FunctionDef,
+	(maple::ast::FunctionDecl, decl)
+  (maple::ast::Stmt, body)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+  maple::ast::Constructor,
 	(maple::ast::FunctionDecl, decl)
   (maple::ast::Stmt, body)
 )
