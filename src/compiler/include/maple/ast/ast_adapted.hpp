@@ -105,6 +105,12 @@ BOOST_FUSION_ADAPT_STRUCT(
   (maple::ast::Expr, rhs)
 )
 
+BOOST_FUSION_ADAPT_STRUCT(
+  maple::ast::UniformInit,
+  (maple::ast::Identifier, ident)
+  (std::vector<maple::ast::Expr>, initializer_list)
+)
+
 //===----------------------------------------------------------------------===//
 // Statement AST adapt
 //===----------------------------------------------------------------------===//

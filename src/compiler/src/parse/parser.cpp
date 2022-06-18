@@ -438,6 +438,8 @@ const x3::rule<struct ArgListTag, std::deque<ast::Expr>> arg_list{
   "argument list"};
 const x3::rule<struct FunctionCallTag, ast::Expr> function_call{
   "function call"};
+const x3::rule<struct UniformInitTag, ast::UniformInit> uniform_init{
+  "uniform initialization"};
 const x3::rule<struct PrimaryTag, ast::Expr> primary{"primary"};
 
 //===----------------------------------------------------------------------===//
@@ -557,10 +559,14 @@ const auto function_call_def
     >> *(string(U"(") > arg_list
          > lit(U")"))[action::assignToValAs<ast::FunctionCall>{}];
 
-const auto primary_def
-  = identifier | float_64bit | binary_literal | octal_literal | hex_literal
-    | int_32bit | uint_32bit | int_64bit | uint_64bit | boolean_literal
-    | string_literal | char_literal | (lit(U"(") > expr > lit(U")"));
+const auto primary_def = uniform_init | identifier | float_64bit
+                         | binary_literal | octal_literal | hex_literal
+                         | int_32bit | uint_32bit | int_64bit | uint_64bit
+                         | boolean_literal | string_literal | char_literal
+                         | (lit(U"(") > expr > lit(U")"));
+
+const auto uniform_init_def
+  = identifier >> lit(U"{") > (expr % lit(U",")) > lit(U"}");
 
 BOOST_SPIRIT_DEFINE(expr)
 BOOST_SPIRIT_DEFINE(binary_logical)
@@ -577,6 +583,7 @@ BOOST_SPIRIT_DEFINE(arg_list)
 BOOST_SPIRIT_DEFINE(function_call)
 BOOST_SPIRIT_DEFINE(unary_internal)
 BOOST_SPIRIT_DEFINE(primary)
+BOOST_SPIRIT_DEFINE(uniform_init)
 
 //===----------------------------------------------------------------------===//
 // Statement rules definition
@@ -816,7 +823,7 @@ struct PrimaryTag
   : ErrorHandle
   , AnnotatePosition {};
 
-struct BlockExprTag
+struct UniformInitTag
   : ErrorHandle
   , AnnotatePosition {};
 

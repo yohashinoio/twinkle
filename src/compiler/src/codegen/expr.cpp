@@ -372,6 +372,12 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     return (*this)(call);
   }
 
+  [[nodiscard]] Value operator()(const ast::UniformInit& node) const
+  {
+    // TODO
+    unreachable();
+  }
+
 private:
   [[nodiscard]] Value createFunctionCall(
     llvm::Function* const                              callee_func,

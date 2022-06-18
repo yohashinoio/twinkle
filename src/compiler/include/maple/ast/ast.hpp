@@ -142,6 +142,7 @@ struct Conversion;
 struct Subscript;
 struct Pipeline;
 struct MemberAccess;
+struct UniformInit;
 
 using Expr = boost::variant<boost::blank,
                             double,        // Floating point literals
@@ -159,7 +160,8 @@ using Expr = boost::variant<boost::blank,
                             boost::recursive_wrapper<FunctionCall>,
                             boost::recursive_wrapper<Conversion>,
                             boost::recursive_wrapper<Pipeline>,
-                            boost::recursive_wrapper<MemberAccess>>;
+                            boost::recursive_wrapper<MemberAccess>,
+                            boost::recursive_wrapper<UniformInit>>;
 
 struct BinOp : x3::position_tagged {
   Expr           lhs;
@@ -335,6 +337,11 @@ struct Pipeline : x3::position_tagged {
     , rhs{std::move(rhs)}
   {
   }
+};
+
+struct UniformInit : x3::position_tagged {
+  Identifier        ident;
+  std::vector<Expr> initializer_list;
 };
 
 //===----------------------------------------------------------------------===//
