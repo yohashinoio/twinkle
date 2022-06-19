@@ -84,11 +84,10 @@ private:
   std::vector<Value> initializer_list;
 };
 
-// Returns a new symbol table.
-SymbolTable createStatement(CGContext&                ctx,
-                            SymbolTable&              scope,
-                            const StmtContext&        stmt_ctx,
-                            const ast::Stmt&          statement);
+void createStatement(CGContext&         ctx,
+                     SymbolTable&       scope,
+                     const StmtContext& stmt_ctx,
+                     const ast::Stmt&   statement);
 
 } // namespace maple::codegen
 

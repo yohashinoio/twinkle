@@ -589,10 +589,10 @@ private:
   const StmtContext& stmt_ctx;
 };
 
-SymbolTable createStatement(CGContext&         ctx,
-                            SymbolTable&       scope,
-                            const StmtContext& stmt_ctx,
-                            const ast::Stmt&   statement)
+void createStatement(CGContext&         ctx,
+                     SymbolTable&       scope,
+                     const StmtContext& stmt_ctx,
+                     const ast::Stmt&   statement)
 {
   auto new_scope = scope;
 
@@ -610,8 +610,6 @@ SymbolTable createStatement(CGContext&         ctx,
   }
   else
     boost::apply_visitor(StmtVisitor{ctx, new_scope, stmt_ctx}, statement);
-
-  return new_scope;
 }
 
 } // namespace maple::codegen
