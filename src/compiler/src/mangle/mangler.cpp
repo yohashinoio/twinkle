@@ -24,22 +24,23 @@ Mangler::mangleFunction(codegen::CGContext&      ctx,
 
   mangled << mangleNamespace(ctx.namespaces);
 
+  assert(!(ast.is_constructor && ast.is_destructor));
+
   if (ast.is_constructor)
-    mangled << "C";
+    mangled << 'C';
+  else if (ast.is_destructor)
+    mangled << 'D';
   else
     mangled << mangleFunctionName(ast.name.utf8());
 
-  mangled << "E";
+  mangled << 'E';
 
   {
-    // Argument types.
     for (const auto& param : *ast.params) {
       if (param.is_vararg)
         mangled << "z";
-      else {
-        // TODO: Optimization
+      else
         mangled << codegen::createType(param.type)->getMangledName();
-      }
     }
   }
 
@@ -106,6 +107,24 @@ Mangler::mangleConstructor(codegen::CGContext&               ctx,
 }
 
 [[nodiscard]] std::string
+Mangler::mangleDestructor(codegen::CGContext& ctx,
+                          const std::string&  object_name) const
+{
+  std::ostringstream mangled;
+
+  mangled << prefix;
+
+  mangled << mangleNamespace(ctx.namespaces);
+  mangled << 'D' << 'E';
+
+  mangled << mangleThisPointer(object_name);
+
+  std::cout << mangled.str() << std::endl;
+
+  return mangled.str();
+}
+
+[[nodiscard]] std::string
 Mangler::mangleFunctionName(const std::string& name) const
 {
   return boost::lexical_cast<std::string>(name.length()) + name;
@@ -119,7 +138,7 @@ Mangler::mangleNamespace(const codegen::NamespaceHierarchy& namespaces) const
 
   std::ostringstream mangled;
 
-  mangled << "N";
+  mangled << 'N';
 
   for (const auto& r : namespaces)
     mangled << r.name.length() << r.name;

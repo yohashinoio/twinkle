@@ -196,6 +196,18 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
+  maple::ast::Constructor,
+	(maple::ast::FunctionDecl, decl)
+  (maple::ast::Stmt, body)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+  maple::ast::Destructor,
+	(maple::ast::FunctionDecl, decl)
+  (maple::ast::Stmt, body)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::StructDef,
   (maple::ast::Identifier, name)
   (maple::ast::StructMemberList, members)
@@ -224,12 +236,6 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   maple::ast::FunctionDef,
-	(maple::ast::FunctionDecl, decl)
-  (maple::ast::Stmt, body)
-)
-
-BOOST_FUSION_ADAPT_STRUCT(
-  maple::ast::Constructor,
 	(maple::ast::FunctionDecl, decl)
   (maple::ast::Stmt, body)
 )

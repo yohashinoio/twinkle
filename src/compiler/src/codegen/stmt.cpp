@@ -493,7 +493,6 @@ private:
     }
 
     if (const auto* init_node = boost::get<ast::Expr>(&*initializer)) {
-      // Primitive types.
       auto const init_value = createExpr(ctx, scope, stmt_ctx, *init_node);
 
       if (!init_value) {
@@ -559,7 +558,6 @@ private:
       };
     }
     else if (const auto* init_node = boost::get<ast::Expr>(&*initializer)) {
-      // Inference to primitive types.
       auto const init_value = createExpr(ctx, scope, stmt_ctx, *init_node);
 
       if (!init_value) {
@@ -588,6 +586,41 @@ private:
 
   const StmtContext& stmt_ctx;
 };
+
+[[nodiscard]] llvm::Function* findDestructor(CGContext&         ctx,
+                                             const std::string& object_name)
+{
+  ctx.namespaces.push({object_name, true});
+
+  const auto destructor
+    = ctx.module->getFunction(ctx.mangler.mangleDestructor(ctx, object_name));
+
+  ctx.namespaces.pop();
+
+  return destructor;
+}
+
+// If destructor is not defined, nothing is done
+void invokeDestructor(CGContext& ctx, const Variable& this_)
+{
+  assert(this_.getType()->isStructTy());
+
+  const auto destructor = findDestructor(ctx, this_.getType()->getStructName());
+
+  if (destructor) {
+    ctx.builder.CreateCall(
+      destructor,
+      llvm::ArrayRef<llvm::Value*>{{this_.getAllocaInst()}});
+  }
+}
+
+static void destructVariables(CGContext& ctx, SymbolTable& symbols)
+{
+  for (const auto& symbol : symbols) {
+    if (symbol.second.getType()->isStructTy())
+      invokeDestructor(ctx, symbol.second);
+  }
+}
 
 void createStatement(CGContext&         ctx,
                      SymbolTable&       scope,

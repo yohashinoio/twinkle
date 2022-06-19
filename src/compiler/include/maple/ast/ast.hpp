@@ -536,6 +536,7 @@ struct FunctionDecl : x3::position_tagged {
   ast::Type     return_type;
   Accessibility accessibility  = Accessibility::non_method;
   bool          is_constructor = false;
+  bool          is_destructor  = false;
 };
 
 struct FunctionDef : x3::position_tagged {
@@ -565,10 +566,16 @@ struct Constructor : x3::position_tagged {
   Stmt         body;
 };
 
+struct Destructor : x3::position_tagged {
+  FunctionDecl decl;
+  Stmt         body;
+};
+
 using StructMember = boost::variant<boost::blank,
                                     VariableDefWithoutInit,
                                     FunctionDef,
                                     Constructor,
+                                    Destructor,
                                     Accessibility>;
 
 using StructMemberList = std::vector<StructMember>;

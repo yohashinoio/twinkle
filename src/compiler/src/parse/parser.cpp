@@ -293,6 +293,7 @@ const x3::rule<struct VariableDefWithoutInit, ast::VariableDefWithoutInit>
   variable_def_without_init{"variable definition without initializer"};
 const x3::rule<struct ConstructorTag, ast::Constructor> constructor{
   "constructor"};
+const x3::rule<struct DestructorTag, ast::Destructor> destructor{"destructor"};
 const x3::rule<struct StructMemberListTag, ast::StructMemberList>
   struct_member_list{"struct member list"};
 const x3::rule<struct StructDefTag, ast::StructDef> struct_def{
@@ -814,9 +815,11 @@ const auto variable_def_without_init_def
 
 const auto constructor_def = function_proto > stmt;
 
+const auto destructor_def = lit(U"~") >> function_proto > stmt;
+
 const auto struct_member_list_def
   = *((variable_def_without_init > lit(U";")) | (access_specifier > lit(U":"))
-      | function_def | constructor);
+      | function_def | destructor | constructor);
 
 const auto struct_def_def
   = lit(U"struct") > identifier > lit(U"{") > struct_member_list > lit(U"}");
@@ -846,6 +849,7 @@ const auto top_level_with_attr_def = -attribute >> top_level_def;
 
 BOOST_SPIRIT_DEFINE(variable_def_without_init)
 BOOST_SPIRIT_DEFINE(constructor)
+BOOST_SPIRIT_DEFINE(destructor)
 BOOST_SPIRIT_DEFINE(struct_member_list)
 BOOST_SPIRIT_DEFINE(struct_def)
 BOOST_SPIRIT_DEFINE(struct_decl)
@@ -862,6 +866,10 @@ struct VariableDefWithoutInit
   , AnnotatePosition {};
 
 struct ConstructorTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct DestructorTag
   : ErrorHandle
   , AnnotatePosition {};
 

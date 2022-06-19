@@ -257,6 +257,24 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
         method_def_asts.push_back(
           ast::FunctionDef{std::move(clone.decl), std::move(clone.body)});
       }
+      else if (const auto destructor = boost::get<ast::Destructor>(&member)) {
+        if (accessibility != Accessibility::public_) {
+          throw CodegenError{
+            ctx.formatError(ctx.positions.position_of(*destructor),
+                            "destructor must be public")};
+        }
+
+        verifyDestructor(*destructor);
+
+        auto clone = *destructor;
+
+        clone.decl.is_destructor = true;
+
+        pushThisPtr(clone.decl);
+
+        method_def_asts.push_back(
+          ast::FunctionDef{std::move(clone.decl), std::move(clone.body)});
+      }
       else
         unreachable();
     }
@@ -420,6 +438,15 @@ private:
     }
 
     return types;
+  }
+
+  void verifyDestructor(const ast::Destructor& destructor) const
+  {
+    if (!destructor.decl.params->empty()) {
+      throw CodegenError{
+        ctx.formatError(ctx.positions.position_of(destructor),
+                        "destructor does not accept arguments")};
+    }
   }
 
   CGContext& ctx;

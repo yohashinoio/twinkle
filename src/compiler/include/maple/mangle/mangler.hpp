@@ -43,6 +43,7 @@ struct Mangler : private boost::noncopyable {
                      const std::string_view            callee,
                      const std::deque<codegen::Value>& args) const;
 
+  // The mangled this pointer type is inserted automatically
   [[nodiscard]] std::string
   mangleMethod(codegen::CGContext&               ctx,
                const std::string_view            callee,
@@ -53,6 +54,11 @@ struct Mangler : private boost::noncopyable {
   [[nodiscard]] std::string
   mangleConstructor(codegen::CGContext&               ctx,
                     const std::deque<codegen::Value>& args) const;
+
+  // The mangled this pointer type is inserted automatically
+  [[nodiscard]] std::string
+  mangleDestructor(codegen::CGContext& ctx,
+                   const std::string&  object_name) const;
 
 private:
   [[nodiscard]] std::string mangleFunctionName(const std::string& name) const;

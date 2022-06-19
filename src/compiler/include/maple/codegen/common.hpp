@@ -19,21 +19,18 @@ namespace maple::codegen
 {
 
 struct StmtContext {
-  // llvm ir does not allow multiple terminations(e.g. 'ret'),
-  // so instead store the return value in the variable below and 'ret' at the
-  // end.
+  // Store the return value in this variable
   llvm::AllocaInst* return_var;
 
-  // When the return statement is called, store the value in the variable for
-  // the return value and move it to the BasicBlock below.
+  // All ret instructions in llvm ir are executed in this basic block
   llvm::BasicBlock* end_bb;
 
-  // Where to go when the break statement is called.
-  // nullptr is set if not in a loop
+  // Used when a break statement is called
+  // If not in a loop, nullptr
   llvm::BasicBlock* break_bb;
 
-  // Where to go when the continue statement is called.
-  // nullptr is set if not in a loop
+  // Used when a continue statement is called
+  // If not in a loop, nullptr
   llvm::BasicBlock* continue_bb;
 };
 
