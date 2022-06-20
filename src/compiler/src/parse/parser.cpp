@@ -409,7 +409,7 @@ const auto attribute = x3::rule<struct AttrTag, ast::Attrs>{"attribute"}
 = lit(U"[[") >> (identifier_internal % lit(U",")) > lit(U"]]");
 
 const auto uniform_init_def
-  = identifier >> lit(U"{") > (expr % lit(U",")) > lit(U"}");
+  = identifier >> lit(U"{") > -(expr % lit(U",")) > lit(U"}");
 
 BOOST_SPIRIT_DEFINE(uniform_init)
 
