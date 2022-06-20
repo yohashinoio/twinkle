@@ -85,7 +85,7 @@ private:
 };
 
 void createStatement(CGContext&         ctx,
-                     SymbolTable&       scope,
+                     const SymbolTable& scope,
                      const StmtContext& stmt_ctx,
                      const ast::Stmt&   statement);
 
