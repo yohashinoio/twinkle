@@ -607,11 +607,8 @@ void invokeDestructor(CGContext& ctx, const Variable& this_)
 
   const auto destructor = findDestructor(ctx, this_.getType()->getStructName());
 
-  if (destructor) {
-    ctx.builder.CreateCall(
-      destructor,
-      llvm::ArrayRef<llvm::Value*>{{this_.getAllocaInst()}});
-  }
+  if (destructor)
+    ctx.builder.CreateCall(destructor, {this_.getAllocaInst()});
 }
 
 static void destructVariables(CGContext& ctx, SymbolTable& symbols)

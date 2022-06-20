@@ -237,6 +237,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
         case Accessibility::private_:
           accessibility = Accessibility::private_;
           continue;
+        case Accessibility::non_method:
         case Accessibility::unknown:
           unreachable();
         }
@@ -433,7 +434,6 @@ private:
 
     for (std::size_t i = 0; i != named_params_len; ++i) {
       const auto& param_type = params->at(i).type;
-      // TODO: Optimizaiton
       types.at(i)            = createType(param_type)->getLLVMType(ctx);
     }
 
