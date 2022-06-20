@@ -1,0 +1,36 @@
+struct Sample {
+  Sample(n_: i32)
+  {
+    n = n_;
+  }
+
+  Sample()
+  {
+    n = 48;
+  }
+
+  Sample(ch: char)
+  {
+    n = 10;
+  }
+
+  func getN() -> i32
+  {
+    return n;
+  }
+
+private:
+  let n: i32;
+}
+
+func main() -> i32
+{
+  let s1 = Sample{58};
+
+  let s2 = Sample{};
+
+  let s3 = Sample{'🌸'};
+
+  if (s2.getN() == 48 && s3.getN() == 10)
+    return s1.getN();
+}
