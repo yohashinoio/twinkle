@@ -806,8 +806,11 @@ struct ContinueTag
 // Top level rules and tags definition
 //===----------------------------------------------------------------------===//
 
+const auto class_key = x3::rule<struct ClassKeyTag>{"class key"}
+= lit(U"struct");
+
 const auto class_decl_def
-  = lit(U"declare") >> lit(U"struct") > identifier > lit(U";");
+  = lit(U"declare") >> class_key > identifier > lit(U";");
 
 const auto variable_def_without_init_def
   = lit(U"let") > identifier > lit(U":") > variable_type;
@@ -821,7 +824,7 @@ const auto class_member_list_def
       | function_def | destructor | constructor);
 
 const auto class_def_def
-  = lit(U"struct") > identifier > lit(U"{") > class_member_list > lit(U"}");
+  = class_key > identifier > lit(U"{") > class_member_list > lit(U"}");
 
 const auto parameter_def
   = (identifier > lit(U":") > -variable_qualifier > type_name > x3::attr(false))
@@ -859,6 +862,10 @@ BOOST_SPIRIT_DEFINE(function_decl)
 BOOST_SPIRIT_DEFINE(function_def)
 BOOST_SPIRIT_DEFINE(top_level)
 BOOST_SPIRIT_DEFINE(top_level_with_attr)
+
+struct ClassKeyTag
+  : ErrorHandle
+  , AnnotatePosition {};
 
 struct VariableDefWithoutInit
   : ErrorHandle
