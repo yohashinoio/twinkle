@@ -18,7 +18,7 @@ namespace maple
 {
 
 enum class SignKind {
-  no_sign, // e.g. array, struct
+  no_sign, // e.g. array, class
   unsigned_,
   signed_,
 };

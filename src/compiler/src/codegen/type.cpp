@@ -99,9 +99,9 @@ matchBuiltinType(const std::u32string_view type)
 
 [[nodiscard]] llvm::Type* StructType::getLLVMType(CGContext& ctx) const
 {
-  const auto struct_type = ctx.struct_table[ident];
-  assert(struct_type);
-  return struct_type->getLLVMType();
+  const auto class_type = ctx.class_table[ident];
+  assert(class_type);
+  return class_type->getLLVMType();
 }
 
 [[nodiscard]] std::string BuiltinType::getMangledName() const

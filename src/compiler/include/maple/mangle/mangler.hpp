@@ -47,7 +47,7 @@ struct Mangler : private boost::noncopyable {
   [[nodiscard]] std::string
   mangleMethod(codegen::CGContext&               ctx,
                const std::string_view            callee,
-               const std::string&                object_name,
+               const std::string&                class_name,
                const std::deque<codegen::Value>& args,
                const Accessibility               accessibility) const;
 
@@ -58,7 +58,7 @@ struct Mangler : private boost::noncopyable {
   // The mangled this pointer type is inserted automatically
   [[nodiscard]] std::string
   mangleDestructor(codegen::CGContext& ctx,
-                   const std::string&  object_name) const;
+                   const std::string&  class_name) const;
 
 private:
   [[nodiscard]] std::string mangleFunctionName(const std::string& name) const;
@@ -67,7 +67,7 @@ private:
   mangleNamespace(const codegen::NamespaceHierarchy& namespaces) const;
 
   [[nodiscard]] std::string
-  mangleThisPointer(const std::string& object_name) const;
+  mangleThisPointer(const std::string& class_name) const;
 };
 
 } // namespace mangle

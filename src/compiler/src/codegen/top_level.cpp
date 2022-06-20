@@ -175,31 +175,31 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     return func;
   }
 
-  llvm::Function* operator()(const ast::StructDecl& node) const
+  llvm::Function* operator()(const ast::ClassDecl& node) const
   {
     const auto name = node.name.utf8();
 
-    if (ctx.struct_table.exists(name)) {
+    if (ctx.class_table.exists(name)) {
       // Do nothing, if already exists.
       return nullptr;
     }
 
-    ctx.struct_table.regist(
+    ctx.class_table.regist(
       name,
-      Struct{llvm::StructType::create(ctx.context, name), {}, true});
+      Class{llvm::StructType::create(ctx.context, name), {}, true});
 
     return nullptr;
   }
 
-  llvm::Function* operator()(const ast::StructDef& node) const
+  llvm::Function* operator()(const ast::ClassDef& node) const
   {
     const auto name = node.name.utf8();
 
     auto accessibility = STRUCT_DEFAULT_ACCESSIBILITY;
 
-    std::vector<llvm::Type*>            member_var_types;
-    std::vector<Struct::MemberVariable> member_variables;
-    std::vector<ast::FunctionDef>       method_def_asts;
+    std::vector<llvm::Type*>           member_var_types;
+    std::vector<Class::MemberVariable> member_variables;
+    std::vector<ast::FunctionDef>      method_def_asts;
 
     const auto pushThisPtr = [&](ast::FunctionDecl& decl) {
       decl.params->push_front(
@@ -281,7 +281,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     }
 
     // Check to make sure the name does not already exist.
-    if (const auto existed_type = ctx.struct_table[name]) {
+    if (const auto existed_type = ctx.class_table[name]) {
       if (existed_type->isOpaque()) {
         // Set member type if declared forward.
         existed_type->getLLVMType()->setBody(member_var_types);
@@ -293,11 +293,11 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
       }
     }
     else {
-      ctx.struct_table.regist(
+      ctx.class_table.regist(
         name,
-        Struct{llvm::StructType::create(ctx.context, member_var_types, name),
-               std::move(member_variables),
-               false});
+        Class{llvm::StructType::create(ctx.context, member_var_types, name),
+              std::move(member_variables),
+              false});
     }
 
     {

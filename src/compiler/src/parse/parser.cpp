@@ -287,17 +287,16 @@ const x3::rule<struct StmtTag, ast::Stmt>     stmt{"statement"};
 // Top level rules declaration
 //===----------------------------------------------------------------------===//
 
-const x3::rule<struct StructDeclTag, ast::StructDecl> struct_decl{
-  "struct declaration"};
+const x3::rule<struct ClassDeclTag, ast::ClassDecl> class_decl{
+  "class declaration"};
 const x3::rule<struct VariableDefWithoutInit, ast::VariableDefWithoutInit>
   variable_def_without_init{"variable definition without initializer"};
 const x3::rule<struct ConstructorTag, ast::Constructor> constructor{
   "constructor"};
 const x3::rule<struct DestructorTag, ast::Destructor> destructor{"destructor"};
-const x3::rule<struct StructMemberListTag, ast::StructMemberList>
-  struct_member_list{"struct member list"};
-const x3::rule<struct StructDefTag, ast::StructDef> struct_def{
-  "struct definition"};
+const x3::rule<struct ClassMemberListTag, ast::ClassMemberList>
+  class_member_list{"class member list"};
+const x3::rule<struct ClassDefTag, ast::ClassDef> class_def{"class definition"};
 const x3::rule<struct ParameterTag, ast::Parameter> parameter{"parameter"};
 const x3::rule<struct ParameterListTag, ast::ParameterList> parameter_list{
   "parameter list"};
@@ -807,7 +806,7 @@ struct ContinueTag
 // Top level rules and tags definition
 //===----------------------------------------------------------------------===//
 
-const auto struct_decl_def
+const auto class_decl_def
   = lit(U"declare") >> lit(U"struct") > identifier > lit(U";");
 
 const auto variable_def_without_init_def
@@ -817,12 +816,12 @@ const auto constructor_def = function_proto > stmt;
 
 const auto destructor_def = lit(U"~") >> function_proto > stmt;
 
-const auto struct_member_list_def
+const auto class_member_list_def
   = *((variable_def_without_init > lit(U";")) | (access_specifier > lit(U":"))
       | function_def | destructor | constructor);
 
-const auto struct_def_def
-  = lit(U"struct") > identifier > lit(U"{") > struct_member_list > lit(U"}");
+const auto class_def_def
+  = lit(U"struct") > identifier > lit(U"{") > class_member_list > lit(U"}");
 
 const auto parameter_def
   = (identifier > lit(U":") > -variable_qualifier > type_name > x3::attr(false))
@@ -843,16 +842,16 @@ const auto function_decl_def
 const auto function_def_def = lit(U"func") > function_proto > stmt;
 
 const auto top_level_def
-  = function_decl | function_def | struct_decl | struct_def;
+  = function_decl | function_def | class_decl | class_def;
 
 const auto top_level_with_attr_def = -attribute >> top_level_def;
 
 BOOST_SPIRIT_DEFINE(variable_def_without_init)
 BOOST_SPIRIT_DEFINE(constructor)
 BOOST_SPIRIT_DEFINE(destructor)
-BOOST_SPIRIT_DEFINE(struct_member_list)
-BOOST_SPIRIT_DEFINE(struct_def)
-BOOST_SPIRIT_DEFINE(struct_decl)
+BOOST_SPIRIT_DEFINE(class_member_list)
+BOOST_SPIRIT_DEFINE(class_def)
+BOOST_SPIRIT_DEFINE(class_decl)
 BOOST_SPIRIT_DEFINE(parameter)
 BOOST_SPIRIT_DEFINE(parameter_list)
 BOOST_SPIRIT_DEFINE(function_proto)
@@ -873,15 +872,15 @@ struct DestructorTag
   : ErrorHandle
   , AnnotatePosition {};
 
-struct StructMemberListTag
+struct ClassMemberListTag
   : ErrorHandle
   , AnnotatePosition {};
 
-struct StructDefTag
+struct ClassDefTag
   : ErrorHandle
   , AnnotatePosition {};
 
-struct StructDeclTag
+struct ClassDeclTag
   : ErrorHandle
   , AnnotatePosition {};
 

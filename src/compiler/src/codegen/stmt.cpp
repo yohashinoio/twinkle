@@ -588,12 +588,12 @@ private:
 };
 
 [[nodiscard]] llvm::Function* findDestructor(CGContext&         ctx,
-                                             const std::string& object_name)
+                                             const std::string& class_name)
 {
-  ctx.namespaces.push({object_name, true});
+  ctx.namespaces.push({class_name, true});
 
   const auto destructor
-    = ctx.module->getFunction(ctx.mangler.mangleDestructor(ctx, object_name));
+    = ctx.module->getFunction(ctx.mangler.mangleDestructor(ctx, class_name));
 
   ctx.namespaces.pop();
 

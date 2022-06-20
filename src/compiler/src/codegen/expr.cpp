@@ -12,12 +12,12 @@
 namespace maple::codegen
 {
 
-// Calculate the offset of a member variable of a structure.
+// Calculate the offset of a member variable of a class.
 // Returns std::nullopt if there is no matching member.
 [[nodiscard]] static std::optional<std::size_t>
-offsetByName(const Struct& struct_info, const std::string& member_name)
+offsetByName(const Class& class_info, const std::string& member_name)
 {
-  const auto members = struct_info.getMemberVariables();
+  const auto members = class_info.getMemberVariables();
 
   for (std::size_t offset = 0; const auto& member : members) {
     if (member.name == member_name)
@@ -374,25 +374,24 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::UniformInit& node) const
   {
-    const auto object_name = node.object_name.utf8();
+    const auto class_name = node.class_name.utf8();
 
-    const auto object_info = ctx.struct_table[object_name];
+    const auto class_info = ctx.class_table[class_name];
 
     const auto pos = ctx.positions.position_of(node);
 
-    if (!object_info) {
+    if (!class_info) {
       throw CodegenError{
-        ctx.formatError(pos,
-                        fmt::format("object {} is undefined", object_name))};
+        ctx.formatError(pos, fmt::format("class {} is undefined", class_name))};
     }
 
     auto const alloca
       = createEntryAlloca(ctx.builder.GetInsertBlock()->getParent(),
                           "",
-                          object_info->getLLVMType());
+                          class_info->getLLVMType());
 
-    const auto this_pointer_type = std::make_shared<PointerType>(
-      std::make_shared<StructType>(object_name));
+    const auto this_pointer_type
+      = std::make_shared<PointerType>(std::make_shared<StructType>(class_name));
 
     std::deque<Value> args;
 
@@ -402,7 +401,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     for (const auto& r : node.initializer_list)
       args.push_back(boost::apply_visitor(*this, r));
 
-    ctx.namespaces.push({object_name, true});
+    ctx.namespaces.push({class_name, true});
 
     const auto mangled_constructor = ctx.mangler.mangleConstructor(ctx, args);
 
@@ -414,7 +413,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       throw CodegenError{ctx.formatError(
         pos,
         fmt::format("no matching constructor for initialization of {}",
-                    object_name))};
+                    class_name))};
     }
 
     return {ctx.builder.CreateLoad(alloca->getAllocatedType(), alloca),
@@ -698,7 +697,7 @@ private:
   [[nodiscard]] llvm::Function* findMethod(const std::string& unmangled_name,
                                            const std::deque<Value>& args) const
   {
-    if (ctx.namespaces.empty() || !ctx.namespaces.top().is_object)
+    if (ctx.namespaces.empty() || !ctx.namespaces.top().is_class)
       return nullptr;
 
     const auto f = [&](const Accessibility accessibility) {
@@ -774,28 +773,28 @@ private:
   }
 
   [[nodiscard]] Value
-  memberVariableAccess(const Value&           structure,
+  memberVariableAccess(const Value&           class_val,
                        const ast::Identifier& member_name_ast,
                        const bool             external_access = true) const
   {
     const auto member_name = member_name_ast.utf8();
 
-    if (!structure.getLLVMType()->isStructTy()) {
+    if (!class_val.getLLVMType()->isStructTy()) {
       throw CodegenError{
         ctx.formatError(ctx.positions.position_of(member_name_ast),
-                        "member access cannot be used for non-struct")};
+                        "member access cannot be used for non-class")};
     }
 
-    const auto struct_info
-      = ctx.struct_table[structure.getLLVMType()->getStructName().str()];
+    const auto class_info
+      = ctx.class_table[class_val.getLLVMType()->getStructName().str()];
 
-    if (!struct_info || struct_info->isOpaque()) {
+    if (!class_info || class_info->isOpaque()) {
       throw CodegenError{
         ctx.formatError(ctx.positions.position_of(member_name_ast),
-                        "member access to undefined struct is not allowed.")};
+                        "member access to undefined class is not allowed.")};
     }
 
-    const auto offset = offsetByName(*struct_info, member_name);
+    const auto offset = offsetByName(*class_info, member_name);
 
     if (!offset) {
       throw CodegenError{ctx.formatError(
@@ -805,33 +804,33 @@ private:
 
     if (external_access
         && !isExternallyAccessible(
-          struct_info->getMemberVariable(*offset).accessibility)) {
+          class_info->getMemberVariable(*offset).accessibility)) {
       throw CodegenError{ctx.formatError(
         ctx.positions.position_of(member_name_ast),
         fmt::format("member '{}' is not accessible", member_name))};
     }
 
-    auto const lhs_address = llvm::getPointerOperand(structure.getValue());
+    auto const lhs_address = llvm::getPointerOperand(class_val.getValue());
 
     auto const gep = ctx.builder.CreateInBoundsGEP(
-      structure.getLLVMType(),
+      class_val.getLLVMType(),
       lhs_address,
       {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 0),
        llvm::ConstantInt::get(ctx.builder.getInt32Ty(), *offset)});
 
     return {ctx.builder.CreateLoad(
-              structure.getLLVMType()->getStructElementType(*offset),
+              class_val.getLLVMType()->getStructElementType(*offset),
               gep),
-            struct_info->getMemberVariable(*offset).type,
-            structure.isMutable()};
+            class_info->getMemberVariable(*offset).type,
+            class_val.isMutable()};
   }
 
   [[nodiscard]] Value
-  memberVariableAccess(const ast::Expr&       structure,
+  memberVariableAccess(const ast::Expr&       class_,
                        const ast::Identifier& member_name_ast,
                        const bool             external_access = true) const
   {
-    return memberVariableAccess(createExpr(ctx, scope, stmt_ctx, structure),
+    return memberVariableAccess(createExpr(ctx, scope, stmt_ctx, class_),
                                 member_name_ast,
                                 external_access);
   }

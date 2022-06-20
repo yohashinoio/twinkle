@@ -340,7 +340,7 @@ struct Pipeline : x3::position_tagged {
 };
 
 struct UniformInit : x3::position_tagged {
-  Identifier        object_name;
+  Identifier        class_name;
   std::vector<Expr> initializer_list;
 };
 
@@ -552,7 +552,7 @@ struct FunctionDef : x3::position_tagged {
   Stmt         body;
 };
 
-struct StructDecl : x3::position_tagged {
+struct ClassDecl : x3::position_tagged {
   Identifier name;
 };
 
@@ -578,15 +578,15 @@ using StructMember = boost::variant<boost::blank,
                                     Destructor,
                                     Accessibility>;
 
-using StructMemberList = std::vector<StructMember>;
+using ClassMemberList = std::vector<StructMember>;
 
-struct StructDef : x3::position_tagged {
-  Identifier       name;
-  StructMemberList members;
+struct ClassDef : x3::position_tagged {
+  Identifier      name;
+  ClassMemberList members;
 };
 
 using TopLevel = boost::
-  variant<boost::blank, FunctionDecl, FunctionDef, StructDecl, StructDef>;
+  variant<boost::blank, FunctionDecl, FunctionDef, ClassDecl, ClassDef>;
 
 // Example: [[nodiscard, nomangle]]
 using Attrs = std::vector<std::u32string>;

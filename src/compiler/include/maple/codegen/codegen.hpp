@@ -79,16 +79,16 @@ private:
 
 using FunctionReturnTypeTable = Table<llvm::Function*, std::shared_ptr<Type>>;
 
-struct Struct {
+struct Class {
   struct MemberVariable {
     std::string           name;
     std::shared_ptr<Type> type;
     Accessibility         accessibility;
   };
 
-  Struct(llvm::StructType* const       llvmtype,
-         std::vector<MemberVariable>&& variables,
-         const bool                    is_opaque) noexcept
+  Class(llvm::StructType* const       llvmtype,
+        std::vector<MemberVariable>&& variables,
+        const bool                    is_opaque) noexcept
     : llvm_ty{llvmtype}
     , variables{std::move(variables)}
     , is_opaque{is_opaque}
@@ -121,12 +121,12 @@ private:
   bool                        is_opaque;
 };
 
-using StructTable = Table<std::string, Struct>;
+using ClassTable = Table<std::string, Class>;
 
 struct NamespaceHierarchy {
   struct Namespace {
     std::string name;
-    bool        is_object;
+    bool        is_class;
   };
 
   [[nodiscard]] bool empty() const noexcept
@@ -185,7 +185,7 @@ struct CGContext : private boost::noncopyable {
   PositionCache positions;
 
   // Table
-  StructTable             struct_table;
+  ClassTable              class_table;
   FunctionReturnTypeTable return_type_table;
 
   // Namespace
