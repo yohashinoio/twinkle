@@ -193,7 +193,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
   llvm::Function* operator()(const ast::ClassDef& node) const
   {
-    const auto name = node.name.utf8();
+    const auto class_name = node.name.utf8();
 
     auto accessibility = STRUCT_DEFAULT_ACCESSIBILITY;
 
@@ -249,6 +249,8 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
                             "constructor must be public")};
         }
 
+        verifyConstructor(class_name, *constructor);
+
         auto clone = *constructor;
 
         clone.decl.is_constructor = true;
@@ -265,7 +267,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
                             "destructor must be public")};
         }
 
-        verifyDestructor(*destructor);
+        verifyDestructor(class_name, *destructor);
 
         auto clone = *destructor;
 
@@ -281,7 +283,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     }
 
     // Check to make sure the name does not already exist.
-    if (const auto existed_type = ctx.class_table[name]) {
+    if (const auto existed_type = ctx.class_table[class_name]) {
       if (existed_type->isOpaque()) {
         // Set member type if declared forward.
         existed_type->getLLVMType()->setBody(member_var_types);
@@ -289,22 +291,23 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
       else {
         throw CodegenError{
           ctx.formatError(ctx.positions.position_of(node),
-                          fmt::format("redefinition of '{}'", name))};
+                          fmt::format("redefinition of '{}'", class_name))};
       }
     }
     else {
       ctx.class_table.regist(
-        name,
-        Class{llvm::StructType::create(ctx.context, member_var_types, name),
-              std::move(member_variables),
-              false});
+        class_name,
+        Class{
+          llvm::StructType::create(ctx.context, member_var_types, class_name),
+          std::move(member_variables),
+          false});
     }
 
     {
       // Generate the methods.
       // Because it will result in an error if the structure type is not
       // registered.
-      ctx.namespaces.push({name, true});
+      ctx.namespaces.push({class_name, true});
       for (const auto& r : method_def_asts)
         (*this)(r.decl);
       for (const auto& r : method_def_asts)
@@ -440,8 +443,25 @@ private:
     return types;
   }
 
-  void verifyDestructor(const ast::Destructor& destructor) const
+  void verifyConstructor(const std::string_view  class_name,
+                         const ast::Constructor& constructor) const
   {
+    if (class_name != constructor.decl.name.utf8()) {
+      throw CodegenError{
+        ctx.formatError(ctx.positions.position_of(constructor),
+                        "constructor name must be the same as the class name")};
+    }
+  }
+
+  void verifyDestructor(const std::string_view class_name,
+                        const ast::Destructor& destructor) const
+  {
+    if (class_name != destructor.decl.name.utf8()) {
+      throw CodegenError{
+        ctx.formatError(ctx.positions.position_of(destructor),
+                        "destructor name must be the same as the class name")};
+    }
+
     if (!destructor.decl.params->empty()) {
       throw CodegenError{
         ctx.formatError(ctx.positions.position_of(destructor),
