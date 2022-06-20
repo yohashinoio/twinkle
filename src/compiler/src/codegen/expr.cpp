@@ -45,7 +45,7 @@ valueToLLVMValue(const std::deque<Value>& v)
 
 struct ExprVisitor : public boost::static_visitor<Value> {
   ExprVisitor(CGContext&         ctx,
-              SymbolTable&       scope,
+              const SymbolTable& scope,
               const StmtContext& stmt_ctx) noexcept
     : ctx{ctx}
     , scope{scope}
@@ -443,8 +443,9 @@ private:
             *return_type};
   }
 
-  // Be careful about the lifetime of the return value references.
-  [[nodiscard]] std::optional<std::reference_wrapper<Variable>>
+  // Note that the return value is a reference,
+  // so be careful about the lifetime.
+  [[nodiscard]] std::optional<std::reference_wrapper<const Variable>>
   findVariable(const ast::Identifier& node) const
   {
     const auto ident = node.utf8();
@@ -861,13 +862,13 @@ private:
 
   CGContext& ctx;
 
-  SymbolTable& scope;
+  const SymbolTable& scope;
 
   const StmtContext& stmt_ctx;
 };
 
 [[nodiscard]] Value createExpr(CGContext&         ctx,
-                               SymbolTable&       scope,
+                               const SymbolTable& scope,
                                const StmtContext& stmt_ctx,
                                const ast::Expr&   expr)
 {

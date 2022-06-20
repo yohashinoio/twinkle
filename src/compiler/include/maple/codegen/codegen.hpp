@@ -25,14 +25,15 @@ namespace maple::codegen
 {
 
 /*
-  'Key' is the key type of the table.
-  'T' is the value type of the table.
-  'R' is the return type of operator[]. (std::optional<R>)
+  'Key' is the key type of the table
+  'T' is the value type of the table
+  'R' is the return type of operator[] (std::optional<R>)
+  'R' must be able to return from const function
 */
 template <typename Key, typename T, typename R = T>
 struct Table {
   template <typename T1>
-  [[nodiscard]] std::optional<R> operator[](T1&& key) noexcept
+  [[nodiscard]] std::optional<R> operator[](T1&& key) const noexcept
   {
     const auto iter = table.find(std::forward<T1>(key));
 

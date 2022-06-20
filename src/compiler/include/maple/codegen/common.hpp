@@ -134,7 +134,7 @@ private:
 };
 
 using SymbolTable
-  = Table<std::string, Variable, std::reference_wrapper<Variable>>;
+  = Table<std::string, Variable, std::reference_wrapper<const Variable>>;
 
 // Create an alloca instruction in the entry block of
 // the function.
