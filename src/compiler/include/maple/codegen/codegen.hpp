@@ -74,6 +74,11 @@ struct Table {
     return table.contains(std::forward<T1>(key));
   }
 
+  [[nodiscard]] bool empty() const noexcept
+  {
+    return table.empty();
+  }
+
 private:
   std::unordered_map<Key, T> table;
 };

@@ -1,0 +1,45 @@
+struct Sample {
+  Sample(n_: i32, p_: *i32)
+  {
+    n = n_;
+    p = p_;
+  }
+
+  ~Sample()
+  {
+    *p += n;
+  }
+
+  func getN() -> i32
+  {
+    return n;
+  }
+
+private:
+  let p: *i32;
+  let n: i32;
+}
+
+
+func main() -> i32
+{
+  let n = 0;
+
+  let s1 = Sample{128, &n};
+
+  if (s1.getN() == 128) {
+    let s2 = Sample{5, &n};
+
+    {
+      for (let mut i = 0; i < 5; ++i)
+        let tmp = Sample{1, &n};
+    }
+  }
+
+  if (n != 10)
+    return 256;
+  else
+    let tmp = Sample{48, &n};
+
+  return n;
+}

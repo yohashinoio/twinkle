@@ -19,6 +19,22 @@ namespace maple::codegen
 {
 
 struct StmtContext {
+  StmtContext(llvm::BasicBlock* const destruct_bb,
+              llvm::AllocaInst* const return_var,
+              llvm::BasicBlock* const end_bb,
+              llvm::BasicBlock* const break_bb,
+              llvm::BasicBlock* const continue_bb) noexcept
+    : destruct_bb{destruct_bb}
+    , return_var{return_var}
+    , end_bb{end_bb}
+    , break_bb{break_bb}
+    , continue_bb{continue_bb}
+  {
+  }
+
+  // This is a basic block that destructs objects.
+  llvm::BasicBlock* destruct_bb;
+
   // Store the return value in this variable
   llvm::AllocaInst* return_var;
 

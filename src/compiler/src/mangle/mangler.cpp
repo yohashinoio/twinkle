@@ -119,8 +119,6 @@ Mangler::mangleDestructor(codegen::CGContext& ctx,
 
   mangled << mangleThisPointer(class_name);
 
-  std::cout << mangled.str() << std::endl;
-
   return mangled.str();
 }
 

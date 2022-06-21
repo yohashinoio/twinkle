@@ -85,8 +85,8 @@ private:
 };
 
 void createStatement(CGContext&         ctx,
-                     const SymbolTable& scope,
-                     const StmtContext& stmt_ctx,
+                     const SymbolTable& scope_arg,
+                     const StmtContext& stmt_ctx_arg,
                      const ast::Stmt&   statement);
 
 } // namespace maple::codegen

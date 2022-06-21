@@ -341,7 +341,7 @@ private:
     auto argument_table = createArgumentTable(func, params, func->args());
 
     // Used to combine returns into one.
-    auto const end_bb = llvm::BasicBlock::Create(ctx.context);
+    auto const end_bb = llvm::BasicBlock::Create(ctx.context, "end");
 
     // Return variable.
     auto const return_variable
@@ -351,7 +351,7 @@ private:
 
     createStatement(ctx,
                     argument_table,
-                    {return_variable, end_bb, nullptr, nullptr},
+                    {nullptr, return_variable, end_bb, nullptr, nullptr},
                     body);
 
     // If there is no return, returns undef.

@@ -168,6 +168,7 @@ int main(const int argc, const char* const* const argv)
     {    "refers_to_declared_undefined_methods",  58},
     { "constructors_and_uniform_initialization", 100},
     {                    "constructor_overload",  58},
+    {                              "destructor",  58},
   };
 
   std::size_t ok_c{};   // ok count.

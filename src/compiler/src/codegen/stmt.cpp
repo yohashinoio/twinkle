@@ -80,7 +80,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
       ctx.builder.CreateStore(retval.getValue(), stmt_ctx.return_var);
     }
 
-    ctx.builder.CreateBr(stmt_ctx.end_bb);
+    ctx.builder.CreateBr(stmt_ctx.destruct_bb);
   }
 
   void operator()(const ast::VariableDef& node) const
@@ -219,10 +219,10 @@ struct StmtVisitor : public boost::static_visitor<void> {
   {
     auto const func = ctx.builder.GetInsertBlock()->getParent();
 
-    auto const then_bb = llvm::BasicBlock::Create(ctx.context, "", func);
-    auto const else_bb = llvm::BasicBlock::Create(ctx.context);
+    auto const then_bb = llvm::BasicBlock::Create(ctx.context, "if_then", func);
+    auto const else_bb = llvm::BasicBlock::Create(ctx.context, "if_else");
 
-    auto const merge_bb = llvm::BasicBlock::Create(ctx.context);
+    auto const merge_bb = llvm::BasicBlock::Create(ctx.context, "if_merge");
 
     auto const cond_value
       = createExpr(ctx, getAllSymbols(), stmt_ctx, node.condition);
@@ -272,18 +272,22 @@ struct StmtVisitor : public boost::static_visitor<void> {
   {
     auto const func = ctx.builder.GetInsertBlock()->getParent();
 
-    auto const body_bb = llvm::BasicBlock::Create(ctx.context, "", func);
+    auto const body_bb
+      = llvm::BasicBlock::Create(ctx.context, "loop_body", func);
 
-    auto const loop_end_bb = llvm::BasicBlock::Create(ctx.context);
+    auto const loop_end_bb = llvm::BasicBlock::Create(ctx.context, "loop_end");
 
     ctx.builder.CreateBr(body_bb);
     ctx.builder.SetInsertPoint(body_bb);
 
-    createStatement(
-      ctx,
-      getAllSymbols(),
-      {stmt_ctx.return_var, stmt_ctx.end_bb, loop_end_bb, body_bb},
-      node.body);
+    createStatement(ctx,
+                    getAllSymbols(),
+                    {stmt_ctx.destruct_bb,
+                     stmt_ctx.return_var,
+                     stmt_ctx.end_bb,
+                     loop_end_bb,
+                     body_bb},
+                    node.body);
 
     if (!ctx.builder.GetInsertBlock()->getTerminator())
       ctx.builder.CreateBr(body_bb);
@@ -296,10 +300,11 @@ struct StmtVisitor : public boost::static_visitor<void> {
   {
     auto const func = ctx.builder.GetInsertBlock()->getParent();
 
-    auto const cond_bb = llvm::BasicBlock::Create(ctx.context, "", func);
-    auto const body_bb = llvm::BasicBlock::Create(ctx.context);
+    auto const cond_bb
+      = llvm::BasicBlock::Create(ctx.context, "while_cond", func);
+    auto const body_bb = llvm::BasicBlock::Create(ctx.context, "while_body");
 
-    auto const loop_end_bb = llvm::BasicBlock::Create(ctx.context);
+    auto const loop_end_bb = llvm::BasicBlock::Create(ctx.context, "while_end");
 
     ctx.builder.CreateBr(cond_bb);
     ctx.builder.SetInsertPoint(cond_bb);
@@ -325,11 +330,14 @@ struct StmtVisitor : public boost::static_visitor<void> {
     func->getBasicBlockList().push_back(body_bb);
     ctx.builder.SetInsertPoint(body_bb);
 
-    createStatement(
-      ctx,
-      getAllSymbols(),
-      {stmt_ctx.return_var, stmt_ctx.end_bb, loop_end_bb, cond_bb},
-      node.body);
+    createStatement(ctx,
+                    getAllSymbols(),
+                    {stmt_ctx.destruct_bb,
+                     stmt_ctx.return_var,
+                     stmt_ctx.end_bb,
+                     loop_end_bb,
+                     cond_bb},
+                    node.body);
 
     if (!ctx.builder.GetInsertBlock()->getTerminator())
       ctx.builder.CreateBr(cond_bb);
@@ -345,13 +353,15 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
     auto const func = ctx.builder.GetInsertBlock()->getParent();
 
-    auto const cond_bb = llvm::BasicBlock::Create(ctx.context, "", func);
-    auto const loop_bb = llvm::BasicBlock::Create(ctx.context);
-    auto const body_bb = llvm::BasicBlock::Create(ctx.context);
+    auto const cond_bb
+      = llvm::BasicBlock::Create(ctx.context, "for_cond", func);
+    auto const loop_bb = llvm::BasicBlock::Create(ctx.context, "for_loop");
+    auto const body_bb = llvm::BasicBlock::Create(ctx.context, "for_body");
 
-    auto const loop_end_bb = llvm::BasicBlock::Create(ctx.context);
+    auto const loop_end_bb = llvm::BasicBlock::Create(ctx.context, "for_end");
 
-    const StmtContext new_stmt_ctx{stmt_ctx.return_var,
+    const StmtContext new_stmt_ctx{stmt_ctx.destruct_bb,
+                                   stmt_ctx.return_var,
                                    stmt_ctx.end_bb,
                                    loop_end_bb,
                                    loop_bb};
@@ -636,36 +646,60 @@ void invokeDestructor(CGContext& ctx, const Variable& this_)
     ctx.builder.CreateCall(destructor, {this_.getAllocaInst()});
 }
 
-static void destructVariables(CGContext& ctx, SymbolTable& symbols)
+static void createDestructBB(CGContext&         ctx,
+                             const StmtContext& stmt_ctx,
+                             const SymbolTable& symbols,
+                             const bool         return_)
 {
+  ctx.builder.GetInsertBlock()->getParent()->getBasicBlockList().push_back(
+    stmt_ctx.destruct_bb);
+  ctx.builder.SetInsertPoint(stmt_ctx.destruct_bb);
+
   for (const auto& symbol : symbols) {
     if (symbol.second.getType()->isStructTy())
       invokeDestructor(ctx, symbol.second);
   }
+
+  if (return_)
+    ctx.builder.CreateBr(stmt_ctx.end_bb);
 }
 
 void createStatement(CGContext&         ctx,
-                     const SymbolTable& scope,
-                     const StmtContext& stmt_ctx,
+                     const SymbolTable& scope_arg,
+                     const StmtContext& stmt_ctx_arg,
                      const ast::Stmt&   statement)
 {
   SymbolTable new_scope;
+
+  auto new_stmt_ctx        = stmt_ctx_arg;
+  new_stmt_ctx.destruct_bb = llvm::BasicBlock::Create(ctx.context, "destruct");
 
   if (statement.type() == typeid(ast::CompoundStmt)) {
     auto& statements = boost::get<ast::CompoundStmt>(statement);
 
     for (const auto& r : statements) {
-      boost::apply_visitor(StmtVisitor{ctx, scope, new_scope, stmt_ctx}, r);
+      boost::apply_visitor(StmtVisitor{ctx, scope_arg, new_scope, new_stmt_ctx},
+                           r);
 
-      // Terminators cannot be placed in the middle of a basic block, so
-      // inspect.
-      if (ctx.builder.GetInsertBlock()->getTerminator())
+      if (ctx.builder.GetInsertBlock()->getTerminator()) {
+        // Terminators cannot be placed in the middle of a basic block
+        // Therefore, break
         break;
+      }
     }
   }
-  else
-    boost::apply_visitor(StmtVisitor{ctx, scope, new_scope, stmt_ctx},
+  else {
+    boost::apply_visitor(StmtVisitor{ctx, scope_arg, new_scope, new_stmt_ctx},
                          statement);
+  }
+
+  // The presence of a terminator means that there was a return statement
+  if (ctx.builder.GetInsertBlock()->getTerminator())
+    createDestructBB(ctx, new_stmt_ctx, new_scope, true);
+  else {
+    ctx.builder.CreateBr(new_stmt_ctx.destruct_bb);
+    createDestructBB(ctx, new_stmt_ctx, new_scope, false);
+  }
 }
 
 } // namespace maple::codegen

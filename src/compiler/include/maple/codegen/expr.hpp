@@ -20,7 +20,7 @@ namespace maple::codegen
 {
 
 [[nodiscard]] Value createExpr(CGContext&         ctx,
-                               const SymbolTable&       scope,
+                               const SymbolTable& scope,
                                const StmtContext& stmt_ctx,
                                const ast::Expr&   expr);
 
