@@ -68,6 +68,12 @@ private:
 
   [[nodiscard]] std::string
   mangleThisPointer(const std::string& class_name) const;
+
+  [[nodiscard]] std::string
+  mangleArgs(const std::deque<codegen::Value>& args) const;
+
+  [[nodiscard]] std::string
+  mangleParams(const ast::ParameterList& params) const;
 };
 
 } // namespace mangle

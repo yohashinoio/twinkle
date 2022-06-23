@@ -35,14 +35,7 @@ Mangler::mangleFunction(codegen::CGContext&      ctx,
 
   mangled << 'E';
 
-  {
-    for (const auto& param : *ast.params) {
-      if (param.is_vararg)
-        mangled << "z";
-      else
-        mangled << codegen::createType(param.type)->getMangledName();
-    }
-  }
+  mangled << mangleParams(ast.params);
 
   return mangled.str();
 }
@@ -59,8 +52,9 @@ Mangler::mangleFunctionCall(codegen::CGContext&               ctx,
   mangled << mangleNamespace(ctx.namespaces);
   mangled << mangleFunctionName(std::string{callee}) << "E";
 
-  for (const auto& arg : args)
-    mangled << arg.getType()->getMangledName();
+  mangled << mangleArgs(args);
+
+  std::cout << mangled.str() << std::endl;
 
   return mangled.str();
 }
@@ -83,8 +77,7 @@ Mangler::mangleMethod(codegen::CGContext&               ctx,
 
   mangled << mangleThisPointer(class_name);
 
-  for (const auto& arg : args)
-    mangled << arg.getType()->getMangledName();
+  mangled << mangleArgs(args);
 
   return mangled.str();
 }
@@ -100,8 +93,7 @@ Mangler::mangleConstructor(codegen::CGContext&               ctx,
   mangled << mangleNamespace(ctx.namespaces);
   mangled << 'C' << 'E';
 
-  for (const auto& arg : args)
-    mangled << arg.getType()->getMangledName();
+  mangled << mangleArgs(args);
 
   return mangled.str();
 }
@@ -149,6 +141,32 @@ Mangler::mangleThisPointer(const std::string& class_name) const
 {
   return codegen::PointerType{std::make_shared<codegen::StructType>(class_name)}
     .getMangledName();
+}
+
+[[nodiscard]] std::string
+Mangler::mangleArgs(const std::deque<codegen::Value>& args) const
+{
+  std::ostringstream mangled;
+
+  for (const auto& arg : args)
+    mangled << arg.getType()->getMangledName();
+
+  return mangled.str();
+}
+
+[[nodiscard]] std::string
+Mangler::mangleParams(const ast::ParameterList& params) const
+{
+  std::ostringstream mangled;
+
+  for (const auto& param : *params) {
+    if (param.is_vararg)
+      mangled << "z";
+    else
+      mangled << codegen::createType(param.type)->getMangledName();
+  }
+
+  return mangled.str();
 }
 
 } // namespace maple::mangle
