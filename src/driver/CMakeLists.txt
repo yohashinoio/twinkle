@@ -1,4 +1,4 @@
-set(RUNTIME_NAME maplec)
+set(RUNTIME_NAME lac)
 
 include(GNUInstallDirs)
 
@@ -12,7 +12,7 @@ add_executable(
 target_link_libraries(
   ${RUNTIME_NAME}
   PRIVATE
-  maplec1
+  lapis
 )
 
 target_compile_options(

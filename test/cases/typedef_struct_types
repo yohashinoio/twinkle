@@ -1,0 +1,26 @@
+struct Sample {
+  Sample(n_arg: i32)
+  {
+    n = n_arg;
+  }
+
+  func getN() -> i32
+  {
+    return n;
+  }
+
+private:
+  let n: i32;
+}
+
+typedef hoge = Sample;
+typedef hoge_p = *hoge;
+
+func main() -> i32
+{
+  let s: hoge = hoge{58};
+
+  let p: hoge_p = &s;
+
+  return (*p).getN();
+}

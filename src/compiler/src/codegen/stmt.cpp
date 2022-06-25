@@ -1,15 +1,15 @@
 /**
- * These codes are licensed under Apache-2.0 License.
+ * These codes are licensed under LICNSE_NAME License.
  * See the LICENSE for details.
  *
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <maple/codegen/stmt.hpp>
-#include <maple/codegen/expr.hpp>
-#include <maple/codegen/exception.hpp>
+#include <lapis/codegen/stmt.hpp>
+#include <lapis/codegen/expr.hpp>
+#include <lapis/codegen/exception.hpp>
 
-namespace maple::codegen
+namespace lapis::codegen
 {
 
 [[nodiscard]] SymbolTable mergeSymbolTables(const SymbolTable& a,
@@ -18,7 +18,7 @@ namespace maple::codegen
   SymbolTable merged_table{a};
 
   for (const auto& r : b)
-    merged_table.regist(r.first, r.second);
+    merged_table.insert(r.first, r.second);
 
   return merged_table;
 }
@@ -99,16 +99,16 @@ struct StmtVisitor : public boost::static_visitor<void> {
       = node.qualifier && (*node.qualifier == VariableQual::mutable_);
 
     if (node.type) {
-      scope.registOrOverwrite(name,
-                              createVariable(ctx.positions.position_of(node),
-                                             func,
-                                             name,
-                                             createType(*node.type),
-                                             node.initializer,
-                                             is_mutable));
+      scope.insertOrAssign(name,
+                           createVariable(ctx.positions.position_of(node),
+                                          func,
+                                          name,
+                                          createType(*node.type),
+                                          node.initializer,
+                                          is_mutable));
     }
     else {
-      scope.registOrOverwrite(
+      scope.insertOrAssign(
         name,
         createVariableTyInference(ctx.positions.position_of(node),
                                   func,
@@ -625,12 +625,12 @@ private:
 [[nodiscard]] llvm::Function* findDestructor(CGContext&         ctx,
                                              const std::string& class_name)
 {
-  ctx.namespaces.push({class_name, true});
+  ctx.ns_hierarchy.push({class_name, NamespaceKind::class_});
 
   const auto destructor
     = ctx.module->getFunction(ctx.mangler.mangleDestructor(ctx, class_name));
 
-  ctx.namespaces.pop();
+  ctx.ns_hierarchy.pop();
 
   return destructor;
 }
@@ -638,9 +638,10 @@ private:
 // If destructor is not defined, nothing is done
 void invokeDestructor(CGContext& ctx, const Variable& this_)
 {
-  assert(this_.getType()->isStructTy());
+  assert(this_.getType()->isClassTy(ctx));
 
-  const auto destructor = findDestructor(ctx, this_.getType()->getStructName());
+  const auto destructor
+    = findDestructor(ctx, this_.getType()->getClassName(ctx));
 
   if (destructor)
     ctx.builder.CreateCall(destructor, {this_.getAllocaInst()});
@@ -656,7 +657,7 @@ static void createDestructBB(CGContext&         ctx,
   ctx.builder.SetInsertPoint(stmt_ctx.destruct_bb);
 
   for (const auto& symbol : symbols) {
-    if (symbol.second.getType()->isStructTy())
+    if (symbol.second.getType()->isClassTy(ctx))
       invokeDestructor(ctx, symbol.second);
   }
 
@@ -702,4 +703,4 @@ void createStatement(CGContext&         ctx,
   }
 }
 
-} // namespace maple::codegen
+} // namespace lapis::codegen

@@ -1,11 +1,11 @@
 /**
- * These codes are licensed under Apache-2.0 License.
+ * These codes are licensed under LICNSE_NAME License.
  * See the LICENSE for details.
  *
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <maple/compile/main.hpp>
+#include <lapis/compile/main.hpp>
 #include <filesystem>
 #include <sstream>
 #include <iostream>
@@ -169,6 +169,9 @@ int main(const int argc, const char* const* const argv)
     { "constructors_and_uniform_initialization", 100},
     {                    "constructor_overload",  58},
     {                              "destructor",  58},
+    {                 "typedef_primitive_types",  58},
+    {                   "typedef_pointer_types",  58},
+    {                    "typedef_struct_types",  58},
   };
 
   std::size_t ok_c{};   // ok count.
@@ -183,7 +186,7 @@ int main(const int argc, const char* const* const argv)
     std::cerr.setstate(std::ios::failbit);
 
     const auto result
-      = maple::compile::main(std::extent_v<decltype(c_argv)>, c_argv);
+      = lapis::compile::main(std::extent_v<decltype(c_argv)>, c_argv);
 
     std::cerr.clear();
 

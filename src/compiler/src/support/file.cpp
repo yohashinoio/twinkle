@@ -1,15 +1,15 @@
 /**
- * These codes are licensed under Apache-2.0 License.
+ * These codes are licensed under LICNSE_NAME License.
  * See the LICENSE for details.
  *
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <maple/support/file.hpp>
-#include <maple/support/utils.hpp>
-#include <maple/support/exception.hpp>
+#include <lapis/support/file.hpp>
+#include <lapis/support/utils.hpp>
+#include <lapis/support/exception.hpp>
 
-namespace maple
+namespace lapis
 {
 
 // Exception class for errors related to file operations.
@@ -41,4 +41,4 @@ struct FileError : public ErrorBase {
                 fmt::format("{}: Could not open file", path.string()))};
 }
 
-} // namespace maple
+} // namespace lapis

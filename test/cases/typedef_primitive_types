@@ -1,0 +1,16 @@
+typedef integer = i32;
+typedef moji = char;
+
+func main() -> i32
+{
+  let n = 58;
+
+  let a: integer = 58;
+
+  let ch: moji = 'よ';
+  let ch: moji = 'は';
+  let ch: moji = 'い';
+  let ch: moji = 'お';
+
+  return a;
+}

@@ -1,6 +1,5 @@
 ## Table of Contents
 - [Table of Contents](#table-of-contents)
-- [Notes](#notes)
 - [Hello World](#hello-world)
 - [AOT Compile](#aot-compile)
 - [JIT Compile](#jit-compile)
@@ -27,7 +26,7 @@ See help for more details.<br/>
 Currently, this compiler does not support linking, so you must use another program to link.<br/>
 The following example uses cc to link with libc.
 ```bash
-$ maplec hello.txt
+$ lac hello.txt
 $ cc hello.o
 $ ./a.out
 hello, world
@@ -37,6 +36,6 @@ hello, world
 If multiple files are passed, they are linked and executed.<br/>
 Therefore, if the same symbol is defined, an error will occur.
 ```bash
-$ maplec --JIT hello.txt
+$ lac --JIT hello.txt
 hello, world
 ```

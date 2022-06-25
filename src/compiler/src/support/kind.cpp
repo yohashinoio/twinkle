@@ -1,14 +1,14 @@
 /**
- * These codes are licensed under Apache-2.0 License.
+ * These codes are licensed under LICNSE_NAME License.
  * See the LICENSE for details.
  *
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <maple/support/kind.hpp>
-#include <maple/support/utils.hpp>
+#include <lapis/support/kind.hpp>
+#include <lapis/support/utils.hpp>
 
-namespace maple
+namespace lapis
 {
 
 [[nodiscard]] bool isSigned(const SignKind sk) noexcept
@@ -68,4 +68,4 @@ getMangledAccessibility(const Accessibility accessibility)
   unreachable();
 }
 
-} // namespace maple
+} // namespace lapis

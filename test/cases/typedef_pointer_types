@@ -1,0 +1,13 @@
+typedef integer = i32;
+typedef int_p = *integer;
+
+func main() -> i32
+{
+  let n = 58;
+
+  let a: integer = 58;
+
+  let p: int_p = &a;
+
+  return *p;
+}

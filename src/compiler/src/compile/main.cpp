@@ -1,22 +1,22 @@
 /**
- * These codes are licensed under Apache-2.0 License.
+ * These codes are licensed under LICNSE_NAME License.
  * See the LICENSE for details.
  *
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <maple/compile/main.hpp>
-#include <maple/codegen/codegen.hpp>
-#include <maple/jit/jit.hpp>
-#include <maple/parse/parser.hpp>
-#include <maple/option/parse.hpp>
-#include <maple/support/file.hpp>
-#include <maple/support/utils.hpp>
-#include <maple/support/exception.hpp>
+#include <lapis/compile/main.hpp>
+#include <lapis/codegen/codegen.hpp>
+#include <lapis/jit/jit.hpp>
+#include <lapis/parse/parser.hpp>
+#include <lapis/option/option.hpp>
+#include <lapis/support/file.hpp>
+#include <lapis/support/utils.hpp>
+#include <lapis/support/exception.hpp>
 
 namespace program_options = boost::program_options;
 
-namespace maple::compile
+namespace lapis::compile
 {
 
 static bool isBackNewline(const char* str) noexcept
@@ -77,26 +77,26 @@ try {
     std::exit(EXIT_SUCCESS);
   }
 
-  std::vector<parse::Parser::Result> asts;
+  std::vector<parse::Parser::Result> parse_results;
 
   for (const auto& file_path : getInputFiles(*argv, vmap)) {
     auto input = loadFile(*argv, file_path);
 
     parse::Parser parser{std::move(input), std::move(file_path)};
 
-    asts.emplace_back(parser.getResult());
+    parse_results.emplace_back(parser.getResult());
   }
 
-  codegen::CodeGenerator generator{*argv,
-                                   std::move(asts),
-                                   vmap["opt"].as<bool>(),
-                                   getRelocationModel(*argv, vmap)};
+  codegen::CodeGenerator code_generator{*argv,
+                                        std::move(parse_results),
+                                        vmap["Opt"].as<unsigned int>(),
+                                        getRelocationModel(*argv, vmap)};
 
   if (vmap.contains("JIT")) {
-    return {true, generator.doJIT()};
+    return {true, code_generator.doJIT()};
   }
   else {
-    emitFile(generator, vmap);
+    emitFile(code_generator, vmap);
     return {true, std::nullopt};
   }
 
@@ -116,4 +116,4 @@ catch (const ErrorBase& err) {
   return {false, std::nullopt};
 }
 
-} // namespace maple::compile
+} // namespace lapis::compile

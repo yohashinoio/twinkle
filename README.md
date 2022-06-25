@@ -1,12 +1,12 @@
 <div align="center">
-  <h1>The Maple Programming Language</h1>
+  <h1>The Lapis Programming Language</h1>
 
   [Getting Started](docs/GettingStarted.md) |
   [Language Reference](docs/LanguageReference.md) |
   [Examples](examples)
 </div>
 
-## Key Features of Maple
+## Key Features of Lapis
 - Syntax is like c++, swift and rust combined.
 - Language specification is similar to c++.
 - LLVM backend.
@@ -39,8 +39,8 @@ $ sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
 ### Installation
 Clone this repository.
 ```bash
-$ git clone https://github.com/GothicLoli/maple.git
-$ cd maple
+$ git clone https://github.com/yohashinoio/lapis.git
+$ cd lapis
 ```
 Create build directory.
 ```bash
@@ -83,5 +83,5 @@ $ ctest --output-on-failure
 - [きつねさんでもわかるLLVM](https://tatsu-zine.com/books/llvm): あらゆる可能性を秘めたコンパイラ基盤として注目されているLLVM。本書はコンパイラを実際に作りながらLLVMのフロントエンドからバックエンドまでを幅広く解説した世界初(!?)のLLVM解説本です。
 
 ## License
-This project is available under the Apache-2.0 license.<br/>
+This project is available under the LICNSE_NAME license.<br/>
 See LICENSE for the full content of the licenses.

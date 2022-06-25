@@ -1,20 +1,20 @@
 /**
- * These codes are licensed under Apache-2.0 License.
+ * These codes are licensed under LICNSE_NAME License.
  * See the LICENSE for details.
  *
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <maple/pch/pch.hpp>
-#include <maple/ast/ast_adapted.hpp>
-#include <maple/parse/parser.hpp>
-#include <maple/codegen/type.hpp>
-#include <maple/parse/exception.hpp>
+#include <lapis/pch/pch.hpp>
+#include <lapis/ast/ast_adapted.hpp>
+#include <lapis/parse/parser.hpp>
+#include <lapis/codegen/type.hpp>
+#include <lapis/parse/exception.hpp>
 
 namespace x3     = boost::spirit::x3;
 namespace fusion = boost::fusion;
 
-namespace maple::parse
+namespace lapis::parse
 {
 
 //===----------------------------------------------------------------------===//
@@ -306,6 +306,7 @@ const x3::rule<struct FunctionDeclTag, ast::FunctionDecl> function_decl{
   "function declaration"};
 const x3::rule<struct FunctionDefTag, ast::FunctionDef> function_def{
   "function definition"};
+const x3::rule<struct TypedefTag, ast::Typedef>   type_def{"typedef"};
 const x3::rule<struct TopLevelTag, ast::TopLevel> top_level{"top level"};
 const x3::rule<struct TopLevelWithAttrTag, ast::TopLevelWithAttr>
   top_level_with_attr{"top level"};
@@ -844,8 +845,11 @@ const auto function_decl_def
 
 const auto function_def_def = lit(U"func") > function_proto > stmt;
 
+const auto type_def_def
+  = lit(U"typedef") > identifier > lit(U"=") > type_name > lit(U";");
+
 const auto top_level_def
-  = function_decl | function_def | class_decl | class_def;
+  = function_decl | function_def | class_decl | class_def | type_def;
 
 const auto top_level_with_attr_def = -attribute >> top_level_def;
 
@@ -860,6 +864,7 @@ BOOST_SPIRIT_DEFINE(parameter_list)
 BOOST_SPIRIT_DEFINE(function_proto)
 BOOST_SPIRIT_DEFINE(function_decl)
 BOOST_SPIRIT_DEFINE(function_def)
+BOOST_SPIRIT_DEFINE(type_def)
 BOOST_SPIRIT_DEFINE(top_level)
 BOOST_SPIRIT_DEFINE(top_level_with_attr)
 
@@ -915,6 +920,10 @@ struct TopLevelTag
   : ErrorHandle
   , AnnotatePosition {};
 
+struct TypedefTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
 struct TopLevelWithAttrTag
   : ErrorHandle
   , AnnotatePosition {};
@@ -960,8 +969,8 @@ struct TranslationUnitTag
 
 Parser::Parser(std::string&& input, std::filesystem::path&& file)
   : input{std::move(input)}
-  , u32_first{cbegin(this->input)}
-  , u32_last{cend(this->input)}
+  , u32_first{this->input.cbegin()}
+  , u32_last{this->input.cend()}
   , positions{u32_first, u32_last}
   , file{std::move(file)}
 {
@@ -986,4 +995,4 @@ void Parser::parse()
   }
 }
 
-} // namespace maple::parse
+} // namespace lapis::parse

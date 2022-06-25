@@ -1,16 +1,16 @@
 /**
- * These codes are licensed under Apache-2.0 License.
+ * These codes are licensed under LICNSE_NAME License.
  * See the LICENSE for details.
  *
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <maple/codegen/top_level.hpp>
-#include <maple/codegen/stmt.hpp>
-#include <maple/codegen/exception.hpp>
+#include <lapis/codegen/top_level.hpp>
+#include <lapis/codegen/stmt.hpp>
+#include <lapis/codegen/exception.hpp>
 #include <unordered_set>
 
-namespace maple::codegen
+namespace lapis::codegen
 {
 
 enum class AttrKind {
@@ -80,10 +80,10 @@ createLlvmFunction(const Linkage             linkage,
 
 struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
   TopLevelVisitor(CGContext&                         ctx,
-                  llvm::legacy::FunctionPassManager& fp_manager,
+                  llvm::legacy::FunctionPassManager& fpm,
                   const ast::Attrs&                  attrs) noexcept
     : ctx{ctx}
-    , fp_manager{fp_manager}
+    , fpm{fpm}
     , attr_kinds{createAttrKindsFrom(attrs)}
   {
   }
@@ -134,7 +134,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     auto const func
       = createLlvmFunction(node.linkage, func_type, mangled_name, *ctx.module);
 
-    ctx.return_type_table.registOrOverwrite(func, return_type);
+    ctx.return_type_table.insertOrAssign(func, return_type);
 
     // Set names to all arguments.
     for (std::size_t idx = 0; auto&& arg : func->args())
@@ -170,7 +170,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
                        createType(node.decl.return_type),
                        node.body);
 
-    fp_manager.run(*func);
+    fpm.run(*func);
 
     return func;
   }
@@ -184,9 +184,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
       return nullptr;
     }
 
-    ctx.class_table.regist(
-      name,
-      Class{llvm::StructType::create(ctx.context, name), {}, true});
+    ctx.class_table.insert(name, std::make_shared<ClassType>(ctx, name));
 
     return nullptr;
   }
@@ -197,9 +195,8 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
     auto accessibility = STRUCT_DEFAULT_ACCESSIBILITY;
 
-    std::vector<llvm::Type*>           member_var_types;
-    std::vector<Class::MemberVariable> member_variables;
-    std::vector<ast::FunctionDef>      method_def_asts;
+    std::vector<ClassType::MemberVariable> member_variables;
+    std::vector<ast::FunctionDef>          method_def_asts;
 
     const auto pushThisPtr = [&](ast::FunctionDecl& decl) {
       decl.params->push_front(
@@ -214,7 +211,6 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
           = boost::get<ast::VariableDefWithoutInit>(&member)) {
         const auto type = createType(variable->type);
 
-        member_var_types.emplace_back(type->getLLVMType(ctx));
         member_variables.push_back(
           {variable->name.utf8(), type, accessibility});
       }
@@ -284,9 +280,10 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
     // Check to make sure the name does not already exist.
     if (const auto existed_type = ctx.class_table[class_name]) {
-      if (existed_type->isOpaque()) {
+      if (existed_type.value()->isOpaque()) {
         // Set member type if declared forward.
-        existed_type->getLLVMType()->setBody(member_var_types);
+        llvm::cast<llvm::StructType>(existed_type.value()->getLLVMType(ctx))
+          ->setBody(ClassType::extractTypes(ctx, member_variables));
       }
       else {
         throw CodegenError{
@@ -295,25 +292,33 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
       }
     }
     else {
-      ctx.class_table.regist(
+      ctx.class_table.insert(
         class_name,
-        Class{
-          llvm::StructType::create(ctx.context, member_var_types, class_name),
-          std::move(member_variables),
-          false});
+        std::make_shared<ClassType>(ctx,
+                                    std::move(member_variables),
+                                    class_name));
     }
 
     {
       // Generate the methods.
       // Because it will result in an error if the structure type is not
       // registered.
-      ctx.namespaces.push({class_name, true});
+      ctx.ns_hierarchy.push({class_name, NamespaceKind::class_});
       for (const auto& r : method_def_asts)
         (*this)(r.decl);
       for (const auto& r : method_def_asts)
         (*this)(r);
-      ctx.namespaces.pop();
+      ctx.ns_hierarchy.pop();
     }
+
+    return nullptr;
+  }
+
+  llvm::Function* operator()(const ast::Typedef& node) const
+  {
+    // TODO: If there is already an alias of the same type, make an error
+
+    ctx.alias_table.insertOrAssign(node.alias.utf8(), createType(node.type));
 
     return nullptr;
   }
@@ -419,10 +424,10 @@ private:
           && (*param_node.qualifier == VariableQual::mutable_);
 
       // Add arguments to variable symbol table.
-      argument_table.registOrOverwrite(arg.getName().str(),
-                                       Variable{
-                                         {alloca, param_type},
-                                         is_mutable
+      argument_table.insertOrAssign(arg.getName().str(),
+                                    Variable{
+                                      {alloca, param_type},
+                                      is_mutable
       });
     }
 
@@ -471,17 +476,17 @@ private:
 
   CGContext& ctx;
 
-  llvm::legacy::FunctionPassManager& fp_manager;
+  llvm::legacy::FunctionPassManager& fpm;
 
   std::unordered_set<AttrKind> attr_kinds;
 };
 
 llvm::Function* createTopLevel(CGContext&                         ctx,
-                               llvm::legacy::FunctionPassManager& fp_manager,
+                               llvm::legacy::FunctionPassManager& fpm,
                                const ast::TopLevelWithAttr&       node)
 {
-  return boost::apply_visitor(TopLevelVisitor{ctx, fp_manager, node.attrs},
+  return boost::apply_visitor(TopLevelVisitor{ctx, fpm, node.attrs},
                               node.top_level);
 }
 
-} // namespace maple::codegen
+} // namespace lapis::codegen

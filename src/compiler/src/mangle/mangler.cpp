@@ -1,15 +1,15 @@
 /**
- * These codes are licensed under Apache-2.0 License.
+ * These codes are licensed under LICNSE_NAME License.
  * See the LICENSE for details.
  *
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <maple/mangle/mangler.hpp>
-#include <maple/codegen/type.hpp>
-#include <maple/codegen/common.hpp>
+#include <lapis/mangle/mangler.hpp>
+#include <lapis/codegen/type.hpp>
+#include <lapis/codegen/common.hpp>
 
-namespace maple::mangle
+namespace lapis::mangle
 {
 
 [[nodiscard]] std::string
@@ -22,7 +22,7 @@ Mangler::mangleFunction(codegen::CGContext&      ctx,
 
   mangled << getMangledAccessibility(ast.accessibility);
 
-  mangled << mangleNamespace(ctx.namespaces);
+  mangled << mangleNamespace(ctx.ns_hierarchy);
 
   assert(!(ast.is_constructor && ast.is_destructor));
 
@@ -35,7 +35,7 @@ Mangler::mangleFunction(codegen::CGContext&      ctx,
 
   mangled << 'E';
 
-  mangled << mangleParams(ast.params);
+  mangled << mangleParams(ctx, ast.params);
 
   return mangled.str();
 }
@@ -49,12 +49,10 @@ Mangler::mangleFunctionCall(codegen::CGContext&               ctx,
 
   mangled << prefix;
 
-  mangled << mangleNamespace(ctx.namespaces);
+  mangled << mangleNamespace(ctx.ns_hierarchy);
   mangled << mangleFunctionName(std::string{callee}) << "E";
 
-  mangled << mangleArgs(args);
-
-  std::cout << mangled.str() << std::endl;
+  mangled << mangleArgs(ctx, args);
 
   return mangled.str();
 }
@@ -72,12 +70,12 @@ Mangler::mangleMethod(codegen::CGContext&               ctx,
 
   mangled << getMangledAccessibility(accessibility);
 
-  mangled << mangleNamespace(ctx.namespaces);
+  mangled << mangleNamespace(ctx.ns_hierarchy);
   mangled << mangleFunctionName(std::string{callee}) << "E";
 
-  mangled << mangleThisPointer(class_name);
+  mangled << mangleThisPointer(ctx, class_name);
 
-  mangled << mangleArgs(args);
+  mangled << mangleArgs(ctx, args);
 
   return mangled.str();
 }
@@ -90,10 +88,10 @@ Mangler::mangleConstructor(codegen::CGContext&               ctx,
 
   mangled << prefix;
 
-  mangled << mangleNamespace(ctx.namespaces);
+  mangled << mangleNamespace(ctx.ns_hierarchy);
   mangled << 'C' << 'E';
 
-  mangled << mangleArgs(args);
+  mangled << mangleArgs(ctx, args);
 
   return mangled.str();
 }
@@ -106,10 +104,10 @@ Mangler::mangleDestructor(codegen::CGContext& ctx,
 
   mangled << prefix;
 
-  mangled << mangleNamespace(ctx.namespaces);
+  mangled << mangleNamespace(ctx.ns_hierarchy);
   mangled << 'D' << 'E';
 
-  mangled << mangleThisPointer(class_name);
+  mangled << mangleThisPointer(ctx, class_name);
 
   return mangled.str();
 }
@@ -121,7 +119,7 @@ Mangler::mangleFunctionName(const std::string& name) const
 }
 
 [[nodiscard]] std::string
-Mangler::mangleNamespace(const codegen::NamespaceHierarchy& namespaces) const
+Mangler::mangleNamespace(const codegen::NsHierarchy& namespaces) const
 {
   if (namespaces.empty())
     return {};
@@ -137,25 +135,29 @@ Mangler::mangleNamespace(const codegen::NamespaceHierarchy& namespaces) const
 }
 
 [[nodiscard]] std::string
-Mangler::mangleThisPointer(const std::string& class_name) const
+Mangler::mangleThisPointer(codegen::CGContext& ctx,
+                           const std::string&  class_name) const
 {
-  return codegen::PointerType{std::make_shared<codegen::StructType>(class_name)}
-    .getMangledName();
+  return codegen::PointerType{
+    std::make_shared<codegen::UserDefinedType>(class_name)}
+    .getMangledName(ctx);
 }
 
 [[nodiscard]] std::string
-Mangler::mangleArgs(const std::deque<codegen::Value>& args) const
+Mangler::mangleArgs(codegen::CGContext&               ctx,
+                    const std::deque<codegen::Value>& args) const
 {
   std::ostringstream mangled;
 
   for (const auto& arg : args)
-    mangled << arg.getType()->getMangledName();
+    mangled << arg.getType()->getMangledName(ctx);
 
   return mangled.str();
 }
 
 [[nodiscard]] std::string
-Mangler::mangleParams(const ast::ParameterList& params) const
+Mangler::mangleParams(codegen::CGContext&       ctx,
+                      const ast::ParameterList& params) const
 {
   std::ostringstream mangled;
 
@@ -163,10 +165,10 @@ Mangler::mangleParams(const ast::ParameterList& params) const
     if (param.is_vararg)
       mangled << "z";
     else
-      mangled << codegen::createType(param.type)->getMangledName();
+      mangled << codegen::createType(param.type)->getMangledName(ctx);
   }
 
   return mangled.str();
 }
 
-} // namespace maple::mangle
+} // namespace lapis::mangle

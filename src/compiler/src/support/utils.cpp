@@ -1,21 +1,21 @@
 /**
- * These codes are licensed under Apache-2.0 License.
+ * These codes are licensed under LICNSE_NAME License.
  * See the LICENSE for details.
  *
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <maple/pch/pch.hpp>
-#include <maple/support/utils.hpp>
+#include <lapis/pch/pch.hpp>
+#include <lapis/support/utils.hpp>
 
-namespace maple
+namespace lapis
 {
 
 [[nodiscard]] std::string getVersion()
 {
-  const auto major = MAPLE_VERSION / 100000;
-  const auto minor = MAPLE_VERSION / 100 % 1000;
-  const auto patch = MAPLE_VERSION % 100;
+  const auto major = LAPIS_VERSION / 100000;
+  const auto minor = LAPIS_VERSION / 100 % 1000;
+  const auto patch = LAPIS_VERSION % 100;
 
   return boost::lexical_cast<std::string>(major) + '.'
          + boost::lexical_cast<std::string>(minor) + '.'
@@ -64,4 +64,4 @@ namespace maple
 #endif
 }
 
-} // namespace maple
+} // namespace lapis

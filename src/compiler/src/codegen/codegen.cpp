@@ -1,22 +1,22 @@
 /**
- * These codes are licensed under Apache-2.0 License.
+ * These codes are licensed under LICNSE_NAME License.
  * See the LICENSE for details.
  *
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <maple/codegen/codegen.hpp>
-#include <maple/codegen/top_level.hpp>
-#include <maple/codegen/type.hpp>
-#include <maple/codegen/exception.hpp>
-#include <maple/unicode/unicode.hpp>
+#include <lapis/codegen/codegen.hpp>
+#include <lapis/codegen/top_level.hpp>
+#include <lapis/codegen/type.hpp>
+#include <lapis/codegen/exception.hpp>
+#include <lapis/unicode/unicode.hpp>
 #include <cassert>
 
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
 #include <unistd.h> // isatty
 #endif
 
-namespace maple::codegen
+namespace lapis::codegen
 {
 
 template <typename R = std::vector<std::string>>
@@ -83,7 +83,7 @@ CGContext::calcRows(const boost::iterator_range<InputIterator>& pos) const
 
 CodeGenerator::CodeGenerator(const std::string_view               argv_front,
                              std::vector<parse::Parser::Result>&& parse_results,
-                             const bool                           opt,
+                             const unsigned int                   opt_level,
                              const llvm::Reloc::Model relocation_model)
   : argv_front{argv_front}
   , context{std::make_unique<llvm::LLVMContext>()}
@@ -107,26 +107,40 @@ CodeGenerator::CodeGenerator(const std::string_view               argv_front,
                   std::move(it->file),
                   it->input};
 
-    llvm::legacy::FunctionPassManager fp_manager{ctx.module.get()};
+    llvm::legacy::FunctionPassManager fpm{ctx.module.get()};
 
-    if (opt) {
-      fp_manager.add(llvm::createInstructionCombiningPass());
-      fp_manager.add(llvm::createReassociatePass());
-      fp_manager.add(llvm::createGVNPass());
-      fp_manager.add(llvm::createCFGSimplificationPass());
-      fp_manager.add(llvm::createPromoteMemoryToRegisterPass());
-      fp_manager.add(llvm::createInstructionCombiningPass());
-      fp_manager.add(llvm::createReassociatePass());
+    {
+      verifyOptLevel(opt_level);
+
+      llvm::PassManagerBuilder builder;
+
+      builder.OptLevel = opt_level;
+
+      builder.populateFunctionPassManager(fpm);
+
+      fpm.doInitialization();
     }
-
-    fp_manager.doInitialization();
 
     ctx.module->setTargetTriple(target_triple);
     ctx.module->setDataLayout(target_machine->createDataLayout());
 
-    codegen(it->ast, ctx, fp_manager);
+    codegen(it->ast, ctx, fpm);
 
     results.emplace_back(std::move(ctx.module), std::move(ctx.file));
+  }
+}
+
+void CodeGenerator::verifyOptLevel(const unsigned int opt_level) const
+{
+  switch (opt_level) {
+  case 0:
+  case 1:
+  case 2:
+  case 3:
+    return;
+  default:
+    throw CodegenError{
+      formatError(argv_front, "specify the correct optimization level")};
   }
 }
 
@@ -208,10 +222,10 @@ void CodeGenerator::emitObjectFiles()
 
 void CodeGenerator::codegen(const ast::TranslationUnit&        ast,
                             CGContext&                         ctx,
-                            llvm::legacy::FunctionPassManager& fp_manager)
+                            llvm::legacy::FunctionPassManager& fpm)
 {
   for (const auto& node : ast)
-    createTopLevel(ctx, fp_manager, node);
+    createTopLevel(ctx, fpm, node);
 
   {
     // Verify module.
@@ -286,4 +300,4 @@ void CodeGenerator::initTargetTripleAndMachine()
                                     relocation_model)); // Set relocation model.
 }
 
-} // namespace maple::codegen
+} // namespace lapis::codegen

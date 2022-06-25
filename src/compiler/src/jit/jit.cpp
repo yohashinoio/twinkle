@@ -1,14 +1,14 @@
 /**
- * These codes are licensed under Apache-2.0 License.
+ * These codes are licensed under LICNSE_NAME License.
  * See the LICENSE for details.
  *
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <maple/jit/jit.hpp>
-#include <maple/support/utils.hpp>
+#include <lapis/jit/jit.hpp>
+#include <lapis/support/utils.hpp>
 
-namespace maple::jit
+namespace lapis::jit
 {
 
 JitCompiler::JitCompiler(
@@ -87,4 +87,4 @@ JitCompiler::lookup(const llvm::StringRef name)
   return exec_session->lookup({&main_jd}, mangle(name.str()));
 }
 
-} // namespace maple::jit
+} // namespace lapis::jit

@@ -1,13 +1,13 @@
 /**
- * These codes are licensed under Apache-2.0 License.
+ * These codes are licensed under LICNSE_NAME License.
  * See the LICENSE for details.
  *
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <maple/unicode/unicode.hpp>
+#include <lapis/unicode/unicode.hpp>
 
-namespace maple::unicode
+namespace lapis::unicode
 {
 
 [[nodiscard]] std::string utf32toUtf8(const char32_t utf32)
@@ -26,4 +26,4 @@ namespace maple::unicode
   return std::string(first, last);
 }
 
-} // namespace maple::unicode
+} // namespace lapis::unicode

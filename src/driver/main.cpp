@@ -1,16 +1,16 @@
 /**
- * These codes are licensed under Apache-2.0 License.
+ * These codes are licensed under LICNSE_NAME License.
  * See the LICENSE for details.
  *
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <maple/compile/main.hpp>
+#include <lapis/compile/main.hpp>
 #include <cstdlib>
 
 int main(const int argc, const char* const* const argv)
 {
-  const auto compile_res = maple::compile::main(argc, argv);
+  const auto compile_res = lapis::compile::main(argc, argv);
 
   if (!compile_res.success())
     return EXIT_FAILURE;

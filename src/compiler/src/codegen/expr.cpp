@@ -1,32 +1,16 @@
 /**
- * These codes are licensed under Apache-2.0 License.
+ * These codes are licensed under LICNSE_NAME License.
  * See the LICENSE for details.
  *
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <maple/codegen/expr.hpp>
-#include <maple/codegen/exception.hpp>
-#include <maple/codegen/stmt.hpp>
+#include <lapis/codegen/expr.hpp>
+#include <lapis/codegen/exception.hpp>
+#include <lapis/codegen/stmt.hpp>
 
-namespace maple::codegen
+namespace lapis::codegen
 {
-
-// Calculate the offset of a member variable of a class.
-// Returns std::nullopt if there is no matching member.
-[[nodiscard]] static std::optional<std::size_t>
-offsetByName(const Class& class_info, const std::string& member_name)
-{
-  const auto members = class_info.getMemberVariables();
-
-  for (std::size_t offset = 0; const auto& member : members) {
-    if (member.name == member_name)
-      return offset;
-    ++offset;
-  }
-
-  return std::nullopt;
-}
 
 [[nodiscard]] static std::vector<llvm::Value*>
 valueToLLVMValue(const std::deque<Value>& v)
@@ -258,7 +242,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       return createLogicalNot(ctx, rhs);
 
     case ast::UnaryOp::Kind::dereference:
-      return createDereference(ctx.positions.position_of(node), rhs);
+      return createDereference(ctx, ctx.positions.position_of(node), rhs);
 
     case ast::UnaryOp::Kind::address_of:
       return createAddressOf(rhs);
@@ -311,7 +295,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
                                          "failed to generate left-hand side")};
     }
 
-    if (as->isPointerTy()) {
+    if (as->isPointerTy(ctx)) {
       // Pointer to pointer.
       return {
         ctx.builder.CreatePointerCast(lhs.getValue(), as->getLLVMType(ctx)),
@@ -374,24 +358,25 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::UniformInit& node) const
   {
-    const auto class_name = node.class_name.utf8();
-
-    const auto class_info = ctx.class_table[class_name];
+    const auto class_type = findClass(node.class_name.utf8());
 
     const auto pos = ctx.positions.position_of(node);
 
-    if (!class_info) {
-      throw CodegenError{
-        ctx.formatError(pos, fmt::format("class {} is undefined", class_name))};
+    if (!class_type) {
+      throw CodegenError{ctx.formatError(
+        pos,
+        fmt::format("class {} is undefined", node.class_name.utf8()))};
     }
+
+    const auto class_name = class_type.value()->getClassName(ctx);
 
     auto const alloca
       = createEntryAlloca(ctx.builder.GetInsertBlock()->getParent(),
                           "",
-                          class_info->getLLVMType());
+                          class_type.value()->getLLVMType(ctx));
 
-    const auto this_pointer_type
-      = std::make_shared<PointerType>(std::make_shared<StructType>(class_name));
+    const auto this_pointer_type = std::make_shared<PointerType>(
+      std::make_shared<UserDefinedType>(class_name));
 
     std::deque<Value> args;
 
@@ -401,14 +386,14 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     for (const auto& r : node.initializer_list)
       args.push_back(boost::apply_visitor(*this, r));
 
-    ctx.namespaces.push({class_name, true});
+    ctx.ns_hierarchy.push({class_name, NamespaceKind::class_});
 
     const auto mangled_constructor = ctx.mangler.mangleConstructor(ctx, args);
 
-    ctx.namespaces.pop();
+    ctx.ns_hierarchy.pop();
 
     if (auto func = ctx.module->getFunction(mangled_constructor))
-      createFunctionCall(func, args, false, pos);
+      (void)createFunctionCall(func, args, false, pos);
     else {
       throw CodegenError{ctx.formatError(
         pos,
@@ -417,15 +402,31 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     }
 
     return {ctx.builder.CreateLoad(alloca->getAllocatedType(), alloca),
-            this_pointer_type->getPointeeType()};
+            this_pointer_type->getPointeeType(ctx)};
   }
 
 private:
-  Value createFunctionCall(
+  [[nodiscard]] std::optional<std::shared_ptr<Type>>
+  findClass(const std::string& name) const
+  {
+    if (const auto alias = ctx.alias_table[name];
+        alias && alias.value()->isClassTy(ctx)) {
+      return *alias;
+    }
+
+    if (const auto class_ = ctx.class_table[name];
+        class_ && class_.value()->isClassTy(ctx)) {
+      return *class_;
+    }
+
+    return std::nullopt;
+  }
+
+  [[nodiscard]] Value createFunctionCall(
     llvm::Function* const                              callee_func,
     std::deque<Value>&                                 args,
     const bool                                         insert_this_p,
-    const boost::iterator_range<maple::InputIterator>& pos) const
+    const boost::iterator_range<lapis::InputIterator>& pos) const
   {
     if (insert_this_p)
       args.push_front((*this)(ast::Identifier{std::u32string{U"this"}}));
@@ -468,7 +469,7 @@ private:
         return std::nullopt;
 
       const auto this_v
-        = createDereference(ctx.positions.position_of(node), *this_p);
+        = createDereference(ctx, ctx.positions.position_of(node), *this_p);
 
       return memberVariableAccess(this_v, node, false);
     }
@@ -576,7 +577,7 @@ private:
       {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 0), index.getValue()});
 
     return {gep,
-            p_to_array.getType()->getPointeeType()->getArrayElementType(),
+            p_to_array.getType()->getPointeeType(ctx)->getArrayElementType(),
             p_to_array.isMutable()};
   }
 
@@ -589,7 +590,7 @@ private:
       ptr.getValue(),
       index.getValue());
 
-    return {gep, ptr.getType()->getPointeeType(), ptr.isMutable()};
+    return {gep, ptr.getType()->getPointeeType(ctx), ptr.isMutable()};
   }
 
   // Normally a subscript operation calls createLoad at the end, but this
@@ -600,7 +601,7 @@ private:
 
     const auto is_array = lhs.getType()->isArrayTy();
 
-    if (!is_array && !lhs.getType()->isPointerTy()) {
+    if (!is_array && !lhs.getType()->isPointerTy(ctx)) {
       throw CodegenError{
         ctx.formatError(ctx.positions.position_of(node),
                         "the type incompatible with the subscript operator")};
@@ -627,22 +628,24 @@ private:
   }
 
   [[nodiscard]] Value
-  createDereference(const boost::iterator_range<InputIterator>& pos,
+  createDereference(CGContext&                                  ctx,
+                    const boost::iterator_range<InputIterator>& pos,
                     const Value&                                rhs) const
   {
-    if (!rhs.isPointer() || !rhs.getType()->isPointerTy()) {
+    if (!rhs.isPointer() || !rhs.getType()->isPointerTy(ctx)) {
       throw CodegenError{
         ctx.formatError(pos, "unary '*' requires pointer operand")};
     }
 
     return {ctx.builder.CreateLoad(rhs.getLLVMType()->getPointerElementType(),
                                    rhs.getValue()),
-            rhs.getType()->getPointeeType(),
+            rhs.getType()->getPointeeType(ctx),
             rhs.isMutable()};
   }
 
   [[nodiscard]] Value
-  createDereference(const boost::iterator_range<InputIterator>& pos,
+  createDereference(CGContext&                                  ctx,
+                    const boost::iterator_range<InputIterator>& pos,
                     const Variable&                             rhs) const
   {
     const auto val
@@ -651,14 +654,14 @@ private:
               rhs.getType(),
               rhs.isMutable()};
 
-    if (!val.isPointer() || !val.getType()->isPointerTy()) {
+    if (!val.isPointer() || !val.getType()->isPointerTy(ctx)) {
       throw CodegenError{
         ctx.formatError(pos, "unary '*' requires pointer operand")};
     }
 
     return {ctx.builder.CreateLoad(val.getLLVMType()->getPointerElementType(),
                                    val.getValue()),
-            val.getType()->getPointeeType(),
+            val.getType()->getPointeeType(ctx),
             val.isMutable()};
   }
 
@@ -698,14 +701,16 @@ private:
   [[nodiscard]] llvm::Function* findMethod(const std::string& unmangled_name,
                                            const std::deque<Value>& args) const
   {
-    if (ctx.namespaces.empty() || !ctx.namespaces.top().is_class)
+    if (ctx.ns_hierarchy.empty()
+        || ctx.ns_hierarchy.top().kind != NamespaceKind::class_) {
       return nullptr;
+    }
 
     const auto f = [&](const Accessibility accessibility) {
       const auto mangled_name
         = ctx.mangler.mangleMethod(ctx,
                                    unmangled_name,
-                                   ctx.namespaces.top().name,
+                                   ctx.ns_hierarchy.top().name,
                                    args,
                                    accessibility);
 
@@ -749,7 +754,7 @@ private:
                const std::deque<Value>& args) const
   {
     {
-      // First look for unmangled functions.
+      // First look for unmangled functions
       auto const func = ctx.module->getFunction(unmangled_name);
       if (func)
         return func;
@@ -786,16 +791,16 @@ private:
                         "member access cannot be used for non-class")};
     }
 
-    const auto class_info
+    const auto class_type
       = ctx.class_table[class_val.getLLVMType()->getStructName().str()];
 
-    if (!class_info || class_info->isOpaque()) {
+    if (!class_type || class_type.value()->isOpaque()) {
       throw CodegenError{
         ctx.formatError(ctx.positions.position_of(member_name_ast),
-                        "member access to undefined class is not allowed.")};
+                        "member access to undefined class is not allowed")};
     }
 
-    const auto offset = offsetByName(*class_info, member_name);
+    const auto offset = class_type.value()->offsetByName(member_name);
 
     if (!offset) {
       throw CodegenError{ctx.formatError(
@@ -805,7 +810,7 @@ private:
 
     if (external_access
         && !isExternallyAccessible(
-          class_info->getMemberVariable(*offset).accessibility)) {
+          class_type.value()->getMemberVar(*offset).accessibility)) {
       throw CodegenError{ctx.formatError(
         ctx.positions.position_of(member_name_ast),
         fmt::format("member '{}' is not accessible", member_name))};
@@ -822,7 +827,7 @@ private:
     return {ctx.builder.CreateLoad(
               class_val.getLLVMType()->getStructElementType(*offset),
               gep),
-            class_info->getMemberVariable(*offset).type,
+            class_type.value()->getMemberVar(*offset).type,
             class_val.isMutable()};
   }
 
@@ -841,21 +846,22 @@ private:
   {
     auto func_call = rhs; // Copy!
 
-    // Insert this pointer at the beginning of the arguments
+    // Insert 'this' pointer at the beginning of the arguments
     func_call.args.push_front(ast::UnaryOp{std::u32string{U"&"}, lhs});
 
     {
       // FIXME: More efficient
       const auto lhs_value = createExpr(ctx, scope, stmt_ctx, lhs);
 
-      assert(lhs_value.getType()->isStructTy());
+      assert(lhs_value.getType()->isClassTy(ctx));
 
-      ctx.namespaces.push({lhs_value.getType()->getStructName(), true});
+      ctx.ns_hierarchy.push(
+        {lhs_value.getType()->getClassName(ctx), NamespaceKind::class_});
     }
 
     const auto retval = (*this)(func_call);
 
-    ctx.namespaces.pop();
+    ctx.ns_hierarchy.pop();
 
     return retval;
   }
@@ -875,4 +881,4 @@ private:
   return boost::apply_visitor(ExprVisitor{ctx, scope, stmt_ctx}, expr);
 }
 
-} // namespace maple::codegen
+} // namespace lapis::codegen

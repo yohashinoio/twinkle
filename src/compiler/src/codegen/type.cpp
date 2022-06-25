@@ -1,14 +1,14 @@
 /**
- * These codes are licensed under Apache-2.0 License.
+ * These codes are licensed under LICNSE_NAME License.
  * See the LICENSE for details.
  *
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <maple/codegen/type.hpp>
-#include <maple/codegen/codegen.hpp>
+#include <lapis/codegen/type.hpp>
+#include <lapis/codegen/codegen.hpp>
 
-namespace maple::codegen
+namespace lapis::codegen
 {
 
 [[nodiscard]] std::optional<BuiltinTypeKind>
@@ -97,14 +97,7 @@ matchBuiltinType(const std::u32string_view type)
   unreachable();
 }
 
-[[nodiscard]] llvm::Type* StructType::getLLVMType(CGContext& ctx) const
-{
-  const auto class_type = ctx.class_table[ident];
-  assert(class_type);
-  return class_type->getLLVMType();
-}
-
-[[nodiscard]] std::string BuiltinType::getMangledName() const
+[[nodiscard]] std::string BuiltinType::getMangledName(CGContext&) const
 {
   switch (kind) {
   case BuiltinTypeKind::void_:
@@ -138,9 +131,74 @@ matchBuiltinType(const std::u32string_view type)
   unreachable();
 }
 
-[[nodiscard]] std::string StructType::getMangledName() const
+[[nodiscard]] std::shared_ptr<Type>
+UserDefinedType::getType(CGContext& ctx) const
 {
-  return boost::lexical_cast<std::string>(ident.length()) + ident;
+  {
+    const auto type = ctx.class_table[ident];
+    if (type)
+      return *type;
+  }
+
+  {
+    const auto type = ctx.alias_table[ident];
+    if (type)
+      return *type;
+  }
+
+  unreachable();
+}
+
+[[nodiscard]] llvm::Type* UserDefinedType::getLLVMType(CGContext& ctx) const
+{
+  return getType(ctx)->getLLVMType(ctx);
+}
+
+[[nodiscard]] std::string UserDefinedType::getMangledName(CGContext& ctx) const
+{
+  return getType(ctx)->getMangledName(ctx);
+}
+
+ClassType::ClassType(CGContext&                    ctx,
+                     std::vector<MemberVariable>&& members_arg,
+                     const std::u32string&         ident)
+  : is_opaque{false}
+  , members{std::move(members_arg)}
+  , ident{unicode::utf32toUtf8(ident)}
+  , type{llvm::StructType::create(ctx.context,
+                                  extractTypes(ctx, members),
+                                  this->ident)}
+{
+}
+
+ClassType::ClassType(CGContext&                    ctx,
+                     std::vector<MemberVariable>&& members_arg,
+                     const std::string&            ident)
+  : is_opaque{false}
+  , members{std::move(members_arg)}
+  , ident{ident}
+  , type{
+      llvm::StructType::create(ctx.context, extractTypes(ctx, members), ident)}
+{
+}
+
+ClassType::ClassType(CGContext& ctx, const std::string& ident)
+  : is_opaque{true}
+  , members{}
+  , ident{ident}
+  , type{llvm::StructType::create(ctx.context, ident)}
+{
+}
+
+std::vector<llvm::Type*>
+ClassType::extractTypes(CGContext& ctx, const std::vector<MemberVariable>& m)
+{
+  std::vector<llvm::Type*> retval;
+
+  for (const auto& r : m)
+    retval.push_back(r.type->getLLVMType(ctx));
+
+  return retval;
 }
 
 [[nodiscard]] llvm::Type* FunctionType::getLLVMType(CGContext& ctx) const
@@ -157,27 +215,27 @@ matchBuiltinType(const std::u32string_view type)
   return llvm::FunctionType::get(return_type->getLLVMType(ctx), params, false);
 }
 
-[[nodiscard]] std::string FunctionType::getMangledName() const
+[[nodiscard]] std::string FunctionType::getMangledName(CGContext& ctx) const
 {
   std::ostringstream mangled;
 
-  mangled << "F" << return_type->getMangledName();
+  mangled << "F" << return_type->getMangledName(ctx);
 
   for (const auto& r : param_types)
-    mangled << r->getMangledName();
+    mangled << r->getMangledName(ctx);
 
   return mangled.str();
 }
 
-[[nodiscard]] std::string PointerType::getMangledName() const
+[[nodiscard]] std::string PointerType::getMangledName(CGContext& ctx) const
 {
-  return "P" + pointee_type->getMangledName();
+  return "P" + pointee_type->getMangledName(ctx);
 }
 
-[[nodiscard]] std::string ArrayType::getMangledName() const
+[[nodiscard]] std::string ArrayType::getMangledName(CGContext& ctx) const
 {
   return "A" + boost::lexical_cast<std::string>(array_size) + "_"
-         + element_type->getMangledName();
+         + element_type->getMangledName(ctx);
 }
 
 // Type AST to std::shared_ptr<Type>
@@ -211,7 +269,7 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
   [[nodiscard]] std::shared_ptr<Type>
   operator()(const ast::UserDefinedType& node) const
   {
-    return std::make_shared<StructType>(node.name.utf32());
+    return std::make_shared<UserDefinedType>(node.name.utf32());
   }
 };
 
@@ -220,4 +278,4 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
   return boost::apply_visitor(TypeVisitor(), ast);
 }
 
-} // namespace maple::codegen
+} // namespace lapis::codegen
