@@ -138,7 +138,7 @@ struct CharLiteral : x3::position_tagged {
 struct BinOp;
 struct UnaryOp;
 struct FunctionCall;
-struct Conversion;
+struct Cast;
 struct Subscript;
 struct Pipeline;
 struct MemberAccess;
@@ -158,7 +158,7 @@ using Expr = boost::variant<boost::blank,
                             boost::recursive_wrapper<UnaryOp>,
                             boost::recursive_wrapper<Subscript>,
                             boost::recursive_wrapper<FunctionCall>,
-                            boost::recursive_wrapper<Conversion>,
+                            boost::recursive_wrapper<Cast>,
                             boost::recursive_wrapper<Pipeline>,
                             boost::recursive_wrapper<MemberAccess>,
                             boost::recursive_wrapper<UniformInit>>;
@@ -315,11 +315,11 @@ struct FunctionCall : x3::position_tagged {
   }
 };
 
-struct Conversion : x3::position_tagged {
+struct Cast : x3::position_tagged {
   Expr lhs;
   Type as;
 
-  Conversion(Expr&& lhs, Type as) noexcept
+  Cast(Expr&& lhs, Type as) noexcept
     : lhs{std::move(lhs)}
     , as{as}
   {

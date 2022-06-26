@@ -84,7 +84,7 @@ struct assignToValAs {
   auto operator()(const Ctx& ctx) const
     // clang-format off
     -> std::enable_if_t<
-         std::is_same_v<Ast, ast::Conversion>
+         std::is_same_v<Ast, ast::Cast>
       || std::is_same_v<Ast, ast::Subscript>
       || std::is_same_v<Ast, ast::FunctionCall>
       || std::is_same_v<Ast, ast::MemberAccess>
@@ -248,7 +248,7 @@ const x3::rule<struct RelationTag, ast::Expr> relation{"relational operation"};
 const x3::rule<struct PipelineTag, ast::Expr> pipeline{"pipeline operation"};
 const x3::rule<struct AddTag, ast::Expr>      add{"addition operation"};
 const x3::rule<struct MulTag, ast::Expr>      mul{"multiplication operation"};
-const x3::rule<struct ConversionTag, ast::Expr>       conversion{"conversion"};
+const x3::rule<struct CastTag, ast::Expr>     cast{"conversion"};
 const x3::rule<struct UnaryInternalTag, ast::UnaryOp> unary_internal{
   "unary operation"};
 const x3::rule<struct UnaryTag, ast::Expr>        unary{"unary operation"};
@@ -566,13 +566,13 @@ const auto add_def
     >> *(additive_operator > mul)[action::assignToValAs<ast::BinOp>{}];
 
 const auto mul_def
-  = conversion[action::assignAttrToVal]
-    >> *(multitive_operator > conversion)[action::assignToValAs<ast::BinOp>{}];
+  = cast[action::assignAttrToVal]
+    >> *(multitive_operator > cast)[action::assignToValAs<ast::BinOp>{}];
 
 // Replacing string(U"as") with lit(U"as") causes an error. I don't know why.
-const auto conversion_def
+const auto cast_def
   = unary[action::assignAttrToVal]
-    >> *(string(U"as") > type_name)[action::assignToValAs<ast::Conversion>{}];
+    >> *(string(U"as") > type_name)[action::assignToValAs<ast::Cast>{}];
 
 const auto unary_internal_def = unary_operator >> member_access;
 const auto unary_def          = unary_internal | member_access;
@@ -609,7 +609,7 @@ BOOST_SPIRIT_DEFINE(relation)
 BOOST_SPIRIT_DEFINE(pipeline)
 BOOST_SPIRIT_DEFINE(add)
 BOOST_SPIRIT_DEFINE(mul)
-BOOST_SPIRIT_DEFINE(conversion)
+BOOST_SPIRIT_DEFINE(cast)
 BOOST_SPIRIT_DEFINE(unary)
 BOOST_SPIRIT_DEFINE(member_access)
 BOOST_SPIRIT_DEFINE(subscript)
@@ -646,7 +646,7 @@ struct MulTag
   : ErrorHandle
   , AnnotatePosition {};
 
-struct ConversionTag
+struct CastTag
   : ErrorHandle
   , AnnotatePosition {};
 

@@ -93,7 +93,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  lapis::ast::Conversion,
+  lapis::ast::Cast,
   (lapis::ast::Expr, lhs)
   (lapis::ast::Type, as)
 )

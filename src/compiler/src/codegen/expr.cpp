@@ -273,7 +273,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     auto args = createArgValues(node.args, pos);
 
-    if (auto const func = findMethod(callee_name, args))
+    if (auto const func = findMethodOfSameClass(callee_name, args))
       return createFunctionCall(func, args, true, pos);
 
     if (auto const func = findFunction(callee_name, args))
@@ -284,7 +284,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       fmt::format("unknown function '{}' referenced", callee_name))};
   }
 
-  [[nodiscard]] Value operator()(const ast::Conversion& node) const
+  [[nodiscard]] Value operator()(const ast::Cast& node) const
   {
     auto const lhs = boost::apply_visitor(*this, node.lhs);
 
@@ -698,8 +698,11 @@ private:
     return args;
   }
 
-  [[nodiscard]] llvm::Function* findMethod(const std::string& unmangled_name,
-                                           const std::deque<Value>& args) const
+  // Automatically inserts 'this' pointer
+  // Used to find a method in the same class within a method
+  [[nodiscard]] llvm::Function*
+  findMethodOfSameClass(const std::string&       unmangled_name,
+                        const std::deque<Value>& args) const
   {
     if (ctx.ns_hierarchy.empty()
         || ctx.ns_hierarchy.top().kind != NamespaceKind::class_) {
