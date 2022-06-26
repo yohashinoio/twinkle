@@ -1,0 +1,10 @@
+func toInt(f: f64) -> i32
+{
+  return f as i32;
+}
+
+func main() -> i32
+{
+  let f = toInt(-58.);
+  return -f;
+}

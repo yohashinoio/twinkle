@@ -262,6 +262,13 @@ createGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 
 [[nodiscard]] Value createAddInverse(CGContext& ctx, const Value& value)
 {
+  if (value.getValue()->getType()->isFloatingPointTy()) {
+    return {ctx.builder.CreateFSub(
+              llvm::ConstantFP::getZeroValueForNegation(value.getLLVMType()),
+              value.getValue()),
+            value.getType()};
+  }
+
   return {ctx.builder.CreateSub(llvm::ConstantInt::get(value.getLLVMType(), 0),
                                 value.getValue()),
           value.getType()};

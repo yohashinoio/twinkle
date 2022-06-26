@@ -94,16 +94,6 @@ struct Value {
     return type->isSigned(ctx);
   }
 
-  [[nodiscard]] bool isPointer() const
-  {
-    return value->getType()->isPointerTy();
-  }
-
-  [[nodiscard]] bool isInteger() const
-  {
-    return value->getType()->isIntegerTy();
-  }
-
   [[nodiscard]] explicit operator bool() const noexcept
   {
     return value;

@@ -579,10 +579,10 @@ private:
   [[nodiscard]] std::pair<Value, Value> castToLarger(const Value& lhs,
                                                      const Value& rhs) const
   {
-    if (lhs.isInteger())
+    if (lhs.getValue()->getType()->isIntegerTy())
       return intCastToLargerBitW(lhs, rhs);
 
-    if (lhs.getType()->isFloatingPointTy(ctx))
+    if (lhs.getValue()->getType()->isFloatingPointTy())
       return floatCastToLargerMantissaW(lhs, rhs);
 
     unreachable();
@@ -639,7 +639,7 @@ private:
 
     const auto index = createExpr(ctx, scope, stmt_ctx, node.subscript);
 
-    if (!index.isInteger()) {
+    if (!index.getValue()->getType()->isIntegerTy()) {
       throw CodegenError{
         ctx.formatError(ctx.positions.position_of(node),
                         "subscripts need to be evaluated to numbers")};
@@ -662,7 +662,8 @@ private:
                     const boost::iterator_range<InputIterator>& pos,
                     const Value&                                rhs) const
   {
-    if (!rhs.isPointer() || !rhs.getType()->isPointerTy(ctx)) {
+    if (!rhs.getValue()->getType()->isPointerTy()
+        || !rhs.getType()->isPointerTy(ctx)) {
       throw CodegenError{
         ctx.formatError(pos, "unary '*' requires pointer operand")};
     }
@@ -684,7 +685,8 @@ private:
               rhs.getType(),
               rhs.isMutable()};
 
-    if (!val.isPointer() || !val.getType()->isPointerTy(ctx)) {
+    if (!val.getValue()->getType()->isPointerTy()
+        || !val.getType()->isPointerTy(ctx)) {
       throw CodegenError{
         ctx.formatError(pos, "unary '*' requires pointer operand")};
     }
@@ -703,9 +705,7 @@ private:
       if (!strictEquals(args[idx++].getValue()->getType(), arg.getType())) {
         throw CodegenError{ctx.formatError(
           pos,
-          fmt::format("incompatible type for argument {} of '{}'",
-                      idx,
-                      callee->getName()))};
+          fmt::format("incompatible type for argument {}", idx))};
       }
     }
   }
