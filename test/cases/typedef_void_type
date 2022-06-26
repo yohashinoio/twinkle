@@ -1,0 +1,15 @@
+typedef v = void;
+
+func f(p: mut *i32) -> v
+{
+  *p = 58;
+}
+
+func main() -> i32
+{
+  let n: i32;
+
+  f(&n);
+
+  return n;
+}

@@ -280,7 +280,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
     // Check to make sure the name does not already exist.
     if (const auto existed_type = ctx.class_table[class_name]) {
-      if (existed_type.value()->isOpaque()) {
+      if (existed_type.value()->isOpaque(ctx)) {
         // Set member type if declared forward.
         llvm::cast<llvm::StructType>(existed_type.value()->getLLVMType(ctx))
           ->setBody(ClassType::extractTypes(ctx, member_variables));
@@ -350,7 +350,7 @@ private:
 
     // Return variable.
     auto const return_variable
-      = return_type->isVoid()
+      = return_type->isVoid(ctx)
           ? nullptr
           : createEntryAlloca(func, "", return_type->getLLVMType(ctx));
 
@@ -361,7 +361,7 @@ private:
 
     // If there is no return, returns undef.
     if (!ctx.builder.GetInsertBlock()->getTerminator()
-        && !(return_type->isVoid())) {
+        && !(return_type->isVoid(ctx))) {
       // Return 0 specially for main.
       if (name == "main") {
         ctx.builder.CreateStore(
@@ -378,7 +378,7 @@ private:
 
     // Inserts a terminator if the function returning void does not have
     // one.
-    if (return_type->isVoid()
+    if (return_type->isVoid(ctx)
         && !ctx.builder.GetInsertBlock()->getTerminator()) {
       ctx.builder.CreateBr(end_bb);
     }

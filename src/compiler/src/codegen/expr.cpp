@@ -302,7 +302,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
         as};
     }
 
-    if (as->isFloatingPointTy()) {
+    if (as->isFloatingPointTy(ctx)) {
       if (lhs.getType()->isIntegerTy(ctx)) {
         const auto cast_op = lhs.getType()->isSigned(ctx)
                                ? llvm::CastInst::CastOps::SIToFP
@@ -319,7 +319,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     }
 
     if (as->getLLVMType(ctx)->isIntegerTy()) {
-      if (lhs.getType()->isFloatingPointTy()) {
+      if (lhs.getType()->isFloatingPointTy(ctx)) {
         // Floating point number to integer.
         const auto cast_op = as->isSigned(ctx)
                                ? llvm::CastInst::CastOps::FPToSI
@@ -349,7 +349,6 @@ struct ExprVisitor : public boost::static_visitor<Value> {
         "the right side of the pipeline requires a function call")};
     }
 
-    // Copy.
     auto call = boost::get<ast::FunctionCall>(node.rhs);
 
     call.args.push_front(node.lhs);
@@ -553,7 +552,7 @@ private:
     if (lhs.isInteger())
       return intCastToLargerBitW(lhs, rhs);
 
-    if (lhs.getType()->isFloatingPointTy())
+    if (lhs.getType()->isFloatingPointTy(ctx))
       return floatCastToLargerMantissaW(lhs, rhs);
 
     unreachable();
@@ -798,7 +797,7 @@ private:
     const auto class_type
       = ctx.class_table[class_val.getLLVMType()->getStructName().str()];
 
-    if (!class_type || class_type.value()->isOpaque()) {
+    if (!class_type || class_type.value()->isOpaque(ctx)) {
       throw CodegenError{
         ctx.formatError(ctx.positions.position_of(member_name_ast),
                         "member access to undefined class is not allowed")};

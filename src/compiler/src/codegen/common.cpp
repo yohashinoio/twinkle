@@ -54,7 +54,7 @@ resultIntegerTypeOf(CGContext&                   ctx,
 [[nodiscard]] Value
 createAdd(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  if (lhs.getType()->isFloatingPointTy()) {
+  if (lhs.getType()->isFloatingPointTy(ctx)) {
     return {ctx.builder.CreateFAdd(lhs.getValue(), rhs.getValue()),
             lhs.getType()};
   }
@@ -66,7 +66,7 @@ createAdd(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 createSub(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  if (lhs.getType()->isFloatingPointTy()) {
+  if (lhs.getType()->isFloatingPointTy(ctx)) {
     return {ctx.builder.CreateFSub(lhs.getValue(), rhs.getValue()),
             lhs.getType()};
   }
@@ -78,7 +78,7 @@ createSub(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 createMul(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  if (lhs.getType()->isFloatingPointTy()) {
+  if (lhs.getType()->isFloatingPointTy(ctx)) {
     return {ctx.builder.CreateFMul(lhs.getValue(), rhs.getValue()),
             lhs.getType()};
   }
@@ -90,7 +90,7 @@ createMul(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 createDiv(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  if (lhs.getType()->isFloatingPointTy()) {
+  if (lhs.getType()->isFloatingPointTy(ctx)) {
     return {ctx.builder.CreateFDiv(lhs.getValue(), rhs.getValue()),
             lhs.getType()};
   }
@@ -111,7 +111,7 @@ createDiv(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 createMod(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  if (lhs.getType()->isFloatingPointTy()) {
+  if (lhs.getType()->isFloatingPointTy(ctx)) {
     return {ctx.builder.CreateFRem(lhs.getValue(), rhs.getValue()),
             lhs.getType()};
   }
@@ -132,7 +132,7 @@ createMod(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 createEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  if (lhs.getType()->isFloatingPointTy()) {
+  if (lhs.getType()->isFloatingPointTy(ctx)) {
     return {ctx.builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_UEQ,
                                    lhs.getValue(),
                                    rhs.getValue()),
@@ -148,7 +148,7 @@ createEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 createNotEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  if (lhs.getType()->isFloatingPointTy()) {
+  if (lhs.getType()->isFloatingPointTy(ctx)) {
     return {ctx.builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_UNE,
                                    lhs.getValue(),
                                    rhs.getValue()),
@@ -164,7 +164,7 @@ createNotEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 createLessThan(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  if (lhs.getType()->isFloatingPointTy()) {
+  if (lhs.getType()->isFloatingPointTy(ctx)) {
     return {ctx.builder.CreateFCmp(llvm::ICmpInst::FCMP_ULT,
                                    lhs.getValue(),
                                    rhs.getValue()),
@@ -182,7 +182,7 @@ createLessThan(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 createGreaterThan(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  if (lhs.getType()->isFloatingPointTy()) {
+  if (lhs.getType()->isFloatingPointTy(ctx)) {
     return {ctx.builder.CreateFCmp(llvm::ICmpInst::FCMP_UGT,
                                    lhs.getValue(),
                                    rhs.getValue()),
@@ -200,7 +200,7 @@ createGreaterThan(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 createLessOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  if (lhs.getType()->isFloatingPointTy()) {
+  if (lhs.getType()->isFloatingPointTy(ctx)) {
     return {ctx.builder.CreateFCmp(llvm::ICmpInst::FCMP_ULE,
                                    lhs.getValue(),
                                    rhs.getValue()),
@@ -218,7 +218,7 @@ createLessOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 [[nodiscard]] Value
 createGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  if (lhs.getType()->isFloatingPointTy()) {
+  if (lhs.getType()->isFloatingPointTy(ctx)) {
     return {ctx.builder.CreateFCmp(llvm::ICmpInst::FCMP_UGE,
                                    lhs.getValue(),
                                    rhs.getValue()),
@@ -235,7 +235,7 @@ createGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
 
 [[nodiscard]] Value createLogicalNot(CGContext& ctx, const Value& value)
 {
-  if (value.getType()->isFloatingPointTy()) {
+  if (value.getType()->isFloatingPointTy(ctx)) {
     return {
       ctx.builder.CreateFCmp(llvm::ICmpInst::FCMP_OEQ,
                              value.getValue(),

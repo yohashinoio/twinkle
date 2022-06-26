@@ -81,17 +81,17 @@ struct Type {
     unreachable();
   }
 
-  [[nodiscard]] virtual bool isVoid() const
+  [[nodiscard]] virtual bool isVoid(CGContext&) const
   {
     return false;
   }
 
-  [[nodiscard]] virtual bool isOpaque() const
+  [[nodiscard]] virtual bool isOpaque(CGContext&) const
   {
     return false;
   }
 
-  [[nodiscard]] virtual bool isFloatingPointTy() const
+  [[nodiscard]] virtual bool isFloatingPointTy(CGContext&) const
   {
     return false;
   }
@@ -135,12 +135,12 @@ struct BuiltinType : public Type {
 
   [[nodiscard]] SignKind getSignKind(CGContext&) const override;
 
-  [[nodiscard]] bool isVoid() const override
+  [[nodiscard]] bool isVoid(CGContext&) const override
   {
     return kind == BuiltinTypeKind::void_;
   }
 
-  [[nodiscard]] bool isFloatingPointTy() const override
+  [[nodiscard]] bool isFloatingPointTy(CGContext&) const override
   {
     return kind == BuiltinTypeKind::f64 || kind == BuiltinTypeKind::f32;
   }
@@ -192,6 +192,16 @@ struct UserDefinedType : public Type {
 
   [[nodiscard]] llvm::Type* getLLVMType(CGContext& ctx) const override;
 
+  [[nodiscard]] bool isVoid(CGContext& ctx) const override
+  {
+    return getType(ctx)->isVoid(ctx);
+  }
+
+  [[nodiscard]] bool isOpaque(CGContext& ctx) const override
+  {
+    return getType(ctx)->isOpaque(ctx);
+  }
+
   [[nodiscard]] bool isClassTy(CGContext& ctx) const override
   {
     return getType(ctx)->isClassTy(ctx);
@@ -233,6 +243,11 @@ struct UserDefinedType : public Type {
   [[nodiscard]] bool isIntegerTy(CGContext& ctx) const override
   {
     return getType(ctx)->isIntegerTy(ctx);
+  }
+
+  [[nodiscard]] bool isFloatingPointTy(CGContext& ctx) const override
+  {
+    return getType(ctx)->isFloatingPointTy(ctx);
   }
 
   [[nodiscard]] std::string getUserDefinedTyName(CGContext&) const override
@@ -293,7 +308,7 @@ struct ClassType : public Type {
     return type;
   }
 
-  [[nodiscard]] bool isOpaque() const override
+  [[nodiscard]] bool isOpaque(CGContext&) const override
   {
     return is_opaque;
   }
