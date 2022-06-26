@@ -158,7 +158,7 @@ using SymbolTable
 // the function.
 [[nodiscard]] llvm::AllocaInst* createEntryAlloca(llvm::Function*    func,
                                                   const std::string& var_name,
-                                                  llvm::Type*        type);
+                                                  llvm::Type* const  type);
 
 [[nodiscard]] llvm::Type* getFloatNTy(CGContext& ctx, const int mantissa_width);
 

@@ -12,7 +12,7 @@ namespace lapis::codegen
 
 [[nodiscard]] llvm::AllocaInst* createEntryAlloca(llvm::Function*    func,
                                                   const std::string& var_name,
-                                                  llvm::Type*        type)
+                                                  llvm::Type* const  type)
 {
   return llvm::IRBuilder<>{&func->getEntryBlock(),
                            func->getEntryBlock().begin()}

@@ -142,6 +142,7 @@ struct Cast;
 struct Subscript;
 struct Pipeline;
 struct MemberAccess;
+struct ArrayLiteral;
 struct UniformInit;
 
 using Expr = boost::variant<boost::blank,
@@ -161,6 +162,7 @@ using Expr = boost::variant<boost::blank,
                             boost::recursive_wrapper<Cast>,
                             boost::recursive_wrapper<Pipeline>,
                             boost::recursive_wrapper<MemberAccess>,
+                            boost::recursive_wrapper<ArrayLiteral>,
                             boost::recursive_wrapper<UniformInit>>;
 
 struct BinOp : x3::position_tagged {
@@ -337,6 +339,10 @@ struct Pipeline : x3::position_tagged {
     , rhs{std::move(rhs)}
   {
   }
+};
+
+struct ArrayLiteral : x3::position_tagged {
+  std::vector<Expr> elements;
 };
 
 struct UniformInit : x3::position_tagged {

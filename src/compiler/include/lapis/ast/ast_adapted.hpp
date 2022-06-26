@@ -106,6 +106,11 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
+  lapis::ast::ArrayLiteral,
+  (std::vector<lapis::ast::Expr>, elements)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
   lapis::ast::UniformInit,
   (lapis::ast::Identifier, class_name)
   (std::vector<lapis::ast::Expr>, initializer_list)

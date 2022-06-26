@@ -175,6 +175,7 @@ int main(const int argc, const char* const* const argv)
     {                     "typedef_array_types",  13},
     {                       "typedef_void_type",  58},
     {            "typedef_floating_point_types",  58},
+    {                           "array_literal", 100},
   };
 
   std::size_t ok_c{};   // ok count.

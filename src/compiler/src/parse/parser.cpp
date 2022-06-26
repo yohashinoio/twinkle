@@ -233,6 +233,8 @@ struct BuiltinTypeNameSymbolsTag : UnicodeSymbols<codegen::BuiltinTypeKind> {
 // Common rules declaration
 //===----------------------------------------------------------------------===//
 
+const x3::rule<struct ArrayLiteralTag, ast::ArrayLiteral> array_literal{
+  "array literal"};
 const x3::rule<struct UniformInitTag, ast::UniformInit> uniform_init{
   "uniform initialization"};
 
@@ -409,9 +411,12 @@ const auto char_literal
 const auto attribute = x3::rule<struct AttrTag, ast::Attrs>{"attribute"}
 = lit(U"[[") >> (identifier_internal % lit(U",")) > lit(U"]]");
 
+const auto array_literal_def = lit(U"[") > (expr % lit(U",")) > lit(U"]");
+
 const auto uniform_init_def
   = identifier >> lit(U"{") > -(expr % lit(U",")) > lit(U"}");
 
+BOOST_SPIRIT_DEFINE(array_literal)
 BOOST_SPIRIT_DEFINE(uniform_init)
 
 struct VariableIdentTag
@@ -431,6 +436,10 @@ struct CharLiteralTag
   , AnnotatePosition {};
 
 struct AttrTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct ArrayLiteralTag
   : ErrorHandle
   , AnnotatePosition {};
 
@@ -600,7 +609,7 @@ const auto primary_def = uniform_init | identifier | float_64bit
                          | binary_literal | octal_literal | hex_literal
                          | int_32bit | uint_32bit | int_64bit | uint_64bit
                          | boolean_literal | string_literal | char_literal
-                         | (lit(U"(") > expr > lit(U")"));
+                         | array_literal | (lit(U"(") > expr > lit(U")"));
 
 BOOST_SPIRIT_DEFINE(expr)
 BOOST_SPIRIT_DEFINE(binary_logical)

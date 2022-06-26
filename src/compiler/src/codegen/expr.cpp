@@ -101,6 +101,36 @@ struct ExprVisitor : public boost::static_visitor<Value> {
             std::make_shared<BuiltinType>(BuiltinTypeKind::char_)};
   }
 
+  [[nodiscard]] Value operator()(const ast::ArrayLiteral& node) const
+  {
+    std::vector<Value> initializer_list;
+    initializer_list.reserve(node.elements.size());
+
+    for (const auto& elem : node.elements)
+      initializer_list.push_back(boost::apply_visitor(*this, elem));
+
+    const auto type
+      = std::make_shared<ArrayType>(initializer_list.front().getType(),
+                                    initializer_list.size());
+
+    auto const alloca
+      = createEntryAlloca(ctx.builder.GetInsertBlock()->getParent(),
+                          "",
+                          type->getLLVMType(ctx));
+
+    for (std::size_t idx = 0; const auto& initializer : initializer_list) {
+      auto const gep = ctx.builder.CreateInBoundsGEP(
+        alloca->getAllocatedType(),
+        alloca,
+        {llvm::ConstantInt::get(ctx.builder.getInt64Ty(), 0),
+         llvm::ConstantInt::get(ctx.builder.getInt64Ty(), idx)});
+
+      ctx.builder.CreateStore(initializer_list.at(idx++).getValue(), gep);
+    }
+
+    return {ctx.builder.CreateLoad(alloca->getAllocatedType(), alloca), type};
+  }
+
   [[nodiscard]] Value operator()(const ast::Identifier& node) const
   {
     // TODO: support function identifier
