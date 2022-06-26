@@ -454,42 +454,16 @@ private:
             value.isMutable()};
   }
 
-  [[nodiscard]] InitializerList
-  createInitializerList(const ast::InitializerList& initializer_list) const
-  {
-    InitializerList result;
-
-    for (const auto& initializer : initializer_list.inits)
-      result.emplace_back(
-        createExpr(ctx, getAllSymbols(), stmt_ctx, initializer));
-
-    return result;
-  }
-
-  void initArray(llvm::AllocaInst*      array_alloca,
-                 const InitializerList& initializer_list) const
-  {
-    for (std::uint64_t i = 0, last = initializer_list.size(); i != last; ++i) {
-      auto const gep = ctx.builder.CreateInBoundsGEP(
-        array_alloca->getAllocatedType(),
-        array_alloca,
-        {llvm::ConstantInt::get(ctx.builder.getInt64Ty(), 0),
-         llvm::ConstantInt::get(ctx.builder.getInt64Ty(), i)});
-
-      ctx.builder.CreateStore(initializer_list[i].getValue(), gep);
-    }
-  }
-
   [[nodiscard]] Variable
   createVariable(const boost::iterator_range<InputIterator>& pos,
                  llvm::Function*                             func,
                  const std::string&                          name,
                  const std::shared_ptr<Type>&                type,
-                 const std::optional<ast::Initializer>&      initializer,
+                 const std::optional<ast::Expr>&             initializer,
                  const bool                                  is_mutable) const
   {
-    const auto variable_type = type->getLLVMType(ctx);
-    auto const alloca        = createEntryAlloca(func, name, variable_type);
+    const auto llvm_type = type->getLLVMType(ctx);
+    auto const alloca    = createEntryAlloca(func, name, llvm_type);
 
     if (!initializer) {
       return {
@@ -498,119 +472,60 @@ private:
       };
     }
 
-    if (const auto* init_list_node
-        = boost::get<ast::InitializerList>(&*initializer)) {
-      // Array type.
-      if (!variable_type->isArrayTy()) {
-        throw CodegenError{ctx.formatError(
-          pos,
-          "initializing an array requires an initializer list")};
-      }
+    auto const init_value
+      = createExpr(ctx, getAllSymbols(), stmt_ctx, *initializer);
 
-      const auto init_list = createInitializerList(*init_list_node);
-
-      if (type->getArraySize(ctx) != init_list.size()) {
-        throw CodegenError{
-          ctx.formatError(pos,
-                          "invalid number of elements in initializer list")};
-      }
-
-      initArray(alloca, init_list);
-
-      return {
-        {alloca, type},
-        is_mutable
-      };
+    if (!init_value) {
+      throw CodegenError{ctx.formatError(
+        pos,
+        fmt::format("failed to generate initializer for '{}'", name))};
     }
 
-    if (const auto* init_node = boost::get<ast::Expr>(&*initializer)) {
-      auto const init_value
-        = createExpr(ctx, getAllSymbols(), stmt_ctx, *init_node);
-
-      if (!init_value) {
-        throw CodegenError{ctx.formatError(
-          pos,
-          fmt::format("failed to generate initializer for '{}'", name))};
-      }
-
-      if (!strictEquals(variable_type, init_value.getLLVMType())) {
-        throw CodegenError{ctx.formatError(
-          pos,
-          "the variable type and the initializer type are incompatible")};
-      }
-
-      if (variable_type->isIntegerTy()
-          && variable_type->getIntegerBitWidth()
-               != init_value.getLLVMType()->getIntegerBitWidth()) {
-        throw CodegenError{
-          ctx.formatError(pos, "different bit widths between operands")};
-      }
-
-      ctx.builder.CreateStore(init_value.getValue(), alloca);
-
-      return {
-        {alloca, type},
-        is_mutable
-      };
+    if (!strictEquals(llvm_type, init_value.getLLVMType())) {
+      throw CodegenError{ctx.formatError(
+        pos,
+        "the variable type and the initializer type are incompatible")};
     }
 
-    unreachable();
+    if (llvm_type->isIntegerTy()
+        && llvm_type->getIntegerBitWidth()
+             != init_value.getLLVMType()->getIntegerBitWidth()) {
+      throw CodegenError{
+        ctx.formatError(pos, "different bit widths between operands")};
+    }
+
+    ctx.builder.CreateStore(init_value.getValue(), alloca);
+
+    return {
+      {alloca, type},
+      is_mutable
+    };
   }
 
   [[nodiscard]] Variable
   createVariableTyInference(const boost::iterator_range<InputIterator>& pos,
                             llvm::Function*                             func,
                             const std::string&                          name,
-                            const std::optional<ast::Initializer>& initializer,
-                            const bool is_mutable) const
+                            const std::optional<ast::Expr>& initializer,
+                            const bool                      is_mutable) const
   {
-    if (const auto* init_list_node
-        = boost::get<ast::InitializerList>(&*initializer)) {
-      // Inference to array types.
-      const auto init_list = createInitializerList(*init_list_node);
+    auto const init_value
+      = createExpr(ctx, getAllSymbols(), stmt_ctx, *initializer);
 
-      auto const type = init_list.getType();
-      if (!type) {
-        throw CodegenError{
-          ctx.formatError(pos, "incompatibility type between initializers")};
-      }
-
-      auto const alloca
-        = createEntryAlloca(func,
-                            name,
-                            llvm::ArrayType::get(type, init_list.size()));
-
-      initArray(alloca, init_list);
-
-      return {
-        {alloca,
-         std::make_shared<ArrayType>(init_list.getElementType(),
-         init_list.size())},
-        is_mutable
-      };
-    }
-    else if (const auto* init_node = boost::get<ast::Expr>(&*initializer)) {
-      auto const init_value
-        = createExpr(ctx, getAllSymbols(), stmt_ctx, *init_node);
-
-      if (!init_value) {
-        throw CodegenError{ctx.formatError(
-          pos,
-          fmt::format("failed to generate initializer for '{}'", name))};
-      }
-
-      auto const alloca
-        = createEntryAlloca(func, name, init_value.getLLVMType());
-
-      ctx.builder.CreateStore(init_value.getValue(), alloca);
-
-      return {
-        {alloca, init_value.getType()},
-        is_mutable
-      };
+    if (!init_value) {
+      throw CodegenError{ctx.formatError(
+        pos,
+        fmt::format("failed to generate initializer for '{}'", name))};
     }
 
-    unreachable();
+    auto const alloca = createEntryAlloca(func, name, init_value.getLLVMType());
+
+    ctx.builder.CreateStore(init_value.getValue(), alloca);
+
+    return {
+      {alloca, init_value.getType()},
+      is_mutable
+    };
   }
 
   CGContext& ctx;

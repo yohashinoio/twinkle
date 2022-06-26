@@ -4,7 +4,7 @@ typedef ar_p = *(i32[4]);
 
 func main() -> i32
 {
-  let a: ar = {4, 8, 1, 0};
+  let a: ar = [4, 8, 1, 0];
 
   let p: ar_p = &a;
 

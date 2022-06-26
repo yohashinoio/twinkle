@@ -121,16 +121,11 @@ BOOST_FUSION_ADAPT_STRUCT(
 //===----------------------------------------------------------------------===//
 
 BOOST_FUSION_ADAPT_STRUCT(
-  lapis::ast::InitializerList,
-  (std::vector<lapis::ast::Expr>, inits)
-)
-
-BOOST_FUSION_ADAPT_STRUCT(
   lapis::ast::VariableDef,
   (std::optional<lapis::VariableQual>, qualifier)
   (lapis::ast::Identifier, name)
   (std::optional<lapis::ast::Type>, type)
-  (std::optional<lapis::ast::Initializer>, initializer)
+  (std::optional<lapis::ast::Expr>, initializer)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

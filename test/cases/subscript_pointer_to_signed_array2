@@ -8,6 +8,6 @@ func f(p: *i32) -> i32
 
 func main() -> i32
 {
-  let a = {1, 2, -4};
+  let a = [1, 2, -4];
   return f(&a[0]);
 }

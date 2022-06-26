@@ -267,10 +267,6 @@ const x3::rule<struct PrimaryTag, ast::Expr> primary{"primary"};
 // Statement rules declaration
 //===----------------------------------------------------------------------===//
 
-const x3::rule<struct InitListTag, ast::InitializerList> initializer_list{
-  "initializer list"};
-const x3::rule<struct InitializerTag, ast::Initializer> initializer{
-  "initializer"};
 const x3::rule<struct ExprStmtTag, ast::Expr> expr_stmt{"expression statement"};
 const x3::rule<struct VariableDefTag, ast::VariableDef> variable_def{
   "variable definition"};
@@ -691,10 +687,6 @@ struct PrimaryTag
 // Statement rules and tags definition
 //===----------------------------------------------------------------------===//
 
-const auto initializer_list_def = lit(U"{") > (expr % lit(U",")) > lit(U"}");
-
-const auto initializer_def = expr | initializer_list;
-
 const auto expr_stmt_def = expr;
 
 const auto assignment_def = expr >> assignment_operator > expr;
@@ -707,7 +699,7 @@ const auto variable_type
 
 const auto variable_def_def = lit(U"let") > -variable_qualifier > identifier
                               > -(lit(U":") > variable_type)
-                              > -(lit(U"=") > initializer);
+                              > -(lit(U"=") > expr);
 
 const auto _return_def = lit(U"return") > -expr;
 
@@ -739,8 +731,6 @@ const auto stmt_def = lit(U";")                         /* Null statement */
                       | prefix_inc_or_dec >> lit(U";") | assignment >> lit(U";")
                       | variable_def >> lit(U";") | expr_stmt >> lit(U";");
 
-BOOST_SPIRIT_DEFINE(initializer_list)
-BOOST_SPIRIT_DEFINE(initializer)
 BOOST_SPIRIT_DEFINE(expr_stmt)
 BOOST_SPIRIT_DEFINE(variable_def)
 BOOST_SPIRIT_DEFINE(assignment)
@@ -753,14 +743,6 @@ BOOST_SPIRIT_DEFINE(_for)
 BOOST_SPIRIT_DEFINE(stmt)
 
 struct StmtTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct InitListTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct InitializerTag
   : ErrorHandle
   , AnnotatePosition {};
 

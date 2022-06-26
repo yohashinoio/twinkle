@@ -104,7 +104,6 @@ int main(const int argc, const char* const* const argv)
     {                      "for_loop_increment",  58},
     {                      "for_loop_decrement",  58},
     {                              "array_type",  14},
-    {                        "initializer_list",  14},
     {                   "unicode_char_literal1",  58},
     {                   "unicode_char_literal2",  41},
     {                      "unicode_identifier",  58},

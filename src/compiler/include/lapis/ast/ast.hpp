@@ -354,13 +354,6 @@ struct UniformInit : x3::position_tagged {
 // Statement AST
 //===----------------------------------------------------------------------===//
 
-struct InitializerList : x3::position_tagged {
-  // Initializers.
-  std::vector<Expr> inits;
-};
-
-using Initializer = boost::variant<boost::blank, Expr, InitializerList>;
-
 struct Return : x3::position_tagged {
   std::optional<Expr> rhs;
 };
@@ -369,8 +362,7 @@ struct VariableDef : x3::position_tagged {
   std::optional<VariableQual> qualifier;
   Identifier                  name;
   std::optional<Type>         type;
-  // Initializer.
-  std::optional<Initializer>  initializer;
+  std::optional<Expr>         initializer;
 };
 
 struct Assignment : x3::position_tagged {

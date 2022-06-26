@@ -1,5 +1,5 @@
 func main() -> i32
 {
-  let a = {48, 10};
+  let a = [48, 10];
   return (a)[0] + (&a[0])[1];
 }

@@ -1,6 +1,6 @@
 func main() -> i32
 {
-  let a: u32[2] = {-1, -2};
+  let a: u32[2] = [-1, -2];
   if (a[0] < (58 as u32))
     return 58;
   return 41;
