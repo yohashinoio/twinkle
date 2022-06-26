@@ -27,22 +27,24 @@ namespace lapis::codegen
                               : ctx.builder.getDoubleTy();
 }
 
-[[nodiscard]] SignKind logicalOrSign(const Value& lhs, const Value& rhs)
+[[nodiscard]] SignKind
+logicalOrSign(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
-  return lhs.isSigned() || rhs.isSigned() ? SignKind::signed_
-                                          : SignKind::unsigned_;
+  return lhs.isSigned(ctx) || rhs.isSigned(ctx) ? SignKind::signed_
+                                                : SignKind::unsigned_;
 }
 
 // If either of them is signed, the signed type is returned. Otherwise,
 // unsigned.
 // Assume that the two types (not considering the sign) are the same.
 [[nodiscard]] std::shared_ptr<Type>
-resultIntegerTypeOf(const std::shared_ptr<Type>& lhs_t,
+resultIntegerTypeOf(CGContext&                   ctx,
+                    const std::shared_ptr<Type>& lhs_t,
                     const std::shared_ptr<Type>& rhs_t)
 {
-  if (lhs_t->isSigned())
+  if (lhs_t->isSigned(ctx))
     return lhs_t;
-  else if (rhs_t->isSigned())
+  else if (rhs_t->isSigned(ctx))
     return rhs_t;
 
   // If unsigned.
@@ -58,7 +60,7 @@ createAdd(CGContext& ctx, const Value& lhs, const Value& rhs)
   }
 
   return {ctx.builder.CreateAdd(lhs.getValue(), rhs.getValue()),
-          resultIntegerTypeOf(lhs.getType(), rhs.getType())};
+          resultIntegerTypeOf(ctx, lhs.getType(), rhs.getType())};
 }
 
 [[nodiscard]] Value
@@ -70,7 +72,7 @@ createSub(CGContext& ctx, const Value& lhs, const Value& rhs)
   }
 
   return {ctx.builder.CreateSub(lhs.getValue(), rhs.getValue()),
-          resultIntegerTypeOf(lhs.getType(), rhs.getType())};
+          resultIntegerTypeOf(ctx, lhs.getType(), rhs.getType())};
 }
 
 [[nodiscard]] Value
@@ -82,7 +84,7 @@ createMul(CGContext& ctx, const Value& lhs, const Value& rhs)
   }
 
   return {ctx.builder.CreateMul(lhs.getValue(), rhs.getValue()),
-          resultIntegerTypeOf(lhs.getType(), rhs.getType())};
+          resultIntegerTypeOf(ctx, lhs.getType(), rhs.getType())};
 }
 
 [[nodiscard]] Value
@@ -93,9 +95,10 @@ createDiv(CGContext& ctx, const Value& lhs, const Value& rhs)
             lhs.getType()};
   }
 
-  const auto result_type = resultIntegerTypeOf(lhs.getType(), rhs.getType());
+  const auto result_type
+    = resultIntegerTypeOf(ctx, lhs.getType(), rhs.getType());
 
-  if (result_type->isSigned()) {
+  if (result_type->isSigned(ctx)) {
     return {ctx.builder.CreateSDiv(lhs.getValue(), rhs.getValue()),
             result_type};
   }
@@ -113,9 +116,10 @@ createMod(CGContext& ctx, const Value& lhs, const Value& rhs)
             lhs.getType()};
   }
 
-  const auto result_type = resultIntegerTypeOf(lhs.getType(), rhs.getType());
+  const auto result_type
+    = resultIntegerTypeOf(ctx, lhs.getType(), rhs.getType());
 
-  if (result_type->isSigned()) {
+  if (result_type->isSigned(ctx)) {
     return {ctx.builder.CreateSRem(lhs.getValue(), rhs.getValue()),
             result_type};
   }
@@ -167,7 +171,7 @@ createLessThan(CGContext& ctx, const Value& lhs, const Value& rhs)
             std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
   }
 
-  return {ctx.builder.CreateICmp(isSigned(logicalOrSign(lhs, rhs))
+  return {ctx.builder.CreateICmp(isSigned(logicalOrSign(ctx, lhs, rhs))
                                    ? llvm::ICmpInst::ICMP_SLT
                                    : llvm::ICmpInst::ICMP_ULT,
                                  lhs.getValue(),
@@ -185,7 +189,7 @@ createGreaterThan(CGContext& ctx, const Value& lhs, const Value& rhs)
             std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
   }
 
-  return {ctx.builder.CreateICmp(isSigned(logicalOrSign(lhs, rhs))
+  return {ctx.builder.CreateICmp(isSigned(logicalOrSign(ctx, lhs, rhs))
                                    ? llvm::ICmpInst::ICMP_SGT
                                    : llvm::ICmpInst::ICMP_UGT,
                                  lhs.getValue(),
@@ -203,7 +207,7 @@ createLessOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
             std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
   }
 
-  return {ctx.builder.CreateICmp(isSigned(logicalOrSign(lhs, rhs))
+  return {ctx.builder.CreateICmp(isSigned(logicalOrSign(ctx, lhs, rhs))
                                    ? llvm::ICmpInst::ICMP_SLE
                                    : llvm::ICmpInst::ICMP_ULE,
                                  lhs.getValue(),
@@ -221,7 +225,7 @@ createGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
             std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
   }
 
-  return {ctx.builder.CreateICmp(isSigned(logicalOrSign(lhs, rhs))
+  return {ctx.builder.CreateICmp(isSigned(logicalOrSign(ctx, lhs, rhs))
                                    ? llvm::ICmpInst::ICMP_SGE
                                    : llvm::ICmpInst::ICMP_UGE,
                                  lhs.getValue(),

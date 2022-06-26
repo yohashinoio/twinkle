@@ -1,0 +1,12 @@
+typedef ar = i32[4];
+
+typedef ar_p = *(i32[4]);
+
+func main() -> i32
+{
+  let a: ar = {4, 8, 1, 0};
+
+  let p: ar_p = &a;
+
+  return a[0] + a[1] + (*p)[2] + (*p)[3];
+}

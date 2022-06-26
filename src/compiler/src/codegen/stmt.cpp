@@ -168,7 +168,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
     case ast::Assignment::Kind::div:
       ctx.builder.CreateStore(
-        isSigned(logicalOrSign(rhs, lhs))
+        isSigned(logicalOrSign(ctx, rhs, lhs))
           ? ctx.builder.CreateSDiv(lhs_value, rhs.getValue())
           : ctx.builder.CreateUDiv(lhs_value, rhs.getValue()),
         lhs.getValue());
@@ -176,7 +176,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
     case ast::Assignment::Kind::mod:
       ctx.builder.CreateStore(
-        isSigned(logicalOrSign(rhs, lhs))
+        isSigned(logicalOrSign(ctx, rhs, lhs))
           ? ctx.builder.CreateSRem(lhs_value, rhs.getValue())
           : ctx.builder.CreateURem(lhs_value, rhs.getValue()),
         lhs.getValue());
@@ -509,7 +509,7 @@ private:
 
       const auto init_list = createInitializerList(*init_list_node);
 
-      if (type->getArraySize() != init_list.size()) {
+      if (type->getArraySize(ctx) != init_list.size()) {
         throw CodegenError{
           ctx.formatError(pos,
                           "invalid number of elements in initializer list")};

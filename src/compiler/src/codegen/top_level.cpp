@@ -100,7 +100,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     const auto return_type = createType(node.return_type);
 
     if (name.length() == 4 /* For optimization */ && name == "main"
-        && !return_type->isIntegerTy()) {
+        && !return_type->isIntegerTy(ctx)) {
       throw CodegenError{
         ctx.formatError(ctx.positions.position_of(node),
                         "the return type of main must be an integer")};

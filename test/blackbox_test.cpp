@@ -172,6 +172,7 @@ int main(const int argc, const char* const* const argv)
     {                 "typedef_primitive_types",  58},
     {                   "typedef_pointer_types",  58},
     {                    "typedef_struct_types",  58},
+    {                     "typedef_array_types",  13},
   };
 
   std::size_t ok_c{};   // ok count.

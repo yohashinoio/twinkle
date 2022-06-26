@@ -89,9 +89,9 @@ struct Value {
     return is_mutable;
   }
 
-  [[nodiscard]] bool isSigned() const noexcept
+  [[nodiscard]] bool isSigned(CGContext& ctx) const
   {
-    return type->isSigned();
+    return type->isSigned(ctx);
   }
 
   [[nodiscard]] bool isPointer() const
@@ -135,9 +135,9 @@ struct Variable {
     return alloca.getType();
   }
 
-  [[nodiscard]] bool isSigned() const noexcept
+  [[nodiscard]] bool isSigned(CGContext& ctx) const
   {
-    return alloca.isSigned();
+    return alloca.isSigned(ctx);
   }
 
   [[nodiscard]] bool isMutable() const noexcept
@@ -172,13 +172,15 @@ using SymbolTable
   | unsigned | unsigned | unsigned |
   |--------------------------------|
 */
-[[nodiscard]] SignKind logicalOrSign(const Value& lhs, const Value& rhs);
+[[nodiscard]] SignKind
+logicalOrSign(CGContext& ctx, const Value& lhs, const Value& rhs);
 
 // If either of them is signed, the signed type is returned. Otherwise,
 // unsigned.
 // Assuming the type is the same.
 [[nodiscard]] std::shared_ptr<Type>
-resultIntegerTypeOf(const std::shared_ptr<Type>& lhs_t,
+resultIntegerTypeOf(CGContext&                   ctx,
+                    const std::shared_ptr<Type>& lhs_t,
                     const std::shared_ptr<Type>& rhs_t);
 
 [[nodiscard]] Value

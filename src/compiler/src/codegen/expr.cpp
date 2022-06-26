@@ -303,8 +303,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     }
 
     if (as->isFloatingPointTy()) {
-      if (lhs.getType()->isIntegerTy()) {
-        const auto cast_op = lhs.getType()->isSigned()
+      if (lhs.getType()->isIntegerTy(ctx)) {
+        const auto cast_op = lhs.getType()->isSigned(ctx)
                                ? llvm::CastInst::CastOps::SIToFP
                                : llvm::CastInst::CastOps::UIToFP;
 
@@ -321,8 +321,9 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     if (as->getLLVMType(ctx)->isIntegerTy()) {
       if (lhs.getType()->isFloatingPointTy()) {
         // Floating point number to integer.
-        const auto cast_op = as->isSigned() ? llvm::CastInst::CastOps::FPToSI
-                                            : llvm::CastInst::CastOps::FPToUI;
+        const auto cast_op = as->isSigned(ctx)
+                               ? llvm::CastInst::CastOps::FPToSI
+                               : llvm::CastInst::CastOps::FPToUI;
 
         return {
           ctx.builder.CreateCast(cast_op, lhs.getValue(), as->getLLVMType(ctx)),
@@ -332,7 +333,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       // Integer to integer.
       return {ctx.builder.CreateIntCast(lhs.getValue(),
                                         as->getLLVMType(ctx),
-                                        as->isSigned()),
+                                        as->isSigned(ctx)),
               as};
     }
 
@@ -497,14 +498,14 @@ private:
           lhs,
           Value{ctx.builder.CreateIntCast(rhs.getValue(),
                                           target_llvm_type,
-                                          target_type->isSigned()),
+                                          target_type->isSigned(ctx)),
                 target_type});
       }
       else {
         return std::make_pair(
           Value{ctx.builder.CreateIntCast(lhs.getValue(),
                                           target_llvm_type,
-                                          target_type->isSigned()),
+                                          target_type->isSigned(ctx)),
                 target_type},
           rhs);
       }
@@ -577,7 +578,7 @@ private:
       {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 0), index.getValue()});
 
     return {gep,
-            p_to_array.getType()->getPointeeType(ctx)->getArrayElementType(),
+            p_to_array.getType()->getPointeeType(ctx)->getArrayElementType(ctx),
             p_to_array.isMutable()};
   }
 
@@ -599,7 +600,7 @@ private:
   {
     auto lhs = createExpr(ctx, scope, stmt_ctx, node.lhs);
 
-    const auto is_array = lhs.getType()->isArrayTy();
+    const auto is_array = lhs.getType()->isArrayTy(ctx);
 
     if (!is_array && !lhs.getType()->isPointerTy(ctx)) {
       throw CodegenError{

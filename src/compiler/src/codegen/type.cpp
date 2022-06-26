@@ -71,7 +71,7 @@ matchBuiltinType(const std::u32string_view type)
   unreachable();
 }
 
-[[nodiscard]] SignKind BuiltinType::getSignKind() const noexcept
+[[nodiscard]] SignKind BuiltinType::getSignKind(CGContext&) const
 {
   switch (kind) {
   case BuiltinTypeKind::i8:

@@ -43,15 +43,15 @@ enum class BuiltinTypeKind {
 [[nodiscard]] std::optional<BuiltinTypeKind>
 matchBuiltinType(const std::u32string_view type);
 
-// Forward declaration.
+// Forward declaration
 struct CGContext;
 
 struct Type {
   virtual ~Type() = default;
 
-  [[nodiscard]] virtual SignKind getSignKind() const noexcept = 0;
+  [[nodiscard]] virtual SignKind getSignKind(CGContext&) const = 0;
 
-  [[nodiscard]] virtual llvm::Type* getLLVMType(CGContext& ctx) const = 0;
+  [[nodiscard]] virtual llvm::Type* getLLVMType(CGContext&) const = 0;
 
   [[nodiscard]] virtual std::string getMangledName(CGContext&) const = 0;
 
@@ -60,7 +60,13 @@ struct Type {
     unreachable();
   }
 
-  [[nodiscard]] virtual std::shared_ptr<Type> getArrayElementType() const
+  [[nodiscard]] virtual std::shared_ptr<Type>
+  getArrayElementType(CGContext&) const
+  {
+    unreachable();
+  }
+
+  [[nodiscard]] virtual std::uint64_t getArraySize(CGContext&) const
   {
     unreachable();
   }
@@ -75,22 +81,17 @@ struct Type {
     unreachable();
   }
 
-  [[nodiscard]] virtual std::uint64_t getArraySize() const noexcept
-  {
-    unreachable();
-  }
-
-  [[nodiscard]] virtual bool isVoid() const noexcept
+  [[nodiscard]] virtual bool isVoid() const
   {
     return false;
   }
 
-  [[nodiscard]] virtual bool isOpaque() const noexcept
+  [[nodiscard]] virtual bool isOpaque() const
   {
     return false;
   }
 
-  [[nodiscard]] virtual bool isFloatingPointTy() const noexcept
+  [[nodiscard]] virtual bool isFloatingPointTy() const
   {
     return false;
   }
@@ -105,24 +106,24 @@ struct Type {
     return false;
   }
 
-  [[nodiscard]] virtual bool isArrayTy() const noexcept
+  [[nodiscard]] virtual bool isArrayTy(CGContext&) const
   {
     return false;
   }
 
-  [[nodiscard]] virtual bool isIntegerTy() const noexcept
+  [[nodiscard]] virtual bool isIntegerTy(CGContext&) const
   {
     return false;
   }
 
-  [[nodiscard]] bool isSigned() const noexcept
+  [[nodiscard]] bool isSigned(CGContext& ctx) const
   {
-    return getSignKind() == SignKind::signed_;
+    return getSignKind(ctx) == SignKind::signed_;
   }
 
-  [[nodiscard]] bool isUnigned()
+  [[nodiscard]] bool isUnigned(CGContext& ctx) const
   {
-    return getSignKind() == SignKind::unsigned_;
+    return getSignKind(ctx) == SignKind::unsigned_;
   }
 };
 
@@ -132,19 +133,19 @@ struct BuiltinType : public Type {
   {
   }
 
-  [[nodiscard]] SignKind getSignKind() const noexcept override;
+  [[nodiscard]] SignKind getSignKind(CGContext&) const override;
 
-  [[nodiscard]] bool isVoid() const noexcept override
+  [[nodiscard]] bool isVoid() const override
   {
     return kind == BuiltinTypeKind::void_;
   }
 
-  [[nodiscard]] bool isFloatingPointTy() const noexcept override
+  [[nodiscard]] bool isFloatingPointTy() const override
   {
     return kind == BuiltinTypeKind::f64 || kind == BuiltinTypeKind::f32;
   }
 
-  [[nodiscard]] bool isIntegerTy() const noexcept override
+  [[nodiscard]] bool isIntegerTy(CGContext&) const override
   {
     switch (kind) {
     case BuiltinTypeKind::i8:
@@ -182,9 +183,9 @@ struct UserDefinedType : public Type {
   {
   }
 
-  [[nodiscard]] SignKind getSignKind() const noexcept override
+  [[nodiscard]] SignKind getSignKind(CGContext& ctx) const override
   {
-    return SignKind::no_sign;
+    return getType(ctx)->getSignKind(ctx);
   }
 
   [[nodiscard]] std::shared_ptr<Type> getType(CGContext& ctx) const;
@@ -208,9 +209,30 @@ struct UserDefinedType : public Type {
     return getType(ctx)->getPointeeType(ctx);
   }
 
+  [[nodiscard]] std::shared_ptr<Type>
+  getArrayElementType(CGContext& ctx) const override
+  {
+    return getType(ctx)->getArrayElementType(ctx);
+  }
+
+  [[nodiscard]] std::uint64_t getArraySize(CGContext& ctx) const override
+  {
+    return getType(ctx)->getArraySize(ctx);
+  }
+
   [[nodiscard]] std::string getClassName(CGContext& ctx) const override
   {
     return getType(ctx)->getClassName(ctx);
+  }
+
+  [[nodiscard]] bool isArrayTy(CGContext& ctx) const override
+  {
+    return getType(ctx)->isArrayTy(ctx);
+  }
+
+  [[nodiscard]] bool isIntegerTy(CGContext& ctx) const override
+  {
+    return getType(ctx)->isIntegerTy(ctx);
   }
 
   [[nodiscard]] std::string getUserDefinedTyName(CGContext&) const override
@@ -241,7 +263,7 @@ struct ClassType : public Type {
 
   ClassType(CGContext& ctx, const std::string& ident);
 
-  [[nodiscard]] SignKind getSignKind() const noexcept override
+  [[nodiscard]] SignKind getSignKind(CGContext&) const override
   {
     return SignKind::no_sign;
   }
@@ -271,7 +293,7 @@ struct ClassType : public Type {
     return type;
   }
 
-  [[nodiscard]] bool isOpaque() const noexcept override
+  [[nodiscard]] bool isOpaque() const override
   {
     return is_opaque;
   }
@@ -324,7 +346,7 @@ struct FunctionType : public Type {
   {
   }
 
-  [[nodiscard]] SignKind getSignKind() const noexcept override
+  [[nodiscard]] SignKind getSignKind(CGContext&) const noexcept override
   {
     return SignKind::no_sign;
   }
@@ -361,7 +383,7 @@ struct PointerType : public Type {
 
   [[nodiscard]] std::string getMangledName(CGContext& ctx) const override;
 
-  [[nodiscard]] SignKind getSignKind() const noexcept override
+  [[nodiscard]] SignKind getSignKind(CGContext&) const override
   {
     return SignKind::unsigned_;
   }
@@ -385,22 +407,23 @@ struct ArrayType : public Type {
     return llvm::ArrayType::get(element_type->getLLVMType(ctx), array_size);
   }
 
-  [[nodiscard]] std::shared_ptr<Type> getArrayElementType() const override
+  [[nodiscard]] std::shared_ptr<Type>
+  getArrayElementType(CGContext&) const override
   {
     return element_type;
   }
 
-  [[nodiscard]] bool isArrayTy() const noexcept override
+  [[nodiscard]] bool isArrayTy(CGContext&) const override
   {
     return true;
   }
 
-  [[nodiscard]] std::uint64_t getArraySize() const noexcept override
+  [[nodiscard]] std::uint64_t getArraySize(CGContext&) const override
   {
     return array_size;
   }
 
-  [[nodiscard]] SignKind getSignKind() const noexcept override
+  [[nodiscard]] SignKind getSignKind(CGContext&) const override
   {
     return SignKind::no_sign;
   }
