@@ -9,12 +9,11 @@
 #include <lapis/codegen/type.hpp>
 #include <lapis/codegen/common.hpp>
 
-namespace lapis::mangle
+namespace lapis::codegen::mangle
 {
 
 [[nodiscard]] std::string
-Mangler::mangleFunction(codegen::CGContext&      ctx,
-                        const ast::FunctionDecl& ast) const
+Mangler::mangleFunction(CGContext& ctx, const ast::FunctionDecl& ast) const
 {
   std::ostringstream mangled;
 
@@ -41,9 +40,9 @@ Mangler::mangleFunction(codegen::CGContext&      ctx,
 }
 
 [[nodiscard]] std::string
-Mangler::mangleFunctionCall(codegen::CGContext&               ctx,
-                            const std::string_view            callee,
-                            const std::deque<codegen::Value>& args) const
+Mangler::mangleFunctionCall(CGContext&               ctx,
+                            const std::string_view   callee,
+                            const std::deque<Value>& args) const
 {
   std::ostringstream mangled;
 
@@ -58,11 +57,11 @@ Mangler::mangleFunctionCall(codegen::CGContext&               ctx,
 }
 
 [[nodiscard]] std::string
-Mangler::mangleMethod(codegen::CGContext&               ctx,
-                      const std::string_view            callee,
-                      const std::string&                class_name,
-                      const std::deque<codegen::Value>& args,
-                      const Accessibility               accessibility) const
+Mangler::mangleMethod(CGContext&               ctx,
+                      const std::string_view   callee,
+                      const std::string&       class_name,
+                      const std::deque<Value>& args,
+                      const Accessibility      accessibility) const
 {
   std::ostringstream mangled;
 
@@ -81,8 +80,7 @@ Mangler::mangleMethod(codegen::CGContext&               ctx,
 }
 
 [[nodiscard]] std::string
-Mangler::mangleConstructor(codegen::CGContext&               ctx,
-                           const std::deque<codegen::Value>& args) const
+Mangler::mangleConstructor(CGContext& ctx, const std::deque<Value>& args) const
 {
   std::ostringstream mangled;
 
@@ -97,8 +95,7 @@ Mangler::mangleConstructor(codegen::CGContext&               ctx,
 }
 
 [[nodiscard]] std::string
-Mangler::mangleDestructor(codegen::CGContext& ctx,
-                          const std::string&  class_name) const
+Mangler::mangleDestructor(CGContext& ctx, const std::string& class_name) const
 {
   std::ostringstream mangled;
 
@@ -119,7 +116,7 @@ Mangler::mangleFunctionName(const std::string& name) const
 }
 
 [[nodiscard]] std::string
-Mangler::mangleNamespace(const codegen::NsHierarchy& namespaces) const
+Mangler::mangleNamespace(const NsHierarchy& namespaces) const
 {
   if (namespaces.empty())
     return {};
@@ -135,17 +132,14 @@ Mangler::mangleNamespace(const codegen::NsHierarchy& namespaces) const
 }
 
 [[nodiscard]] std::string
-Mangler::mangleThisPointer(codegen::CGContext& ctx,
-                           const std::string&  class_name) const
+Mangler::mangleThisPointer(CGContext& ctx, const std::string& class_name) const
 {
-  return codegen::PointerType{
-    std::make_shared<codegen::UserDefinedType>(class_name)}
+  return PointerType{std::make_shared<UserDefinedType>(class_name)}
     .getMangledName(ctx);
 }
 
 [[nodiscard]] std::string
-Mangler::mangleArgs(codegen::CGContext&               ctx,
-                    const std::deque<codegen::Value>& args) const
+Mangler::mangleArgs(CGContext& ctx, const std::deque<Value>& args) const
 {
   std::ostringstream mangled;
 
@@ -156,8 +150,7 @@ Mangler::mangleArgs(codegen::CGContext&               ctx,
 }
 
 [[nodiscard]] std::string
-Mangler::mangleParams(codegen::CGContext&       ctx,
-                      const ast::ParameterList& params) const
+Mangler::mangleParams(CGContext& ctx, const ast::ParameterList& params) const
 {
   std::ostringstream mangled;
 
@@ -165,10 +158,10 @@ Mangler::mangleParams(codegen::CGContext&       ctx,
     if (param.is_vararg)
       mangled << "z";
     else
-      mangled << codegen::createType(param.type)->getMangledName(ctx);
+      mangled << createType(param.type)->getMangledName(ctx);
   }
 
   return mangled.str();
 }
 
-} // namespace lapis::mangle
+} // namespace lapis::codegen::mangle
