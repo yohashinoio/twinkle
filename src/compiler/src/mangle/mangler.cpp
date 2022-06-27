@@ -13,100 +13,155 @@ namespace lapis::codegen::mangle
 {
 
 [[nodiscard]] std::string
-Mangler::mangleFunction(CGContext& ctx, const ast::FunctionDecl& ast) const
+Mangler::mangleFunction(CGContext& ctx, const ast::FunctionDecl& node) const
 {
+  assert(!(node.is_constructor && node.is_destructor));
+
   std::ostringstream mangled;
 
   mangled << prefix;
 
-  mangled << getMangledAccessibility(ast.accessibility);
+  mangled << getMangledAccessibility(node.accessibility);
 
-  mangled << mangleNamespace(ctx.ns_hierarchy);
+  mangled << mangleNamespace(ctx.ns_hierarchy).front();
 
-  assert(!(ast.is_constructor && ast.is_destructor));
-
-  if (ast.is_constructor)
+  if (node.is_constructor)
     mangled << 'C';
-  else if (ast.is_destructor)
+  else if (node.is_destructor)
     mangled << 'D';
   else
-    mangled << mangleFunctionName(ast.name.utf8());
+    mangled << mangleFunctionName(node.name.utf8());
 
-  mangled << 'E';
-
-  mangled << mangleParams(ctx, ast.params);
+  mangled << 'E' << mangleParams(ctx, node.params);
 
   return mangled.str();
 }
 
-[[nodiscard]] std::string
+[[nodiscard]] std::vector<std::string>
 Mangler::mangleFunctionCall(CGContext&               ctx,
                             const std::string_view   callee,
                             const std::deque<Value>& args) const
 {
-  std::ostringstream mangled;
+  std::vector<std::string> candidates;
 
-  mangled << prefix;
+  // Previous
+  {
+    std::ostringstream mangled;
 
-  mangled << mangleNamespace(ctx.ns_hierarchy);
-  mangled << mangleFunctionName(std::string{callee}) << "E";
+    mangled << prefix;
 
-  mangled << mangleArgs(ctx, args);
+    for (const auto& r : mangleNamespace(ctx.ns_hierarchy))
+      candidates.push_back(mangled.str() + r);
+  }
 
-  return mangled.str();
+  // Back
+  {
+    std::ostringstream mangled;
+
+    mangled << mangleFunctionName(std::string{callee}) << "E";
+
+    mangled << mangleArgs(ctx, args);
+
+    for (auto& r : candidates)
+      r += mangled.str();
+  }
+
+  return candidates;
 }
 
-[[nodiscard]] std::string
-Mangler::mangleMethod(CGContext&               ctx,
-                      const std::string_view   callee,
-                      const std::string&       class_name,
-                      const std::deque<Value>& args,
-                      const Accessibility      accessibility) const
+[[nodiscard]] std::vector<std::string>
+Mangler::mangleMethodCall(CGContext&               ctx,
+                          const std::string_view   callee,
+                          const std::string&       class_name,
+                          const std::deque<Value>& args,
+                          const Accessibility      accessibility) const
 {
-  std::ostringstream mangled;
+  std::vector<std::string> candidates;
 
-  mangled << prefix;
+  // Previous
+  {
+    std::ostringstream mangled;
 
-  mangled << getMangledAccessibility(accessibility);
+    mangled << prefix;
 
-  mangled << mangleNamespace(ctx.ns_hierarchy);
-  mangled << mangleFunctionName(std::string{callee}) << "E";
+    mangled << getMangledAccessibility(accessibility);
 
-  mangled << mangleThisPointer(ctx, class_name);
+    for (const auto& r : mangleNamespace(ctx.ns_hierarchy))
+      candidates.push_back(mangled.str() + r);
+  }
 
-  mangled << mangleArgs(ctx, args);
+  {
+    std::ostringstream mangled;
 
-  return mangled.str();
+    mangled << mangleFunctionName(std::string{callee}) << "E";
+
+    mangled << mangleThisPointer(ctx, class_name);
+
+    mangled << mangleArgs(ctx, args);
+
+    for (auto& r : candidates)
+      r += mangled.str();
+  }
+
+  return candidates;
 }
 
-[[nodiscard]] std::string
-Mangler::mangleConstructor(CGContext& ctx, const std::deque<Value>& args) const
+[[nodiscard]] std::vector<std::string>
+Mangler::mangleConstructorCall(CGContext&               ctx,
+                               const std::deque<Value>& args) const
 {
-  std::ostringstream mangled;
+  std::vector<std::string> candidates;
 
-  mangled << prefix;
+  // Previous
+  {
+    std::ostringstream mangled;
 
-  mangled << mangleNamespace(ctx.ns_hierarchy);
-  mangled << 'C' << 'E';
+    mangled << prefix;
 
-  mangled << mangleArgs(ctx, args);
+    for (const auto& r : mangleNamespace(ctx.ns_hierarchy))
+      candidates.push_back(mangled.str() + r);
+  }
 
-  return mangled.str();
+  // Back
+  {
+    std::ostringstream mangled;
+
+    mangled << 'C' << 'E' << mangleArgs(ctx, args);
+
+    for (auto& r : candidates)
+      r += mangled.str();
+  }
+
+  return candidates;
 }
 
-[[nodiscard]] std::string
-Mangler::mangleDestructor(CGContext& ctx, const std::string& class_name) const
+[[nodiscard]] std::vector<std::string>
+Mangler::mangleDestructorCall(CGContext&         ctx,
+                              const std::string& class_name) const
 {
-  std::ostringstream mangled;
+  std::vector<std::string> candidates;
 
-  mangled << prefix;
+  // Previous
+  {
+    std::ostringstream mangled;
 
-  mangled << mangleNamespace(ctx.ns_hierarchy);
-  mangled << 'D' << 'E';
+    mangled << prefix;
 
-  mangled << mangleThisPointer(ctx, class_name);
+    for (const auto& r : mangleNamespace(ctx.ns_hierarchy))
+      candidates.push_back(mangled.str() + r);
+  }
 
-  return mangled.str();
+  // Back
+  {
+    std::ostringstream mangled;
+
+    mangled << 'D' << 'E' << mangleThisPointer(ctx, class_name);
+
+    for (auto& r : candidates)
+      r += mangled.str();
+  }
+
+  return candidates;
 }
 
 [[nodiscard]] std::string
@@ -115,20 +170,26 @@ Mangler::mangleFunctionName(const std::string& name) const
   return boost::lexical_cast<std::string>(name.length()) + name;
 }
 
-[[nodiscard]] std::string
+[[nodiscard]] std::vector<std::string>
 Mangler::mangleNamespace(const NsHierarchy& namespaces) const
 {
-  if (namespaces.empty())
-    return {};
+  std::vector<std::string> candidates;
 
   std::ostringstream mangled;
 
+  candidates.push_back(mangled.str());
+
   mangled << 'N';
 
-  for (const auto& r : namespaces)
+  for (const auto& r : namespaces) {
     mangled << r.name.length() << r.name;
+    candidates.push_back(mangled.str());
+  }
 
-  return mangled.str();
+  // Reverse because priorities are reversed
+  std::reverse(candidates.begin(), candidates.end());
+
+  return candidates;
 }
 
 [[nodiscard]] std::string

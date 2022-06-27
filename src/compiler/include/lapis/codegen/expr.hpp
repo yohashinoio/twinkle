@@ -19,6 +19,11 @@
 namespace lapis::codegen
 {
 
+[[nodiscard]] llvm::Function*
+findFunction(CGContext& ctx,
+             const std::vector<std::string>&
+               mangled_names /* Assuming they are in order of priority */);
+
 [[nodiscard]] Value createExpr(CGContext&         ctx,
                                const SymbolTable& scope,
                                const StmtContext& stmt_ctx,

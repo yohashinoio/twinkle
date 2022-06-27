@@ -176,6 +176,7 @@ int main(const int argc, const char* const* const argv)
     {            "typedef_floating_point_types",  58},
     {                           "array_literal", 100},
     {                 "floating_point_negative",  58},
+    {  "constructor_call_of_same_class_as_self",  58},
   };
 
   std::size_t ok_c{};   // ok count.

@@ -12,6 +12,19 @@
 namespace lapis::codegen
 {
 
+[[nodiscard]] llvm::Function*
+findFunction(CGContext& ctx,
+             const std::vector<std::string>&
+               mangled_names /* Assuming they are in order of priority */)
+{
+  for (const auto& r : mangled_names) {
+    if (auto const f = ctx.module->getFunction(r))
+      return f;
+  }
+
+  return nullptr;
+}
+
 [[nodiscard]] static std::vector<llvm::Value*>
 valueToLLVMValue(const std::deque<Value>& v)
 {
@@ -306,7 +319,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     if (auto const func = findMethodOfSameClass(callee_name, args))
       return createFunctionCall(func, args, true, pos);
 
-    if (auto const func = findFunction(callee_name, args))
+    if (auto const func = findCallFunction(callee_name, args))
       return createFunctionCall(func, args, false, pos);
 
     throw CodegenError{ctx.formatError(
@@ -418,12 +431,14 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     ctx.ns_hierarchy.push({class_name, NamespaceKind::class_});
 
-    const auto mangled_constructor = ctx.mangler.mangleConstructor(ctx, args);
+    const auto mangleds = ctx.mangler.mangleConstructorCall(ctx, args);
 
     ctx.ns_hierarchy.pop();
 
-    if (auto func = ctx.module->getFunction(mangled_constructor))
-      (void)createFunctionCall(func, args, false, pos);
+    if (auto func = findFunction(ctx, mangleds)) {
+      // Ignore the return value since constructors have no return value
+      static_cast<void>(createFunctionCall(func, args, false, pos));
+    }
     else {
       throw CodegenError{ctx.formatError(
         pos,
@@ -728,6 +743,32 @@ private:
     return args;
   }
 
+  [[nodiscard]] llvm::Function*
+  findVarArgFunction(const std::vector<std::string>& mangled_names) const
+  {
+    const auto f = [&](const std::string_view mangled) -> llvm::Function* {
+      for (auto& func : ctx.module->getFunctionList()) {
+        const auto func_name = func.getName();
+
+        if (func_name.endswith(mangle::ellipsis)) {
+          // _Z1fv to _Z1f
+          const auto tmp = func_name.substr(0, func_name.size() - 2);
+          if (mangled.starts_with(tmp))
+            return &func;
+        }
+      }
+
+      return nullptr;
+    };
+
+    for (const auto& r : mangled_names) {
+      if (auto const tmp = f(r))
+        return tmp;
+    }
+
+    return nullptr;
+  }
+
   // Automatically inserts 'this' pointer
   // Used to find a method in the same class within a method
   [[nodiscard]] llvm::Function*
@@ -740,19 +781,21 @@ private:
     }
 
     const auto f = [&](const Accessibility accessibility) {
-      const auto mangled_name
-        = ctx.mangler.mangleMethod(ctx,
-                                   unmangled_name,
-                                   ctx.ns_hierarchy.top().name,
-                                   args,
-                                   accessibility);
+      const auto mangled_names
+        = ctx.mangler.mangleMethodCall(ctx,
+                                       unmangled_name,
+                                       ctx.ns_hierarchy.top().name,
+                                       args,
+                                       accessibility);
 
-      const auto func = ctx.module->getFunction(mangled_name);
+      const auto func = findFunction(ctx, mangled_names);
 
       if (func)
         return func;
       else
-        return findVarArgFunction(mangled_name);
+        return findVarArgFunction(mangled_names);
+
+      unreachable();
     };
 
     if (auto const func = f(Accessibility::public_))
@@ -766,25 +809,8 @@ private:
   }
 
   [[nodiscard]] llvm::Function*
-  findVarArgFunction(const std::string_view mangled_name) const
-  {
-    for (auto& func : ctx.module->getFunctionList()) {
-      const auto func_name = func.getName();
-
-      if (func_name.endswith(mangle::ellipsis)) {
-        // _Z1fv to _Z1f
-        const auto tmp = func_name.substr(0, func_name.size() - 2);
-        if (mangled_name.starts_with(tmp))
-          return &func;
-      }
-    }
-
-    return nullptr;
-  }
-
-  [[nodiscard]] llvm::Function*
-  findFunction(const std::string_view   unmangled_name,
-               const std::deque<Value>& args) const
+  findCallFunction(const std::string_view   unmangled_name,
+                   const std::deque<Value>& args) const
   {
     {
       // First look for unmangled functions
@@ -793,14 +819,14 @@ private:
         return func;
     }
 
-    const auto mangled_name
+    const auto mangled_names
       = ctx.mangler.mangleFunctionCall(ctx, unmangled_name, args);
 
-    auto const func = ctx.module->getFunction(mangled_name);
+    auto const func = findFunction(ctx, mangled_names);
 
     if (!func) {
       // Mismatch or variadic arguments.
-      auto const vararg_func = findVarArgFunction(mangled_name);
+      auto const vararg_func = findVarArgFunction(mangled_names);
 
       if (vararg_func)
         return vararg_func;

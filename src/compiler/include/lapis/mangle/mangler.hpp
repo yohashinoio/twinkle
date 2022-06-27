@@ -34,32 +34,34 @@ constexpr const char* prefix = "_Z";
 
 struct Mangler : private boost::noncopyable {
   [[nodiscard]] std::string mangleFunction(CGContext&               ctx,
-                                           const ast::FunctionDecl& ast) const;
+                                           const ast::FunctionDecl& node) const;
 
-  [[nodiscard]] std::string
+  [[nodiscard]] std::vector<std::string>
   mangleFunctionCall(CGContext&               ctx,
                      const std::string_view   callee,
                      const std::deque<Value>& args) const;
 
   // The mangled this pointer type is inserted automatically
-  [[nodiscard]] std::string
-  mangleMethod(CGContext&               ctx,
-               const std::string_view   callee,
-               const std::string&       class_name,
-               const std::deque<Value>& args,
-               const Accessibility      accessibility) const;
+  [[nodiscard]] std::vector<std::string>
+  mangleMethodCall(CGContext&               ctx,
+                   const std::string_view   callee,
+                   const std::string&       class_name,
+                   const std::deque<Value>& args,
+                   const Accessibility      accessibility) const;
 
-  [[nodiscard]] std::string
-  mangleConstructor(CGContext& ctx, const std::deque<Value>& args) const;
+  // Return results stored in order of priority
+  [[nodiscard]] std::vector<std::string>
+  mangleConstructorCall(CGContext& ctx, const std::deque<Value>& args) const;
 
   // The mangled this pointer type is inserted automatically
-  [[nodiscard]] std::string
-  mangleDestructor(CGContext& ctx, const std::string& class_name) const;
+  [[nodiscard]] std::vector<std::string>
+  mangleDestructorCall(CGContext& ctx, const std::string& class_name) const;
 
 private:
   [[nodiscard]] std::string mangleFunctionName(const std::string& name) const;
 
-  [[nodiscard]] std::string
+  // Return results stored in order of priority
+  [[nodiscard]] std::vector<std::string>
   mangleNamespace(const NsHierarchy& namespaces) const;
 
   [[nodiscard]] std::string

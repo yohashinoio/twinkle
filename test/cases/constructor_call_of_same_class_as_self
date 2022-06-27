@@ -1,0 +1,26 @@
+struct Sample {
+  Sample(n_: i32)
+  {
+    n = n_;
+  }
+
+  func getN() -> i32
+  {
+    return n;
+  }
+
+  func f() -> i32
+  {
+    let s = Sample{10};
+    return n + s.getN();
+  }
+
+private:
+  let n: i32;
+}
+
+func main() -> i32
+{
+  let s = Sample{48};
+  return s.f();
+}

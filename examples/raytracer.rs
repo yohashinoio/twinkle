@@ -26,7 +26,7 @@ struct Vec {
 
   func div(b: f64) -> Vec
   {
-    // return Vec{x / b, y / b, z / b};
+    return Vec{x / b, y / b, z / b};
   }
 
 private:
