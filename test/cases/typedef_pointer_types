@@ -1,5 +1,5 @@
 typedef integer = i32;
-typedef int_p = *integer;
+typedef int_p = ^integer;
 
 func main() -> i32
 {
@@ -9,5 +9,5 @@ func main() -> i32
 
   let p: int_p = &a;
 
-  return *p;
+  return p^;
 }

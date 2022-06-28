@@ -1,10 +1,10 @@
-func f(p: mut *i32) -> i32
+func f(p: mut ^i32) -> i32
 {
-  *p = 58;
+  p^ = 58;
   return;
-  *p = 110;
+  p^ = 110;
   return;
-  *p = 4810;
+  p^ = 4810;
   return;
 }
 

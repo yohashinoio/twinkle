@@ -1,13 +1,13 @@
-[[nomangle]] declare func printf(fmt: *i8, ...) -> i32;
+[[nomangle]] declare func printf(fmt: ^i8, ...) -> i32;
 
-func swap(a: mut *i32, b: mut *i32)
+func swap(a: mut ^i32, b: mut ^i32)
 {
-  let tmp = *a;
-  *a = *b;
-  *b = tmp;
+  let tmp = a^;
+  a^ = b^;
+  b^ = tmp;
 }
 
-func partition(a: mut *i32, start: i32, end: i32) -> i32
+func partition(a: mut ^i32, start: i32, end: i32) -> i32
 {
   let pivot = a[end];
   let mut i = start - 1;
@@ -23,7 +23,7 @@ func partition(a: mut *i32, start: i32, end: i32) -> i32
   return i + 1;
 }
 
-func quicksort(a: mut *i32, start: i32, end: i32)
+func quicksort(a: mut ^i32, start: i32, end: i32)
 {
   if (start < end) {
     let pivot = partition(a, start, end);
@@ -32,7 +32,7 @@ func quicksort(a: mut *i32, start: i32, end: i32)
   }
 }
 
-func printarray(a: *i32, s: i32)
+func printarray(a: ^i32, s: i32)
 {
   printf("%d", a[0]);
   for (let mut i = 1; i < s; ++i)

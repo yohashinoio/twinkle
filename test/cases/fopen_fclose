@@ -1,14 +1,14 @@
 declare struct FILE;
 
-[[nomangle]] declare func fopen(filename: *i8, mode: *i8) -> *FILE;
-[[nomangle]] declare func fclose(stream: *FILE) -> i32;
+[[nomangle]] declare func fopen(filename: ^i8, mode: ^i8) -> ^FILE;
+[[nomangle]] declare func fclose(stream: ^FILE) -> i32;
 
-[[nomangle]] declare func getc(stream: *FILE) -> i32;
+[[nomangle]] declare func getc(stream: ^FILE) -> i32;
 [[nomangle]] declare func putchar(ch: i32) -> i32;
 
 func main() -> i32
 {
-  let fp: *FILE = fopen("YOHA.IO", "r");
+  let fp: ^FILE = fopen("YOHA.IO", "r");
 
   if (fp)
     fclose(fp);

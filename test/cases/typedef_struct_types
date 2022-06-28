@@ -14,7 +14,7 @@ private:
 }
 
 typedef hoge = Sample;
-typedef hoge_p = *hoge;
+typedef hoge_p = ^hoge;
 
 func main() -> i32
 {
@@ -22,5 +22,5 @@ func main() -> i32
 
   let p: hoge_p = &s;
 
-  return (*p).getN();
+  return p^.getN();
 }

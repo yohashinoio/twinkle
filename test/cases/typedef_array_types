@@ -1,6 +1,6 @@
 typedef ar = i32[4];
 
-typedef ar_p = *(i32[4]);
+typedef ar_p = ^(i32[4]);
 
 func main() -> i32
 {
@@ -8,5 +8,5 @@ func main() -> i32
 
   let p: ar_p = &a;
 
-  return a[0] + a[1] + (*p)[2] + (*p)[3];
+  return a[0] + a[1] + (p^)[2] + (p^)[3];
 }

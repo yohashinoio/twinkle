@@ -178,9 +178,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     if (const auto* rhs = boost::get<ast::FunctionCall>(&node.rhs))
       return methodAccess(node.lhs, *rhs);
 
-    throw CodegenError{ctx.formatError(
-      ctx.positions.position_of(node),
-      "the right-hand side of that member access cannot be generated")};
+    throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
+                                       "right-hand side is inaccessible")};
   }
 
   [[nodiscard]] Value operator()(const ast::Subscript& node) const
@@ -284,9 +283,6 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     case ast::UnaryOp::Kind::not_:
       return createLogicalNot(ctx, rhs);
 
-    case ast::UnaryOp::Kind::dereference:
-      return createDereference(ctx, ctx.positions.position_of(node), rhs);
-
     case ast::UnaryOp::Kind::address_of:
       return createAddressOf(rhs);
 
@@ -300,6 +296,18 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     }
 
     unreachable();
+  }
+
+  [[nodiscard]] Value operator()(const ast::Dereference& node) const
+  {
+    const auto value = boost::apply_visitor(*this, node.operand);
+
+    if (!value) {
+      throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
+                                         "could not generate operand")};
+    }
+
+    return createDereference(ctx, ctx.positions.position_of(node), value);
   }
 
   [[nodiscard]] Value operator()(const ast::FunctionCall& node) const
@@ -675,41 +683,32 @@ private:
   [[nodiscard]] Value
   createDereference(CGContext&                                  ctx,
                     const boost::iterator_range<InputIterator>& pos,
-                    const Value&                                rhs) const
+                    const Value&                                val) const
   {
-    if (!rhs.getValue()->getType()->isPointerTy()
-        || !rhs.getType()->isPointerTy(ctx)) {
-      throw CodegenError{
-        ctx.formatError(pos, "unary '*' requires pointer operand")};
-    }
-
-    return {ctx.builder.CreateLoad(rhs.getLLVMType()->getPointerElementType(),
-                                   rhs.getValue()),
-            rhs.getType()->getPointeeType(ctx),
-            rhs.isMutable()};
-  }
-
-  [[nodiscard]] Value
-  createDereference(CGContext&                                  ctx,
-                    const boost::iterator_range<InputIterator>& pos,
-                    const Variable&                             rhs) const
-  {
-    const auto val
-      = Value{ctx.builder.CreateLoad(rhs.getAllocaInst()->getAllocatedType(),
-                                     rhs.getAllocaInst()),
-              rhs.getType(),
-              rhs.isMutable()};
-
     if (!val.getValue()->getType()->isPointerTy()
         || !val.getType()->isPointerTy(ctx)) {
       throw CodegenError{
-        ctx.formatError(pos, "unary '*' requires pointer operand")};
+        ctx.formatError(pos, "dereference requires pointer operand")};
     }
 
     return {ctx.builder.CreateLoad(val.getLLVMType()->getPointerElementType(),
                                    val.getValue()),
             val.getType()->getPointeeType(ctx),
             val.isMutable()};
+  }
+
+  [[nodiscard]] Value
+  createDereference(CGContext&                                  ctx,
+                    const boost::iterator_range<InputIterator>& pos,
+                    const Variable&                             operand) const
+  {
+    return createDereference(
+      ctx,
+      pos,
+      Value{ctx.builder.CreateLoad(operand.getAllocaInst()->getAllocatedType(),
+                                   operand.getAllocaInst()),
+            operand.getType(),
+            operand.isMutable()});
   }
 
   void verifyArguments(const std::deque<Value>&                    args,

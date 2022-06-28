@@ -1,6 +1,6 @@
-func f(ar: *(i32[2]), idx: i32) -> i32
+func f(ar: ^(i32[2]), idx: i32) -> i32
 {
-  return (*ar)[idx];
+  return (ar^)[idx];
 }
 
 func main() -> i32

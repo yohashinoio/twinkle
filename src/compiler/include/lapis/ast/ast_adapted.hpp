@@ -75,6 +75,11 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
+  lapis::ast::Dereference,
+  (lapis::ast::Expr, operand)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
   lapis::ast::MemberAccess,
   (lapis::ast::Expr, lhs)
   (lapis::ast::Expr, rhs)

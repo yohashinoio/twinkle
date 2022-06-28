@@ -1,8 +1,8 @@
-[[nomangle]] declare func strcmp(s1: *i8, s2: *i8) -> i32;
+[[nomangle]] declare func strcmp(s1: ^i8, s2: ^i8) -> i32;
 
 struct Sample {
   let n: i32;
-  let s: *i8;
+  let s: ^i8;
   let ch: char;
 }
 

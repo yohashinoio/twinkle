@@ -8,9 +8,9 @@ func twice(n: i32) -> i32
   return n |> add(n);
 }
 
-func asterisk(p: *i32) -> i32
+func asterisk(p: ^i32) -> i32
 {
-  return *p;
+  return p^;
 }
 
 func main() -> i32

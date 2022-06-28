@@ -1,4 +1,4 @@
-func get_ptr(n: i32) -> *i32
+func get_ptr(n: i32) -> ^i32
 {
   return &n;
 }
@@ -6,5 +6,5 @@ func get_ptr(n: i32) -> *i32
 func main() -> i32
 {
   let n: i32 = 58;
-  return *get_ptr(n);
+  return get_ptr(n)^;
 }

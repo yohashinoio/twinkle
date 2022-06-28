@@ -137,6 +137,7 @@ struct CharLiteral : x3::position_tagged {
 
 struct BinOp;
 struct UnaryOp;
+struct Dereference;
 struct FunctionCall;
 struct Cast;
 struct Subscript;
@@ -157,6 +158,7 @@ using Expr = boost::variant<boost::blank,
                             Identifier,
                             boost::recursive_wrapper<BinOp>,
                             boost::recursive_wrapper<UnaryOp>,
+                            boost::recursive_wrapper<Dereference>,
                             boost::recursive_wrapper<Subscript>,
                             boost::recursive_wrapper<FunctionCall>,
                             boost::recursive_wrapper<Cast>,
@@ -257,12 +259,11 @@ struct UnaryOp : x3::position_tagged {
 
   enum class Kind {
     unknown,
-    plus,        // Unary plus
-    minus,       // Unary minus
-    not_,        // Logical not
-    dereference, // Dereference
-    address_of,  // Address-of
-    size_of,     // size-of
+    plus,       // Unary plus
+    minus,      // Unary minus
+    not_,       // Logical not
+    address_of, // Address-of
+    size_of,    // size-of
   };
 
   [[nodiscard]] Kind kind() const
@@ -273,14 +274,21 @@ struct UnaryOp : x3::position_tagged {
       return Kind::minus;
     if (op == U"!")
       return Kind::not_;
-    if (op == U"*")
-      return Kind::dereference;
     if (op == U"&")
       return Kind::address_of;
     if (op == U"sizeof")
       return Kind::size_of;
 
     return Kind::unknown;
+  }
+};
+
+struct Dereference : x3::position_tagged {
+  Expr operand;
+
+  explicit Dereference(Expr&& operand)
+    : operand{std::move(operand)}
+  {
   }
 };
 

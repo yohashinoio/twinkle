@@ -15,7 +15,7 @@ struct Sample {
   {
   }
 
-  func b(a: char, b: *i8)
+  func b(a: char, b: ^i8)
   {
   }
 }

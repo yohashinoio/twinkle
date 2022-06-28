@@ -1,7 +1,7 @@
 // WIP
 
 [[nomangle]]
-declare func printf(fmt: *i8, ...) -> i32;
+declare func printf(fmt: ^i8, ...) -> i32;
 
 [[nomangle]]
 declare func sqrt(x: f64) -> f64;
@@ -36,10 +36,10 @@ private:
 }
 
 struct Ray {
-  Ray(org_: *Vec, dir_: *Vec)
+  Ray(org_: ^Vec, dir_: ^Vec)
   {
-    org = *org_;
-    dir = *dir_;
+    org = org_^;
+    dir = dir_^;
   }
 
 private:
@@ -47,7 +47,7 @@ private:
   let dir: Vec;
 }
 
-func normalize(v: *Vec) -> Vec
+func normalize(v: ^Vec) -> Vec
 {
   // return *v / (*v).length();
 }

@@ -1,6 +1,6 @@
-func f(p: mut *i32)
+func f(p: mut ^i32)
 {
-  *p = 110;
+  p^ = 110;
 }
 
 func main() -> i32

@@ -1,5 +1,5 @@
 struct Sample {
-  Sample(n_: i32, p_: *i32)
+  Sample(n_: i32, p_: ^i32)
   {
     n = n_;
     p = p_;
@@ -7,7 +7,7 @@ struct Sample {
 
   ~Sample()
   {
-    *p += n;
+    p^ += n;
   }
 
   func getN() -> i32
@@ -16,7 +16,7 @@ struct Sample {
   }
 
 private:
-  let p: *i32;
+  let p: ^i32;
   let n: i32;
 }
 

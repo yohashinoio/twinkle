@@ -1,13 +1,13 @@
 func main() -> i32
 {
   let n: i32 = 0;
-  let mut p: *i32 = &n;
+  let mut p: ^i32 = &n;
 
-  *p = 48;
-  *p += 10;
-  *p *= 2;
-  *p /= 2;
-  *p %= 4810;
+  p^ = 48;
+  p^ += 10;
+  p^ *= 2;
+  p^ /= 2;
+  p^ %= 4810;
 
-  return *p;
+  return p^;
 }

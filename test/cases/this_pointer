@@ -3,7 +3,7 @@ struct Sample {
 
   func f() -> i32
   {
-    return (*this).n;
+    return this^.n;
   }
 }
 

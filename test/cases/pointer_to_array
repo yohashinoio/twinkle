@@ -1,6 +1,6 @@
 func main() -> i32
 {
   let a = [48, 10];
-  let ap: *(i32[2]) = &a;
-  return (*ap)[0] + (*ap)[1];
+  let ap: ^(i32[2]) = &a;
+  return (ap^)[0] + (ap^)[1];
 }

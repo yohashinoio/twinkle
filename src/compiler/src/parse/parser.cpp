@@ -109,6 +109,13 @@ struct assignToValAs {
                    });
   };
 
+  template <typename Ctx, typename Ast = T>
+  auto operator()(const Ctx& ctx) const
+    -> std::enable_if_t<std::is_same_v<Ast, ast::Dereference>>
+  {
+    assignAstToVal(ctx, Ast{std::move(x3::_val(ctx))});
+  }
+
 private:
   template <typename Ctx>
   void assignAstToVal(const Ctx& ctx, T&& ast) const
@@ -253,7 +260,9 @@ const x3::rule<struct MulTag, ast::Expr>      mul{"multiplication operation"};
 const x3::rule<struct CastTag, ast::Expr>     cast{"conversion"};
 const x3::rule<struct UnaryInternalTag, ast::UnaryOp> unary_internal{
   "unary operation"};
-const x3::rule<struct UnaryTag, ast::Expr>        unary{"unary operation"};
+const x3::rule<struct UnaryTag, ast::Expr>       unary{"unary operation"};
+const x3::rule<struct DereferenceTag, ast::Expr> dereference{
+  "dereference operation"};
 const x3::rule<struct MemberAccessTag, ast::Expr> member_access{
   "member access operation"};
 const x3::rule<struct SubscriptTag, ast::Expr> subscript{"subscript operation"};
@@ -326,12 +335,14 @@ const x3::rule<struct TranslationUnitTag, ast::TranslationUnit>
 // Common rules and tags definition
 //===----------------------------------------------------------------------===//
 
+const auto punct = x3::rule<struct PunctTag>{"punctuation character"}
+= x3::unicode::punct | lit(U"^");
+
 const auto identifier_internal
   = x3::rule<struct IdentifierInternalTag, std::u32string>{"identifier"}
-= x3::raw
-  [x3::lexeme[(x3::unicode::graph - (x3::unicode::digit | x3::unicode::punct)
-               | lit(U"_"))
-              >> *(x3::unicode::graph - x3::unicode::punct | lit(U"_"))]];
+= x3::raw[x3::lexeme[(x3::unicode::graph - (x3::unicode::digit | punct)
+                      | lit(U"_"))
+                     >> *(x3::unicode::graph - punct | lit(U"_"))]];
 
 const auto identifier
   = x3::rule<struct IdentifierTag, ast::Identifier>{"identifier"}
@@ -472,7 +483,7 @@ const auto array_type_def
     >> *(string(U"[") > x3::uint64
          > lit(U"]"))[action::assignToValAs<ast::ArrayType>{}];
 
-const auto pointer_type_internal_def = lit(U"*") > type_primary;
+const auto pointer_type_internal_def = lit(U"^") > type_primary;
 
 const auto pointer_type_def = type_primary | pointer_type_internal;
 
@@ -584,8 +595,13 @@ const auto unary_def          = unary_internal | member_access;
 
 // Replacing string(U".") with lit(U".") causes an error. I don't know why.
 const auto member_access_def
+  = dereference[action::assignAttrToVal]
+    >> *(string(U".")
+         > dereference)[action::assignToValAs<ast::MemberAccess>{}];
+
+const auto dereference_def
   = subscript[action::assignAttrToVal]
-    >> *(string(U".") > subscript)[action::assignToValAs<ast::MemberAccess>{}];
+    >> *(lit(U"^"))[action::assignToValAs<ast::Dereference>{}];
 
 // Replacing string(U"[") with lit(U"[") causes an error. I don't know why.
 const auto subscript_def
@@ -616,6 +632,7 @@ BOOST_SPIRIT_DEFINE(add)
 BOOST_SPIRIT_DEFINE(mul)
 BOOST_SPIRIT_DEFINE(cast)
 BOOST_SPIRIT_DEFINE(unary)
+BOOST_SPIRIT_DEFINE(dereference)
 BOOST_SPIRIT_DEFINE(member_access)
 BOOST_SPIRIT_DEFINE(subscript)
 BOOST_SPIRIT_DEFINE(arg_list)
@@ -660,6 +677,10 @@ struct UnaryInternalTag
   , AnnotatePosition {};
 
 struct UnaryTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct DereferenceTag
   : ErrorHandle
   , AnnotatePosition {};
 

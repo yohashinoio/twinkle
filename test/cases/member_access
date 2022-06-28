@@ -1,6 +1,6 @@
 struct Sample {
   let n: i32;
-  let s: *i8;
+  let s: ^i8;
   let ch: char;
 }
 

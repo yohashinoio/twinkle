@@ -2,7 +2,7 @@ struct Sample {
   Sample(yoha_arg: i32, shino: i32)
   {
     yoha = yoha_arg;
-    (*this).shino = shino;
+    this^.shino = shino;
   }
 
   func get() -> i32
