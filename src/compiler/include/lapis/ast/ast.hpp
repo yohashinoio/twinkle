@@ -144,7 +144,7 @@ struct Subscript;
 struct Pipeline;
 struct MemberAccess;
 struct ArrayLiteral;
-struct UniformInit;
+struct ClassLiteral;
 
 using Expr = boost::variant<boost::blank,
                             double,        // Floating point literals
@@ -165,7 +165,7 @@ using Expr = boost::variant<boost::blank,
                             boost::recursive_wrapper<Pipeline>,
                             boost::recursive_wrapper<MemberAccess>,
                             boost::recursive_wrapper<ArrayLiteral>,
-                            boost::recursive_wrapper<UniformInit>>;
+                            boost::recursive_wrapper<ClassLiteral>>;
 
 struct BinOp : x3::position_tagged {
   Expr           lhs;
@@ -353,7 +353,7 @@ struct ArrayLiteral : x3::position_tagged {
   std::vector<Expr> elements;
 };
 
-struct UniformInit : x3::position_tagged {
+struct ClassLiteral : x3::position_tagged {
   Identifier        class_name;
   std::vector<Expr> initializer_list;
 };

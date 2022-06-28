@@ -407,7 +407,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     return (*this)(call);
   }
 
-  [[nodiscard]] Value operator()(const ast::UniformInit& node) const
+  [[nodiscard]] Value operator()(const ast::ClassLiteral& node) const
   {
     const auto class_type = findClass(node.class_name.utf8());
 

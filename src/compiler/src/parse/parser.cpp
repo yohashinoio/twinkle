@@ -242,8 +242,8 @@ struct BuiltinTypeNameSymbolsTag : UnicodeSymbols<codegen::BuiltinTypeKind> {
 
 const x3::rule<struct ArrayLiteralTag, ast::ArrayLiteral> array_literal{
   "array literal"};
-const x3::rule<struct UniformInitTag, ast::UniformInit> uniform_init{
-  "uniform initialization"};
+const x3::rule<struct ClassLiteralTag, ast::ClassLiteral> class_literal{
+  "class literal"};
 
 //===----------------------------------------------------------------------===//
 // Expression rules declaration
@@ -420,11 +420,11 @@ const auto attribute = x3::rule<struct AttrTag, ast::Attrs>{"attribute"}
 
 const auto array_literal_def = lit(U"[") > (expr % lit(U",")) > lit(U"]");
 
-const auto uniform_init_def
+const auto class_literal_def
   = identifier >> lit(U"{") > -(expr % lit(U",")) > lit(U"}");
 
 BOOST_SPIRIT_DEFINE(array_literal)
-BOOST_SPIRIT_DEFINE(uniform_init)
+BOOST_SPIRIT_DEFINE(class_literal)
 
 struct VariableIdentTag
   : ErrorHandle
@@ -450,7 +450,7 @@ struct ArrayLiteralTag
   : ErrorHandle
   , AnnotatePosition {};
 
-struct UniformInitTag
+struct ClassLiteralTag
   : ErrorHandle
   , AnnotatePosition {};
 
@@ -603,7 +603,7 @@ const auto subscript_def
 
 const auto dereference_def
   = function_call[action::assignAttrToVal]
-    >> *(lit(U"^"))[action::assignToValAs<ast::Dereference>{}];
+    >> *lit(U"^")[action::assignToValAs<ast::Dereference>{}];
 
 const auto arg_list_def = -(expr % lit(U","));
 
@@ -612,7 +612,7 @@ const auto function_call_def
     >> *(string(U"(") > arg_list
          > lit(U")"))[action::assignToValAs<ast::FunctionCall>{}];
 
-const auto primary_def = uniform_init | identifier | float_64bit
+const auto primary_def = class_literal | identifier | float_64bit
                          | binary_literal | octal_literal | hex_literal
                          | int_32bit | uint_32bit | int_64bit | uint_64bit
                          | boolean_literal | string_literal | char_literal
@@ -639,7 +639,7 @@ struct ExprTag
   : ErrorHandle
   , AnnotatePosition {};
 
-struct BinaryLogical
+struct BinaryLogicalTag
   : ErrorHandle
   , AnnotatePosition {};
 

@@ -165,7 +165,7 @@ int main(const int argc, const char* const* const argv)
     {                        "pointer_to_array",  58},
     {                         "private_methods",  58},
     {    "refers_to_declared_undefined_methods",  58},
-    { "constructors_and_uniform_initialization", 100},
+    {          "constructors_and_class_literal", 100},
     {                    "constructor_overload",  58},
     {                              "destructor",  58},
     {                 "typedef_primitive_types",  58},
