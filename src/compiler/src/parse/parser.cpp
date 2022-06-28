@@ -585,7 +585,6 @@ const auto mul_def
   = cast[action::assignAttrToVal]
     >> *(multitive_operator > cast)[action::assignToValAs<ast::BinOp>{}];
 
-// Replacing string(U"as") with lit(U"as") causes an error. I don't know why.
 const auto cast_def
   = unary[action::assignAttrToVal]
     >> *(string(U"as") > type_name)[action::assignToValAs<ast::Cast>{}];
@@ -593,25 +592,21 @@ const auto cast_def
 const auto unary_internal_def = unary_operator >> member_access;
 const auto unary_def          = unary_internal | member_access;
 
-// Replacing string(U".") with lit(U".") causes an error. I don't know why.
 const auto member_access_def
-  = dereference[action::assignAttrToVal]
-    >> *(string(U".")
-         > dereference)[action::assignToValAs<ast::MemberAccess>{}];
-
-const auto dereference_def
   = subscript[action::assignAttrToVal]
-    >> *(lit(U"^"))[action::assignToValAs<ast::Dereference>{}];
+    >> *(string(U".") > subscript)[action::assignToValAs<ast::MemberAccess>{}];
 
-// Replacing string(U"[") with lit(U"[") causes an error. I don't know why.
 const auto subscript_def
-  = function_call[action::assignAttrToVal]
+  = dereference[action::assignAttrToVal]
     >> *(string(U"[") > expr
          > lit(U"]"))[action::assignToValAs<ast::Subscript>{}];
 
+const auto dereference_def
+  = function_call[action::assignAttrToVal]
+    >> *(lit(U"^"))[action::assignToValAs<ast::Dereference>{}];
+
 const auto arg_list_def = -(expr % lit(U","));
 
-// Replacing string(U"(") with lit(U"(") causes an error. I don't know why.
 const auto function_call_def
   = primary[action::assignAttrToVal]
     >> *(string(U"(") > arg_list
