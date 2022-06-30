@@ -72,8 +72,6 @@ struct BuiltinType : x3::position_tagged {
 };
 
 struct UserDefinedType : x3::position_tagged {
-  // Default constructor causes bugs
-  // Cause unknown
   explicit UserDefinedType(Identifier&& name)
     : name{name}
   {

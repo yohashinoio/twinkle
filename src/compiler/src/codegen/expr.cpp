@@ -324,10 +324,10 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     auto args = createArgValues(node.args, pos);
 
-    if (auto const func = findMethodOfSameClass(callee_name, args))
+    if (auto const func = findCalleeMethod(callee_name, args))
       return createFunctionCall(func, args, true, pos);
 
-    if (auto const func = findCallFunction(callee_name, args))
+    if (auto const func = findCalleeFunc(callee_name, args))
       return createFunctionCall(func, args, false, pos);
 
     throw CodegenError{ctx.formatError(
@@ -476,9 +476,9 @@ private:
   }
 
   [[nodiscard]] Value createFunctionCall(
-    llvm::Function* const                              callee_func,
-    std::deque<Value>&                                 args,
-    const bool                                         insert_this_p,
+    llvm::Function* const                               callee_func,
+    std::deque<Value>&                                  args,
+    const bool                                          insert_this_p,
     const boost::iterator_range<rutile::InputIterator>& pos) const
   {
     if (insert_this_p)
@@ -768,11 +768,12 @@ private:
     return nullptr;
   }
 
-  // Automatically inserts 'this' pointer
-  // Used to find a method in the same class within a method
+  // The innermost namespace is inserted at the beginning of the argument as
+  // 'this'
+  // Used to search for methods in the same class as itself
   [[nodiscard]] llvm::Function*
-  findMethodOfSameClass(const std::string&       unmangled_name,
-                        const std::deque<Value>& args) const
+  findCalleeMethod(const std::string&       unmangled_name,
+                   const std::deque<Value>& args) const
   {
     if (ctx.ns_hierarchy.empty()
         || ctx.ns_hierarchy.top().kind != NamespaceKind::class_) {
@@ -808,8 +809,8 @@ private:
   }
 
   [[nodiscard]] llvm::Function*
-  findCallFunction(const std::string_view   unmangled_name,
-                   const std::deque<Value>& args) const
+  findCalleeFunc(const std::string_view   unmangled_name,
+                 const std::deque<Value>& args) const
   {
     {
       // First look for unmangled functions
