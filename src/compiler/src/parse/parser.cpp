@@ -740,8 +740,8 @@ const auto _continue
   = x3::rule<struct ContinueTag, ast::Continue>{"continue statement"}
 = lit(U"continue") >> x3::attr(ast::Continue{});
 
-const auto stmt_def = lit(U";")                         /* Null statement */
-                      | lit(U"{") >> *stmt >> lit(U"}") /* Compound statement */
+const auto stmt_def = lit(U";")                       /* Null statement */
+                      | lit(U"{") > *stmt > lit(U"}") /* Compound statement */
                       | _loop | _while | _for | _if | _break >> lit(U";")
                       | _continue >> lit(U";") | _return >> lit(U";")
                       | prefix_inc_or_dec >> lit(U";") | assignment >> lit(U";")
