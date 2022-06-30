@@ -233,47 +233,6 @@ createGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
           std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
 }
 
-[[nodiscard]] Value createLogicalNot(CGContext& ctx, const Value& value)
-{
-  if (value.getType()->isFloatingPointTy(ctx)) {
-    return {
-      ctx.builder.CreateFCmp(llvm::ICmpInst::FCMP_OEQ,
-                             value.getValue(),
-                             llvm::ConstantFP::get(value.getLLVMType(), 0)),
-      std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
-  }
-
-  return {
-    ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
-                           value.getValue(),
-                           llvm::ConstantInt::get(value.getLLVMType(), 0)),
-    std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
-}
-
-[[nodiscard]] Value createSizeOf(CGContext& ctx, const Value& value)
-{
-  // Assuming a 64-bit environment.
-  // FIXME: To work in different environments
-  return {llvm::ConstantInt::get(
-            ctx.builder.getInt64Ty(),
-            ctx.module->getDataLayout().getTypeAllocSize(value.getLLVMType())),
-          std::make_shared<BuiltinType>(BuiltinTypeKind::u64)};
-}
-
-[[nodiscard]] Value createAddInverse(CGContext& ctx, const Value& value)
-{
-  if (value.getValue()->getType()->isFloatingPointTy()) {
-    return {ctx.builder.CreateFSub(
-              llvm::ConstantFP::getZeroValueForNegation(value.getLLVMType()),
-              value.getValue()),
-            value.getType()};
-  }
-
-  return {ctx.builder.CreateSub(llvm::ConstantInt::get(value.getLLVMType(), 0),
-                                value.getValue()),
-          value.getType()};
-}
-
 [[nodiscard]] Value
 createLogicalAnd(CGContext& ctx, const Value& lhs, const Value& rhs)
 {

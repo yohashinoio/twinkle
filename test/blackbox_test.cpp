@@ -177,6 +177,10 @@ int main(const int argc, const char* const* const argv)
     {                           "array_literal", 100},
     {                 "floating_point_negative",  58},
     {  "constructor_call_of_same_class_as_self",  58},
+    {             "reference_to_primitive_type",  58},
+    {                 "reference_to_class_type",  58},
+    {                 "reference_to_array_type",  13},
+    {                     "reference_type_sign",  58},
   };
 
   std::size_t ok_c{};   // ok count.

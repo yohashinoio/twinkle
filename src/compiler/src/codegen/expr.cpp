@@ -146,12 +146,9 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::Identifier& node) const
   {
-    // TODO: support function identifier
-    const auto variable = findVariable(node);
+    const auto variable_refwrap = findVariable(node);
 
-    if (!variable) {
-      // Assume it is in a member function.
-      // Look for a member of '*this'.
+    if (!variable_refwrap) {
       const auto member = findMemberOfThis(node);
 
       if (member)
@@ -163,11 +160,16 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       }
     }
 
-    return {ctx.builder.CreateLoad(
-              variable->get().getAllocaInst()->getAllocatedType(),
-              variable->get().getAllocaInst()),
-            variable->get().getType(),
-            variable->get().isMutable()};
+    const auto variable = variable_refwrap->get();
+
+    auto const loaded_var = loadVariable(variable);
+
+    if (variable.getType()->isRefTy(ctx)) {
+      // Since reference types wraps pointer types
+      return createDereference(ctx.positions.position_of(node), loaded_var);
+    }
+
+    return loaded_var;
   }
 
   [[nodiscard]] Value operator()(const ast::MemberAccess& node) const
@@ -256,28 +258,31 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::UnaryOp& node) const
   {
-    auto const rhs = boost::apply_visitor(*this, node.rhs);
+    auto const operand_val = boost::apply_visitor(*this, node.operand);
 
-    if (!rhs.getValue()) {
+    if (!operand_val.getValue()) {
       throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
                                          "failed to generate right-hand side")};
     }
 
     switch (node.kind()) {
     case ast::UnaryOp::Kind::plus:
-      return rhs;
+      return operand_val;
 
     case ast::UnaryOp::Kind::minus:
-      return createAddInverse(ctx, rhs);
+      return createAddInverse(operand_val);
 
     case ast::UnaryOp::Kind::not_:
-      return createLogicalNot(ctx, rhs);
+      return createLogicalNot(operand_val);
 
     case ast::UnaryOp::Kind::address_of:
-      return createAddressOf(rhs);
+      return createAddressOf(operand_val);
 
     case ast::UnaryOp::Kind::size_of:
-      return createSizeOf(ctx, rhs);
+      return createSizeOf(operand_val);
+
+    case ast::UnaryOp::Kind::reference:
+      return createReference(operand_val);
 
     case ast::UnaryOp::Kind::unknown:
       throw CodegenError{ctx.formatError(
@@ -292,7 +297,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   {
     const auto value = boost::apply_visitor(*this, node.operand);
 
-    return createDereference(ctx, ctx.positions.position_of(node), value);
+    return createDereference(ctx.positions.position_of(node), value);
   }
 
   [[nodiscard]] Value operator()(const ast::FunctionCall& node) const
@@ -439,6 +444,14 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   }
 
 private:
+  [[nodiscard]] Value loadVariable(const Variable& variable) const
+  {
+    return {ctx.builder.CreateLoad(variable.getAllocaInst()->getAllocatedType(),
+                                   variable.getAllocaInst()),
+            variable.getType(),
+            variable.isMutable()};
+  }
+
   [[nodiscard]] std::optional<std::shared_ptr<Type>>
   findClass(const std::string& name) const
   {
@@ -502,7 +515,7 @@ private:
         return std::nullopt;
 
       const auto this_v
-        = createDereference(ctx, ctx.positions.position_of(node), *this_p);
+        = createDereference(ctx.positions.position_of(node), *this_p);
 
       return memberVariableAccess(this_v, node, false);
     }
@@ -652,6 +665,54 @@ private:
                     : createPointerSubscript(lhs, index);
   }
 
+  [[nodiscard]] Value createLogicalNot(const Value& value) const
+  {
+    if (value.getType()->isFloatingPointTy(ctx)) {
+      return {
+        ctx.builder.CreateFCmp(llvm::ICmpInst::FCMP_OEQ,
+                               value.getValue(),
+                               llvm::ConstantFP::get(value.getLLVMType(), 0)),
+        std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+    }
+
+    return {
+      ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
+                             value.getValue(),
+                             llvm::ConstantInt::get(value.getLLVMType(), 0)),
+      std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+  }
+
+  [[nodiscard]] Value createSizeOf(const Value& value) const
+  {
+    // Assuming a 64-bit environment.
+    // FIXME: To work in different environments
+    return {llvm::ConstantInt::get(ctx.builder.getInt64Ty(),
+                                   ctx.module->getDataLayout().getTypeAllocSize(
+                                     value.getLLVMType())),
+            std::make_shared<BuiltinType>(BuiltinTypeKind::u64)};
+  }
+
+  [[nodiscard]] Value createAddInverse(const Value& value) const
+  {
+    if (value.getValue()->getType()->isFloatingPointTy()) {
+      return {ctx.builder.CreateFSub(
+                llvm::ConstantFP::getZeroValueForNegation(value.getLLVMType()),
+                value.getValue()),
+              value.getType()};
+    }
+
+    return {
+      ctx.builder.CreateSub(llvm::ConstantInt::get(value.getLLVMType(), 0),
+                            value.getValue()),
+      value.getType()};
+  }
+
+  [[nodiscard]] Value createReference(const Value& val) const
+  {
+    return {createAddressOf(val).getValue(),
+            std::make_shared<ReferenceType>(val.getType())};
+  }
+
   // Do not use for constants!
   [[nodiscard]] Value createAddressOf(const Value& val) const
   {
@@ -661,10 +722,16 @@ private:
   }
 
   [[nodiscard]] Value
-  createDereference(CGContext&                                  ctx,
-                    const boost::iterator_range<InputIterator>& pos,
+  createDereference(const boost::iterator_range<InputIterator>& pos,
                     const Value&                                val) const
   {
+    if (val.getType()->isRefTy(ctx)) {
+      return {ctx.builder.CreateLoad(val.getLLVMType()->getPointerElementType(),
+                                     val.getValue()),
+              val.getType()->getRefeeType(ctx),
+              val.isMutable()};
+    }
+
     if (!val.getValue()->getType()->isPointerTy()
         || !val.getType()->isPointerTy(ctx)) {
       throw CodegenError{
@@ -678,12 +745,10 @@ private:
   }
 
   [[nodiscard]] Value
-  createDereference(CGContext&                                  ctx,
-                    const boost::iterator_range<InputIterator>& pos,
+  createDereference(const boost::iterator_range<InputIterator>& pos,
                     const Variable&                             operand) const
   {
     return createDereference(
-      ctx,
       pos,
       Value{ctx.builder.CreateLoad(operand.getAllocaInst()->getAllocatedType(),
                                    operand.getAllocaInst()),

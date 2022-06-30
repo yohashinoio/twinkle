@@ -411,6 +411,11 @@ private:
         ctx.formatError(pos, "assignment of read-only variable")};
     }
 
+    if (value.getType()->isRefTy(ctx)) {
+      // Since reference types wraps pointer types
+      return value;
+    }
+
     return {llvm::getPointerOperand(value.getValue()),
             std::make_shared<PointerType>(value.getType()),
             value.isMutable()};

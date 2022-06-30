@@ -47,6 +47,11 @@ BOOST_FUSION_ADAPT_STRUCT(
   (rutile::ast::Identifier, name)
 )
 
+BOOST_FUSION_ADAPT_STRUCT(
+  rutile::ast::ReferenceType,
+  (rutile::ast::Type, refee_type)
+)
+
 //===----------------------------------------------------------------------===//
 // Expression AST adapt
 //===----------------------------------------------------------------------===//
@@ -71,7 +76,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   rutile::ast::UnaryOp,
   (std::u32string, op)
-  (rutile::ast::Expr, rhs)
+  (rutile::ast::Expr, operand)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -221,7 +226,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   rutile::ast::Parameter,
   (rutile::ast::Identifier, name)
-  (std::optional<rutile::VariableQual>, qualifier)
+  (std::unordered_set<rutile::VariableQual>, qualifier)
   (rutile::ast::Type, type)
   (bool, is_vararg)
 )

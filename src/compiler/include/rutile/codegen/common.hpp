@@ -205,12 +205,6 @@ createLogicalAnd(CGContext& ctx, const Value& lhs, const Value& rhs);
 [[nodiscard]] Value
 createLogicalOr(CGContext& ctx, const Value& lhs, const Value& rhs);
 
-[[nodiscard]] Value createLogicalNot(CGContext& ctx, const Value& value);
-
-[[nodiscard]] Value createSizeOf(CGContext& ctx, const Value& value);
-
-[[nodiscard]] Value createAddInverse(CGContext& ctx, const Value& num);
-
 [[nodiscard]] bool strictEquals(const llvm::Type* const left,
                                 const llvm::Type* const right);
 

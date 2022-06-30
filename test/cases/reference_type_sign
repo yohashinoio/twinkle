@@ -1,0 +1,35 @@
+struct Sample {
+  let n: u32;
+}
+
+func array_() -> i32
+{
+  let a: u32[1] = [-1];
+
+  let r = ref a;
+
+  if (4810 as u32 < r[0])
+    return 48;
+}
+
+func class_() -> i32
+{
+  let s: Sample;
+
+  let mut r = ref s;
+
+  r.n = -1;
+
+  if (4810 as u32 < r.n)
+    return 10;
+}
+
+func main() -> i32
+{
+  let n: u32 = -1;
+
+  let r = ref n;
+
+  if (4810 as u32 < r)
+    return array_() + class_();
+}

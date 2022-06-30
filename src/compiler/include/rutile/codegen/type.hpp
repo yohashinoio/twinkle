@@ -60,6 +60,11 @@ struct Type {
     unreachable();
   }
 
+  [[nodiscard]] virtual std::shared_ptr<Type> getRefeeType(CGContext&) const
+  {
+    unreachable();
+  }
+
   [[nodiscard]] virtual std::shared_ptr<Type>
   getArrayElementType(CGContext&) const
   {
@@ -86,7 +91,7 @@ struct Type {
     return false;
   }
 
-  [[nodiscard]] virtual bool isOpaque(CGContext&) const
+  [[nodiscard]] virtual bool isIntegerTy(CGContext&) const
   {
     return false;
   }
@@ -106,12 +111,17 @@ struct Type {
     return false;
   }
 
+  [[nodiscard]] virtual bool isOpaque(CGContext&) const
+  {
+    return false;
+  }
+
   [[nodiscard]] virtual bool isArrayTy(CGContext&) const
   {
     return false;
   }
 
-  [[nodiscard]] virtual bool isIntegerTy(CGContext&) const
+  [[nodiscard]] virtual bool isRefTy(CGContext&) const
   {
     return false;
   }
@@ -192,9 +202,38 @@ struct UserDefinedType : public Type {
 
   [[nodiscard]] llvm::Type* getLLVMType(CGContext& ctx) const override;
 
+  [[nodiscard]] std::shared_ptr<Type>
+  getPointeeType(CGContext& ctx) const override
+  {
+    assert(isPointerTy(ctx));
+    return getType(ctx)->getPointeeType(ctx);
+  }
+
+  [[nodiscard]] std::shared_ptr<Type>
+  getArrayElementType(CGContext& ctx) const override
+  {
+    return getType(ctx)->getArrayElementType(ctx);
+  }
+
+  [[nodiscard]] std::shared_ptr<Type>
+  getRefeeType(CGContext& ctx) const override
+  {
+    return getType(ctx)->getRefeeType(ctx);
+  }
+
   [[nodiscard]] bool isVoid(CGContext& ctx) const override
   {
     return getType(ctx)->isVoid(ctx);
+  }
+
+  [[nodiscard]] bool isIntegerTy(CGContext& ctx) const override
+  {
+    return getType(ctx)->isIntegerTy(ctx);
+  }
+
+  [[nodiscard]] bool isFloatingPointTy(CGContext& ctx) const override
+  {
+    return getType(ctx)->isFloatingPointTy(ctx);
   }
 
   [[nodiscard]] bool isOpaque(CGContext& ctx) const override
@@ -212,17 +251,14 @@ struct UserDefinedType : public Type {
     return getType(ctx)->isPointerTy(ctx);
   }
 
-  [[nodiscard]] std::shared_ptr<Type>
-  getPointeeType(CGContext& ctx) const override
+  [[nodiscard]] bool isArrayTy(CGContext& ctx) const override
   {
-    assert(isPointerTy(ctx));
-    return getType(ctx)->getPointeeType(ctx);
+    return getType(ctx)->isArrayTy(ctx);
   }
 
-  [[nodiscard]] std::shared_ptr<Type>
-  getArrayElementType(CGContext& ctx) const override
+  [[nodiscard]] bool isRefTy(CGContext& ctx) const override
   {
-    return getType(ctx)->getArrayElementType(ctx);
+    return getType(ctx)->isRefTy(ctx);
   }
 
   [[nodiscard]] std::uint64_t getArraySize(CGContext& ctx) const override
@@ -233,21 +269,6 @@ struct UserDefinedType : public Type {
   [[nodiscard]] std::string getClassName(CGContext& ctx) const override
   {
     return getType(ctx)->getClassName(ctx);
-  }
-
-  [[nodiscard]] bool isArrayTy(CGContext& ctx) const override
-  {
-    return getType(ctx)->isArrayTy(ctx);
-  }
-
-  [[nodiscard]] bool isIntegerTy(CGContext& ctx) const override
-  {
-    return getType(ctx)->isIntegerTy(ctx);
-  }
-
-  [[nodiscard]] bool isFloatingPointTy(CGContext& ctx) const override
-  {
-    return getType(ctx)->isFloatingPointTy(ctx);
   }
 
   [[nodiscard]] std::string getUserDefinedTyName(CGContext&) const override
@@ -376,7 +397,7 @@ private:
 };
 
 struct PointerType : public Type {
-  explicit PointerType(const std::shared_ptr<Type>& pointee_type) noexcept
+  explicit PointerType(const std::shared_ptr<Type>& pointee_type)
     : pointee_type{pointee_type}
   {
   }
@@ -409,7 +430,7 @@ private:
 
 struct ArrayType : public Type {
   ArrayType(const std::shared_ptr<Type>& element_type,
-            const std::uint64_t          array_size) noexcept
+            const std::uint64_t          array_size)
     : element_type{element_type}
     , array_size{array_size}
   {
@@ -446,6 +467,43 @@ struct ArrayType : public Type {
 private:
   const std::shared_ptr<Type> element_type;
   const std::uint64_t         array_size;
+};
+
+// Hold pointer type
+// However, implement so that dereferences are not required when referencing
+struct ReferenceType : public Type {
+  explicit ReferenceType(const std::shared_ptr<Type>& refee_type)
+    : refee_type{refee_type}
+  {
+  }
+
+  [[nodiscard]] bool isRefTy(CGContext&) const override
+  {
+    return true;
+  }
+
+  [[nodiscard]] llvm::Type* getLLVMType(CGContext& ctx) const override
+  {
+    return llvm::PointerType::getUnqual(refee_type->getLLVMType(ctx));
+  }
+
+  [[nodiscard]] std::shared_ptr<Type> getRefeeType(CGContext&) const override
+  {
+    return refee_type;
+  }
+
+  [[nodiscard]] std::string getMangledName(CGContext& ctx) const override
+  {
+    return "R" + refee_type->getMangledName(ctx);
+  }
+
+  [[nodiscard]] SignKind getSignKind(CGContext& ctx) const override
+  {
+    return refee_type->getSignKind(ctx);
+  }
+
+private:
+  std::shared_ptr<Type> refee_type;
 };
 
 [[nodiscard]] std::shared_ptr<Type> createType(const ast::Type& ast);

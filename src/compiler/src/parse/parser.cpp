@@ -460,6 +460,12 @@ struct ClassLiteralTag
 
 const x3::rule<struct TypeTag, ast::Type> type_name{"type name"};
 
+const x3::rule<struct ReferenceTypeInternalTag, ast::ReferenceType>
+  reference_type_internal{"reference type"};
+
+const x3::rule<struct ReferenceTypeTag, ast::Type> reference_type{
+  "reference type"};
+
 const x3::rule<struct ArrayTypeTag, ast::Type> array_type{"array type"};
 
 const x3::rule<struct PointerTypeInternalTag, ast::PointerType>
@@ -476,7 +482,11 @@ const auto builtin_type
 
 const x3::rule<struct TypePrimaryTag, ast::Type> type_primary{"type primary"};
 
-const auto type_name_def = array_type;
+const auto type_name_def = reference_type;
+
+const auto reference_type_internal_def = lit(U"&") > array_type;
+
+const auto reference_type_def = array_type | reference_type_internal;
 
 const auto array_type_def
   = pointer_type[action::assignAttrToVal]
@@ -494,6 +504,8 @@ const auto type_primary_def
 
 BOOST_SPIRIT_DEFINE(type_name)
 BOOST_SPIRIT_DEFINE(array_type)
+BOOST_SPIRIT_DEFINE(reference_type_internal)
+BOOST_SPIRIT_DEFINE(reference_type)
 BOOST_SPIRIT_DEFINE(pointer_type_internal)
 BOOST_SPIRIT_DEFINE(pointer_type)
 BOOST_SPIRIT_DEFINE(user_defined_type)
@@ -510,6 +522,10 @@ struct PointerTypeInternalTag : ErrorHandle {};
 struct PointerTypeTag : ErrorHandle {};
 
 struct ArrayTypeTag : ErrorHandle {};
+
+struct ReferenceTypeInternalTag : ErrorHandle {};
+
+struct ReferenceTypeTag : ErrorHandle {};
 
 struct UserDefinedTypeTag : ErrorHandle {};
 
@@ -553,7 +569,7 @@ const auto binary_logical_operator
 const auto unary_operator
   = x3::rule<struct UnaryOperatorTag, std::u32string>{"unary operator"}
 = string(U"+") | string(U"-") | string(U"!") | string(U"*") | string(U"&")
-  | string(U"sizeof");
+  | string(U"sizeof") | string(U"ref");
 
 //===----------------------------------------------------------------------===//
 // Expression rules and tags definition
@@ -835,9 +851,8 @@ const auto class_def_def
   = class_key > identifier > lit(U"{") > class_member_list > lit(U"}");
 
 const auto parameter_def
-  = (identifier > lit(U":") > -variable_qualifier > type_name > x3::attr(false))
-    | lit(U"...")
-        >> x3::attr(ast::Parameter{ast::Identifier{}, std::nullopt, {}, true});
+  = (identifier > lit(U":") > *variable_qualifier > type_name > x3::attr(false))
+    | lit(U"...") >> x3::attr(ast::Parameter{{}, {}, {}, true});
 
 const auto parameter_list_def = -(parameter % lit(U","));
 

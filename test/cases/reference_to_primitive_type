@@ -1,0 +1,15 @@
+func f(n: mut &i32) -> i32
+{
+  n = 58;
+  return n;
+}
+
+func main() -> i32
+{
+  let n = 0;
+
+  if (f(ref n) == n) {
+    let r: &i32 = ref n;
+    return r;
+  }
+}

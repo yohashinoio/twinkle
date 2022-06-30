@@ -271,6 +271,13 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
   {
     return std::make_shared<UserDefinedType>(node.name.utf32());
   }
+
+  [[nodiscard]] std::shared_ptr<Type>
+  operator()(const ast::ReferenceType& node) const
+  {
+    return std::make_shared<ReferenceType>(
+      boost::apply_visitor(*this, node.refee_type));
+  }
 };
 
 [[nodiscard]] std::shared_ptr<Type> createType(const ast::Type& ast)

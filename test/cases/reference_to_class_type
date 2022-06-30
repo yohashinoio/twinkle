@@ -1,0 +1,19 @@
+struct Sample {
+  let n: i32;
+}
+
+func f(s: mut &Sample) -> i32
+{
+  s.n = 58;
+  return s.n;
+}
+
+func main() -> i32
+{
+  let s: Sample;
+
+  if (f(ref s) == s.n) {
+    let r: &Sample = ref s;
+    return r.n;
+  }
+}

@@ -89,12 +89,14 @@ struct UserDefinedType : x3::position_tagged {
 
 struct ArrayType;
 struct PointerType;
+struct ReferenceType;
 
 using Type = boost::variant<boost::blank,
                             BuiltinType,
                             UserDefinedType,
                             boost::recursive_wrapper<ArrayType>,
-                            boost::recursive_wrapper<PointerType>>;
+                            boost::recursive_wrapper<PointerType>,
+                            boost::recursive_wrapper<ReferenceType>>;
 
 struct ArrayType : x3::position_tagged {
   ArrayType(Type&& element_type, const std::uint64_t size)
@@ -116,6 +118,17 @@ struct PointerType : x3::position_tagged {
   PointerType() = default;
 
   Type pointee_type;
+};
+
+struct ReferenceType : x3::position_tagged {
+  explicit ReferenceType(Type&& refee_type) noexcept
+    : refee_type{std::move(refee_type)}
+  {
+  }
+
+  ReferenceType() = default;
+
+  Type refee_type;
 };
 
 //===----------------------------------------------------------------------===//
@@ -234,17 +247,17 @@ struct BinOp : x3::position_tagged {
 
 struct UnaryOp : x3::position_tagged {
   std::u32string op;
-  Expr           rhs;
+  Expr           operand;
 
   UnaryOp(std::u32string&& op, Expr&& rhs)
     : op{std::move(op)}
-    , rhs{std::move(rhs)}
+    , operand{std::move(rhs)}
   {
   }
 
   UnaryOp(const std::u32string& op, const Expr& rhs)
     : op{op}
-    , rhs{rhs}
+    , operand{rhs}
   {
   }
 
@@ -262,6 +275,7 @@ struct UnaryOp : x3::position_tagged {
     not_,       // Logical not
     address_of, // Address-of
     size_of,    // size-of
+    reference,  // Reference
   };
 
   [[nodiscard]] Kind kind() const
@@ -276,6 +290,8 @@ struct UnaryOp : x3::position_tagged {
       return Kind::address_of;
     if (op == U"sizeof")
       return Kind::size_of;
+    if (op == U"ref")
+      return Kind::reference;
 
     return Kind::unknown;
   }
@@ -493,15 +509,15 @@ struct For : x3::position_tagged {
 //===----------------------------------------------------------------------===//
 
 struct Parameter : x3::position_tagged {
-  Identifier                  name;
-  std::optional<VariableQual> qualifier;
-  Type                        type;
-  bool                        is_vararg;
+  Identifier                       name;
+  std::unordered_set<VariableQual> qualifier;
+  Type                             type;
+  bool                             is_vararg;
 
-  Parameter(Identifier&&                  name,
-            std::optional<VariableQual>&& qualifier,
-            Type&&                        type,
-            const bool                    is_vararg) noexcept
+  Parameter(Identifier&&                       name,
+            std::unordered_set<VariableQual>&& qualifier,
+            Type&&                             type,
+            const bool                         is_vararg) noexcept
     : name{name}
     , qualifier{qualifier}
     , type{type}

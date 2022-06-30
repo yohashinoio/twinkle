@@ -8,7 +8,6 @@
 #include <rutile/codegen/top_level.hpp>
 #include <rutile/codegen/stmt.hpp>
 #include <rutile/codegen/exception.hpp>
-#include <unordered_set>
 
 namespace rutile::codegen
 {
@@ -201,7 +200,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     const auto pushThisPtr = [&](ast::FunctionDecl& decl) {
       decl.params->push_front(
         {ast::Identifier{std::u32string{U"this"}},
-         VariableQual::mutable_,
+         {VariableQual::mutable_},
          ast::PointerType{ast::UserDefinedType{node.name}},
          false});
     };
@@ -419,15 +418,12 @@ private:
       // Store the initial value into the alloca.
       ctx.builder.CreateStore(&arg, alloca);
 
-      const auto is_mutable
-        = param_node.qualifier
-          && (*param_node.qualifier == VariableQual::mutable_);
-
       // Add arguments to variable symbol table.
-      argument_table.insertOrAssign(arg.getName().str(),
-                                    Variable{
-                                      {alloca, param_type},
-                                      is_mutable
+      argument_table.insertOrAssign(
+        arg.getName().str(),
+        Variable{
+          {alloca, param_type},
+          param_node.qualifier.contains(VariableQual::mutable_)
       });
     }
 
