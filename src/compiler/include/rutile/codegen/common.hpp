@@ -60,14 +60,10 @@ struct Value {
     , type{type}
     , is_mutable{is_mutable}
   {
+    assert(value);
   }
 
-  Value()
-    : value{}
-    , type{}
-    , is_mutable{}
-  {
-  }
+  Value() = delete;
 
   [[nodiscard]] llvm::Value* getValue() const noexcept
   {
@@ -114,6 +110,8 @@ struct Variable {
   {
     assert(llvm::dyn_cast<llvm::AllocaInst>(alloca.getValue()));
   }
+
+  Variable() = delete;
 
   [[nodiscard]] llvm::AllocaInst* getAllocaInst() const noexcept
   {

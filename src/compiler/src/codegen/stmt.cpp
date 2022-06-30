@@ -39,9 +39,9 @@ struct StmtVisitor : public boost::static_visitor<void> {
   {
   }
 
+  // Empty statement
   void operator()(boost::blank) const
   {
-    // Empty statement, so not processed.
   }
 
   void operator()(const ast::CompoundStmt& node) const
