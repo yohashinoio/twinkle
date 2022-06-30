@@ -1,9 +1,10 @@
-# .clang-format
-# For clang-format 14 or later.
+# For clang-format 14 or later
 
-Standard: Cpp11
 Language: Cpp
+Standard: Cpp11
+
 ColumnLimit: 80
+
 AccessModifierOffset: -2
 AlignAfterOpenBracket: Align
 AlignArrayOfStructures: Right
