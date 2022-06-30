@@ -51,22 +51,13 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
   void operator()(const ast::Expr& node) const
   {
-    if (!createExpr(ctx, getAllSymbols(), stmt_ctx, node)) {
-      throw CodegenError{
-        formatError(ctx.file.string(),
-                    "failed to generate expression statement")};
-    }
+    static_cast<void>(createExpr(ctx, getAllSymbols(), stmt_ctx, node));
   }
 
   void operator()(const ast::Return& node) const
   {
     if (node.rhs) {
       auto const retval = createExpr(ctx, getAllSymbols(), stmt_ctx, *node.rhs);
-
-      if (!retval) {
-        throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
-                                           "failed to generate return value")};
-      }
 
       auto const return_type
         = ctx.builder.GetInsertBlock()->getParent()->getReturnType();
@@ -124,11 +115,6 @@ struct StmtVisitor : public boost::static_visitor<void> {
       = createAssignableValue(node.lhs, ctx.positions.position_of(node));
 
     auto const rhs = createExpr(ctx, getAllSymbols(), stmt_ctx, node.rhs);
-
-    if (!rhs) {
-      throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
-                                         "failed to generate right-hand side")};
-    }
 
     if (!strictEquals(lhs.getLLVMType()->getPointerElementType(),
                       rhs.getLLVMType())) {
@@ -226,10 +212,6 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
     auto const cond_value
       = createExpr(ctx, getAllSymbols(), stmt_ctx, node.condition);
-    if (!cond_value) {
-      throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
-                                         "invalid condition in if statement")};
-    }
 
     if (!cond_value.getLLVMType()->isIntegerTy()
         && !cond_value.getLLVMType()->isPointerTy()) {
@@ -309,18 +291,9 @@ struct StmtVisitor : public boost::static_visitor<void> {
     ctx.builder.CreateBr(cond_bb);
     ctx.builder.SetInsertPoint(cond_bb);
 
-    auto const cond_value
-      = createExpr(ctx, getAllSymbols(), stmt_ctx, node.cond_expr);
-
-    if (!cond_value) {
-      throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(node),
-                        "failed to generate condition expression")};
-    }
-
     auto const cond = ctx.builder.CreateICmp(
       llvm::ICmpInst::ICMP_NE,
-      cond_value.getValue(),
+      createExpr(ctx, getAllSymbols(), stmt_ctx, node.cond_expr).getValue(),
       llvm::ConstantInt::get(
         BuiltinType{BuiltinTypeKind::bool_}.getLLVMType(ctx),
         0));
@@ -370,18 +343,10 @@ struct StmtVisitor : public boost::static_visitor<void> {
     ctx.builder.SetInsertPoint(cond_bb);
 
     if (node.cond_expr) {
-      auto const cond_value
-        = createExpr(ctx, getAllSymbols(), new_stmt_ctx, *node.cond_expr);
-
-      if (!cond_value) {
-        throw CodegenError{
-          ctx.formatError(ctx.positions.position_of(node),
-                          "failed to generate condition expression")};
-      }
-
       auto const cond = ctx.builder.CreateICmp(
         llvm::ICmpInst::ICMP_NE,
-        cond_value.getValue(),
+        createExpr(ctx, getAllSymbols(), new_stmt_ctx, *node.cond_expr)
+          .getValue(),
         llvm::ConstantInt::get(
           BuiltinType{BuiltinTypeKind::bool_}.getLLVMType(ctx),
           0));
@@ -441,9 +406,6 @@ private:
   {
     const auto value = createExpr(ctx, getAllSymbols(), stmt_ctx, node);
 
-    if (!value)
-      throw CodegenError{ctx.formatError(pos, "failed to generate expression")};
-
     if (!value.isMutable()) {
       throw CodegenError{
         ctx.formatError(pos, "assignment of read-only variable")};
@@ -475,12 +437,6 @@ private:
     auto const init_value
       = createExpr(ctx, getAllSymbols(), stmt_ctx, *initializer);
 
-    if (!init_value) {
-      throw CodegenError{ctx.formatError(
-        pos,
-        fmt::format("failed to generate initializer for '{}'", name))};
-    }
-
     if (!strictEquals(llvm_type, init_value.getLLVMType())) {
       throw CodegenError{ctx.formatError(
         pos,
@@ -511,12 +467,6 @@ private:
   {
     auto const init_value
       = createExpr(ctx, getAllSymbols(), stmt_ctx, *initializer);
-
-    if (!init_value) {
-      throw CodegenError{ctx.formatError(
-        pos,
-        fmt::format("failed to generate initializer for '{}'", name))};
-    }
 
     auto const alloca = createEntryAlloca(func, name, init_value.getLLVMType());
 

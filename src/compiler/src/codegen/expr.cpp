@@ -197,16 +197,6 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     const auto uncasted_lhs = boost::apply_visitor(*this, node.lhs);
     const auto uncasted_rhs = boost::apply_visitor(*this, node.rhs);
 
-    if (!uncasted_lhs) {
-      throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
-                                         "failed to generate left-hand side")};
-    }
-
-    if (!uncasted_rhs) {
-      throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
-                                         "failed to generate right-hand side")};
-    }
-
     const auto [lhs, rhs] = castToLarger(uncasted_lhs, uncasted_rhs);
 
     if (!strictEquals(lhs.getLLVMType(), rhs.getLLVMType())) {
@@ -302,11 +292,6 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   {
     const auto value = boost::apply_visitor(*this, node.operand);
 
-    if (!value) {
-      throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
-                                         "could not generate operand")};
-    }
-
     return createDereference(ctx, ctx.positions.position_of(node), value);
   }
 
@@ -340,11 +325,6 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     auto const lhs = boost::apply_visitor(*this, node.lhs);
 
     const auto as = createType(node.as);
-
-    if (!lhs) {
-      throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
-                                         "failed to generate left-hand side")};
-    }
 
     if (as->isPointerTy(ctx)) {
       // Pointer to pointer.
@@ -730,14 +710,8 @@ private:
   {
     std::deque<Value> args;
 
-    for (std::size_t i = 0, size = arg_exprs.size(); i != size; ++i) {
+    for (std::size_t i = 0, size = arg_exprs.size(); i != size; ++i)
       args.emplace_back(boost::apply_visitor(*this, arg_exprs[i]));
-
-      if (!args.back()) {
-        throw CodegenError{
-          ctx.formatError(pos, "argument set failed in call to the function")};
-      }
-    }
 
     return args;
   }

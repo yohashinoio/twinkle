@@ -90,11 +90,6 @@ struct Value {
     return type->isSigned(ctx);
   }
 
-  [[nodiscard]] explicit operator bool() const noexcept
-  {
-    return value;
-  }
-
 private:
   llvm::Value* value;
 
