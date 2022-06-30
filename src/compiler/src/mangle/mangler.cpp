@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <lapis/mangle/mangler.hpp>
-#include <lapis/codegen/type.hpp>
-#include <lapis/codegen/common.hpp>
+#include <rutile/mangle/mangler.hpp>
+#include <rutile/codegen/type.hpp>
+#include <rutile/codegen/common.hpp>
 
-namespace lapis::codegen::mangle
+namespace rutile::codegen::mangle
 {
 
 [[nodiscard]] std::string
@@ -225,4 +225,4 @@ Mangler::mangleParams(CGContext& ctx, const ast::ParameterList& params) const
   return mangled.str();
 }
 
-} // namespace lapis::codegen::mangle
+} // namespace rutile::codegen::mangle

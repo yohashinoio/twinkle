@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <lapis/codegen/expr.hpp>
-#include <lapis/codegen/exception.hpp>
-#include <lapis/codegen/stmt.hpp>
+#include <rutile/codegen/expr.hpp>
+#include <rutile/codegen/exception.hpp>
+#include <rutile/codegen/stmt.hpp>
 
-namespace lapis::codegen
+namespace rutile::codegen
 {
 
 [[nodiscard]] llvm::Function*
@@ -479,7 +479,7 @@ private:
     llvm::Function* const                              callee_func,
     std::deque<Value>&                                 args,
     const bool                                         insert_this_p,
-    const boost::iterator_range<lapis::InputIterator>& pos) const
+    const boost::iterator_range<rutile::InputIterator>& pos) const
   {
     if (insert_this_p)
       args.push_front((*this)(ast::Identifier{std::u32string{U"this"}}));
@@ -939,4 +939,4 @@ private:
   return boost::apply_visitor(ExprVisitor{ctx, scope, stmt_ctx}, expr);
 }
 
-} // namespace lapis::codegen
+} // namespace rutile::codegen

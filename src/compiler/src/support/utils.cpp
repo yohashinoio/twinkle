@@ -5,10 +5,10 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <lapis/pch/pch.hpp>
-#include <lapis/support/utils.hpp>
+#include <rutile/pch/pch.hpp>
+#include <rutile/support/utils.hpp>
 
-namespace lapis
+namespace rutile
 {
 
 [[nodiscard]] std::string getVersion()
@@ -64,4 +64,4 @@ namespace lapis
 #endif
 }
 
-} // namespace lapis
+} // namespace rutile

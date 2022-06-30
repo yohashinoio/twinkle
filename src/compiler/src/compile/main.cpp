@@ -5,18 +5,18 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <lapis/compile/main.hpp>
-#include <lapis/codegen/codegen.hpp>
-#include <lapis/jit/jit.hpp>
-#include <lapis/parse/parser.hpp>
-#include <lapis/option/option.hpp>
-#include <lapis/support/file.hpp>
-#include <lapis/support/utils.hpp>
-#include <lapis/support/exception.hpp>
+#include <rutile/compile/main.hpp>
+#include <rutile/codegen/codegen.hpp>
+#include <rutile/jit/jit.hpp>
+#include <rutile/parse/parser.hpp>
+#include <rutile/option/option.hpp>
+#include <rutile/support/file.hpp>
+#include <rutile/support/utils.hpp>
+#include <rutile/support/exception.hpp>
 
 namespace program_options = boost::program_options;
 
-namespace lapis::compile
+namespace rutile::compile
 {
 
 static bool isBackNewline(const char* str) noexcept
@@ -116,4 +116,4 @@ catch (const ErrorBase& err) {
   return {false, std::nullopt};
 }
 
-} // namespace lapis::compile
+} // namespace rutile::compile

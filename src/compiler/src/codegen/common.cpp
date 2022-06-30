@@ -5,9 +5,9 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <lapis/codegen/common.hpp>
+#include <rutile/codegen/common.hpp>
 
-namespace lapis::codegen
+namespace rutile::codegen
 {
 
 [[nodiscard]] llvm::AllocaInst* createEntryAlloca(llvm::Function*    func,
@@ -392,4 +392,4 @@ createLogicalOr(CGContext& ctx, const Value& lhs, const Value& rhs)
   unreachable();
 }
 
-} // namespace lapis::codegen
+} // namespace rutile::codegen

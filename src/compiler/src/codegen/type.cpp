@@ -5,10 +5,10 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <lapis/codegen/type.hpp>
-#include <lapis/codegen/codegen.hpp>
+#include <rutile/codegen/type.hpp>
+#include <rutile/codegen/codegen.hpp>
 
-namespace lapis::codegen
+namespace rutile::codegen
 {
 
 [[nodiscard]] std::optional<BuiltinTypeKind>
@@ -278,4 +278,4 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
   return boost::apply_visitor(TypeVisitor(), ast);
 }
 
-} // namespace lapis::codegen
+} // namespace rutile::codegen

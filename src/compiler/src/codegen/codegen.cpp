@@ -5,18 +5,18 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <lapis/codegen/codegen.hpp>
-#include <lapis/codegen/top_level.hpp>
-#include <lapis/codegen/type.hpp>
-#include <lapis/codegen/exception.hpp>
-#include <lapis/unicode/unicode.hpp>
+#include <rutile/codegen/codegen.hpp>
+#include <rutile/codegen/top_level.hpp>
+#include <rutile/codegen/type.hpp>
+#include <rutile/codegen/exception.hpp>
+#include <rutile/unicode/unicode.hpp>
 #include <cassert>
 
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
 #include <unistd.h> // isatty
 #endif
 
-namespace lapis::codegen
+namespace rutile::codegen
 {
 
 template <typename R = std::vector<std::string>>
@@ -300,4 +300,4 @@ void CodeGenerator::initTargetTripleAndMachine()
                                     relocation_model)); // Set relocation model.
 }
 
-} // namespace lapis::codegen
+} // namespace rutile::codegen

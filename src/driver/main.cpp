@@ -5,12 +5,12 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <lapis/compile/main.hpp>
+#include <rutile/compile/main.hpp>
 #include <cstdlib>
 
 int main(const int argc, const char* const* const argv)
 {
-  const auto compile_res = lapis::compile::main(argc, argv);
+  const auto compile_res = rutile::compile::main(argc, argv);
 
   if (!compile_res.success())
     return EXIT_FAILURE;

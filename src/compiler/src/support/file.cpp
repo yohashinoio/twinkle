@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <lapis/support/file.hpp>
-#include <lapis/support/utils.hpp>
-#include <lapis/support/exception.hpp>
+#include <rutile/support/file.hpp>
+#include <rutile/support/utils.hpp>
+#include <rutile/support/exception.hpp>
 
-namespace lapis
+namespace rutile
 {
 
 // Exception class for errors related to file operations.
@@ -41,4 +41,4 @@ struct FileError : public ErrorBase {
                 fmt::format("{}: Could not open file", path.string()))};
 }
 
-} // namespace lapis
+} // namespace rutile

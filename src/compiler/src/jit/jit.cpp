@@ -5,10 +5,10 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <lapis/jit/jit.hpp>
-#include <lapis/support/utils.hpp>
+#include <rutile/jit/jit.hpp>
+#include <rutile/support/utils.hpp>
 
-namespace lapis::jit
+namespace rutile::jit
 {
 
 JitCompiler::JitCompiler(
@@ -87,4 +87,4 @@ JitCompiler::lookup(const llvm::StringRef name)
   return exec_session->lookup({&main_jd}, mangle(name.str()));
 }
 
-} // namespace lapis::jit
+} // namespace rutile::jit

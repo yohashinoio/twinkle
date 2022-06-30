@@ -1,4 +1,4 @@
-set(RUNTIME_NAME lac)
+set(RUNTIME_NAME rutc)
 
 include(GNUInstallDirs)
 
@@ -12,7 +12,7 @@ add_executable(
 target_link_libraries(
   ${RUNTIME_NAME}
   PRIVATE
-  lapis
+  rutile
 )
 
 target_compile_options(

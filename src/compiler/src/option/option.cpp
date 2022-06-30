@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <lapis/option/option.hpp>
-#include <lapis/option/exception.hpp>
-#include <lapis/support/utils.hpp>
+#include <rutile/option/option.hpp>
+#include <rutile/option/exception.hpp>
+#include <rutile/support/utils.hpp>
 
-namespace lapis
+namespace rutile
 {
 
 namespace program_options = boost::program_options;
@@ -92,4 +92,4 @@ getRelocationModel(const std::string_view                program_name,
   }
 }
 
-} // namespace lapis
+} // namespace rutile

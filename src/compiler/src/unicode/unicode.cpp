@@ -5,9 +5,9 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <lapis/unicode/unicode.hpp>
+#include <rutile/unicode/unicode.hpp>
 
-namespace lapis::unicode
+namespace rutile::unicode
 {
 
 [[nodiscard]] std::string utf32toUtf8(const char32_t utf32)
@@ -26,4 +26,4 @@ namespace lapis::unicode
   return std::string(first, last);
 }
 
-} // namespace lapis::unicode
+} // namespace rutile::unicode

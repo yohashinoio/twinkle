@@ -5,10 +5,10 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <lapis/support/kind.hpp>
-#include <lapis/support/utils.hpp>
+#include <rutile/support/kind.hpp>
+#include <rutile/support/utils.hpp>
 
-namespace lapis
+namespace rutile
 {
 
 [[nodiscard]] bool isSigned(const SignKind sk) noexcept
@@ -68,4 +68,4 @@ getMangledAccessibility(const Accessibility accessibility)
   unreachable();
 }
 
-} // namespace lapis
+} // namespace rutile

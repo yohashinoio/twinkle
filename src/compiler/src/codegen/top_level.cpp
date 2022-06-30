@@ -5,12 +5,12 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <lapis/codegen/top_level.hpp>
-#include <lapis/codegen/stmt.hpp>
-#include <lapis/codegen/exception.hpp>
+#include <rutile/codegen/top_level.hpp>
+#include <rutile/codegen/stmt.hpp>
+#include <rutile/codegen/exception.hpp>
 #include <unordered_set>
 
-namespace lapis::codegen
+namespace rutile::codegen
 {
 
 enum class AttrKind {
@@ -489,4 +489,4 @@ llvm::Function* createTopLevel(CGContext&                         ctx,
                               node.top_level);
 }
 
-} // namespace lapis::codegen
+} // namespace rutile::codegen

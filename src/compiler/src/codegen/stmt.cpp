@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <lapis/codegen/stmt.hpp>
-#include <lapis/codegen/expr.hpp>
-#include <lapis/codegen/exception.hpp>
+#include <rutile/codegen/stmt.hpp>
+#include <rutile/codegen/expr.hpp>
+#include <rutile/codegen/exception.hpp>
 
-namespace lapis::codegen
+namespace rutile::codegen
 {
 
 [[nodiscard]] SymbolTable mergeSymbolTables(const SymbolTable& a,
@@ -618,4 +618,4 @@ void createStatement(CGContext&         ctx,
   }
 }
 
-} // namespace lapis::codegen
+} // namespace rutile::codegen

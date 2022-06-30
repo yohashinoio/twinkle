@@ -5,16 +5,16 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <lapis/pch/pch.hpp>
-#include <lapis/ast/ast_adapted.hpp>
-#include <lapis/parse/parser.hpp>
-#include <lapis/codegen/type.hpp>
-#include <lapis/parse/exception.hpp>
+#include <rutile/pch/pch.hpp>
+#include <rutile/ast/ast_adapted.hpp>
+#include <rutile/parse/parser.hpp>
+#include <rutile/codegen/type.hpp>
+#include <rutile/parse/exception.hpp>
 
 namespace x3     = boost::spirit::x3;
 namespace fusion = boost::fusion;
 
-namespace lapis::parse
+namespace rutile::parse
 {
 
 //===----------------------------------------------------------------------===//
@@ -1002,4 +1002,4 @@ void Parser::parse()
   }
 }
 
-} // namespace lapis::parse
+} // namespace rutile::parse
