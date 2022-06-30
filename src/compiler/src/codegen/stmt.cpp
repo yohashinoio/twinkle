@@ -412,7 +412,7 @@ private:
     }
 
     if (value.getType()->isRefTy(ctx)) {
-      // Since reference types wraps pointer types
+      // Since reference types wrap pointer types
       return value;
     }
 

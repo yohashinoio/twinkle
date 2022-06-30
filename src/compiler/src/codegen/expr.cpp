@@ -165,7 +165,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     auto const loaded_var = loadVariable(variable);
 
     if (variable.getType()->isRefTy(ctx)) {
-      // Since reference types wraps pointer types
+      // Since reference types wrap pointer types
       return createDereference(ctx.positions.position_of(node), loaded_var);
     }
 
