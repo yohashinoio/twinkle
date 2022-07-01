@@ -490,7 +490,7 @@ const auto reference_type_def = array_type | reference_type_internal;
 
 const auto array_type_def
   = pointer_type[action::assignAttrToVal]
-    >> *(string(U"[") > x3::uint64
+    >> *(string(U"[") > uint_64bit
          > lit(U"]"))[action::assignToValAs<ast::ArrayType>{}];
 
 const auto pointer_type_internal_def = lit(U"^") > type_primary;
