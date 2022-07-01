@@ -114,7 +114,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
     const auto lhs
       = createAssignableValue(node.lhs, ctx.positions.position_of(node));
 
-    auto const rhs = createExpr(ctx, getAllSymbols(), stmt_ctx, node.rhs);
+    const auto rhs = createExpr(ctx, getAllSymbols(), stmt_ctx, node.rhs);
 
     if (!strictEquals(lhs.getLLVMType()->getPointerElementType(),
                       rhs.getLLVMType())) {
