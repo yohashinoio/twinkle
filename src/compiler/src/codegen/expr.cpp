@@ -181,7 +181,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       return methodAccess(node.lhs, *rhs);
 
     throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
-                                       "right-hand side is inaccessible")};
+                                       "cannot generate right-hand side")};
   }
 
   [[nodiscard]] Value operator()(const ast::Subscript& node) const
