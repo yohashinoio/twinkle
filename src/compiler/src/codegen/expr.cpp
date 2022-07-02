@@ -26,7 +26,7 @@ findFunction(CGContext& ctx,
 }
 
 [[nodiscard]] static std::vector<llvm::Value*>
-valueToLLVMValue(const std::deque<Value>& v)
+toLLVMVals(const std::deque<Value>& v)
 {
   std::vector<llvm::Value*> ret;
 
@@ -486,7 +486,7 @@ private:
 
     assert(return_type);
 
-    return {ctx.builder.CreateCall(callee_func, valueToLLVMValue(args)),
+    return {ctx.builder.CreateCall(callee_func, toLLVMVals(args)),
             *return_type};
   }
 
