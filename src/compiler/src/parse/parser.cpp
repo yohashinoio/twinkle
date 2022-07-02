@@ -605,18 +605,17 @@ const auto cast_def
   = unary[action::assignAttrToVal]
     >> *(string(U"as") > type_name)[action::assignToValAs<ast::Cast>{}];
 
-const auto unary_internal_def = unary_operator >> subscript;
-const auto unary_def          = unary_internal | subscript;
-
-const auto subscript_def
-  = member_access[action::assignAttrToVal]
-    >> *(string(U"[") > expr
-         > lit(U"]"))[action::assignToValAs<ast::Subscript>{}];
+const auto unary_internal_def = unary_operator >> member_access;
+const auto unary_def          = unary_internal | member_access;
 
 const auto member_access_def
+  = subscript[action::assignAttrToVal]
+    >> *(string(U".") > subscript)[action::assignToValAs<ast::MemberAccess>{}];
+
+const auto subscript_def
   = dereference[action::assignAttrToVal]
-    >> *(string(U".")
-         > dereference)[action::assignToValAs<ast::MemberAccess>{}];
+    >> *(string(U"[") > expr
+         > lit(U"]"))[action::assignToValAs<ast::Subscript>{}];
 
 const auto dereference_def
   = function_call[action::assignAttrToVal]

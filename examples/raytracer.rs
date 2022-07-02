@@ -215,7 +215,7 @@ func main() -> i32
           let tmp = Ray{ref tmp1, ref tmp2};
           let tmp = radiance(ref tmp, 0);
 
-          image[image_idx] = (image[image_idx]).add(ref tmp);
+          image[image_idx] = image[image_idx].add(ref tmp);
         }
       }
     }
