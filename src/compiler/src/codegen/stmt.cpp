@@ -17,8 +17,10 @@ namespace rutile::codegen
 {
   SymbolTable merged_table{a};
 
-  for (const auto& r : b)
-    merged_table.insert(r.first, r.second);
+  for (const auto& r : b) {
+    // May be shadowed and must be overwriteable
+    merged_table.insertOrAssign(r.first, r.second);
+  }
 
   return merged_table;
 }

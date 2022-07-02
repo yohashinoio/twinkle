@@ -30,6 +30,32 @@ declare func srand(seed: u32);
 [[nomangle]]
 declare func sqrt(x: f64) -> f64;
 
+[[nomangle]]
+declare func malloc(size: u64) -> ^void;
+
+[[nomangle]]
+declare func free(ptr: ^void);
+
+struct HeapArray {
+  HeapArray(size: u64)
+  {
+    p = malloc(size);
+  }
+
+  ~HeapArray()
+  {
+    free(p);
+  }
+
+  func get() -> ^void
+  {
+    return p;
+  }
+
+private:
+  let p: ^void;
+}
+
 struct File {
   File(fd: i32, mode: ^i8)
   {
@@ -52,6 +78,13 @@ private:
 }
 
 struct Vec {
+  Vec()
+  {
+    x = 0.;
+    y = 0.;
+    z = 0.;
+  }
+
   Vec(x_: f64, y_: f64, z_: f64)
   {
     x = x_;
@@ -111,6 +144,10 @@ struct Ray {
   let dir: Vec;
 }
 
+func radiance(ray: &Ray, depth: i32) -> Color
+{
+}
+
 func normalize(v: &Vec) -> Vec
 {
   return v.div(v.length());
@@ -130,7 +167,8 @@ func main() -> i32
   let width = 640;
   let height = 480;
 
-  let mut image: Color[307200 /* width * height */];
+  let image_heap = HeapArray{width * height * sizeof Color{}};
+  let mut image = image_heap.get() as ^Color;
 
   let camera = createCamera();
 
@@ -147,7 +185,7 @@ func main() -> i32
   for (let mut y = 0; y < height; ++y) {
     fprintf
     ( stderr.stream()
-    , "Rendering %.4f%\n"
+    , "Rendering %.4f%%"
     , 100.0 * y as f64 / (height - 1) as f64
     );
 
@@ -170,8 +208,20 @@ func main() -> i32
           let tmp2 = tmp2.add(ref camera.dir);
 
           let dir = tmp1.add(ref tmp2);
+
+          let tmp1 = dir.mul(130.0);
+          let tmp1 = camera.org.add(ref tmp1);
+          let tmp2 = normalize(ref dir);
+          let tmp = Ray{ref tmp1, ref tmp2};
+          let tmp = radiance(ref tmp, 0);
+
+          image[image_idx] = (image[image_idx]).add(ref tmp);
         }
       }
     }
+
+    fprintf(stderr.stream(), "\r");
   }
+
+  fprintf(stderr.stream(), "\n");
 }

@@ -48,7 +48,7 @@ struct Table {
   template <typename T1, typename T2>
   void insert(T1&& key, T2&& value)
   {
-    assert(!table.contains(std::forward<T1>(key)));
+    assert(!table.contains(key));
 
     table.emplace(std::forward<T1>(key), std::forward<T2>(value));
   }
