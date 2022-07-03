@@ -5,9 +5,9 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <rutile/unicode/unicode.hpp>
+#include <emera/unicode/unicode.hpp>
 
-namespace rutile::unicode
+namespace emera::unicode
 {
 
 [[nodiscard]] std::string utf32toUtf8(const char32_t utf32)
@@ -26,4 +26,4 @@ namespace rutile::unicode
   return std::string(first, last);
 }
 
-} // namespace rutile::unicode
+} // namespace emera::unicode

@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <rutile/support/file.hpp>
-#include <rutile/support/utils.hpp>
-#include <rutile/support/exception.hpp>
+#include <emera/support/file.hpp>
+#include <emera/support/utils.hpp>
+#include <emera/support/exception.hpp>
 
-namespace rutile
+namespace emera
 {
 
 // Exception class for errors related to file operations.
@@ -41,4 +41,4 @@ struct FileError : public ErrorBase {
                 fmt::format("{}: Could not open file", path.string()))};
 }
 
-} // namespace rutile
+} // namespace emera

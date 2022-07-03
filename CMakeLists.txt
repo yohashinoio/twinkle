@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(rutile C CXX)
+project(emera C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 

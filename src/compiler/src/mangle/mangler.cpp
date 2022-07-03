@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <rutile/mangle/mangler.hpp>
-#include <rutile/codegen/type.hpp>
-#include <rutile/codegen/common.hpp>
+#include <emera/mangle/mangler.hpp>
+#include <emera/codegen/type.hpp>
+#include <emera/codegen/common.hpp>
 
-namespace rutile::codegen::mangle
+namespace emera::codegen::mangle
 {
 
 [[nodiscard]] std::string
@@ -225,4 +225,4 @@ Mangler::mangleParams(CGContext& ctx, const ast::ParameterList& params) const
   return mangled.str();
 }
 
-} // namespace rutile::codegen::mangle
+} // namespace emera::codegen::mangle

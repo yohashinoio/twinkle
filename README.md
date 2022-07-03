@@ -1,12 +1,12 @@
 <div align="center">
-  <h1>The Rutile Programming Language</h1>
+  <h1>The Emera Programming Language</h1>
 
   [Getting Started](docs/GettingStarted.md) |
   [Language Reference](docs/LanguageReference.md) |
   [Examples](examples)
 </div>
 
-## Key Features of Rutile
+## Key Features of Emera
 - Syntax is like c++, swift and rust combined.
 - Language specification is similar to c++.
 - LLVM backend.
@@ -39,8 +39,8 @@ $ sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
 ### Installation
 Clone this repository.
 ```bash
-$ git clone https://github.com/yohashinoio/rutile.git
-$ cd rutile
+$ git clone https://github.com/yohashinoio/emera.git
+$ cd emera
 ```
 Create build directory.
 ```bash

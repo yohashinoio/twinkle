@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <rutile/option/option.hpp>
-#include <rutile/option/exception.hpp>
-#include <rutile/support/utils.hpp>
+#include <emera/option/option.hpp>
+#include <emera/option/exception.hpp>
+#include <emera/support/utils.hpp>
 
-namespace rutile
+namespace emera
 {
 
 namespace program_options = boost::program_options;
@@ -92,4 +92,4 @@ getRelocationModel(const std::string_view                program_name,
   }
 }
 
-} // namespace rutile
+} // namespace emera

@@ -5,18 +5,18 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <rutile/codegen/codegen.hpp>
-#include <rutile/codegen/top_level.hpp>
-#include <rutile/codegen/type.hpp>
-#include <rutile/codegen/exception.hpp>
-#include <rutile/unicode/unicode.hpp>
+#include <emera/codegen/codegen.hpp>
+#include <emera/codegen/top_level.hpp>
+#include <emera/codegen/type.hpp>
+#include <emera/codegen/exception.hpp>
+#include <emera/unicode/unicode.hpp>
 #include <cassert>
 
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
 #include <unistd.h> // isatty
 #endif
 
-namespace rutile::codegen
+namespace emera::codegen
 {
 
 template <typename R = std::vector<std::string>>
@@ -300,4 +300,4 @@ void CodeGenerator::initTargetTripleAndMachine()
                                     relocation_model)); // Set relocation model.
 }
 
-} // namespace rutile::codegen
+} // namespace emera::codegen

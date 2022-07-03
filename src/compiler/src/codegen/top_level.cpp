@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <rutile/codegen/top_level.hpp>
-#include <rutile/codegen/stmt.hpp>
-#include <rutile/codegen/exception.hpp>
+#include <emera/codegen/top_level.hpp>
+#include <emera/codegen/stmt.hpp>
+#include <emera/codegen/exception.hpp>
 
-namespace rutile::codegen
+namespace emera::codegen
 {
 
 enum class AttrKind {
@@ -483,4 +483,4 @@ llvm::Function* createTopLevel(CGContext&                         ctx,
                               node.top_level);
 }
 
-} // namespace rutile::codegen
+} // namespace emera::codegen

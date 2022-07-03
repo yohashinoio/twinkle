@@ -5,10 +5,10 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <rutile/jit/jit.hpp>
-#include <rutile/support/utils.hpp>
+#include <emera/jit/jit.hpp>
+#include <emera/support/utils.hpp>
 
-namespace rutile::jit
+namespace emera::jit
 {
 
 JitCompiler::JitCompiler(
@@ -87,4 +87,4 @@ JitCompiler::lookup(const llvm::StringRef name)
   return exec_session->lookup({&main_jd}, mangle(name.str()));
 }
 
-} // namespace rutile::jit
+} // namespace emera::jit

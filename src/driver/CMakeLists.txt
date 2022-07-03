@@ -1,4 +1,4 @@
-set(RUNTIME_NAME rutc)
+set(RUNTIME_NAME emerac)
 
 include(GNUInstallDirs)
 
@@ -12,7 +12,7 @@ add_executable(
 target_link_libraries(
   ${RUNTIME_NAME}
   PRIVATE
-  rutile
+  emera
 )
 
 target_compile_options(

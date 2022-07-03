@@ -17,7 +17,7 @@ target_link_libraries(
   PRIVATE
   Threads::Threads
   fmt::fmt
-  rutile
+  emera
 )
 
 target_compile_options(

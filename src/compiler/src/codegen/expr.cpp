@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <rutile/codegen/expr.hpp>
-#include <rutile/codegen/exception.hpp>
-#include <rutile/codegen/stmt.hpp>
+#include <emera/codegen/expr.hpp>
+#include <emera/codegen/exception.hpp>
+#include <emera/codegen/stmt.hpp>
 
-namespace rutile::codegen
+namespace emera::codegen
 {
 
 [[nodiscard]] llvm::Function*
@@ -469,10 +469,10 @@ private:
   }
 
   [[nodiscard]] Value createFunctionCall(
-    llvm::Function* const                               callee_func,
-    std::deque<Value>&                                  args,
-    const bool                                          insert_this_p,
-    const boost::iterator_range<rutile::InputIterator>& pos) const
+    llvm::Function* const                              callee_func,
+    std::deque<Value>&                                 args,
+    const bool                                         insert_this_p,
+    const boost::iterator_range<emera::InputIterator>& pos) const
   {
     if (insert_this_p)
       args.push_front((*this)(ast::Identifier{std::u32string{U"this"}}));
@@ -979,4 +979,4 @@ private:
   return boost::apply_visitor(ExprVisitor{ctx, scope, stmt_ctx}, expr);
 }
 
-} // namespace rutile::codegen
+} // namespace emera::codegen

@@ -5,9 +5,9 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <rutile/codegen/common.hpp>
+#include <emera/codegen/common.hpp>
 
-namespace rutile::codegen
+namespace emera::codegen
 {
 
 [[nodiscard]] llvm::AllocaInst* createEntryAlloca(llvm::Function*    func,
@@ -351,4 +351,4 @@ createLogicalOr(CGContext& ctx, const Value& lhs, const Value& rhs)
   unreachable();
 }
 
-} // namespace rutile::codegen
+} // namespace emera::codegen

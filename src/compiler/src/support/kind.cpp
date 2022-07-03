@@ -5,10 +5,10 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <rutile/support/kind.hpp>
-#include <rutile/support/utils.hpp>
+#include <emera/support/kind.hpp>
+#include <emera/support/utils.hpp>
 
-namespace rutile
+namespace emera
 {
 
 [[nodiscard]] bool isSigned(const SignKind sk) noexcept
@@ -68,4 +68,4 @@ getMangledAccessibility(const Accessibility accessibility)
   unreachable();
 }
 
-} // namespace rutile
+} // namespace emera

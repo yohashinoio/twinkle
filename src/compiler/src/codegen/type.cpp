@@ -5,10 +5,10 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <rutile/codegen/type.hpp>
-#include <rutile/codegen/codegen.hpp>
+#include <emera/codegen/type.hpp>
+#include <emera/codegen/codegen.hpp>
 
-namespace rutile::codegen
+namespace emera::codegen
 {
 
 [[nodiscard]] std::optional<BuiltinTypeKind>
@@ -285,4 +285,4 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
   return boost::apply_visitor(TypeVisitor(), ast);
 }
 
-} // namespace rutile::codegen
+} // namespace emera::codegen

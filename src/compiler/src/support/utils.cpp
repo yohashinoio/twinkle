@@ -5,10 +5,10 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <rutile/pch/pch.hpp>
-#include <rutile/support/utils.hpp>
+#include <emera/pch/pch.hpp>
+#include <emera/support/utils.hpp>
 
-namespace rutile
+namespace emera
 {
 
 [[nodiscard]] std::string getVersion()
@@ -64,4 +64,4 @@ namespace rutile
 #endif
 }
 
-} // namespace rutile
+} // namespace emera

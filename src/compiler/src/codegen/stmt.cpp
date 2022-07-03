@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <rutile/codegen/stmt.hpp>
-#include <rutile/codegen/expr.hpp>
-#include <rutile/codegen/exception.hpp>
+#include <emera/codegen/stmt.hpp>
+#include <emera/codegen/expr.hpp>
+#include <emera/codegen/exception.hpp>
 
-namespace rutile::codegen
+namespace emera::codegen
 {
 
 [[nodiscard]] SymbolTable mergeSymbolTables(const SymbolTable& a,
@@ -575,4 +575,4 @@ void createStatement(CGContext&         ctx,
   }
 }
 
-} // namespace rutile::codegen
+} // namespace emera::codegen
