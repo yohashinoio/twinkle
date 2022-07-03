@@ -181,6 +181,7 @@ int main(const int argc, const char* const* const argv)
     {                 "reference_to_class_type",  58},
     {                 "reference_to_array_type",  13},
     {                     "reference_type_sign",  58},
+    {                "floating_point_constants",  58},
   };
 
   std::size_t ok_c{};   // ok count.

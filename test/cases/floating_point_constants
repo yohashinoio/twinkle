@@ -1,0 +1,13 @@
+func main() -> i32
+{
+  let d: f64 = 5.3876e4;
+  let d: f64 = 4e-11;
+  let d: f64 = 1e+5;
+  let d: f64 = 7.321E-3;
+  let d: f64 = 3.2E+4;
+  let d: f64 = 0.5e-6;
+  let d: f64 = 0.45;
+  let d: f64 = 6.e10;
+
+  return (58.4e1 as i32) / 10;
+}
