@@ -14,7 +14,11 @@
 
 #include <emera/pch/pch.hpp>
 #include <emera/unicode/unicode.hpp>
+#include <emera/codegen/kind.hpp>
 #include <emera/support/kind.hpp>
+
+// Note If the template argument of boost::variant exceeds 10, use
+// boost::make_variant_over
 
 namespace emera
 {
@@ -146,6 +150,10 @@ struct CharLiteral : x3::position_tagged {
   unicode::Codepoint ch;
 };
 
+struct BuiltinMacro : x3::position_tagged {
+  codegen::BuiltinMacroKind kind;
+};
+
 struct BinOp;
 struct UnaryOp;
 struct Dereference;
@@ -157,26 +165,62 @@ struct MemberAccess;
 struct ArrayLiteral;
 struct ClassLiteral;
 
-using Expr = boost::variant<boost::blank,
-                            double,        // Floating point literals
-                            std::uint32_t, // Unsigned integer literals (32bit)
-                            std::int32_t,  // Signed integer literals (32bit)
-                            std::uint64_t, // Unsinged integer litarals (64bit)
-                            std::int64_t,  // Singed integer litarals (64bit)
-                            bool,          // Boolean literals
-                            StringLiteral,
-                            CharLiteral,
-                            Identifier,
-                            boost::recursive_wrapper<BinOp>,
-                            boost::recursive_wrapper<UnaryOp>,
-                            boost::recursive_wrapper<Dereference>,
-                            boost::recursive_wrapper<Subscript>,
-                            boost::recursive_wrapper<FunctionCall>,
-                            boost::recursive_wrapper<Cast>,
-                            boost::recursive_wrapper<Pipeline>,
-                            boost::recursive_wrapper<MemberAccess>,
-                            boost::recursive_wrapper<ArrayLiteral>,
-                            boost::recursive_wrapper<ClassLiteral>>;
+//===----------------------------------------------------------------------===//
+// Expression Variant
+//===----------------------------------------------------------------------===//
+
+using ExprT0
+  = boost::mpl::vector<boost::blank,
+                       double,        // Floating point literals
+                       std::uint32_t, // Unsigned integer literals (32bit)
+                       std::int32_t,  // Signed integer literals (32bit)
+                       std::uint64_t, // Unsinged integer litarals (64bit)
+                       std::int64_t,  // Singed integer litarals (64bit)
+                       bool,          // Boolean literals
+                       StringLiteral,
+                       CharLiteral,
+                       Identifier>;
+
+using ExprT1 = boost::mpl::push_back<ExprT0, BuiltinMacro>::type;
+
+using ExprT2
+  = boost::mpl::push_back<ExprT1, boost::recursive_wrapper<BinOp>>::type;
+
+using ExprT3
+  = boost::mpl::push_back<ExprT2, boost::recursive_wrapper<UnaryOp>>::type;
+
+using ExprT4
+  = boost::mpl::push_back<ExprT3, boost::recursive_wrapper<Dereference>>::type;
+
+using ExprT5
+  = boost::mpl::push_back<ExprT4, boost::recursive_wrapper<Subscript>>::type;
+
+using ExprT6
+  = boost::mpl::push_back<ExprT5, boost::recursive_wrapper<Cast>>::type;
+
+using ExprT7
+  = boost::mpl::push_back<ExprT6, boost::recursive_wrapper<Pipeline>>::type;
+
+using ExprT8
+  = boost::mpl::push_back<ExprT7, boost::recursive_wrapper<MemberAccess>>::type;
+
+using ExprT9
+  = boost::mpl::push_back<ExprT8, boost::recursive_wrapper<ArrayLiteral>>::type;
+
+using ExprT10
+  = boost::mpl::push_back<ExprT9, boost::recursive_wrapper<FunctionCall>>::type;
+
+using ExprT11
+  = boost::mpl::push_back<ExprT10,
+                          boost::recursive_wrapper<ClassLiteral>>::type;
+
+using ExprTypes = ExprT11;
+
+using Expr = boost::make_variant_over<ExprTypes>::type;
+
+//===----------------------------------------------------------------------===//
+// Expression AST
+//===----------------------------------------------------------------------===//
 
 struct BinOp : x3::position_tagged {
   Expr           lhs;
@@ -461,20 +505,38 @@ struct Loop;
 struct While;
 struct For;
 
-using Stmt = boost::make_recursive_variant<
-  boost::blank,
-  std::vector<boost::recursive_variant_>, // Compound statement
-  Expr,
-  Return,
-  VariableDef,
-  Assignment,
-  PrefixIncAndDec,
-  Break,
-  Continue,
-  boost::recursive_wrapper<If>,
-  boost::recursive_wrapper<Loop>,
-  boost::recursive_wrapper<While>,
-  boost::recursive_wrapper<For>>::type;
+//===----------------------------------------------------------------------===//
+// Statement Variant
+//===----------------------------------------------------------------------===//
+
+using StmtT0 = boost::mpl::vector<boost::blank,
+                                  // Compound statement
+                                  std::vector<boost::recursive_variant_>,
+                                  Expr,
+                                  Return,
+                                  VariableDef,
+                                  Assignment,
+                                  PrefixIncAndDec,
+                                  Break,
+                                  Continue,
+                                  boost::recursive_wrapper<If>>;
+
+using StmtT1
+  = boost::mpl::push_back<StmtT0, boost::recursive_wrapper<Loop>>::type;
+
+using StmtT2
+  = boost::mpl::push_back<StmtT1, boost::recursive_wrapper<While>>::type;
+
+using StmtT3
+  = boost::mpl::push_back<StmtT2, boost::recursive_wrapper<For>>::type;
+
+using StmtTypes = StmtT3;
+
+using Stmt = boost::make_recursive_variant_over<StmtTypes>::type;
+
+//===----------------------------------------------------------------------===//
+// Statement AST
+//===----------------------------------------------------------------------===//
 
 using CompoundStmt = std::vector<Stmt>;
 

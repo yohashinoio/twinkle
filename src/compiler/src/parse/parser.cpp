@@ -9,6 +9,7 @@
 #include <emera/ast/ast_adapted.hpp>
 #include <emera/parse/parser.hpp>
 #include <emera/codegen/type.hpp>
+#include <emera/codegen/kind.hpp>
 #include <emera/parse/exception.hpp>
 
 namespace x3     = boost::spirit::x3;
@@ -236,6 +237,19 @@ struct BuiltinTypeNameSymbolsTag : UnicodeSymbols<codegen::BuiltinTypeKind> {
   }
 } builtin_type_symbols;
 
+struct BuiltinMacroSymbols : UnicodeSymbols<codegen::BuiltinMacroKind> {
+  BuiltinMacroSymbols()
+  {
+    // clang-format off
+    add
+      (U"__builtin_huge_valf", codegen::BuiltinMacroKind::huge_valf)
+      (U"__builtin_huge_val", codegen::BuiltinMacroKind::huge_val)
+      (U"__builtin_infinity", codegen::BuiltinMacroKind::infinity_)
+    ;
+    // clang-format on
+  }
+} builtin_macro_symbols;
+
 //===----------------------------------------------------------------------===//
 // Common rules declaration
 //===----------------------------------------------------------------------===//
@@ -423,6 +437,10 @@ const auto array_literal_def = lit(U"[") > (expr % lit(U",")) > lit(U"]");
 const auto class_literal_def
   = identifier >> lit(U"{") > -(expr % lit(U",")) > lit(U"}");
 
+const auto builtin_macro
+  = x3::rule<struct BuiltinMacroTag, ast::BuiltinMacro>{"builtin macro"}
+= builtin_macro_symbols;
+
 BOOST_SPIRIT_DEFINE(array_literal)
 BOOST_SPIRIT_DEFINE(class_literal)
 
@@ -451,6 +469,10 @@ struct ArrayLiteralTag
   , AnnotatePosition {};
 
 struct ClassLiteralTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct BuiltinMacroTag
   : ErrorHandle
   , AnnotatePosition {};
 
@@ -628,11 +650,11 @@ const auto function_call_def
     >> *(string(U"(") > arg_list
          > lit(U")"))[action::assignToValAs<ast::FunctionCall>{}];
 
-const auto primary_def = class_literal | identifier | float_64bit
-                         | binary_literal | octal_literal | hex_literal
-                         | int_32bit | uint_32bit | int_64bit | uint_64bit
-                         | boolean_literal | string_literal | char_literal
-                         | array_literal | (lit(U"(") > expr > lit(U")"));
+const auto primary_def
+  = builtin_macro | class_literal | identifier | float_64bit | binary_literal
+    | octal_literal | hex_literal | int_32bit | uint_32bit | int_64bit
+    | uint_64bit | boolean_literal | string_literal | char_literal
+    | array_literal | (lit(U"(") > expr > lit(U")"));
 
 BOOST_SPIRIT_DEFINE(expr)
 BOOST_SPIRIT_DEFINE(binary_logical)

@@ -73,6 +73,8 @@
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/noncopyable.hpp>
+#include <boost/mpl/vector.hpp>
+#include <boost/mpl/push_back.hpp>
 
 //===----------------------------------------------------------------------===//
 // fmt

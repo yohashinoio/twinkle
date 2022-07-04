@@ -7,6 +7,7 @@
 
 #include <emera/codegen/expr.hpp>
 #include <emera/codegen/exception.hpp>
+#include <emera/codegen/kind.hpp>
 #include <emera/codegen/stmt.hpp>
 
 namespace emera::codegen
@@ -142,6 +143,27 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     }
 
     return {ctx.builder.CreateLoad(alloca->getAllocatedType(), alloca), type};
+  }
+
+  [[nodiscard]] Value operator()(const ast::BuiltinMacro& node) const
+  {
+    switch (node.kind) {
+    case BuiltinMacroKind::huge_valf:
+      [[fallthrough]];
+
+    case BuiltinMacroKind::infinity_:
+      return {llvm::ConstantFP::getInfinity(ctx.builder.getFloatTy()),
+              std::make_shared<BuiltinType>(BuiltinTypeKind::f32)};
+
+    case BuiltinMacroKind::huge_val:
+      return {llvm::ConstantFP::getInfinity(ctx.builder.getDoubleTy()),
+              std::make_shared<BuiltinType>(BuiltinTypeKind::f64)};
+
+    case BuiltinMacroKind::unknown:
+      unreachable();
+    }
+
+    unreachable();
   }
 
   [[nodiscard]] Value operator()(const ast::Identifier& node) const

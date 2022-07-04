@@ -183,6 +183,7 @@ int main(const int argc, const char* const* const argv)
     {                     "reference_type_sign",  58},
     {                "floating_point_constants",  58},
     {                              "shadowing2",  44},
+    {                                "infinity",  58},
   };
 
   std::size_t ok_c{};   // ok count.

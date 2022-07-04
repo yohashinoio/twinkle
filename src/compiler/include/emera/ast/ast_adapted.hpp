@@ -126,6 +126,11 @@ BOOST_FUSION_ADAPT_STRUCT(
   (std::vector<emera::ast::Expr>, initializer_list)
 )
 
+BOOST_FUSION_ADAPT_STRUCT(
+  emera::ast::BuiltinMacro,
+  (emera::codegen::BuiltinMacroKind, kind)
+)
+
 //===----------------------------------------------------------------------===//
 // Statement AST adapt
 //===----------------------------------------------------------------------===//

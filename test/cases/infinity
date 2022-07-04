@@ -1,0 +1,13 @@
+func f(f1: f32, d: f64, f2: f32) -> i32
+{
+  return 58;
+}
+
+func main() -> i32
+{
+  let inf_valf = __builtin_huge_valf;
+  let inf_val = __builtin_huge_val;
+  let inf = __builtin_infinity;
+
+  return f(inf_valf, inf_val, inf);
+}
