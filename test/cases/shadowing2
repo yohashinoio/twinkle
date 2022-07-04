@@ -1,0 +1,28 @@
+func main() -> i32
+{
+  let mut n = 0;
+
+  let shadowed = 4;
+
+  n += shadowed;
+
+  {
+    let shadowed = 8;
+
+    n += shadowed;
+
+    {
+      {
+        let shadowed = 10;
+
+        n += shadowed;
+      }
+
+      n += shadowed;
+    }
+  }
+
+  n += shadowed;
+
+  return n + 10;
+}
