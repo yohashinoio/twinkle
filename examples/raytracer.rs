@@ -107,6 +107,11 @@ struct Vec {
     return Vec{x + b.x, y + b.y, z + b.z};
   }
 
+  func sub(b: &Vec) -> Vec
+  {
+    return Vec{x - b.x, y - b.y, z - b.z};
+  }
+
   func mul(b: f64) -> Vec
   {
     return Vec{x * b, y * b, z * b};
@@ -144,8 +149,83 @@ struct Ray {
   let dir: Vec;
 }
 
+struct Sphere {
+  Sphere(radius_: f64,
+         position_: &Vec,
+         emission_: &Color,
+         color_: &Color,
+         type_arg: i32)
+  {
+    radius = radius_;
+    position = position_;
+    emission = emission_;
+    color = color_;
+    type_ = type_arg;
+  }
+
+  func intersect(ray: &Ray) -> f64
+  {
+    let eps = 1e-6;
+
+		let o_p = position.sub(ref ray.org); // Error
+
+		let b = dot(ref o_p, ref ray.dir);
+    let det = b * b - dot(ref o_p, ref o_p) + radius * radius;
+
+		if (0.0 <= det) {
+			let sqrt_det = sqrt(det);
+			let t1 = b - sqrt_det;
+      let t2 = b + sqrt_det;
+
+			if (t1 > eps)
+        return t1;
+			else if (t2 > eps)
+        return t2;
+		}
+
+		return 0.0;
+	}
+
+  let radius: f64;
+  let position: Vec;
+  let emission: Color;
+  let color: Color;
+  let type_: i32;
+}
+
+func intersect_scene(ray: &Ray,
+                     spheres: ^Sphere,
+                     spheres_size: i32,
+                     t: mut &f64,
+                     id: mut &i32) -> bool
+{
+  let inf = 1e20;
+
+  t = inf;
+  id = -1;
+
+  for (let mut i = 0; i < spheres_size; ++i) {
+    let d = spheres[i].intersect(ray);
+
+    if (0.0 < d && d < t) {
+      t = d;
+      id = i;
+    }
+  }
+
+  return t < inf;
+}
+
 func radiance(ray: &Ray, depth: i32) -> Color
 {
+  let background_color = Color{0.0, 0.0, 0.0};
+
+  let t: f64;
+  let id: i32;
+  if (!intersect_scene(ref ray, ref t, ref id))
+    return background_color;
+
+
 }
 
 func normalize(v: &Vec) -> Vec
