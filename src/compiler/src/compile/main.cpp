@@ -69,7 +69,7 @@ try {
     std::exit(EXIT_SUCCESS);
   }
   if (vmap.contains("version")) {
-    std::cout << getVersion() << std::endl;
+    std::cout << "emera version " << getVersion() << std::endl;
     std::exit(EXIT_SUCCESS);
   }
   else if (vmap.contains("help")) {
