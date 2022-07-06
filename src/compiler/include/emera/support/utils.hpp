@@ -18,7 +18,7 @@
 namespace emera
 {
 
-constexpr unsigned int LAPIS_VERSION = 100000;
+constexpr unsigned int VERSION = 000001;
 
 [[nodiscard]] std::string getVersion();
 

@@ -1,0 +1,21 @@
+struct sample1 {
+  func f() -> i32
+  {
+    return 58;
+  }
+}
+
+struct sample2 {
+  func test() -> i32
+  {
+    return s1.f();
+  }
+
+  let s1: sample1;
+}
+
+func main() -> i32
+{
+  let s2: sample2;
+  return s2.test();
+}

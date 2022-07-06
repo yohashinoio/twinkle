@@ -199,8 +199,20 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     if (const auto* rhs = boost::get<ast::Identifier>(&node.rhs))
       return memberVariableAccess(node.lhs, *rhs);
 
-    if (const auto* rhs = boost::get<ast::FunctionCall>(&node.rhs))
-      return methodAccess(node.lhs, *rhs);
+    if (const auto* rhs = boost::get<ast::FunctionCall>(&node.rhs)) {
+      try {
+        return methodAccess(node.lhs, *rhs);
+      }
+      catch (const CodegenError&) {
+        if (ctx.ns_hierarchy.top().kind == NamespaceKind::class_) {
+          // Assuming access to methods of member variables
+          const auto top = ctx.ns_hierarchy.pop();
+          const auto tmp = methodAccess(node.lhs, *rhs);
+          ctx.ns_hierarchy.push(top);
+          return tmp;
+        }
+      }
+    }
 
     throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
                                        "cannot generate right-hand side")};
@@ -964,7 +976,7 @@ private:
   [[nodiscard]] Value methodAccess(const ast::Expr&         lhs,
                                    const ast::FunctionCall& rhs) const
   {
-    auto func_call = rhs; // Copy!
+    auto func_call = rhs; // Copy
 
     // Insert 'this' pointer at the beginning of the arguments
     func_call.args.push_front(ast::UnaryOp{std::u32string{U"&"}, lhs});
@@ -979,11 +991,17 @@ private:
         {lhs_value.getType()->getClassName(ctx), NamespaceKind::class_});
     }
 
-    const auto retval = (*this)(func_call);
+    try {
+      const auto retval = (*this)(func_call);
+      ctx.ns_hierarchy.pop();
+      return retval;
+    }
+    catch (const CodegenError&) {
+      ctx.ns_hierarchy.pop();
+      throw;
+    }
 
-    ctx.ns_hierarchy.pop();
-
-    return retval;
+    unreachable();
   }
 
   CGContext& ctx;

@@ -13,9 +13,9 @@ namespace emera
 
 [[nodiscard]] std::string getVersion()
 {
-  const auto major = LAPIS_VERSION / 100000;
-  const auto minor = LAPIS_VERSION / 100 % 1000;
-  const auto patch = LAPIS_VERSION % 100;
+  const auto major = VERSION / 100000;
+  const auto minor = VERSION / 100 % 1000;
+  const auto patch = VERSION % 100;
 
   return boost::lexical_cast<std::string>(major) + '.'
          + boost::lexical_cast<std::string>(minor) + '.'

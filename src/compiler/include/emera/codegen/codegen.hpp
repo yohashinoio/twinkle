@@ -125,9 +125,11 @@ struct NsHierarchy {
     namespaces.push_back(n);
   }
 
-  void pop()
+  Namespace pop()
   {
+    const auto tmp = top();
     namespaces.pop_back();
+    return tmp;
   }
 
   [[nodiscard]] const Namespace& top() const

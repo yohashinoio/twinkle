@@ -184,6 +184,7 @@ int main(const int argc, const char* const* const argv)
     {                "floating_point_constants",  58},
     {                              "shadowing2",  44},
     {                                "infinity",  58},
+    {   "access_to_methods_of_member_variables",  58},
   };
 
   std::size_t ok_c{};   // ok count.
