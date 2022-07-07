@@ -204,6 +204,9 @@ struct ExprVisitor : public boost::static_visitor<Value> {
         return methodAccess(node.lhs, *rhs);
       }
       catch (const CodegenError&) {
+        if (ctx.ns_hierarchy.empty())
+          throw;
+
         if (ctx.ns_hierarchy.top().kind == NamespaceKind::class_) {
           // Assuming access to methods of member variables
           const auto top = ctx.ns_hierarchy.pop();

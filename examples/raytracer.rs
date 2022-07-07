@@ -149,11 +149,17 @@ struct Ray {
   let dir: Vec;
 }
 
+func dot(v1: &Vec, v2: &Vec) -> f64
+{
+	return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+}
+
 struct Sphere {
   Sphere(radius_: f64,
-         position_: &Vec,
-         emission_: &Color,
-         color_: &Color,
+         // FIXME
+         position_: Vec, // Copy
+         emission_: Color, // Copy
+         color_: Color, // Copy
          type_arg: i32)
   {
     radius = radius_;
@@ -193,9 +199,9 @@ struct Sphere {
   let type_: i32;
 }
 
-func intersect_scene(ray: &Ray,
-                     spheres: ^Sphere,
+func intersect_scene(spheres: ^Sphere,
                      spheres_size: i32,
+                     ray: &Ray,
                      t: mut &f64,
                      id: mut &i32) -> bool
 {
@@ -205,7 +211,7 @@ func intersect_scene(ray: &Ray,
   id = -1;
 
   for (let mut i = 0; i < spheres_size; ++i) {
-    let d = spheres[i].intersect(ray);
+    let d = spheres[i].intersect(ref ray);
 
     if (0.0 < d && d < t) {
       t = d;
@@ -220,12 +226,29 @@ func radiance(ray: &Ray, depth: i32) -> Color
 {
   let background_color = Color{0.0, 0.0, 0.0};
 
-  let t: f64;
-  let id: i32;
-  if (!intersect_scene(ref ray, ref t, ref id))
+  let DIFFUSE = 0;
+  let SPECULAR = 1;
+  let REFRACTION = 2;
+
+  let spheres = [
+	  Sphere{ 1e5, Vec{1e5 + 1., 40.8, 81.6},   Color{}, Color{0.75, 0.25, 0.25},    DIFFUSE},
+	  Sphere{ 1e5, Vec{-1e5 + 99., 40.8, 81.6}, Color{}, Color{0.25, 0.25, 0.75},    DIFFUSE},
+	  Sphere{ 1e5, Vec{50., 40.8, 1e5},         Color{}, Color{0.75, 0.75, 0.75},    DIFFUSE},
+	  Sphere{ 1e5, Vec{50., 40.8, -1e5 + 170.}, Color{}, Color{},                    DIFFUSE},
+	  Sphere{ 1e5, Vec{50., 1e5, 81.6},         Color{}, Color{0.75, 0.75, 0.75},    DIFFUSE},
+	  Sphere{ 1e5, Vec{50., -1e5 + 81.6, 81.6}, Color{}, Color{0.75, 0.75, 0.75},    DIFFUSE},
+	  Sphere{16.5, Vec{27., 16.5, 47.},         Color{}, Color{1., 1., 1.}.mul(.99), SPECULAR},
+	  Sphere{16.5, Vec{73., 16.5, 78.},         Color{}, Color{1., 1., 1.}.mul(.99), REFRACTION}
+  ];
+
+  let spheres_size = (sizeof spheres / sizeof spheres[0]) as i32;
+
+  let mut t: f64;
+  let mut id: i32;
+  if (!intersect_scene(&spheres[0], spheres_size, ref ray, ref t, ref id))
     return background_color;
 
-
+  printf("%f %d\n", t, id);
 }
 
 func normalize(v: &Vec) -> Vec
