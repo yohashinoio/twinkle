@@ -177,20 +177,20 @@ struct Sphere {
          position_: Vec, // Copy
          emission_: Color, // Copy
          color_: Color, // Copy
-         type_arg: i32)
+         ref_type_: i32)
   {
     radius = radius_;
     position = position_;
     emission = emission_;
     color = color_;
-    type_ = type_arg;
+    ref_type = ref_type_;
   }
 
   func intersect(ray: &Ray) -> f64
   {
     let eps = 1e-6;
 
-		let o_p = position.sub(ref ray.org); // Error
+		let o_p = position.sub(ref ray.org);
 
 		let b = dot(ref o_p, ref ray.dir);
     let det = b * b - dot(ref o_p, ref o_p) + radius * radius;
@@ -213,7 +213,7 @@ struct Sphere {
   let position: Vec;
   let emission: Color;
   let color: Color;
-  let type_: i32;
+  let ref_type: i32;
 }
 
 func normalize(v: &Vec) -> Vec
@@ -312,7 +312,7 @@ func radiance(ray: &Ray, depth: i32) -> Color
   if (max_depth < depth)
     return Color{};
 
-  if (obj.type_ == DIFFUSE) {
+  if (obj.ref_type == DIFFUSE) {
     let ldir = light_pos.sub(ref hitpoint);
 
     let len = ldir.length();
@@ -333,7 +333,7 @@ func radiance(ray: &Ray, depth: i32) -> Color
     else
       return Color{};
   }
-  else if (obj.type_ == SPECULAR) {
+  else if (obj.ref_type == SPECULAR) {
     let tmp = normal.mul(2.0);
     let tmp = tmp.mul(dot(ref normal, ref ray.dir));
     let tmp = tmp.sub(ref ray.dir);
@@ -345,11 +345,11 @@ func radiance(ray: &Ray, depth: i32) -> Color
 
     return obj.emission.add(ref tmp);
   }
-  else if (obj.type_ == REFRACTION) {
+  else if (obj.ref_type == REFRACTION) {
     let tmp = ray.dir.sub(ref normal);
     let tmp = tmp.mul(2.);
     let tmp = tmp.mul(dot(ref normal, ref ray.dir));
-    let rflct_ray = Ray{ref hitpoint, ref tmp};
+    let reflection_ray = Ray{ref hitpoint, ref tmp};
 
     let into = 0.0 < dot(ref normal, ref orienting_normal);
 
@@ -364,7 +364,7 @@ func radiance(ray: &Ray, depth: i32) -> Color
     let cos2t = 1.0 - nnt * nnt * (1.0 - ddn * ddn);
 
     if (cos2t < 0.0) {
-      let tmp = radiance(ref rflct_ray, depth + 1);
+      let tmp = radiance(ref reflection_ray, depth + 1);
       let tmp = multiply(ref obj.color, ref tmp);
       return obj.emission.add(ref tmp);
     }
@@ -395,7 +395,7 @@ func radiance(ray: &Ray, depth: i32) -> Color
 		let tr = 1.0 - re;
 
     {
-      let tmp = radiance(ref rflct_ray, depth + 1);
+      let tmp = radiance(ref reflection_ray, depth + 1);
       let tmp = tmp.mul(re);
       let ray_tmp = Ray{ref hitpoint, ref tdir};
       let tmp1 = radiance(ref ray_tmp, depth + 1);
@@ -596,6 +596,10 @@ func main() -> i32
   }
 
   fprintf(stderr.stream(), "\n");
+
+  for (let mut i = 0; i < 10; ++i) {
+    printf("%f\n", image[i].length_squared());
+  }
 
   save_as_hdr("image.hdr", image, width, height);
 }

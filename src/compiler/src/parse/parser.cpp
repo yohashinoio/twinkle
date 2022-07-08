@@ -72,8 +72,9 @@ const auto assignAttrToVal = [](const auto& ctx) {
 template <typename T>
 struct assignToValAs {
   template <typename Ctx, typename Ast = T>
-  auto operator()(const Ctx& ctx) const -> std::enable_if_t<
-    std::is_same_v<Ast, ast::BinOp> || std::is_same_v<Ast, ast::Pipeline>>
+  auto operator()(const Ctx& ctx) const
+    -> std::enable_if_t<std::is_same_v<Ast, ast::BinOp>
+                        || std::is_same_v<Ast, ast::Pipeline>>
   {
     assignAstToVal(ctx,
                    Ast{std::move(x3::_val(ctx)),
@@ -274,7 +275,10 @@ const x3::rule<struct MulTag, ast::Expr>      mul{"multiplication operation"};
 const x3::rule<struct CastTag, ast::Expr>     cast{"conversion"};
 const x3::rule<struct UnaryInternalTag, ast::UnaryOp> unary_internal{
   "unary operation"};
-const x3::rule<struct UnaryTag, ast::Expr>       unary{"unary operation"};
+const x3::rule<struct UnaryTag, ast::Expr> unary{"unary operation"};
+const x3::rule<struct ReferenceInternalTag, ast::Reference> reference_internal{
+  "reference operation"};
+const x3::rule<struct ReferenceTag, ast::Expr> reference{"reference operation"};
 const x3::rule<struct DereferenceTag, ast::Expr> dereference{
   "dereference operation"};
 const x3::rule<struct MemberAccessTag, ast::Expr> member_access{
@@ -441,6 +445,8 @@ const auto builtin_macro
   = x3::rule<struct BuiltinMacroTag, ast::BuiltinMacro>{"builtin macro"}
 = builtin_macro_symbols;
 
+const auto space = x3::rule<struct SpaceTag>{"space"} = x3::unicode::space;
+
 BOOST_SPIRIT_DEFINE(array_literal)
 BOOST_SPIRIT_DEFINE(class_literal)
 
@@ -473,6 +479,10 @@ struct ClassLiteralTag
   , AnnotatePosition {};
 
 struct BuiltinMacroTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct SpaceTag
   : ErrorHandle
   , AnnotatePosition {};
 
@@ -591,7 +601,7 @@ const auto binary_logical_operator
 const auto unary_operator
   = x3::rule<struct UnaryOperatorTag, std::u32string>{"unary operator"}
 = string(U"+") | string(U"-") | string(U"!") | string(U"*") | string(U"&")
-  | string(U"sizeof") | string(U"ref");
+  | string(U"sizeof");
 
 //===----------------------------------------------------------------------===//
 // Expression rules and tags definition
@@ -627,8 +637,12 @@ const auto cast_def
   = unary[action::assignAttrToVal]
     >> *(string(U"as") > type_name)[action::assignToValAs<ast::Cast>{}];
 
-const auto unary_internal_def = unary_operator >> member_access;
-const auto unary_def          = unary_internal | member_access;
+const auto unary_internal_def = unary_operator >> reference;
+const auto unary_def          = unary_internal | reference;
+
+const auto reference_internal_def
+  = lit(U"ref") >> x3::no_skip[space] > member_access;
+const auto reference_def = reference_internal | member_access;
 
 const auto member_access_def
   = subscript[action::assignAttrToVal]
@@ -665,6 +679,8 @@ BOOST_SPIRIT_DEFINE(add)
 BOOST_SPIRIT_DEFINE(mul)
 BOOST_SPIRIT_DEFINE(cast)
 BOOST_SPIRIT_DEFINE(unary)
+BOOST_SPIRIT_DEFINE(reference_internal)
+BOOST_SPIRIT_DEFINE(reference)
 BOOST_SPIRIT_DEFINE(dereference)
 BOOST_SPIRIT_DEFINE(member_access)
 BOOST_SPIRIT_DEFINE(subscript)
@@ -710,6 +726,14 @@ struct UnaryInternalTag
   , AnnotatePosition {};
 
 struct UnaryTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct ReferenceInternalTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct ReferenceTag
   : ErrorHandle
   , AnnotatePosition {};
 

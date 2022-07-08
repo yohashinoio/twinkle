@@ -156,6 +156,7 @@ struct BuiltinMacro : x3::position_tagged {
 
 struct BinOp;
 struct UnaryOp;
+struct Reference;
 struct Dereference;
 struct FunctionCall;
 struct Cast;
@@ -214,7 +215,10 @@ using ExprT11
   = boost::mpl::push_back<ExprT10,
                           boost::recursive_wrapper<ClassLiteral>>::type;
 
-using ExprTypes = ExprT11;
+using ExprT12
+  = boost::mpl::push_back<ExprT11, boost::recursive_wrapper<Reference>>::type;
+
+using ExprTypes = ExprT12;
 
 using Expr = boost::make_variant_over<ExprTypes>::type;
 
@@ -319,7 +323,6 @@ struct UnaryOp : x3::position_tagged {
     not_,       // Logical not
     address_of, // Address-of
     size_of,    // size-of
-    reference,  // Reference
   };
 
   [[nodiscard]] Kind kind() const
@@ -334,11 +337,13 @@ struct UnaryOp : x3::position_tagged {
       return Kind::address_of;
     if (op == U"sizeof")
       return Kind::size_of;
-    if (op == U"ref")
-      return Kind::reference;
 
     return Kind::unknown;
   }
+};
+
+struct Reference : x3::position_tagged {
+  Expr operand;
 };
 
 struct Dereference : x3::position_tagged {

@@ -318,9 +318,6 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     case ast::UnaryOp::Kind::size_of:
       return createSizeOf(operand_val);
 
-    case ast::UnaryOp::Kind::reference:
-      return createReference(operand_val);
-
     case ast::UnaryOp::Kind::unknown:
       throw CodegenError{ctx.formatError(
         ctx.positions.position_of(node),
@@ -328,6 +325,11 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     }
 
     unreachable();
+  }
+
+  [[nodiscard]] Value operator()(const ast::Reference& node) const
+  {
+    return createReference(boost::apply_visitor(*this, node.operand));
   }
 
   [[nodiscard]] Value operator()(const ast::Dereference& node) const
