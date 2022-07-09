@@ -1,0 +1,25 @@
+struct sample {
+  let n: i32;
+}
+
+func f(p: ^sample) -> ^sample
+{
+  return p;
+}
+
+func main() -> i32
+{
+  let mut p1 = new i32;
+  p1^ = 48;
+
+  let n1 = p1^;
+  delete p1;
+
+  let mut p2 = new sample;
+  p2^.n = 10;
+
+  let n2 = p2^.n;
+  delete f(p2);
+
+  return n1 + n2;
+}

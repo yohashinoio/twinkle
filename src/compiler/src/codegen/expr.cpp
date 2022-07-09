@@ -332,6 +332,42 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     return createReference(boost::apply_visitor(*this, node.operand));
   }
 
+  [[nodiscard]] Value operator()(const ast::New& node) const
+  {
+    const auto type      = createType(node.type);
+    auto const llvm_type = type->getLLVMType(ctx);
+
+    auto const malloc_inst = llvm::CallInst::CreateMalloc(
+      ctx.builder.GetInsertBlock(),
+      ctx.builder.getIntPtrTy(ctx.module->getDataLayout()),
+      llvm_type,
+      createSizeOf(llvm_type).getValue(),
+      nullptr,
+      nullptr);
+
+    // If not inserted (builder.Insert), malloc will be badref
+    return {ctx.builder.Insert(malloc_inst),
+            std::make_shared<PointerType>(type)};
+  }
+
+  [[nodiscard]] Value operator()(const ast::Delete& node) const
+  {
+    const auto operand_val = boost::apply_visitor(*this, node.operand);
+
+    if (!operand_val.getValue()->getType()->isPointerTy()) {
+      throw CodegenError{
+        ctx.formatError(ctx.positions.position_of(node),
+                        "cannot delete expression of the type")};
+    }
+
+    // If not inserted (builder.Insert), free will be badref
+    ctx.builder.Insert(
+      llvm::CallInst::CreateFree(operand_val.getValue(),
+                                 ctx.builder.GetInsertBlock()));
+
+    return {nullptr, std::make_shared<BuiltinType>(BuiltinTypeKind::void_)};
+  }
+
   [[nodiscard]] Value operator()(const ast::Dereference& node) const
   {
     const auto value = boost::apply_visitor(*this, node.operand);
@@ -721,14 +757,19 @@ private:
       std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
   }
 
-  [[nodiscard]] Value createSizeOf(const Value& value) const
+  [[nodiscard]] Value createSizeOf(llvm::Type* const type) const
   {
     // Assuming a 64-bit environment.
     // FIXME: To work in different environments
-    return {llvm::ConstantInt::get(ctx.builder.getInt64Ty(),
-                                   ctx.module->getDataLayout().getTypeAllocSize(
-                                     value.getLLVMType())),
+    return {llvm::ConstantInt::get(
+              ctx.builder.getInt64Ty(),
+              ctx.module->getDataLayout().getTypeAllocSize(type)),
             std::make_shared<BuiltinType>(BuiltinTypeKind::u64)};
+  }
+
+  [[nodiscard]] Value createSizeOf(const Value& value) const
+  {
+    return createSizeOf(value.getLLVMType());
   }
 
   [[nodiscard]] Value createAddInverse(const Value& value) const

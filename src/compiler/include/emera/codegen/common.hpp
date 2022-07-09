@@ -60,7 +60,6 @@ struct Value {
     , type{type}
     , is_mutable{is_mutable}
   {
-    assert(value);
   }
 
   Value() = delete;

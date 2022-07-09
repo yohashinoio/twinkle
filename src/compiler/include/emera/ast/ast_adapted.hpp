@@ -85,6 +85,16 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
+  emera::ast::New,
+  (emera::ast::Type, type)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+  emera::ast::Delete,
+  (emera::ast::Expr, operand)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
   emera::ast::Dereference,
   (emera::ast::Expr, operand)
 )

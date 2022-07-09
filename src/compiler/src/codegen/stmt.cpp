@@ -118,6 +118,8 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
     const auto rhs = createExpr(ctx, getAllSymbols(), stmt_ctx, node.rhs);
 
+    verifyVariableType(ctx.positions.position_of(node), rhs.getType());
+
     if (!strictEquals(lhs.getLLVMType()->getPointerElementType(),
                       rhs.getLLVMType())) {
       throw CodegenError{ctx.formatError(
@@ -423,6 +425,15 @@ private:
             value.isMutable()};
   }
 
+  void verifyVariableType(const boost::iterator_range<InputIterator>& pos,
+                          const std::shared_ptr<Type>& type) const
+  {
+    if (type->isVoidTy(ctx)) {
+      throw CodegenError{
+        ctx.formatError(pos, "variable has incomplete type 'void'")};
+    }
+  }
+
   [[nodiscard]] Variable
   createVariable(const boost::iterator_range<InputIterator>& pos,
                  llvm::Function*                             func,
@@ -431,6 +442,8 @@ private:
                  const std::optional<ast::Expr>&             initializer,
                  const bool                                  is_mutable) const
   {
+    verifyVariableType(pos, type);
+
     const auto llvm_type = type->getLLVMType(ctx);
     auto const alloca    = createEntryAlloca(func, name, llvm_type);
 
@@ -444,11 +457,8 @@ private:
     auto const init_value
       = createExpr(ctx, getAllSymbols(), stmt_ctx, *initializer);
 
-    if (!strictEquals(llvm_type, init_value.getLLVMType())) {
-      throw CodegenError{ctx.formatError(
-        pos,
-        "the variable type and the initializer type are incompatible")};
-    }
+    if (!strictEquals(llvm_type, init_value.getLLVMType()))
+      throw CodegenError{ctx.formatError(pos, "invalid initializer type")};
 
     if (llvm_type->isIntegerTy()
         && llvm_type->getIntegerBitWidth()
@@ -474,6 +484,8 @@ private:
   {
     auto const init_value
       = createExpr(ctx, getAllSymbols(), stmt_ctx, *initializer);
+
+    verifyVariableType(pos, init_value.getType());
 
     auto const alloca = createEntryAlloca(func, name, init_value.getLLVMType());
 

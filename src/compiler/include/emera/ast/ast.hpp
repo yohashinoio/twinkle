@@ -154,9 +154,14 @@ struct BuiltinMacro : x3::position_tagged {
   codegen::BuiltinMacroKind kind;
 };
 
+struct New : x3::position_tagged {
+  Type type;
+};
+
 struct BinOp;
 struct UnaryOp;
 struct Reference;
+struct Delete;
 struct Dereference;
 struct FunctionCall;
 struct Cast;
@@ -218,7 +223,12 @@ using ExprT11
 using ExprT12
   = boost::mpl::push_back<ExprT11, boost::recursive_wrapper<Reference>>::type;
 
-using ExprTypes = ExprT12;
+using ExprT13 = boost::mpl::push_back<ExprT12, New>::type;
+
+using ExprT14
+  = boost::mpl::push_back<ExprT13, boost::recursive_wrapper<Delete>>::type;
+
+using ExprTypes = ExprT14;
 
 using Expr = boost::make_variant_over<ExprTypes>::type;
 
@@ -343,6 +353,10 @@ struct UnaryOp : x3::position_tagged {
 };
 
 struct Reference : x3::position_tagged {
+  Expr operand;
+};
+
+struct Delete : x3::position_tagged {
   Expr operand;
 };
 

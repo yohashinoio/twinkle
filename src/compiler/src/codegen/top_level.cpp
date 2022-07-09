@@ -347,7 +347,7 @@ private:
 
     // Return variable.
     auto const return_variable
-      = return_type->isVoid(ctx)
+      = return_type->isVoidTy(ctx)
           ? nullptr
           : createEntryAlloca(func, "", return_type->getLLVMType(ctx));
 
@@ -358,7 +358,7 @@ private:
 
     // If there is no return, returns undef.
     if (!ctx.builder.GetInsertBlock()->getTerminator()
-        && !(return_type->isVoid(ctx))) {
+        && !(return_type->isVoidTy(ctx))) {
       // Return 0 specially for main.
       if (name == "main") {
         ctx.builder.CreateStore(
@@ -375,7 +375,7 @@ private:
 
     // Inserts a terminator if the function returning void does not have
     // one.
-    if (return_type->isVoid(ctx)
+    if (return_type->isVoidTy(ctx)
         && !ctx.builder.GetInsertBlock()->getTerminator()) {
       ctx.builder.CreateBr(end_bb);
     }

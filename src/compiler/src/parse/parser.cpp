@@ -72,9 +72,8 @@ const auto assignAttrToVal = [](const auto& ctx) {
 template <typename T>
 struct assignToValAs {
   template <typename Ctx, typename Ast = T>
-  auto operator()(const Ctx& ctx) const
-    -> std::enable_if_t<std::is_same_v<Ast, ast::BinOp>
-                        || std::is_same_v<Ast, ast::Pipeline>>
+  auto operator()(const Ctx& ctx) const -> std::enable_if_t<
+    std::is_same_v<Ast, ast::BinOp> || std::is_same_v<Ast, ast::Pipeline>>
   {
     assignAstToVal(ctx,
                    Ast{std::move(x3::_val(ctx)),
@@ -279,6 +278,11 @@ const x3::rule<struct UnaryTag, ast::Expr> unary{"unary operation"};
 const x3::rule<struct ReferenceInternalTag, ast::Reference> reference_internal{
   "reference operation"};
 const x3::rule<struct ReferenceTag, ast::Expr> reference{"reference operation"};
+const x3::rule<struct NewInternalTag, ast::New> new_internal{"new operation"};
+const x3::rule<struct NewTag, ast::Expr>        new_{"new operation"};
+const x3::rule<struct DeleteInternalTag, ast::Delete> delete_internal{
+  "delete operation"};
+const x3::rule<struct DeleteTag, ast::Expr>      delete_{"delete operation"};
 const x3::rule<struct DereferenceTag, ast::Expr> dereference{
   "dereference operation"};
 const x3::rule<struct MemberAccessTag, ast::Expr> member_access{
@@ -640,9 +644,14 @@ const auto cast_def
 const auto unary_internal_def = unary_operator >> reference;
 const auto unary_def          = unary_internal | reference;
 
-const auto reference_internal_def
-  = lit(U"ref") >> x3::no_skip[space] > member_access;
-const auto reference_def = reference_internal | member_access;
+const auto reference_internal_def = lit(U"ref") >> x3::no_skip[space] > new_;
+const auto reference_def          = reference_internal | new_;
+
+const auto new_internal_def = lit(U"new") >> x3::no_skip[space] > type_name;
+const auto new__def         = new_internal | delete_;
+
+const auto delete_internal_def = lit(U"delete") >> x3::no_skip[space] > expr;
+const auto delete__def         = delete_internal | member_access;
 
 const auto member_access_def
   = subscript[action::assignAttrToVal]
@@ -681,6 +690,10 @@ BOOST_SPIRIT_DEFINE(cast)
 BOOST_SPIRIT_DEFINE(unary)
 BOOST_SPIRIT_DEFINE(reference_internal)
 BOOST_SPIRIT_DEFINE(reference)
+BOOST_SPIRIT_DEFINE(new_internal)
+BOOST_SPIRIT_DEFINE(new_)
+BOOST_SPIRIT_DEFINE(delete_internal)
+BOOST_SPIRIT_DEFINE(delete_)
 BOOST_SPIRIT_DEFINE(dereference)
 BOOST_SPIRIT_DEFINE(member_access)
 BOOST_SPIRIT_DEFINE(subscript)
@@ -737,6 +750,22 @@ struct ReferenceTag
   : ErrorHandle
   , AnnotatePosition {};
 
+struct NewInternalTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct NewTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct DeleteInternalTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct DeleteTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
 struct DereferenceTag
   : ErrorHandle
   , AnnotatePosition {};
@@ -771,13 +800,8 @@ const auto assignment_def = expr >> assignment_operator > expr;
 
 const auto prefix_inc_or_dec_def = (string(U"++") | string(U"--")) > expr;
 
-const auto variable_type
-  = x3::rule<struct variable_type_tag, ast::Type>{"variable type"}
-= type_name - lit(U"void");
-
 const auto variable_def_def = lit(U"let") > -variable_qualifier > identifier
-                              > -(lit(U":") > variable_type)
-                              > -(lit(U"=") > expr);
+                              > -(lit(U":") > type_name) > -(lit(U"=") > expr);
 
 const auto _return_def = lit(U"return") > -expr;
 
@@ -883,7 +907,7 @@ const auto class_decl_def
   = lit(U"declare") >> class_key > identifier > lit(U";");
 
 const auto variable_def_without_init_def
-  = lit(U"let") > identifier > lit(U":") > variable_type;
+  = lit(U"let") > identifier > lit(U":") > type_name;
 
 const auto constructor_def = function_proto > stmt;
 

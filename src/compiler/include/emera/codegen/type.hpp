@@ -86,7 +86,7 @@ struct Type {
     unreachable();
   }
 
-  [[nodiscard]] virtual bool isVoid(CGContext&) const
+  [[nodiscard]] virtual bool isVoidTy(CGContext&) const
   {
     return false;
   }
@@ -145,7 +145,7 @@ struct BuiltinType : public Type {
 
   [[nodiscard]] SignKind getSignKind(CGContext&) const override;
 
-  [[nodiscard]] bool isVoid(CGContext&) const override
+  [[nodiscard]] bool isVoidTy(CGContext&) const override
   {
     return kind == BuiltinTypeKind::void_;
   }
@@ -221,9 +221,9 @@ struct UserDefinedType : public Type {
     return getType(ctx)->getRefeeType(ctx);
   }
 
-  [[nodiscard]] bool isVoid(CGContext& ctx) const override
+  [[nodiscard]] bool isVoidTy(CGContext& ctx) const override
   {
-    return getType(ctx)->isVoid(ctx);
+    return getType(ctx)->isVoidTy(ctx);
   }
 
   [[nodiscard]] bool isIntegerTy(CGContext& ctx) const override
