@@ -796,9 +796,9 @@ private:
   // Do not use for constants!
   [[nodiscard]] Value createAddressOf(const Value& val) const
   {
-    auto tmp = llvm::getPointerOperand(val.getValue());
-    assert(tmp);
-    return {tmp, std::make_shared<PointerType>(val.getType())};
+    auto ptr = llvm::getPointerOperand(val.getValue());
+    assert(ptr);
+    return {ptr, std::make_shared<PointerType>(val.getType())};
   }
 
   [[nodiscard]] Value
