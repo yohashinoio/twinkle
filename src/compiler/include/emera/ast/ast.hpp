@@ -356,6 +356,7 @@ struct Reference : x3::position_tagged {
 
 struct New : x3::position_tagged {
   Type              type;
+  bool              with_init;
   std::vector<Expr> initializer;
 };
 

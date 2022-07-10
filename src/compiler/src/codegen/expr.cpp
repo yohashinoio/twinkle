@@ -338,7 +338,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     const auto is_class_ty = type->isClassTy(ctx);
 
-    if (!is_class_ty && !node.initializer.empty()) {
+    if (!is_class_ty && node.with_init) {
       throw CodegenError{
         ctx.formatError(ctx.positions.position_of(node),
                         "cannot initialize non-class with new operator")};
@@ -359,22 +359,16 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     const auto malloc_return_type = std::make_shared<PointerType>(type);
 
-    if (is_class_ty) {
+    if (is_class_ty && node.with_init) {
       auto args
         = createArgVals(node.initializer, ctx.positions.position_of(node));
 
       // Push 'this' pointer
       args.push_front({malloc_inst, malloc_return_type});
 
-      try {
-        createConstructorCall(ctx.positions.position_of(node),
-                              type->getClassName(ctx),
-                              args);
-      }
-      catch (const CodegenError&) {
-        if (!node.initializer.empty())
-          throw;
-      }
+      createConstructorCall(ctx.positions.position_of(node),
+                            type->getClassName(ctx),
+                            args);
     }
 
     return {malloc_inst, malloc_return_type};
@@ -425,8 +419,10 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     auto args = createArgVals(node.args, pos);
 
-    if (auto const func = findCalleeMethod(callee_name, args))
-      return createFuncCallInsertThisPtr(func, args, pos);
+    if (auto const func = findCalleeMethod(callee_name, args)) {
+      args.push_front((*this)(ast::Identifier{std::u32string{U"this"}}));
+      return createFunctionCall(func, args, pos);
+    }
 
     if (auto const func = findCalleeFunc(callee_name, args))
       return createFunctionCall(func, args, pos);
@@ -602,26 +598,6 @@ private:
             *return_type};
   }
 
-  [[nodiscard]] Value createFuncCallInsertThisPtr(
-    llvm::Function* const                              callee_func,
-    std::deque<Value>&                                 args,
-    const boost::iterator_range<emera::InputIterator>& pos) const
-  {
-    args.push_front((*this)(ast::Identifier{std::u32string{U"this"}}));
-
-    if (!callee_func->isVarArg() && callee_func->arg_size() != args.size())
-      throw CodegenError{ctx.formatError(pos, "incorrect arguments passed")};
-
-    verifyArguments(args, callee_func, pos);
-
-    const auto return_type = ctx.return_type_table[callee_func];
-
-    assert(return_type);
-
-    return {ctx.builder.CreateCall(callee_func, toLLVMVals(args)),
-            *return_type};
-  }
-
   // Note that the return value is a reference,
   // so be careful about the lifetime.
   [[nodiscard]] std::optional<std::reference_wrapper<const Variable>>
@@ -655,9 +631,9 @@ private:
     return std::nullopt;
   }
 
-  // Cast to larger bit width.
-  [[nodiscard]] std::pair<Value, Value>
-  intCastToLargerBitW(const Value& lhs, const Value& rhs) const
+  // For Integer
+  [[nodiscard]] std::pair<Value, Value> toLargerBitWidth(const Value& lhs,
+                                                         const Value& rhs) const
   {
     if (const auto lhs_bitwidth = lhs.getLLVMType()->getIntegerBitWidth(),
         rhs_bitwidth            = rhs.getLLVMType()->getIntegerBitWidth();
@@ -691,9 +667,9 @@ private:
     return std::make_pair(lhs, rhs);
   }
 
-  // Cast to larger mantissa width.
+  // For floating point number
   [[nodiscard]] std::pair<Value, Value>
-  floatCastToLargerMantissaW(const Value& lhs, const Value& rhs) const
+  toLargerMantissaWidth(const Value& lhs, const Value& rhs) const
   {
     if (const auto lhs_mantissaw = lhs.getLLVMType()->getFPMantissaWidth(),
         rhs_mantissaw            = rhs.getLLVMType()->getFPMantissaWidth();
@@ -728,10 +704,10 @@ private:
                                                      const Value& rhs) const
   {
     if (lhs.getValue()->getType()->isIntegerTy())
-      return intCastToLargerBitW(lhs, rhs);
+      return toLargerBitWidth(lhs, rhs);
 
     if (lhs.getValue()->getType()->isFloatingPointTy())
-      return floatCastToLargerMantissaW(lhs, rhs);
+      return toLargerMantissaWidth(lhs, rhs);
 
     unreachable();
   }

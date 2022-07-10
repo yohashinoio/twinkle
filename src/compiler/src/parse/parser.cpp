@@ -648,7 +648,8 @@ const auto reference_internal_def = lit(U"ref") >> x3::no_skip[space] > new_;
 const auto reference_def          = reference_internal | new_;
 
 const auto new_internal_def = lit(U"new") >> x3::no_skip[space] > type_name
-                              > -(lit(U"{") > -(expr % lit(U",")) > lit(U"}"));
+                              > x3::matches[lit(U"{")]
+                              > -(expr % lit(U",") > lit(U"}"));
 const auto new__def = new_internal | delete_;
 
 const auto delete_internal_def = lit(U"delete") >> x3::no_skip[space] > expr;
