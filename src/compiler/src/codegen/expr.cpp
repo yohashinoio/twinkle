@@ -360,6 +360,12 @@ struct ExprVisitor : public boost::static_visitor<Value> {
                         "cannot delete expression of the type")};
     }
 
+    auto const derefed_operand_val
+      = createDereference(ctx.positions.position_of(node), operand_val);
+
+    if (derefed_operand_val.getType()->isClassTy(ctx))
+      invokeDestructor(ctx, derefed_operand_val);
+
     // If not inserted (builder.Insert), free will be badref
     ctx.builder.Insert(
       llvm::CallInst::CreateFree(operand_val.getValue(),

@@ -19,6 +19,8 @@
 namespace emera::codegen
 {
 
+void invokeDestructor(CGContext& ctx, const Value& this_);
+
 void createStatement(CGContext&         ctx,
                      const SymbolTable& scope_arg,
                      const StmtContext& stmt_ctx_arg,

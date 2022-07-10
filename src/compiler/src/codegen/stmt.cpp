@@ -520,6 +520,20 @@ private:
 }
 
 // If destructor is not defined, nothing is done
+void invokeDestructor(CGContext& ctx, const Value& this_)
+{
+  assert(this_.getType()->isClassTy(ctx));
+
+  const auto destructor
+    = findDestructor(ctx, this_.getType()->getClassName(ctx));
+
+  if (destructor) {
+    ctx.builder.CreateCall(destructor,
+                           {llvm::getPointerOperand(this_.getValue())});
+  }
+}
+
+// If destructor is not defined, nothing is done
 void invokeDestructor(CGContext& ctx, const Variable& this_)
 {
   assert(this_.getType()->isClassTy(ctx));

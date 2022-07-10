@@ -1,0 +1,21 @@
+struct sample {
+  ~sample()
+  {
+    p^ = n;
+  }
+
+  let n: i32;
+  let p: ^i32;
+}
+
+func main() -> i32
+{
+  let mut n = 0;
+
+  let mut p = new sample;
+  p^.n = 58;
+  p^.p = &n;
+  delete p;
+
+  return n;
+}
