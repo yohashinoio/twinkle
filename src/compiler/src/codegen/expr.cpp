@@ -334,7 +334,16 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::New& node) const
   {
-    const auto type      = createType(node.type);
+    const auto type = createType(node.type);
+
+    const auto is_class_ty = type->isClassTy(ctx);
+
+    if (!is_class_ty && !node.initializer.empty()) {
+      throw CodegenError{
+        ctx.formatError(ctx.positions.position_of(node),
+                        "cannot initialize non-class with new operator")};
+    }
+
     auto const llvm_type = type->getLLVMType(ctx);
 
     auto const malloc_inst = llvm::CallInst::CreateMalloc(
@@ -346,8 +355,29 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       nullptr);
 
     // If not inserted (builder.Insert), malloc will be badref
-    return {ctx.builder.Insert(malloc_inst),
-            std::make_shared<PointerType>(type)};
+    ctx.builder.Insert(malloc_inst);
+
+    const auto malloc_return_type = std::make_shared<PointerType>(type);
+
+    if (is_class_ty) {
+      auto args
+        = createArgVals(node.initializer, ctx.positions.position_of(node));
+
+      // Push 'this' pointer
+      args.push_front({malloc_inst, malloc_return_type});
+
+      try {
+        createConstructorCall(ctx.positions.position_of(node),
+                              type->getClassName(ctx),
+                              args);
+      }
+      catch (const CodegenError&) {
+        if (!node.initializer.empty())
+          throw;
+      }
+    }
+
+    return {malloc_inst, malloc_return_type};
   }
 
   [[nodiscard]] Value operator()(const ast::Delete& node) const
@@ -393,13 +423,13 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     const auto callee_name = boost::get<ast::Identifier>(node.callee).utf8();
 
-    auto args = createArgValues(node.args, pos);
+    auto args = createArgVals(node.args, pos);
 
     if (auto const func = findCalleeMethod(callee_name, args))
-      return createFunctionCall(func, args, true, pos);
+      return createFuncCallInsertThisPtr(func, args, pos);
 
     if (auto const func = findCalleeFunc(callee_name, args))
-      return createFunctionCall(func, args, false, pos);
+      return createFunctionCall(func, args, pos);
 
     throw CodegenError{ctx.formatError(
       pos,
@@ -495,14 +525,23 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     const auto this_pointer_type = std::make_shared<PointerType>(
       std::make_shared<UserDefinedType>(class_name));
 
-    std::deque<Value> args;
+    auto args = createArgVals(node.initializer_list, pos);
 
-    // Push this pointer
-    args.push_back({alloca, this_pointer_type});
+    // Push 'this' pointer
+    args.push_front({alloca, this_pointer_type});
 
-    for (const auto& r : node.initializer_list)
-      args.push_back(boost::apply_visitor(*this, r));
+    createConstructorCall(pos, class_name, args);
 
+    return {ctx.builder.CreateLoad(alloca->getAllocatedType(), alloca),
+            this_pointer_type->getPointeeType(ctx)};
+  }
+
+private:
+  void
+  createConstructorCall(const boost::iterator_range<emera::InputIterator>& pos,
+                        const std::string&       class_name,
+                        const std::deque<Value>& args) const
+  {
     ctx.ns_hierarchy.push({class_name, NamespaceKind::class_});
 
     const auto mangleds = ctx.mangler.mangleConstructorCall(ctx, args);
@@ -511,7 +550,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     if (auto func = findFunction(ctx, mangleds)) {
       // Ignore the return value since constructors have no return value
-      static_cast<void>(createFunctionCall(func, args, false, pos));
+      static_cast<void>(createFunctionCall(func, args, pos));
     }
     else {
       throw CodegenError{ctx.formatError(
@@ -519,12 +558,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
         fmt::format("no matching constructor for initialization of {}",
                     class_name))};
     }
-
-    return {ctx.builder.CreateLoad(alloca->getAllocatedType(), alloca),
-            this_pointer_type->getPointeeType(ctx)};
   }
 
-private:
   [[nodiscard]] Value loadVariable(const Variable& variable) const
   {
     return {ctx.builder.CreateLoad(variable.getAllocaInst()->getAllocatedType(),
@@ -551,12 +586,28 @@ private:
 
   [[nodiscard]] Value createFunctionCall(
     llvm::Function* const                              callee_func,
-    std::deque<Value>&                                 args,
-    const bool                                         insert_this_p,
+    const std::deque<Value>&                           args,
     const boost::iterator_range<emera::InputIterator>& pos) const
   {
-    if (insert_this_p)
-      args.push_front((*this)(ast::Identifier{std::u32string{U"this"}}));
+    if (!callee_func->isVarArg() && callee_func->arg_size() != args.size())
+      throw CodegenError{ctx.formatError(pos, "incorrect arguments passed")};
+
+    verifyArguments(args, callee_func, pos);
+
+    const auto return_type = ctx.return_type_table[callee_func];
+
+    assert(return_type);
+
+    return {ctx.builder.CreateCall(callee_func, toLLVMVals(args)),
+            *return_type};
+  }
+
+  [[nodiscard]] Value createFuncCallInsertThisPtr(
+    llvm::Function* const                              callee_func,
+    std::deque<Value>&                                 args,
+    const boost::iterator_range<emera::InputIterator>& pos) const
+  {
+    args.push_front((*this)(ast::Identifier{std::u32string{U"this"}}));
 
     if (!callee_func->isVarArg() && callee_func->arg_size() != args.size())
       throw CodegenError{ctx.formatError(pos, "incorrect arguments passed")};
@@ -856,13 +907,25 @@ private:
   }
 
   [[nodiscard]] std::deque<Value>
-  createArgValues(const std::deque<ast::Expr>&                arg_exprs,
-                  const boost::iterator_range<InputIterator>& pos) const
+  createArgVals(const std::vector<ast::Expr>&               exprs,
+                const boost::iterator_range<InputIterator>& pos) const
   {
     std::deque<Value> args;
 
-    for (std::size_t i = 0, size = arg_exprs.size(); i != size; ++i)
-      args.emplace_back(boost::apply_visitor(*this, arg_exprs[i]));
+    for (const auto& r : exprs)
+      args.push_back(boost::apply_visitor(*this, r));
+
+    return args;
+  }
+
+  [[nodiscard]] std::deque<Value>
+  createArgVals(const std::deque<ast::Expr>&                exprs,
+                const boost::iterator_range<InputIterator>& pos) const
+  {
+    std::deque<Value> args;
+
+    for (const auto& r : exprs)
+      args.push_back(boost::apply_visitor(*this, r));
 
     return args;
   }

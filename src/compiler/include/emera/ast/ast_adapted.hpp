@@ -87,6 +87,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   emera::ast::New,
   (emera::ast::Type, type)
+  (std::vector<emera::ast::Expr>, initializer)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
