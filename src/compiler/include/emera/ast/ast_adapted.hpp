@@ -223,6 +223,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   emera::ast::VariableDefWithoutInit,
+  (std::optional<emera::VariableQual>, qualifier)
   (emera::ast::Identifier, name)
   (emera::ast::Type, type)
 )

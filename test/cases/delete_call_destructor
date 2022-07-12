@@ -4,8 +4,8 @@ struct sample {
     p^ = n;
   }
 
-  let n: i32;
-  let p: ^i32;
+  let mut n: i32;
+  let mut p: ^i32;
 }
 
 func main() -> i32

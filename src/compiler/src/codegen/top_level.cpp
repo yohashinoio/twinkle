@@ -208,8 +208,14 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     for (const auto& member : node.members) {
       if (const auto variable
           = boost::get<ast::VariableDefWithoutInit>(&member)) {
-        member_variables.push_back(
-          {variable->name.utf8(), createType(variable->type), accessibility});
+        const auto is_mutable
+          = variable->qualifier
+            && (*variable->qualifier == VariableQual::mutable_);
+
+        member_variables.push_back({variable->name.utf8(),
+                                    createType(variable->type),
+                                    is_mutable,
+                                    accessibility});
       }
       else if (const auto function = boost::get<ast::FunctionDef>(&member)) {
         auto function_clone = *function;

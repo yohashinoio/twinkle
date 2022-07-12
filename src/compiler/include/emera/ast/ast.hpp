@@ -662,8 +662,9 @@ struct ClassDecl : x3::position_tagged {
 };
 
 struct VariableDefWithoutInit : x3::position_tagged {
-  Identifier name;
-  Type       type;
+  std::optional<VariableQual> qualifier;
+  Identifier                  name;
+  Type                        type;
 };
 
 struct Constructor : x3::position_tagged {

@@ -1031,9 +1031,9 @@ private:
         fmt::format("undefined member '{}' selected", member_name))};
     }
 
-    if (external_access
-        && !isExternallyAccessible(
-          class_type.value()->getMemberVar(*offset).accessibility)) {
+    const auto& member_info = class_type.value()->getMemberVar(*offset);
+
+    if (external_access && !isExternallyAccessible(member_info.accessibility)) {
       throw CodegenError{ctx.formatError(
         ctx.positions.position_of(member_name_ast),
         fmt::format("member '{}' is not accessible", member_name))};
@@ -1050,8 +1050,8 @@ private:
     return {ctx.builder.CreateLoad(
               class_val.getLLVMType()->getStructElementType(*offset),
               gep),
-            class_type.value()->getMemberVar(*offset).type,
-            class_val.isMutable()};
+            member_info.type,
+            member_info.is_mutable};
   }
 
   [[nodiscard]] Value

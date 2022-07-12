@@ -10,7 +10,7 @@ struct Sample {
   }
 
 private:
-  let n: i32;
+  let mut n: i32;
 }
 
 typedef hoge = Sample;

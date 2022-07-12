@@ -16,8 +16,8 @@ struct Sample {
   }
 
 private:
-  let p: ^i32;
-  let n: i32;
+  let mut p: ^i32;
+  let mut n: i32;
 }
 
 

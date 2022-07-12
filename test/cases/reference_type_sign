@@ -1,5 +1,5 @@
 struct Sample {
-  let n: u32;
+  let mut n: u32;
 }
 
 func array_() -> i32

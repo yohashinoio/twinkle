@@ -1,9 +1,9 @@
 struct Internal {
-  let io: i32;
+  let mut io: i32;
 }
 
 struct Sample {
-  let shino: Internal;
+  let mut shino: Internal;
 }
 
 func main() -> i32

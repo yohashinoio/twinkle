@@ -1,5 +1,5 @@
 struct sample {
-  let n: i32;
+  let mut n: i32;
 }
 
 func f(p: ^sample) -> ^sample

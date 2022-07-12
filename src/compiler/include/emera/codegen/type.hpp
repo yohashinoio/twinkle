@@ -286,6 +286,7 @@ struct ClassType : public Type {
   struct MemberVariable {
     std::string           name;
     std::shared_ptr<Type> type;
+    bool                  is_mutable;
     Accessibility         accessibility;
   };
 

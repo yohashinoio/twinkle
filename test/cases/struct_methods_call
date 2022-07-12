@@ -4,7 +4,7 @@ func twice(n: i32) -> i32
 }
 
 struct Sample {
-  let n: i32;
+  let mut n: i32;
 
   func twice(n: i32) -> i32
   {

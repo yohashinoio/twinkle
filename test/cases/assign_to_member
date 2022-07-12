@@ -1,9 +1,9 @@
 [[nomangle]] declare func strcmp(s1: ^i8, s2: ^i8) -> i32;
 
 struct Sample {
-  let n: i32;
-  let s: ^i8;
-  let ch: char;
+  let mut n: i32;
+  let mut s: ^i8;
+  let mut ch: char;
 }
 
 func main() -> i32

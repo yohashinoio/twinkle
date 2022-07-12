@@ -5,7 +5,7 @@ struct sample {
     p^ = n;
   }
 
-  let p: ^i32;
+  let mut p: ^i32;
 }
 
 func main() -> i32

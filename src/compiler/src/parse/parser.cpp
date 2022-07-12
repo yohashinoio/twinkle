@@ -909,7 +909,7 @@ const auto class_decl_def
   = lit(U"declare") >> class_key > identifier > lit(U";");
 
 const auto variable_def_without_init_def
-  = lit(U"let") > identifier > lit(U":") > type_name;
+  = lit(U"let") > -variable_qualifier > identifier > lit(U":") > type_name;
 
 const auto constructor_def = function_proto > stmt;
 

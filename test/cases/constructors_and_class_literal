@@ -10,11 +10,11 @@ struct Sample {
     return yoha + shino + io;
   }
 
-  let io: i32;
-  let shino: i32;
+  let mut io: i32;
+  let mut shino: i32;
 
 private:
-  let yoha: i32;
+  let mut yoha: i32;
 }
 
 func main() -> i32
