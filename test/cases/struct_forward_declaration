@@ -1,0 +1,30 @@
+declare struct sample;
+
+struct sample {
+  sample(p_: ^sample)
+  {
+    p = p_;
+  }
+
+  sample(n_: i32)
+  {
+    n = n_;
+  }
+
+  func pointeeN() -> i32
+  {
+    return p^.n;
+  }
+
+  let mut p: ^sample;
+  let mut n: i32;
+}
+
+func main() -> i32
+{
+  let s1 = sample{58};
+
+  let s2 = sample{&s1};
+
+  return s2.pointeeN();
+}
