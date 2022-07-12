@@ -300,29 +300,32 @@ struct ClassType : public Type {
 
   ClassType(CGContext& ctx, const std::string& ident);
 
-  [[nodiscard]] SignKind getSignKind(CGContext&) const override
+  static std::vector<llvm::Type*>
+  extractTypes(CGContext& ctx, const std::vector<MemberVariable>& m);
+
+  void setIsOpaque(const bool val) noexcept
   {
-    return SignKind::no_sign;
+    is_opaque = val;
   }
+
+  // Used to set members to Opaque classes
+  void setBody(CGContext&                    ctx,
+               std::vector<MemberVariable>&& members_arg) noexcept;
 
   // Calculate the offset of a member variable
   // Return std::nullopt if there is no matching member
   [[nodiscard]] std::optional<std::size_t>
-  offsetByName(const std::string_view member_name) const
-  {
-    for (std::size_t offset = 0; const auto& member : members) {
-      if (member.name == member_name)
-        return offset;
-      ++offset;
-    }
-
-    return std::nullopt;
-  }
+  offsetByName(const std::string_view member_name) const;
 
   [[nodiscard]] const MemberVariable&
   getMemberVar(const std::size_t offset) const
   {
     return members.at(offset);
+  }
+
+  [[nodiscard]] SignKind getSignKind(CGContext&) const override
+  {
+    return SignKind::no_sign;
   }
 
   [[nodiscard]] llvm::Type* getLLVMType(CGContext&) const override
@@ -355,13 +358,10 @@ struct ClassType : public Type {
     return ident;
   }
 
-  static std::vector<llvm::Type*>
-  extractTypes(CGContext& ctx, const std::vector<MemberVariable>& m);
-
 private:
-  const bool                        is_opaque;
-  const std::vector<MemberVariable> members;
-  const std::string                 ident;
+  bool                        is_opaque;
+  std::vector<MemberVariable> members;
+  const std::string           ident;
 
   // If struct is created multiple times, the name will be duplicated, so create
   // it only once and store it in this variable.

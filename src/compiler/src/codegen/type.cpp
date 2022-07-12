@@ -201,6 +201,26 @@ ClassType::extractTypes(CGContext& ctx, const std::vector<MemberVariable>& m)
   return retval;
 }
 
+void ClassType::setBody(CGContext&                    ctx,
+                        std::vector<MemberVariable>&& members_arg) noexcept
+{
+  llvm::cast<llvm::StructType>(type)->setBody(extractTypes(ctx, members_arg));
+
+  members = std::move(members_arg);
+}
+
+[[nodiscard]] std::optional<std::size_t>
+ClassType::offsetByName(const std::string_view member_name) const
+{
+  for (std::size_t offset = 0; const auto& member : members) {
+    if (member.name == member_name)
+      return offset;
+    ++offset;
+  }
+
+  return std::nullopt;
+}
+
 [[nodiscard]] llvm::Type* FunctionType::getLLVMType(CGContext& ctx) const
 {
   if (param_types.empty())

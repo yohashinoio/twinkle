@@ -281,18 +281,17 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
         unreachable();
     }
 
-    // Check to make sure the name does not already exist.
-    if (const auto existed_type = ctx.class_table[class_name]) {
-      if (existed_type.value()->isOpaque(ctx)) {
-        // Set member type if declared forward.
-        llvm::cast<llvm::StructType>(existed_type.value()->getLLVMType(ctx))
-          ->setBody(ClassType::extractTypes(ctx, member_variables));
-      }
-      else {
+    if (const auto opaque_class_ty = ctx.class_table[class_name]) {
+      const auto type = opaque_class_ty.value();
+
+      if (!type->isOpaque(ctx)) {
         throw CodegenError{
           ctx.formatError(ctx.positions.position_of(node),
                           fmt::format("redefinition of '{}'", class_name))};
       }
+
+      type->setBody(ctx, std::move(member_variables));
+      type->setIsOpaque(false);
     }
     else {
       ctx.class_table.insert(
@@ -303,9 +302,9 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     }
 
     {
-      // Generate the methods.
+      // Generate the methods
       // Because it will result in an error if the structure type is not
-      // registered.
+      // registered
       ctx.ns_hierarchy.push({class_name, NamespaceKind::class_});
       for (const auto& r : method_def_asts)
         (*this)(r.decl);
