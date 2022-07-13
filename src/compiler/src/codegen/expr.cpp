@@ -188,7 +188,9 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     if (variable.getType()->isRefTy(ctx)) {
       // Since reference types wrap pointer types
-      return createDereference(ctx.positions.position_of(node), loaded_var);
+      return createDereference(ctx,
+                               ctx.positions.position_of(node),
+                               loaded_var);
     }
 
     return loaded_var;
@@ -238,12 +240,6 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     const auto [lhs, rhs] = castToLarger(uncasted_lhs, uncasted_rhs);
 
-    if (!strictEquals(lhs.getLLVMType(), rhs.getLLVMType())) {
-      throw CodegenError{ctx.formatError(
-        ctx.positions.position_of(node),
-        "both operands to a binary operator are not of the same type")};
-    }
-
     switch (node.kind()) {
     case ast::BinOp::Kind::add:
       return createAdd(ctx, lhs, rhs);
@@ -287,7 +283,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     case ast::BinOp::Kind::unknown:
       throw CodegenError{ctx.formatError(
         ctx.positions.position_of(node),
-        fmt::format("unknown operator '{}' detected", node.operatorStr()))};
+        fmt::format("unknown operator '{}' detected", node.opstr()))};
     }
 
     unreachable();
@@ -307,7 +303,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       return operand_val;
 
     case ast::UnaryOp::Kind::minus:
-      return createAddInverse(operand_val);
+      return createAddInverse(ctx, operand_val);
 
     case ast::UnaryOp::Kind::not_:
       return createLogicalNot(operand_val);
@@ -321,7 +317,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     case ast::UnaryOp::Kind::unknown:
       throw CodegenError{ctx.formatError(
         ctx.positions.position_of(node),
-        fmt::format("unknown operator '{}' detected", node.operatorStr()))};
+        fmt::format("unknown operator '{}' detected", node.opstr()))};
     }
 
     unreachable();
@@ -385,7 +381,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     }
 
     auto const derefed_operand_val
-      = createDereference(ctx.positions.position_of(node), operand_val);
+      = createDereference(ctx, ctx.positions.position_of(node), operand_val);
 
     if (derefed_operand_val.getType()->isClassTy(ctx))
       invokeDestructor(ctx, derefed_operand_val);
@@ -402,7 +398,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   {
     const auto value = boost::apply_visitor(*this, node.operand);
 
-    return createDereference(ctx.positions.position_of(node), value);
+    return createDereference(ctx, ctx.positions.position_of(node), value);
   }
 
   [[nodiscard]] Value operator()(const ast::FunctionCall& node) const
@@ -623,7 +619,7 @@ private:
         return std::nullopt;
 
       const auto this_v
-        = createDereference(ctx.positions.position_of(node), *this_p);
+        = createDereference(ctx, ctx.positions.position_of(node), *this_p);
 
       return memberVariableAccess(this_v, node, false);
     }
@@ -640,8 +636,6 @@ private:
         lhs_bitwidth != rhs_bitwidth) {
       const auto larger_bitwidth = std::max(lhs_bitwidth, rhs_bitwidth);
 
-      const auto target_llvm_type = ctx.builder.getIntNTy(larger_bitwidth);
-
       const auto is_target_lhs = lhs_bitwidth == larger_bitwidth;
 
       const auto target_type = is_target_lhs ? lhs.getType() : rhs.getType();
@@ -650,14 +644,14 @@ private:
         return std::make_pair(
           lhs,
           Value{ctx.builder.CreateIntCast(rhs.getValue(),
-                                          target_llvm_type,
+                                          lhs.getLLVMType(),
                                           target_type->isSigned(ctx)),
                 target_type});
       }
       else {
         return std::make_pair(
           Value{ctx.builder.CreateIntCast(lhs.getValue(),
-                                          target_llvm_type,
+                                          rhs.getLLVMType(),
                                           target_type->isSigned(ctx)),
                 target_type},
           rhs);
@@ -676,8 +670,6 @@ private:
         lhs_mantissaw != rhs_mantissaw) {
       const auto larger_mantissaw = std::max(lhs_mantissaw, rhs_mantissaw);
 
-      const auto target_llvm_type = getFloatNTy(ctx, larger_mantissaw);
-
       const auto is_target_lhs = lhs_mantissaw == larger_mantissaw;
 
       const auto target_type = is_target_lhs ? lhs.getType() : rhs.getType();
@@ -685,12 +677,12 @@ private:
       if (is_target_lhs) {
         return std::make_pair(
           lhs,
-          Value{ctx.builder.CreateFPCast(rhs.getValue(), target_llvm_type),
+          Value{ctx.builder.CreateFPCast(rhs.getValue(), lhs.getLLVMType()),
                 target_type});
       }
       else {
         return std::make_pair(
-          Value{ctx.builder.CreateFPCast(lhs.getValue(), target_llvm_type),
+          Value{ctx.builder.CreateFPCast(lhs.getValue(), rhs.getLLVMType()),
                 target_type},
           rhs);
       }
@@ -709,7 +701,7 @@ private:
     if (lhs.getValue()->getType()->isFloatingPointTy())
       return toLargerMantissaWidth(lhs, rhs);
 
-    unreachable();
+    return std::make_pair(lhs, rhs);
   }
 
   [[nodiscard]] Value createPointerToArray(const Value& array) const
@@ -805,21 +797,6 @@ private:
     return createSizeOf(value.getLLVMType());
   }
 
-  [[nodiscard]] Value createAddInverse(const Value& value) const
-  {
-    if (value.getValue()->getType()->isFloatingPointTy()) {
-      return {ctx.builder.CreateFSub(
-                llvm::ConstantFP::getZeroValueForNegation(value.getLLVMType()),
-                value.getValue()),
-              value.getType()};
-    }
-
-    return {
-      ctx.builder.CreateSub(llvm::ConstantInt::get(value.getLLVMType(), 0),
-                            value.getValue()),
-      value.getType()};
-  }
-
   [[nodiscard]] Value createReference(const Value& val) const
   {
     return {createAddressOf(val).getValue(),
@@ -832,41 +809,6 @@ private:
     auto ptr = llvm::getPointerOperand(val.getValue());
     assert(ptr);
     return {ptr, std::make_shared<PointerType>(val.getType())};
-  }
-
-  [[nodiscard]] Value
-  createDereference(const boost::iterator_range<InputIterator>& pos,
-                    const Value&                                val) const
-  {
-    if (val.getType()->isRefTy(ctx)) {
-      return {ctx.builder.CreateLoad(val.getLLVMType()->getPointerElementType(),
-                                     val.getValue()),
-              val.getType()->getRefeeType(ctx),
-              val.isMutable()};
-    }
-
-    if (!val.getValue()->getType()->isPointerTy()
-        || !val.getType()->isPointerTy(ctx)) {
-      throw CodegenError{
-        ctx.formatError(pos, "dereference requires pointer operand")};
-    }
-
-    return {ctx.builder.CreateLoad(val.getLLVMType()->getPointerElementType(),
-                                   val.getValue()),
-            val.getType()->getPointeeType(ctx),
-            val.isMutable()};
-  }
-
-  [[nodiscard]] Value
-  createDereference(const boost::iterator_range<InputIterator>& pos,
-                    const Variable&                             operand) const
-  {
-    return createDereference(
-      pos,
-      Value{ctx.builder.CreateLoad(operand.getAllocaInst()->getAllocatedType(),
-                                   operand.getAllocaInst()),
-            operand.getType(),
-            operand.isMutable()});
   }
 
   void verifyArguments(const std::deque<Value>&                    args,

@@ -51,11 +51,34 @@ resultIntegerTypeOf(CGContext&                   ctx,
   return lhs_t;
 }
 
+[[nodiscard]] Value createAddInverse(CGContext& ctx, const Value& value)
+{
+  if (value.getValue()->getType()->isFloatingPointTy()) {
+    return {ctx.builder.CreateFSub(
+              llvm::ConstantFP::getZeroValueForNegation(value.getLLVMType()),
+              value.getValue()),
+            value.getType()};
+  }
+
+  return {ctx.builder.CreateSub(llvm::ConstantInt::get(value.getLLVMType(), 0),
+                                value.getValue()),
+          value.getType()};
+}
+
 [[nodiscard]] Value
 createAdd(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   if (lhs.getType()->isFloatingPointTy(ctx)) {
     return {ctx.builder.CreateFAdd(lhs.getValue(), rhs.getValue()),
+            lhs.getType()};
+  }
+
+  // Pointer arithmetic
+  if (lhs.getType()->isPointerTy(ctx) && rhs.getType()->isIntegerTy(ctx)) {
+    return {ctx.builder.CreateInBoundsGEP(
+              lhs.getValue()->getType()->getPointerElementType(),
+              lhs.getValue(),
+              rhs.getValue()),
             lhs.getType()};
   }
 
@@ -68,6 +91,15 @@ createSub(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   if (lhs.getType()->isFloatingPointTy(ctx)) {
     return {ctx.builder.CreateFSub(lhs.getValue(), rhs.getValue()),
+            lhs.getType()};
+  }
+
+  // Pointer arithmetic
+  if (lhs.getType()->isPointerTy(ctx) && rhs.getType()->isIntegerTy(ctx)) {
+    return {ctx.builder.CreateInBoundsGEP(
+              lhs.getValue()->getType()->getPointerElementType(),
+              lhs.getValue(),
+              createAddInverse(ctx, rhs).getValue()),
             lhs.getType()};
   }
 
@@ -245,6 +277,44 @@ createLogicalOr(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateLogicalOr(lhs.getValue(), rhs.getValue()),
           std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+}
+
+[[nodiscard]] Value
+createDereference(CGContext&                                  ctx,
+                  const boost::iterator_range<InputIterator>& pos,
+                  const Value&                                val)
+{
+  if (val.getType()->isRefTy(ctx)) {
+    return {ctx.builder.CreateLoad(val.getLLVMType()->getPointerElementType(),
+                                   val.getValue()),
+            val.getType()->getRefeeType(ctx),
+            val.isMutable()};
+  }
+
+  if (!val.getValue()->getType()->isPointerTy()
+      || !val.getType()->isPointerTy(ctx)) {
+    throw CodegenError{
+      ctx.formatError(pos, "dereference requires pointer operand")};
+  }
+
+  return {ctx.builder.CreateLoad(val.getLLVMType()->getPointerElementType(),
+                                 val.getValue()),
+          val.getType()->getPointeeType(ctx),
+          val.isMutable()};
+}
+
+[[nodiscard]] Value
+createDereference(CGContext&                                  ctx,
+                  const boost::iterator_range<InputIterator>& pos,
+                  const Variable&                             operand)
+{
+  return createDereference(
+    ctx,
+    pos,
+    Value{ctx.builder.CreateLoad(operand.getAllocaInst()->getAllocatedType(),
+                                 operand.getAllocaInst()),
+          operand.getType(),
+          operand.isMutable()});
 }
 
 // The code is based on https://gist.github.com/quantumsheep.

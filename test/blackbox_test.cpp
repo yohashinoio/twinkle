@@ -189,6 +189,8 @@ int main(const int argc, const char* const* const argv)
     {                  "delete_call_destructor",  58},
     {                    "new_call_constructor",  58},
     {              "struct_forward_declaration",  58},
+    {                      "pointer_arithmetic",  58},
+    {             "pointer_increment_decrement", 116},
   };
 
   std::size_t ok_c{};   // ok count.

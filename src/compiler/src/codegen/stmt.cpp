@@ -120,13 +120,6 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
     verifyVariableType(ctx.positions.position_of(node), rhs.getType());
 
-    if (!strictEquals(lhs.getLLVMType()->getPointerElementType(),
-                      rhs.getLLVMType())) {
-      throw CodegenError{ctx.formatError(
-        ctx.positions.position_of(node),
-        "both operands to a binary operator are not of the same type")};
-    }
-
     auto const lhs_value
       = ctx.builder.CreateLoad(lhs.getLLVMType()->getPointerElementType(),
                                lhs.getValue());
@@ -135,7 +128,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
     case ast::Assignment::Kind::unknown:
       throw CodegenError{ctx.formatError(
         ctx.positions.position_of(node),
-        fmt::format("unknown operator '{}' detected", node.operatorStr()))};
+        fmt::format("unknown operator '{}' detected", node.opstr()))};
 
     case ast::Assignment::Kind::direct:
       ctx.builder.CreateStore(rhs.getValue(), lhs.getValue());
@@ -174,33 +167,34 @@ struct StmtVisitor : public boost::static_visitor<void> {
     }
   }
 
-  void operator()(const ast::PrefixIncAndDec& node) const
+  void operator()(const ast::PrefixIncrementDecrement& node) const
   {
-    const auto rhs
-      = createAssignableValue(node.rhs, ctx.positions.position_of(node));
+    const auto pos = ctx.positions.position_of(node);
 
-    auto const rhs_value
-      = ctx.builder.CreateLoad(rhs.getLLVMType()->getPointerElementType(),
-                               rhs.getValue());
+    const auto operand
+      = createAssignableValue(node.operand, ctx.positions.position_of(node));
+
+    const auto derefed_operand = createDereference(ctx, pos, operand);
+
+    const auto one = Value{llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 1),
+                           std::make_shared<BuiltinType>(BuiltinTypeKind::i32)};
 
     switch (node.kind()) {
-    case ast::PrefixIncAndDec::Kind::unknown:
+    case ast::PrefixIncrementDecrement::Kind::unknown:
       throw CodegenError{ctx.formatError(
-        ctx.positions.position_of(node),
-        fmt::format("unknown operator '{}' detected", node.operatorStr()))};
+        pos,
+        fmt::format("unknown operator '{}' detected", node.opstr()))};
 
-    case ast::PrefixIncAndDec::Kind::increment:
-      ctx.builder.CreateStore(
-        ctx.builder.CreateAdd(rhs_value,
-                              llvm::ConstantInt::get(rhs_value->getType(), 1)),
-        rhs.getValue());
+    case ast::PrefixIncrementDecrement::Kind::increment:
+      ctx.builder.CreateStore(createAdd(ctx, derefed_operand, one).getValue(),
+                              operand.getValue());
       return;
 
-    case ast::PrefixIncAndDec::Kind::decrement:
+    case ast::PrefixIncrementDecrement::Kind::decrement:
       ctx.builder.CreateStore(
-        ctx.builder.CreateSub(rhs_value,
-                              llvm::ConstantInt::get(rhs_value->getType(), 1)),
-        rhs.getValue());
+        // If lhs and rhs are reversed, it will not work correctly
+        createSub(ctx, derefed_operand, one).getValue(),
+        operand.getValue());
       return;
     }
   }

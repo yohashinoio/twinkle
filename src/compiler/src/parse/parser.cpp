@@ -72,8 +72,9 @@ const auto assignAttrToVal = [](const auto& ctx) {
 template <typename T>
 struct assignToValAs {
   template <typename Ctx, typename Ast = T>
-  auto operator()(const Ctx& ctx) const -> std::enable_if_t<
-    std::is_same_v<Ast, ast::BinOp> || std::is_same_v<Ast, ast::Pipeline>>
+  auto operator()(const Ctx& ctx) const
+    -> std::enable_if_t<std::is_same_v<Ast, ast::BinOp>
+                        || std::is_same_v<Ast, ast::Pipeline>>
   {
     assignAstToVal(ctx,
                    Ast{std::move(x3::_val(ctx)),
@@ -303,8 +304,8 @@ const x3::rule<struct VariableDefTag, ast::VariableDef> variable_def{
   "variable definition"};
 const x3::rule<struct AssignTag, ast::Assignment> assignment{
   "assignment statement"};
-const x3::rule<struct PrefixIncOrDec, ast::PrefixIncAndDec> prefix_inc_or_dec{
-  "prefix increment or decrement"};
+const x3::rule<struct PrefixIncrementDecrement, ast::PrefixIncrementDecrement>
+  prefix_increment_decrement{"prefix increment/decrement"};
 const x3::rule<struct ReturnTag, ast::Return> _return{"return statement"};
 const x3::rule<struct IfTag, ast::If>         _if{"if else statement"};
 const x3::rule<struct LoopTag, ast::Loop>     _loop{"loop statement"};
@@ -800,7 +801,7 @@ const auto expr_stmt_def = expr;
 
 const auto assignment_def = expr >> assignment_operator > expr;
 
-const auto prefix_inc_or_dec_def = (string(U"++") | string(U"--")) > expr;
+const auto prefix_increment_decrement_def = (string(U"++") | string(U"--")) > expr;
 
 const auto variable_def_def = lit(U"let") > -variable_qualifier > identifier
                               > -(lit(U":") > type_name) > -(lit(U"=") > expr);
@@ -818,7 +819,7 @@ const auto _while_def = lit(U"while") > lit(U"(") > expr /* Condition */
 const auto _for_def = lit(U"for") > lit(U"(")
                       > -(assignment | variable_def) /* Init */
                       > lit(U";") > -expr            /* Condition */
-                      > lit(U";") > -(prefix_inc_or_dec | assignment) /* Loop */
+                      > lit(U";") > -(prefix_increment_decrement | assignment) /* Loop */
                       > lit(U")") > stmt;
 
 const auto _break = x3::rule<struct BreakTag, ast::Break>{"break statement"}
@@ -832,13 +833,13 @@ const auto stmt_def = lit(U";")                       /* Null statement */
                       | lit(U"{") > *stmt > lit(U"}") /* Compound statement */
                       | _loop | _while | _for | _if | _break >> lit(U";")
                       | _continue >> lit(U";") | _return >> lit(U";")
-                      | prefix_inc_or_dec >> lit(U";") | assignment >> lit(U";")
+                      | prefix_increment_decrement >> lit(U";") | assignment >> lit(U";")
                       | variable_def >> lit(U";") | expr_stmt >> lit(U";");
 
 BOOST_SPIRIT_DEFINE(expr_stmt)
 BOOST_SPIRIT_DEFINE(variable_def)
 BOOST_SPIRIT_DEFINE(assignment)
-BOOST_SPIRIT_DEFINE(prefix_inc_or_dec)
+BOOST_SPIRIT_DEFINE(prefix_increment_decrement)
 BOOST_SPIRIT_DEFINE(_return)
 BOOST_SPIRIT_DEFINE(_if)
 BOOST_SPIRIT_DEFINE(_loop)
@@ -862,7 +863,7 @@ struct AssignTag
   : ErrorHandle
   , AnnotatePosition {};
 
-struct PrefixIncOrDec
+struct PrefixIncrementDecrement
   : ErrorHandle
   , AnnotatePosition {};
 

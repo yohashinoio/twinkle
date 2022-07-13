@@ -246,7 +246,7 @@ struct BinOp : x3::position_tagged {
   {
   }
 
-  [[nodiscard]] std::string operatorStr() const
+  [[nodiscard]] std::string opstr() const
   {
     return unicode::utf32toUtf8(op);
   }
@@ -319,7 +319,7 @@ struct UnaryOp : x3::position_tagged {
 
   UnaryOp() = default;
 
-  [[nodiscard]] std::string operatorStr() const
+  [[nodiscard]] std::string opstr() const
   {
     return unicode::utf32toUtf8(op);
   }
@@ -459,7 +459,7 @@ struct Assignment : x3::position_tagged {
   std::u32string op;
   Expr           rhs;
 
-  std::string operatorStr() const
+  std::string opstr() const
   {
     return unicode::utf32toUtf8(op);
   }
@@ -493,11 +493,11 @@ struct Assignment : x3::position_tagged {
   }
 };
 
-struct PrefixIncAndDec : x3::position_tagged {
+struct PrefixIncrementDecrement : x3::position_tagged {
   std::u32string op;
-  Expr           rhs; // Only assignable.
+  Expr           operand; // Only assignable.
 
-  std::string operatorStr() const
+  std::string opstr() const
   {
     return unicode::utf32toUtf8(op);
   }
@@ -539,7 +539,7 @@ using StmtT0 = boost::mpl::vector<boost::blank,
                                   Return,
                                   VariableDef,
                                   Assignment,
-                                  PrefixIncAndDec,
+                                  PrefixIncrementDecrement,
                                   Break,
                                   Continue,
                                   boost::recursive_wrapper<If>>;
@@ -580,7 +580,7 @@ struct While : x3::position_tagged {
 
 using ForInitVariant = boost::variant<boost::blank, Assignment, VariableDef>;
 using ForLoopVariant
-  = boost::variant<boost::blank, PrefixIncAndDec, Assignment>;
+  = boost::variant<boost::blank, PrefixIncrementDecrement, Assignment>;
 
 struct For : x3::position_tagged {
   std::optional<ForInitVariant> init_stmt;

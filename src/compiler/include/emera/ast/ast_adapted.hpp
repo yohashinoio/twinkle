@@ -173,9 +173,9 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  emera::ast::PrefixIncAndDec,
+  emera::ast::PrefixIncrementDecrement,
   (std::u32string, op)
-  (emera::ast::Expr, rhs)
+  (emera::ast::Expr, operand)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

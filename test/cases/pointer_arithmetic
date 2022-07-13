@@ -1,0 +1,25 @@
+func f() -> i32
+{
+  let a = [4, 8, 1, 0, 48, 10];
+
+  let end = &a[sizeof a / sizeof a[0]];
+
+  let mut n = 0;
+
+  for (let mut begin = &a[0]; begin != end; ++begin)
+    n += begin^;
+
+  return n;
+}
+
+func main() -> i32
+{
+  let a = [48, 10, 58];
+  let p = &a[0];
+  let p2 = p + 1;
+  let p3 = p2 - 1;
+  let n = p2^ + p3^;
+
+  if (n == (p + 2)^ && f() == 71)
+    return n;
+}

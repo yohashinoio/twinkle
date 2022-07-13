@@ -14,6 +14,7 @@
 
 #include <emera/pch/pch.hpp>
 #include <emera/codegen/codegen.hpp>
+#include <emera/codegen/exception.hpp>
 
 namespace emera::codegen
 {
@@ -165,6 +166,8 @@ resultIntegerTypeOf(CGContext&                   ctx,
                     const std::shared_ptr<Type>& lhs_t,
                     const std::shared_ptr<Type>& rhs_t);
 
+[[nodiscard]] Value createAddInverse(CGContext& ctx, const Value& value);
+
 [[nodiscard]] Value
 createAdd(CGContext& ctx, const Value& lhs, const Value& rhs);
 
@@ -203,6 +206,16 @@ createLogicalAnd(CGContext& ctx, const Value& lhs, const Value& rhs);
 
 [[nodiscard]] Value
 createLogicalOr(CGContext& ctx, const Value& lhs, const Value& rhs);
+
+[[nodiscard]] Value
+createDereference(CGContext&                                  ctx,
+                  const boost::iterator_range<InputIterator>& pos,
+                  const Value&                                val);
+
+[[nodiscard]] Value
+createDereference(CGContext&                                  ctx,
+                  const boost::iterator_range<InputIterator>& pos,
+                  const Variable&                             operand);
 
 [[nodiscard]] bool strictEquals(const llvm::Type* const left,
                                 const llvm::Type* const right);

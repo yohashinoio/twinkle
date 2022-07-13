@@ -1,0 +1,15 @@
+func main() -> i32
+{
+  let a = [48, 10];
+  let mut p = &a[0];
+
+  let mut n = p^;
+  ++p;
+  n += p^;
+  --p;
+  n += p^;
+  ++p;
+  n += p^;
+
+  return n;
+}
