@@ -197,7 +197,7 @@ int main(const int argc, const char* const* const argv)
   for (const auto& r : fs::recursive_directory_iterator(argv[1])) {
     const char* c_argv[] = {"test", "--JIT", r.path().c_str()};
 
-    std::cerr << r.path().stem().string();
+    std::cerr << r.path().stem().string() << std::flush;
 
     // Suppresses compile error output.
     std::cerr.setstate(std::ios::failbit);
