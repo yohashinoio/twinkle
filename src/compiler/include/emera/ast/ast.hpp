@@ -287,7 +287,7 @@ struct BinOp : x3::position_tagged {
     if (op == U"<")
       return Kind::lt;
     if (op == U">")
-      return Kind::ge;
+      return Kind::gt;
     if (op == U"<=")
       return Kind::le;
     if (op == U">=")

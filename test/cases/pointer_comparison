@@ -1,0 +1,30 @@
+func main() -> i32
+{
+  let a = [4, 8, 1, 0];
+
+  let mut p = &a[0];
+
+  if (p != &a[0])
+    return 4;
+
+  if (p == &a[1])
+    return 8;
+
+  ++p;
+  if (p < &a[0])
+    return 1;
+
+  --p;
+  if (p > &a[0])
+    return 0;
+
+  ++p;
+  if (p <= &a[0])
+    return 48;
+
+  --p;
+  if (p >= &a[1])
+    return 10;
+
+  return 58;
+}

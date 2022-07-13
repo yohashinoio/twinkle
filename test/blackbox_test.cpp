@@ -191,6 +191,7 @@ int main(const int argc, const char* const* const argv)
     {              "struct_forward_declaration",  58},
     {                      "pointer_arithmetic",  58},
     {             "pointer_increment_decrement", 116},
+    {                      "pointer_comparison",  58},
   };
 
   std::size_t ok_c{};   // ok count.
