@@ -195,9 +195,9 @@ int main(const int argc, const char* const* const argv)
   std::size_t fail_c{}; // fail count.
 
   for (const auto& r : fs::recursive_directory_iterator(argv[1])) {
-    const char* c_argv[] = {"test", "--JIT", r.path().c_str()};
+    std::cerr << r.path().stem().string();
 
-    std::cerr << r.path().stem().string() << std::flush;
+    const char* c_argv[] = {"test", "--JIT", r.path().c_str()};
 
     // Suppresses compile error output.
     std::cerr.setstate(std::ios::failbit);
