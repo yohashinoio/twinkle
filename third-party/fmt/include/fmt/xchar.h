@@ -47,11 +47,6 @@ constexpr format_arg_store<wformat_context, Args...> make_wformat_args(
 }
 
 inline namespace literals {
-constexpr auto operator"" _format(const wchar_t* s, size_t n)
-    -> detail::udl_formatter<wchar_t> {
-  return {{s, n}};
-}
-
 #if FMT_USE_USER_DEFINED_LITERALS && !FMT_USE_NONTYPE_TEMPLATE_ARGS
 constexpr detail::udl_arg<wchar_t> operator"" _a(const wchar_t* s, size_t) {
   return {s};
@@ -85,6 +80,16 @@ auto vformat(basic_string_view<Char> format_str,
   basic_memory_buffer<Char> buffer;
   detail::vformat_to(buffer, format_str, args);
   return to_string(buffer);
+}
+
+#if !FMT_GCC_VERSION || FMT_GCC_VERSION >= 409
+template <typename... Args>
+using wformat_string = basic_format_string<wchar_t, type_identity_t<Args>...>;
+#endif
+
+template <typename... T>
+auto format(wformat_string<T...> fmt, T&&... args) -> std::wstring {
+  return vformat(fmt, fmt::make_wformat_args(args...));
 }
 
 // Pass char_t as a default template parameter instead of using

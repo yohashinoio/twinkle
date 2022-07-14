@@ -98,12 +98,12 @@ TEST(xchar_test, is_formattable) {
 }
 
 TEST(xchar_test, compile_time_string) {
-#if defined(FMT_USE_STRING_VIEW) && __cplusplus >= 201703L
+#if defined(FMT_USE_STRING_VIEW) && FMT_CPLUSPLUS >= 201703L
   EXPECT_EQ(L"42", fmt::format(FMT_STRING(std::wstring_view(L"{}")), 42));
 #endif
 }
 
-#if __cplusplus > 201103L
+#if FMT_CPLUSPLUS > 201103L
 struct custom_char {
   int value;
   custom_char() = default;
@@ -185,11 +185,6 @@ TEST(format_test, wide_format_to_n) {
 }
 
 #if FMT_USE_USER_DEFINED_LITERALS
-TEST(xchar_test, format_udl) {
-  using namespace fmt::literals;
-  EXPECT_EQ(L"{}c{}"_format(L"ab", 1), fmt::format(L"{}c{}", L"ab", 1));
-}
-
 TEST(xchar_test, named_arg_udl) {
   using namespace fmt::literals;
   auto udl_a =
@@ -227,10 +222,24 @@ struct formatter<streamable_enum, wchar_t> : basic_ostream_formatter<wchar_t> {
 }  // namespace fmt
 
 enum unstreamable_enum {};
+auto format_as(unstreamable_enum e) -> int { return e; }
 
 TEST(xchar_test, enum) {
   EXPECT_EQ(L"streamable_enum", fmt::format(L"{}", streamable_enum()));
   EXPECT_EQ(L"0", fmt::format(L"{}", unstreamable_enum()));
+}
+
+struct streamable_and_unformattable {};
+
+auto operator<<(std::wostream& os, streamable_and_unformattable)
+    -> std::wostream& {
+  return os << L"foo";
+}
+
+TEST(xchar_test, streamed) {
+  EXPECT_FALSE(fmt::is_formattable<streamable_and_unformattable>());
+  EXPECT_EQ(fmt::format(L"{}", fmt::streamed(streamable_and_unformattable())),
+            L"foo");
 }
 
 TEST(xchar_test, sign_not_truncated) {

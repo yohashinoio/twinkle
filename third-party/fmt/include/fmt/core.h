@@ -17,7 +17,7 @@
 #include <type_traits>
 
 // The fmt library version in the form major * 10000 + minor * 100 + patch.
-#define FMT_VERSION 80102
+#define FMT_VERSION 90000
 
 #if defined(__clang__) && !defined(__ibmxl__)
 #  define FMT_CLANG_VERSION (__clang_major__ * 100 + __clang_minor__)
@@ -93,7 +93,7 @@
 // GCC doesn't allow throw in constexpr until version 6 (bug 67371).
 #ifndef FMT_USE_CONSTEXPR
 #  if (FMT_HAS_FEATURE(cxx_relaxed_constexpr) || FMT_MSC_VERSION >= 1912 || \
-       (FMT_GCC_VERSION >= 600 && __cplusplus >= 201402L)) &&               \
+       (FMT_GCC_VERSION >= 600 && FMT_CPLUSPLUS >= 201402L)) &&             \
       !FMT_ICC_VERSION && !defined(__NVCC__)
 #    define FMT_USE_CONSTEXPR 1
 #  else
@@ -106,9 +106,9 @@
 #  define FMT_CONSTEXPR
 #endif
 
-#if ((__cplusplus >= 202002L) &&                              \
+#if ((FMT_CPLUSPLUS >= 202002L) &&                            \
      (!defined(_GLIBCXX_RELEASE) || _GLIBCXX_RELEASE > 9)) || \
-    (__cplusplus >= 201709L && FMT_GCC_VERSION >= 1002)
+    (FMT_CPLUSPLUS >= 201709L && FMT_GCC_VERSION >= 1002)
 #  define FMT_CONSTEXPR20 constexpr
 #else
 #  define FMT_CONSTEXPR20
@@ -116,11 +116,11 @@
 
 // Check if constexpr std::char_traits<>::{compare,length} are supported.
 #if defined(__GLIBCXX__)
-#  if __cplusplus >= 201703L && defined(_GLIBCXX_RELEASE) && \
+#  if FMT_CPLUSPLUS >= 201703L && defined(_GLIBCXX_RELEASE) && \
       _GLIBCXX_RELEASE >= 7  // GCC 7+ libstdc++ has _GLIBCXX_RELEASE.
 #    define FMT_CONSTEXPR_CHAR_TRAITS constexpr
 #  endif
-#elif defined(_LIBCPP_VERSION) && __cplusplus >= 201703L && \
+#elif defined(_LIBCPP_VERSION) && FMT_CPLUSPLUS >= 201703L && \
     _LIBCPP_VERSION >= 4000
 #  define FMT_CONSTEXPR_CHAR_TRAITS constexpr
 #elif FMT_MSC_VERSION >= 1914 && FMT_CPLUSPLUS >= 201703L
@@ -137,6 +137,20 @@
 #    define FMT_EXCEPTIONS 0
 #  else
 #    define FMT_EXCEPTIONS 1
+#  endif
+#endif
+
+#ifndef FMT_DEPRECATED
+#  if FMT_HAS_CPP14_ATTRIBUTE(deprecated) || FMT_MSC_VERSION >= 1900
+#    define FMT_DEPRECATED [[deprecated]]
+#  else
+#    if (defined(__GNUC__) && !defined(__LCC__)) || defined(__clang__)
+#      define FMT_DEPRECATED __attribute__((deprecated))
+#    elif FMT_MSC_VERSION
+#      define FMT_DEPRECATED __declspec(deprecated)
+#    else
+#      define FMT_DEPRECATED /* deprecated */
+#    endif
 #  endif
 #endif
 
@@ -186,6 +200,9 @@
 #  endif
 #endif
 
+// An inline std::forward replacement.
+#define FMT_FORWARD(...) static_cast<decltype(__VA_ARGS__)&&>(__VA_ARGS__)
+
 #ifdef _MSC_VER
 #  define FMT_UNCHECKED_ITERATOR(It) \
     using _Unchecked_type = It  // Mark iterator as checked.
@@ -196,7 +213,7 @@
 #ifndef FMT_BEGIN_NAMESPACE
 #  define FMT_BEGIN_NAMESPACE \
     namespace fmt {           \
-    inline namespace v8 {
+    inline namespace v9 {
 #  define FMT_END_NAMESPACE \
     }                       \
     }
@@ -234,7 +251,7 @@
     (FMT_CPLUSPLUS >= 201703L || defined(_LIBCPP_VERSION))
 #  include <string_view>
 #  define FMT_USE_STRING_VIEW
-#elif FMT_HAS_INCLUDE("experimental/string_view") && __cplusplus >= 201402L
+#elif FMT_HAS_INCLUDE("experimental/string_view") && FMT_CPLUSPLUS >= 201402L
 #  include <experimental/string_view>
 #  define FMT_USE_EXPERIMENTAL_STRING_VIEW
 #endif
@@ -244,9 +261,9 @@
 #endif
 
 #ifndef FMT_CONSTEVAL
-#  if ((FMT_GCC_VERSION >= 1000 || FMT_CLANG_VERSION >= 1101) &&       \
-       __cplusplus >= 202002L && !defined(__apple_build_version__)) || \
-      (defined(__cpp_consteval) &&                                     \
+#  if ((FMT_GCC_VERSION >= 1000 || FMT_CLANG_VERSION >= 1101) &&         \
+       FMT_CPLUSPLUS >= 202002L && !defined(__apple_build_version__)) || \
+      (defined(__cpp_consteval) &&                                       \
        (!FMT_MSC_VERSION || _MSC_FULL_VER >= 193030704))
 // consteval is broken in MSVC before VS2022 and Apple clang 13.
 #    define FMT_CONSTEVAL consteval
@@ -257,8 +274,8 @@
 #endif
 
 #ifndef FMT_USE_NONTYPE_TEMPLATE_ARGS
-#  if defined(__cpp_nontype_template_args) &&                \
-      ((FMT_GCC_VERSION >= 903 && __cplusplus >= 201709L) || \
+#  if defined(__cpp_nontype_template_args) &&                  \
+      ((FMT_GCC_VERSION >= 903 && FMT_CPLUSPLUS >= 201709L) || \
        __cpp_nontype_template_args >= 201911L)
 #    define FMT_USE_NONTYPE_TEMPLATE_ARGS 1
 #  else
@@ -291,6 +308,18 @@ template <typename T> struct type_identity { using type = T; };
 template <typename T> using type_identity_t = typename type_identity<T>::type;
 template <typename T>
 using underlying_t = typename std::underlying_type<T>::type;
+
+template <typename...> struct disjunction : std::false_type {};
+template <typename P> struct disjunction<P> : P {};
+template <typename P1, typename... Pn>
+struct disjunction<P1, Pn...>
+    : conditional_t<bool(P1::value), P1, disjunction<Pn...>> {};
+
+template <typename...> struct conjunction : std::true_type {};
+template <typename P> struct conjunction<P> : P {};
+template <typename P1, typename... Pn>
+struct conjunction<P1, Pn...>
+    : conditional_t<bool(P1::value), conjunction<Pn...>, P1> {};
 
 struct monostate {
   constexpr monostate() {}
@@ -376,7 +405,7 @@ template <typename T> auto convert_for_visit(T) -> monostate { return {}; }
 template <typename Int>
 FMT_CONSTEXPR auto to_unsigned(Int value) ->
     typename std::make_unsigned<Int>::type {
-  FMT_ASSERT(value >= 0, "negative value");
+  FMT_ASSERT(std::is_unsigned<Int>::value || value >= 0, "negative value");
   return static_cast<typename std::make_unsigned<Int>::type>(value);
 }
 
@@ -1420,9 +1449,9 @@ template <typename Context> struct arg_mapper {
   template <typename T,
             FMT_ENABLE_IF(
                 std::is_enum<T>::value&& std::is_convertible<T, int>::value &&
-                !has_formatter<T, Context>::value &&
+                !has_format_as<T>::value && !has_formatter<T, Context>::value &&
                 !has_fallback_formatter<T, char_type>::value)>
-  FMT_CONSTEXPR FMT_INLINE auto map(const T& val)
+  FMT_DEPRECATED FMT_CONSTEXPR FMT_INLINE auto map(const T& val)
       -> decltype(std::declval<arg_mapper>().map(
           static_cast<underlying_t<T>>(val))) {
     return map(static_cast<underlying_t<T>>(val));
@@ -1682,7 +1711,7 @@ constexpr auto encode_types() -> unsigned long long {
 
 template <typename Context, typename T>
 FMT_CONSTEXPR FMT_INLINE auto make_value(T&& val) -> value<Context> {
-  const auto& arg = arg_mapper<Context>().map(std::forward<T>(val));
+  const auto& arg = arg_mapper<Context>().map(FMT_FORWARD(val));
 
   constexpr bool formattable_char =
       !std::is_same<decltype(arg), const unformattable_char&>::value;
@@ -1849,7 +1878,7 @@ class format_arg_store
         data_{detail::make_arg<
             is_packed, Context,
             detail::mapped_type_constant<remove_cvref_t<T>, Context>::value>(
-            std::forward<T>(args))...} {
+            FMT_FORWARD(args))...} {
     detail::init_named_args(data_.named_args(), 0, 0, args...);
   }
 };
@@ -1865,7 +1894,7 @@ class format_arg_store
 template <typename Context = format_context, typename... Args>
 constexpr auto make_format_args(Args&&... args)
     -> format_arg_store<Context, remove_cvref_t<Args>...> {
-  return {std::forward<Args>(args)...};
+  return {FMT_FORWARD(args)...};
 }
 
 /**

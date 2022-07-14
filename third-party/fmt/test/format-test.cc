@@ -59,6 +59,8 @@ TEST(uint128_test, shift) {
   EXPECT_EQ(static_cast<uint64_t>(n), 0x8000000000000000);
   n = n >> 62;
   EXPECT_EQ(static_cast<uint64_t>(n), 42);
+  EXPECT_EQ(uint128_fallback(1) << 112, uint128_fallback(0x1000000000000, 0));
+  EXPECT_EQ(uint128_fallback(0x1000000000000, 0) >> 112, uint128_fallback(1));
 }
 
 TEST(uint128_test, minus) {
@@ -99,7 +101,7 @@ template <typename Float> void check_isfinite() {
 
 TEST(float_test, isfinite) {
   check_isfinite<double>();
-#ifdef __SIZEOF_FLOAT128__
+#if FMT_USE_FLOAT128
   check_isfinite<fmt::detail::float128>();
 #endif
 }
@@ -120,7 +122,7 @@ template <typename Float> void check_isnan() {
 
 TEST(float_test, isnan) {
   check_isnan<double>();
-#ifdef __SIZEOF_FLOAT128__
+#if FMT_USE_FLOAT128
   check_isnan<fmt::detail::float128>();
 #endif
 }
@@ -234,7 +236,7 @@ TEST(util_test, format_system_error) {
     throws_on_alloc = true;
   }
   if (!throws_on_alloc) {
-    fmt::print("warning: std::allocator allocates {} chars", max_size);
+    fmt::print("warning: std::allocator allocates {} chars\n", max_size);
     return;
   }
 }
@@ -1756,6 +1758,7 @@ TEST(format_test, group_digits_view) {
 }
 
 enum test_enum { foo, bar };
+auto format_as(test_enum e) -> int { return e; }
 
 TEST(format_test, join) {
   using fmt::join;
@@ -1859,11 +1862,11 @@ TEST(format_test, compile_time_string) {
 
   (void)with_null;
   (void)no_null;
-#if __cplusplus >= 201703L
+#if FMT_CPLUSPLUS >= 201703L
   EXPECT_EQ("42", fmt::format(FMT_STRING(with_null), 42));
   EXPECT_EQ("42", fmt::format(FMT_STRING(no_null), 42));
 #endif
-#if defined(FMT_USE_STRING_VIEW) && __cplusplus >= 201703L
+#if defined(FMT_USE_STRING_VIEW) && FMT_CPLUSPLUS >= 201703L
   EXPECT_EQ("42", fmt::format(FMT_STRING(std::string_view("{}")), 42));
 #endif
 }
@@ -1902,6 +1905,7 @@ TEST(format_test, formatter_not_specialized) {
 
 #if FMT_HAS_FEATURE(cxx_strong_enums)
 enum big_enum : unsigned long long { big_enum_value = 5000000000ULL };
+auto format_as(big_enum e) -> unsigned long long { return e; }
 
 TEST(format_test, strong_enum) {
   EXPECT_EQ("5000000000", fmt::format("{}", big_enum_value));
@@ -1983,9 +1987,7 @@ TEST(format_test, to_string) {
   EXPECT_EQ(fmt::to_string(reinterpret_cast<void*>(0x1234)), "0x1234");
   EXPECT_EQ(fmt::to_string(adl_test::fmt::detail::foo()), "foo");
   EXPECT_EQ(fmt::to_string(convertible_to_int()), "42");
-
-  enum foo : unsigned char { zero };
-  EXPECT_EQ(fmt::to_string(zero), "0");
+  EXPECT_EQ(fmt::to_string(foo), "0");
 
 #if FMT_USE_FLOAT128
   EXPECT_EQ(fmt::to_string(__float128(0.5)), "0.5");
@@ -2233,7 +2235,7 @@ TEST(format_test, char_traits_is_not_ambiguous) {
   using namespace std;
   auto c = char_traits<char>::char_type();
   (void)c;
-#if __cplusplus >= 201103L
+#if FMT_CPLUSPLUS >= 201103L
   auto s = std::string();
   auto lval = begin(s);
   (void)lval;

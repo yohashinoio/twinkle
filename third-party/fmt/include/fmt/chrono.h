@@ -203,7 +203,7 @@ To safe_duration_cast(std::chrono::duration<FromRep, FromPeriod> from,
     }
     const auto min1 =
         (std::numeric_limits<IntermediateRep>::min)() / Factor::num;
-    if (count < min1) {
+    if (!std::is_unsigned<IntermediateRep>::value && count < min1) {
       ec = 1;
       return {};
     }
@@ -1396,7 +1396,8 @@ inline bool isfinite(T) {
 // Converts value to Int and checks that it's in the range [0, upper).
 template <typename T, typename Int, FMT_ENABLE_IF(std::is_integral<T>::value)>
 inline Int to_nonnegative_int(T value, Int upper) {
-  FMT_ASSERT(value >= 0 && to_unsigned(value) <= to_unsigned(upper),
+  FMT_ASSERT(std::is_unsigned<Int>::value ||
+             (value >= 0 && to_unsigned(value) <= to_unsigned(upper)),
              "invalid value");
   (void)upper;
   return static_cast<Int>(value);
@@ -1776,7 +1777,7 @@ struct chrono_formatter {
         format_to(std::back_inserter(buf), runtime("{:.{}f}"),
                   std::fmod(val * static_cast<rep>(Period::num) /
                                 static_cast<rep>(Period::den),
-                            60),
+                            static_cast<rep>(60)),
                   num_fractional_digits);
         if (negative) *out++ = '-';
         if (buf.size() < 2 || buf[1] == '.') *out++ = '0';
@@ -2016,13 +2017,16 @@ struct formatter<std::chrono::time_point<std::chrono::system_clock, Duration>,
     return formatter<std::tm, Char>::format(localtime(val), ctx);
   }
 
-  static constexpr const Char default_specs[] = {'%', 'F', ' ', '%', 'T'};
+  // EDG frontend (Intel, NVHPC compilers) can't determine array length.
+  static constexpr const Char default_specs[5] = {'%', 'F', ' ', '%', 'T'};
 };
 
+#if FMT_CPLUSPLUS < 201703L
 template <typename Char, typename Duration>
 constexpr const Char
     formatter<std::chrono::time_point<std::chrono::system_clock, Duration>,
               Char>::default_specs[];
+#endif
 
 template <typename Char> struct formatter<std::tm, Char> {
  private:

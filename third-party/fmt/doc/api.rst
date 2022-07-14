@@ -12,6 +12,7 @@ The {fmt} library API consists of the following parts:
   formatting functions and locale support
 * :ref:`fmt/ranges.h <ranges-api>`: formatting of ranges and tuples
 * :ref:`fmt/chrono.h <chrono-api>`: date and time formatting
+* :ref:`fmt/std.h <std-api>`: formatters for standard library types
 * :ref:`fmt/compile.h <compile-api>`: format string compilation
 * :ref:`fmt/color.h <color-api>`: terminal color and text style
 * :ref:`fmt/os.h <os-api>`: system APIs
@@ -66,7 +67,7 @@ checked at compile time in C++20. To pass a runtime format string wrap it in
 .. doxygenfunction:: print(std::FILE *f, format_string<T...> fmt, T&&... args)
 .. doxygenfunction:: vprint(std::FILE *f, string_view fmt, format_args args)
 
-Compile-time Format String Checks
+Compile-Time Format String Checks
 ---------------------------------
 
 Compile-time checks are enabled when using ``FMT_STRING``. They support built-in
@@ -140,6 +141,9 @@ times and reduces binary code size compared to a fully parameterized version.
 .. doxygenclass:: fmt::basic_format_arg
    :members:
 
+.. doxygenclass:: fmt::basic_format_parse_context
+   :members:
+
 .. doxygenclass:: fmt::basic_format_context
    :members:
 
@@ -176,13 +180,14 @@ functions and locale support.
 
 .. _udt:
 
-Formatting User-defined Types
+Formatting User-Defined Types
 -----------------------------
 
 The {fmt} library provides formatters for many standard C++ types.
 See :ref:`fmt/ranges.h <ranges-api>` for ranges and tuples including standard
-containers such as ``std::vector`` and :ref:`fmt/chrono.h <chrono-api>` for date
-and time formatting.
+containers such as ``std::vector``, :ref:`fmt/chrono.h <chrono-api>` for date
+and time formatting and :ref:`fmt/std.h <std-api>` for path and variant 
+formatting.
 
 To make a user-defined type formattable, specialize the ``formatter<T>`` struct
 template and implement ``parse`` and ``format`` methods::
@@ -303,15 +308,30 @@ If a type provides both a ``formatter`` specialization and an implicit
 conversion to a formattable type, the specialization takes precedence over the
 conversion.
 
-.. doxygenclass:: fmt::basic_format_parse_context
-   :members:
+For enums {fmt} also provides the ``format_as`` extension API. To format an enum
+via this API define ``format_as`` that takes this enum and converts it to the
+underlying type. ``format_as`` should be defined in the same namespace as the
+enum.
 
-Literal-based API
+Example (https://godbolt.org/z/r7vvGE1v7)::
+
+  #include <fmt/format.h>
+
+  namespace kevin_namespacy {
+  enum class film {
+    house_of_cards, american_beauty, se7en = 7
+  };
+  auto format_as(film f) { return fmt::underlying(f); }
+  }
+
+  int main() {
+    fmt::print("{}\n", kevin_namespacy::film::se7en); // prints "7"
+  }
+
+Literal-Based API
 -----------------
 
 The following user-defined literals are defined in ``fmt/format.h``.
-
-.. doxygenfunction:: operator""_format(const char *s, size_t n) -> detail::udl_formatter<char> 
 
 .. doxygenfunction:: operator""_a()
 
@@ -387,8 +407,8 @@ non-default floating-point formatting that occasionally falls back on
 
 .. _ranges-api:
 
-Ranges and Tuple Formatting
-===========================
+Range and Tuple Formatting
+==========================
 
 The library also supports convenient formatting of ranges and tuples::
 
@@ -447,9 +467,38 @@ The format syntax is described in :ref:`chrono-specs`.
 
 .. doxygenfunction:: gmtime(std::time_t time)
 
+.. _std-api:
+
+Standard Library Types Formatting
+=================================
+
+``fmt/std.h`` provides formatters for:
+
+* `std::filesystem::path <std::filesystem::path>`_
+* `std::thread::id <https://en.cppreference.com/w/cpp/thread/thread/id>`_
+* `std::monostate <https://en.cppreference.com/w/cpp/utility/variant/monostate>`_
+* `std::variant <https://en.cppreference.com/w/cpp/utility/variant/variant>`_
+
+Formatting Variants
+-------------------
+
+A ``std::variant`` is only formattable if every variant alternative is formattable, and requires the
+``__cpp_lib_variant`` `library feature <https://en.cppreference.com/w/cpp/feature_test>`_.
+  
+**Example**::
+
+  #include <fmt/std.h>
+
+  std::variant<char, float> v0{'x'};
+  // Prints "variant('x')"
+  fmt::print("{}", v0);
+
+  std::variant<std::monostate, char> v1;
+  // Prints "variant(monostate)"
+
 .. _compile-api:
 
-Format string compilation
+Format String Compilation
 =========================
 
 ``fmt/compile.h`` provides format string compilation enabled via the
@@ -467,7 +516,7 @@ places where formatting is a performance bottleneck.
 
 .. _color-api:
 
-Terminal color and text style
+Terminal Color and Text Style
 =============================
 
 ``fmt/color.h`` provides support for terminal color and text style output.
@@ -503,20 +552,20 @@ In order to make a type formattable via ``std::ostream`` you should provide a
 
   #include <fmt/ostream.h>
 
-  class date {
-    int year_, month_, day_;
-  public:
-    date(int year, int month, int day): year_(year), month_(month), day_(day) {}
+  struct date {
+    int year, month, day;
 
     friend std::ostream& operator<<(std::ostream& os, const date& d) {
-      return os << d.year_ << '-' << d.month_ << '-' << d.day_;
+      return os << d.year << '-' << d.month << '-' << d.day;
     }
   };
 
   template <> struct fmt::formatter<date> : ostream_formatter {};
 
-  std::string s = fmt::format("The date is {}", date(2012, 12, 9));
+  std::string s = fmt::format("The date is {}", date{2012, 12, 9});
   // s == "The date is 2012-12-9"
+
+.. doxygenfunction:: streamed(const T &)
 
 .. doxygenfunction:: print(std::ostream &os, format_string<T...> fmt, T&&... args)
 
