@@ -441,11 +441,11 @@ class HDRPixel {
   {
     if (idx == 0)
       return r;
-    if (idx == 2)
+    if (idx == 1)
       return g;
-    if (idx == 3)
+    if (idx == 2)
       return b;
-    if (idx == 4)
+    if (idx == 3)
       return e;
 
     return 0 as u8;
@@ -575,7 +575,6 @@ func save_as_hdr(filename: ^i8, image: ^Color, width: i32, height: i32)
 	        let cursor_move = min(127, width - cursor);
 	        fprintf(fp, "%c", cursor_move);
 	        for (let mut j = cursor;  j < cursor + cursor_move; ++j) {
-            // TODO: to line.at(j).get(i)
             let tmp = line.at(j);
 	          fprintf(fp, "%c", tmp.get(i));
           }
