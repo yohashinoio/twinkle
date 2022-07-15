@@ -168,7 +168,7 @@ class Ray {
 
 func dot(v1: &Vec, v2: &Vec) -> f64
 {
-	return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+  return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
 }
 
 class Sphere {
@@ -190,24 +190,24 @@ class Sphere {
   {
     let eps = 1e-6;
 
-		let o_p = position.sub(ref ray.org);
+    let o_p = position.sub(ref ray.org);
 
-		let b = dot(ref o_p, ref ray.dir);
+    let b = dot(ref o_p, ref ray.dir);
     let det = b * b - dot(ref o_p, ref o_p) + radius * radius;
 
-		if (0.0 <= det) {
-			let sqrt_det = sqrt(det);
-			let t1 = b - sqrt_det;
+    if (0.0 <= det) {
+      let sqrt_det = sqrt(det);
+      let t1 = b - sqrt_det;
       let t2 = b + sqrt_det;
 
-			if (t1 > eps)
+      if (t1 > eps)
         return t1;
-			else if (t2 > eps)
+      else if (t2 > eps)
         return t2;
-		}
+    }
 
-		return 0.0;
-	}
+    return 0.0;
+  }
 
   let mut radius: f64;
   let mut position: Vec;
@@ -262,7 +262,7 @@ func min(a: i32, b: i32) -> i32
 
 func multiply(v1: &Vec, v2: &Vec) -> Vec
 {
-	return Vec{v1.x * v2.x, v1.y * v2.y, v1.z * v2.z};
+  return Vec{v1.x * v2.x, v1.y * v2.y, v1.z * v2.z};
 }
 
 func radiance(ray: &Ray, depth: i32) -> Color
@@ -278,14 +278,14 @@ func radiance(ray: &Ray, depth: i32) -> Color
   let light_color = Color{256., 256., 256.};
 
   let spheres = [
-	  Sphere{ 1e5, Vec{1e5 + 1., 40.8, 81.6},   Color{}, Color{0.75, 0.25, 0.25},    DIFFUSE},
-	  Sphere{ 1e5, Vec{-1e5 + 99., 40.8, 81.6}, Color{}, Color{0.25, 0.25, 0.75},    DIFFUSE},
-	  Sphere{ 1e5, Vec{50., 40.8, 1e5},         Color{}, Color{0.75, 0.75, 0.75},    DIFFUSE},
-	  Sphere{ 1e5, Vec{50., 40.8, -1e5 + 170.}, Color{}, Color{},                    DIFFUSE},
-	  Sphere{ 1e5, Vec{50., 1e5, 81.6},         Color{}, Color{0.75, 0.75, 0.75},    DIFFUSE},
-	  Sphere{ 1e5, Vec{50., -1e5 + 81.6, 81.6}, Color{}, Color{0.75, 0.75, 0.75},    DIFFUSE},
-	  Sphere{16.5, Vec{27., 16.5, 47.},         Color{}, Color{1., 1., 1.}.mul(.99), SPECULAR},
-	  Sphere{16.5, Vec{73., 16.5, 78.},         Color{}, Color{1., 1., 1.}.mul(.99), REFRACTION}
+    Sphere{ 1e5, Vec{1e5 + 1., 40.8, 81.6},   Color{}, Color{0.75, 0.25, 0.25},    DIFFUSE},
+    Sphere{ 1e5, Vec{-1e5 + 99., 40.8, 81.6}, Color{}, Color{0.25, 0.25, 0.75},    DIFFUSE},
+    Sphere{ 1e5, Vec{50., 40.8, 1e5},         Color{}, Color{0.75, 0.75, 0.75},    DIFFUSE},
+    Sphere{ 1e5, Vec{50., 40.8, -1e5 + 170.}, Color{}, Color{},                    DIFFUSE},
+    Sphere{ 1e5, Vec{50., 1e5, 81.6},         Color{}, Color{0.75, 0.75, 0.75},    DIFFUSE},
+    Sphere{ 1e5, Vec{50., -1e5 + 81.6, 81.6}, Color{}, Color{0.75, 0.75, 0.75},    DIFFUSE},
+    Sphere{16.5, Vec{27., 16.5, 47.},         Color{}, Color{1., 1., 1.}.mul(.99), SPECULAR},
+    Sphere{16.5, Vec{73., 16.5, 78.},         Color{}, Color{1., 1., 1.}.mul(.99), REFRACTION}
   ];
 
   let spheres_size = (sizeof spheres / sizeof spheres[0]) as i32;
@@ -385,14 +385,14 @@ func radiance(ray: &Ray, depth: i32) -> Color
 
     let a = nt - nc;
     let b = nt + nc;
-		let r0 = (a * a) / (b * b);
-		let mut c: f64;
+    let r0 = (a * a) / (b * b);
+    let mut c: f64;
     if (into)
       c = 1.0 - -ddn;
     else
       c = 1.0 - dot(ref tdir, ref normal);
-		let re = r0 + (1.0 - r0) * pow(c, 5.0);
-		let tr = 1.0 - re;
+    let re = r0 + (1.0 - r0) * pow(c, 5.0);
+    let tr = 1.0 - re;
 
     {
       let tmp = radiance(ref reflection_ray, depth + 1);
@@ -459,15 +459,15 @@ class HDRPixel {
 
 func get_hdr_pixel(color: &Color) -> HDRPixel
 {
-	let d = max(color.x, max(color.y, color.z));
-	if (d <= 1e-32)
-		return HDRPixel{};
+  let d = max(color.x, max(color.y, color.z));
+  if (d <= 1e-32)
+    return HDRPixel{};
 
-	let mut e: i32;
-	let m = frexp(d, &e);
+  let mut e: i32;
+  let m = frexp(d, &e);
 
-	let d = m * 256.0 / d;
-	return HDRPixel{
+  let d = m * 256.0 / d;
+  return HDRPixel{
     (color.x * d) as u8,
     (color.y * d) as u8,
     (color.z * d) as u8,
@@ -552,36 +552,38 @@ func save_as_hdr(filename: ^i8, image: ^Color, width: i32, height: i32)
 
   if (fp) {
     let ret = 0x0a as u8;
-	  fprintf(fp, "#?RADIANCE%c", ret);
-	  fprintf(fp, "# Made with 100%% pure HDR Shop%c", ret);
-	  fprintf(fp, "FORMAT=32-bit_rle_rgbe%c", ret);
-	  fprintf(fp, "EXPOSURE=1.0000000000000%c%c", ret, ret);
+    fprintf(fp, "#?RADIANCE%c", ret);
+    fprintf(fp, "# Made with 100%% pure HDR Shop%c", ret);
+    fprintf(fp, "FORMAT=32-bit_rle_rgbe%c", ret);
+    fprintf(fp, "EXPOSURE=1.0000000000000%c%c", ret, ret);
 
     fprintf(fp, "-Y %d +X %d%c", height, width, ret);
-	  for (let mut i = height - 1; 0 <= i; --i) {
-	    let line = HDRPixelList{};
+    for (let mut i = height - 1; 0 <= i; --i) {
+      let line = HDRPixelList{};
 
-	    for (let mut j = 0; j < width; ++j) {
+      for (let mut j = 0; j < width; ++j) {
         let tmp = image[j + i * width];
-	      let p = get_hdr_pixel(ref tmp);
-	      line.push_back(ref p);
-	    }
+        let p = get_hdr_pixel(ref tmp);
+        line.push_back(ref p);
+      }
 
-	    fprintf(fp, "%c%c", 0x02, 0x02);
-	    fprintf(fp, "%c%c", (width >> 8) & 0xFF, width & 0xFF);
+      fprintf(fp, "%c%c", 0x02, 0x02);
+      fprintf(fp, "%c%c", (width >> 8) & 0xFF, width & 0xFF);
 
-	    for (let mut i = 0; i < 4; ++i) {
-	      for (let mut cursor = 0; cursor < width;) {
-	        let cursor_move = min(127, width - cursor);
-	        fprintf(fp, "%c", cursor_move);
-	        for (let mut j = cursor;  j < cursor + cursor_move; ++j) {
+      for (let mut i = 0; i < 4; ++i) {
+        for (let mut cursor = 0; cursor < width;) {
+          let cursor_move = min(127, width - cursor);
+          fprintf(fp, "%c", cursor_move);
+
+          for (let mut j = cursor;  j < cursor + cursor_move; ++j) {
             let tmp = line.at(j);
-	          fprintf(fp, "%c", tmp.get(i));
+            fprintf(fp, "%c", tmp.get(i));
           }
-	        cursor += cursor_move;
-	      }
-	    }
-	  }
+
+          cursor += cursor_move;
+        }
+      }
+    }
   }
   else {
     let stderr = File{2, "w"};
