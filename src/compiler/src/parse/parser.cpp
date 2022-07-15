@@ -610,8 +610,9 @@ const auto unary_operator
 = string(U"+") | string(U"-") | string(U"!") | string(U"*") | string(U"&")
   | string(U"sizeof");
 
-const auto bitshift_operator
-  = x3::rule<struct BitShiftOperatorTag, std::u32string>{"bitshift operator"}
+const auto bitwise_shift_operator
+  = x3::rule<struct BitwiseShiftOperatorTag,
+             std::u32string>{"bitshift operator"}
 = string(U"<<") | string(U">>");
 
 //===----------------------------------------------------------------------===//
@@ -639,7 +640,7 @@ const auto pipeline_def
 
 const auto bitwise_shift_def
   = add[action::assignAttrToVal]
-    >> *(bitshift_operator > add)[action::assignToValAs<ast::BinOp>{}];
+    >> *(bitwise_shift_operator > add)[action::assignToValAs<ast::BinOp>{}];
 
 const auto add_def
   = mul[action::assignAttrToVal]
