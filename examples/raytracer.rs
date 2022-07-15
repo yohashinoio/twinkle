@@ -562,7 +562,8 @@ func save_as_hdr(filename: ^i8, image: ^Color, width: i32, height: i32)
 	    let line = HDRPixelList{};
 
 	    for (let mut j = 0; j < width; ++j) {
-	      let p = get_hdr_pixel(image[j + i * width]);
+        let tmp = image[j + i * width];
+	      let p = get_hdr_pixel(ref tmp);
 	      line.push_back(ref p);
 	    }
 
@@ -573,8 +574,11 @@ func save_as_hdr(filename: ^i8, image: ^Color, width: i32, height: i32)
 	      for (let mut cursor = 0; cursor < width;) {
 	        let cursor_move = min(127, width - cursor);
 	        fprintf(fp, "%c", cursor_move);
-	        for (let mut j = cursor;  j < cursor + cursor_move; ++j)
-	          fprintf(fp, "%c", line.at(j).get(i));
+	        for (let mut j = cursor;  j < cursor + cursor_move; ++j) {
+            // TODO: to line.at(j).get(i)
+            let tmp = line.at(j);
+	          fprintf(fp, "%c", tmp.get(i));
+          }
 	        cursor += cursor_move;
 	      }
 	    }
@@ -649,10 +653,6 @@ func main() -> i32
   }
 
   fprintf(stderr.stream(), "\n");
-
-  for (let mut i = 0; i < 10; ++i) {
-    printf("%f\n", image[i].length_squared());
-  }
 
   save_as_hdr("image.hdr", image, width, height);
 }
