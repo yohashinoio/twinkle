@@ -194,6 +194,8 @@ int main(const int argc, const char* const* const argv)
     {                      "pointer_comparison",  58},
     {                           "bitwise_shift",  58},
     {                          "bitwise_shift2",  58},
+    {                          "bitwise_and_or",  58},
+    {                 "bitwise_and_or_negative",  58},
   };
 
   std::size_t ok_c{};   // ok count.

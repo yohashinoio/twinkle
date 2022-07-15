@@ -1,0 +1,12 @@
+func main() -> i32
+{
+  let n = 58;
+
+  if (n & 0xFF != 58)
+    return 48;
+
+  if (58 | 0xFF != 255)
+    return 10;
+
+  return 58;
+}

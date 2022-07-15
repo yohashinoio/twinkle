@@ -268,6 +268,10 @@ const x3::rule<struct BinaryLogicalTag, ast::Expr> binary_logical{
   "binary logical operation"};
 const x3::rule<struct EqualTag, ast::Expr>    equal{"equality operation"};
 const x3::rule<struct RelationTag, ast::Expr> relation{"relational operation"};
+const x3::rule<struct BitwiseAndTag, ast::Expr> bitwise_and{
+  "bitwise and operation"};
+const x3::rule<struct BitwiseOrTag, ast::Expr> bitwise_or{
+  "bitwise or operation"};
 const x3::rule<struct PipelineTag, ast::Expr> pipeline{"pipeline operation"};
 const x3::rule<struct BitwiseShiftTag, ast::Expr> bitwise_shift{
   "bitwise shift operation"};
@@ -612,8 +616,17 @@ const auto unary_operator
 
 const auto bitwise_shift_operator
   = x3::rule<struct BitwiseShiftOperatorTag,
-             std::u32string>{"bitshift operator"}
+             std::u32string>{"bitwise shift operator"}
 = string(U"<<") | string(U">>");
+
+const auto bitwise_or_operator
+  = x3::rule<struct BitwiseOrOperatorTag, std::u32string>{"bitwise OR operator"}
+= string(U"|") - lit(U"||");
+
+const auto bitwise_and_operator
+  = x3::rule<struct BitwiseAndOperatorTag,
+             std::u32string>{"bitwise AND operator"}
+= string(U"&") - lit(U"&&");
 
 //===----------------------------------------------------------------------===//
 // Expression rules and tags definition
@@ -630,8 +643,17 @@ const auto equal_def
     >> *(equality_operator > relation)[action::assignToValAs<ast::BinOp>{}];
 
 const auto relation_def
+  = bitwise_or[action::assignAttrToVal]
+    >> *(relational_operator > bitwise_or)[action::assignToValAs<ast::BinOp>{}];
+
+const auto bitwise_or_def
+  = bitwise_and[action::assignAttrToVal]
+    >> *(bitwise_or_operator
+         > bitwise_and)[action::assignToValAs<ast::BinOp>{}];
+
+const auto bitwise_and_def
   = pipeline[action::assignAttrToVal]
-    >> *(relational_operator > pipeline)[action::assignToValAs<ast::BinOp>{}];
+    >> *(bitwise_and_operator > pipeline)[action::assignToValAs<ast::BinOp>{}];
 
 const auto pipeline_def
   = bitwise_shift[action::assignAttrToVal]
@@ -698,6 +720,8 @@ BOOST_SPIRIT_DEFINE(expr)
 BOOST_SPIRIT_DEFINE(binary_logical)
 BOOST_SPIRIT_DEFINE(equal)
 BOOST_SPIRIT_DEFINE(relation)
+BOOST_SPIRIT_DEFINE(bitwise_and)
+BOOST_SPIRIT_DEFINE(bitwise_or)
 BOOST_SPIRIT_DEFINE(pipeline)
 BOOST_SPIRIT_DEFINE(bitwise_shift)
 BOOST_SPIRIT_DEFINE(add)
@@ -731,6 +755,14 @@ struct EqualTag
   , AnnotatePosition {};
 
 struct RelationTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct BitwiseAndTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct BitwiseOrTag
   : ErrorHandle
   , AnnotatePosition {};
 

@@ -214,6 +214,12 @@ createShiftLeft(CGContext& ctx, const Value& lhs, const Value& rhs);
 createShiftRight(CGContext& ctx, const Value& lhs, const Value& rhs);
 
 [[nodiscard]] Value
+createBitwiseAnd(CGContext& ctx, const Value& lhs, const Value& rhs);
+
+[[nodiscard]] Value
+createBitwiseOr(CGContext& ctx, const Value& lhs, const Value& rhs);
+
+[[nodiscard]] Value
 createDereference(CGContext&                                  ctx,
                   const boost::iterator_range<InputIterator>& pos,
                   const Value&                                val);

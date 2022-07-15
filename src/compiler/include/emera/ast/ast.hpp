@@ -268,6 +268,8 @@ struct BinOp : x3::position_tagged {
     logical_or,          // Logical OR
     bitwise_shift_left,  // Bitwise shift left
     bitwise_shift_right, // Bitwise shift right
+    bitwise_and,         // Bitwise AND
+    bitwise_or,          // Bitwise OR
   };
 
   [[nodiscard]] Kind kind() const
@@ -302,6 +304,10 @@ struct BinOp : x3::position_tagged {
       return Kind::bitwise_shift_left;
     if (op == U">>")
       return Kind::bitwise_shift_right;
+    if (op == U"&")
+      return Kind::bitwise_and;
+    if (op == U"|")
+      return Kind::bitwise_or;
 
     return Kind::unknown;
   }
