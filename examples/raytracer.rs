@@ -65,7 +65,7 @@ class HeapArray {
   }
 
 private:
-  let p: ^void;
+  let mut p: ^void;
 }
 
 class File {
@@ -91,7 +91,7 @@ class File {
   }
 
 private:
-  let fp: ^FILE;
+  let mut fp: ^FILE;
 }
 
 class Vec {
@@ -139,9 +139,9 @@ class Vec {
     return Vec{x / b, y / b, z / b};
   }
 
-  let x: f64;
-  let y: f64;
-  let z: f64;
+  let mut x: f64;
+  let mut y: f64;
+  let mut z: f64;
 }
 
 typedef Color = Vec;
@@ -162,8 +162,8 @@ class Ray {
     dir = dir_;
   }
 
-  let org: Vec;
-  let dir: Vec;
+  let mut org: Vec;
+  let mut dir: Vec;
 }
 
 func dot(v1: &Vec, v2: &Vec) -> f64
@@ -209,11 +209,11 @@ class Sphere {
 		return 0.0;
 	}
 
-  let radius: f64;
-  let position: Vec;
-  let emission: Color;
-  let color: Color;
-  let ref_type: i32;
+  let mut radius: f64;
+  let mut position: Vec;
+  let mut emission: Color;
+  let mut color: Color;
+  let mut ref_type: i32;
 }
 
 func normalize(v: &Vec) -> Vec
@@ -451,10 +451,10 @@ class HDRPixel {
     return 0 as u8;
   }
 
-  let r: u8;
-  let g: u8;
-  let b: u8;
-  let e: u8;
+  let mut r: u8;
+  let mut g: u8;
+  let mut b: u8;
+  let mut e: u8;
 }
 
 func get_hdr_pixel(color: &Color) -> HDRPixel
@@ -475,22 +475,74 @@ func get_hdr_pixel(color: &Color) -> HDRPixel
   };
 }
 
-class HDRPixelArray {
-  HDRPixelArray()
+declare class HDRPixelNode;
+
+class HDRPixelNode {
+  let mut pix: HDRPixel;
+  let mut next: ^HDRPixelNode;
+}
+
+class HDRPixelList {
+  HDRPixelList()
   {
+    head = new HDRPixelNode;
+    head^.next = 0 as ^HDRPixelNode;
+
+    size = 0;
   }
 
-  func push_back(pix: &HDRPixel)
+  ~HDRPixelList()
   {
+    while (head^.next != 0 as ^HDRPixelNode) {
+      let tmp = head;
+      head = head^.next;
+      delete tmp;
+    }
   }
 
-  func at(idx: u64) -> HDRPixel
+  func push_back(val: &HDRPixel)
   {
-    return p[idx];
+    let mut tail = search_tail();
+
+    let newnode = new HDRPixelNode;
+
+    newnode^.pix = val;
+    newnode^.next = 0 as ^HDRPixelNode;
+
+    tail^.next = newnode;
+
+    ++size;
   }
 
-  let p: ^HDRPixel;
-  let size: u64;
+  func at(idx: i32) -> HDRPixel
+  {
+    let mut p = head^.next;
+
+    for (let mut i = 0; i != idx; ++i)
+      p = p^.next;
+
+    return p^.pix;
+  }
+
+  func size() -> i32
+  {
+    return size;
+  }
+
+private:
+  func search_tail() -> ^HDRPixelNode
+  {
+    let mut p = head;
+
+    while (p^.next != 0 as ^HDRPixelNode)
+      p = p^.next;
+
+    return p;
+  }
+
+  let mut head: ^HDRPixelNode;
+
+  let mut size: i32;
 }
 
 func save_as_hdr(filename: ^i8, image: ^Color, width: i32, height: i32)
@@ -499,33 +551,34 @@ func save_as_hdr(filename: ^i8, image: ^Color, width: i32, height: i32)
   let fp = file.stream();
 
   if (fp) {
-    // let ret = 0x0a as u8;
-	  // fprintf(fp, "#?RADIANCE%c", ret);
-	  // fprintf(fp, "# Made with 100%% pure HDR Shop%c", ret);
-	  // fprintf(fp, "FORMAT=32-bit_rle_rgbe%c", ret);
-	  // fprintf(fp, "EXPOSURE=1.0000000000000%c%c", ret, ret);
+    let ret = 0x0a as u8;
+	  fprintf(fp, "#?RADIANCE%c", ret);
+	  fprintf(fp, "# Made with 100%% pure HDR Shop%c", ret);
+	  fprintf(fp, "FORMAT=32-bit_rle_rgbe%c", ret);
+	  fprintf(fp, "EXPOSURE=1.0000000000000%c%c", ret, ret);
 
-    // fprintf(fp, "-Y %d +X %d%c", height, width, ret);
-	  // for (let mut i = height - 1; 0 <= i; --i) {
-	  //   std::vector<HDRPixel> line;
-	  //   for (let mut j = 0; j < width; ++j) {
-	  //     HDRPixel p = get_hdr_pixel(image[j + i * width]);
-	  //     line.push_back(p);
-	  //   }
+    fprintf(fp, "-Y %d +X %d%c", height, width, ret);
+	  for (let mut i = height - 1; 0 <= i; --i) {
+	    let line = HDRPixelList{};
 
-	  //   fprintf(fp, "%c%c", 0x02, 0x02);
-	  //   fprintf(fp, "%c%c", (width >> 8) & 0xFF, width & 0xFF);
+	    for (let mut j = 0; j < width; ++j) {
+	      let p = get_hdr_pixel(image[j + i * width]);
+	      line.push_back(ref p);
+	    }
 
-	  //   for (let mut i = 0; i < 4; ++i) {
-	  //     for (let mut cursor = 0; cursor < width;) {
-	  //       let cursor_move = min(127, width - cursor);
-	  //       fprintf(fp, "%c", cursor_move);
-	  //       for (int j = cursor;  j < cursor + cursor_move; j ++)
-	  //         fprintf(fp, "%c", line[j].get(i));
-	  //       cursor += cursor_move;
-	  //     }
-	  //   }
-	  // }
+	    fprintf(fp, "%c%c", 0x02, 0x02);
+	    fprintf(fp, "%c%c", (width >> 8) & 0xFF, width & 0xFF);
+
+	    for (let mut i = 0; i < 4; ++i) {
+	      for (let mut cursor = 0; cursor < width;) {
+	        let cursor_move = min(127, width - cursor);
+	        fprintf(fp, "%c", cursor_move);
+	        for (let mut j = cursor;  j < cursor + cursor_move; ++j)
+	          fprintf(fp, "%c", line.at(j).get(i));
+	        cursor += cursor_move;
+	      }
+	    }
+	  }
   }
   else {
     let stderr = File{2, "w"};
