@@ -280,6 +280,12 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     case ast::BinOp::Kind::logical_or:
       return createLogicalOr(ctx, lhs, rhs);
 
+    case ast::BinOp::Kind::bitwise_shift_left:
+      return createShiftLeft(ctx, lhs, rhs);
+
+    case ast::BinOp::Kind::bitwise_shift_right:
+      return createShiftRight(ctx, lhs, rhs);
+
     case ast::BinOp::Kind::unknown:
       throw CodegenError{ctx.formatError(
         ctx.positions.position_of(node),

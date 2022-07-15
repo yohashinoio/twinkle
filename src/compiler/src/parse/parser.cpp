@@ -269,9 +269,11 @@ const x3::rule<struct BinaryLogicalTag, ast::Expr> binary_logical{
 const x3::rule<struct EqualTag, ast::Expr>    equal{"equality operation"};
 const x3::rule<struct RelationTag, ast::Expr> relation{"relational operation"};
 const x3::rule<struct PipelineTag, ast::Expr> pipeline{"pipeline operation"};
-const x3::rule<struct AddTag, ast::Expr>      add{"addition operation"};
-const x3::rule<struct MulTag, ast::Expr>      mul{"multiplication operation"};
-const x3::rule<struct CastTag, ast::Expr>     cast{"conversion"};
+const x3::rule<struct BitwiseShiftTag, ast::Expr> bitwise_shift{
+  "bitwise shift operation"};
+const x3::rule<struct AddTag, ast::Expr>  add{"addition operation"};
+const x3::rule<struct MulTag, ast::Expr>  mul{"multiplication operation"};
+const x3::rule<struct CastTag, ast::Expr> cast{"conversion"};
 const x3::rule<struct UnaryInternalTag, ast::UnaryOp> unary_internal{
   "unary operation"};
 const x3::rule<struct UnaryTag, ast::Expr> unary{"unary operation"};
@@ -303,7 +305,8 @@ const x3::rule<struct VariableDefTag, ast::VariableDef> variable_def{
   "variable definition"};
 const x3::rule<struct AssignTag, ast::Assignment> assignment{
   "assignment statement"};
-const x3::rule<struct PrefixIncrementDecrement, ast::PrefixIncrementDecrement>
+const x3::rule<struct PrefixIncrementDecrementTag,
+               ast::PrefixIncrementDecrement>
   prefix_increment_decrement{"prefix increment/decrement"};
 const x3::rule<struct ReturnTag, ast::Return> _return{"return statement"};
 const x3::rule<struct IfTag, ast::If>         _if{"if else statement"};
@@ -607,6 +610,10 @@ const auto unary_operator
 = string(U"+") | string(U"-") | string(U"!") | string(U"*") | string(U"&")
   | string(U"sizeof");
 
+const auto bitshift_operator
+  = x3::rule<struct BitShiftOperatorTag, std::u32string>{"bitshift operator"}
+= string(U"<<") | string(U">>");
+
 //===----------------------------------------------------------------------===//
 // Expression rules and tags definition
 //===----------------------------------------------------------------------===//
@@ -626,8 +633,13 @@ const auto relation_def
     >> *(relational_operator > pipeline)[action::assignToValAs<ast::BinOp>{}];
 
 const auto pipeline_def
+  = bitwise_shift[action::assignAttrToVal]
+    >> *(pipeline_operator
+         > bitwise_shift)[action::assignToValAs<ast::Pipeline>{}];
+
+const auto bitwise_shift_def
   = add[action::assignAttrToVal]
-    >> *(pipeline_operator > add)[action::assignToValAs<ast::Pipeline>{}];
+    >> *(bitshift_operator > add)[action::assignToValAs<ast::BinOp>{}];
 
 const auto add_def
   = mul[action::assignAttrToVal]
@@ -686,6 +698,7 @@ BOOST_SPIRIT_DEFINE(binary_logical)
 BOOST_SPIRIT_DEFINE(equal)
 BOOST_SPIRIT_DEFINE(relation)
 BOOST_SPIRIT_DEFINE(pipeline)
+BOOST_SPIRIT_DEFINE(bitwise_shift)
 BOOST_SPIRIT_DEFINE(add)
 BOOST_SPIRIT_DEFINE(mul)
 BOOST_SPIRIT_DEFINE(cast)
@@ -721,6 +734,10 @@ struct RelationTag
   , AnnotatePosition {};
 
 struct PipelineTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct BitwiseShiftTag
   : ErrorHandle
   , AnnotatePosition {};
 
@@ -864,11 +881,7 @@ struct AssignTag
   : ErrorHandle
   , AnnotatePosition {};
 
-struct PrefixIncrementDecrement
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct PrefixDecrement
+struct PrefixIncrementDecrementTag
   : ErrorHandle
   , AnnotatePosition {};
 

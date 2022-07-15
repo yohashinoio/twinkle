@@ -253,19 +253,21 @@ struct BinOp : x3::position_tagged {
 
   enum class Kind {
     unknown,
-    add,         // Addition
-    sub,         // Subtraciton
-    mul,         // Multiplication
-    div,         // Division
-    mod,         // Modulo
-    eq,          // Equal to
-    neq,         // Not equal to
-    lt,          // Less than
-    gt,          // Greater than
-    le,          // Less than or equal to
-    ge,          // Greater than or equal to
-    logical_and, // Logical AND
-    logical_or,  // Logical OR
+    add,                 // Addition
+    sub,                 // Subtraciton
+    mul,                 // Multiplication
+    div,                 // Division
+    mod,                 // Modulo
+    eq,                  // Equal to
+    neq,                 // Not equal to
+    lt,                  // Less than
+    gt,                  // Greater than
+    le,                  // Less than or equal to
+    ge,                  // Greater than or equal to
+    logical_and,         // Logical AND
+    logical_or,          // Logical OR
+    bitwise_shift_left,  // Bitwise shift left
+    bitwise_shift_right, // Bitwise shift right
   };
 
   [[nodiscard]] Kind kind() const
@@ -296,6 +298,10 @@ struct BinOp : x3::position_tagged {
       return Kind::logical_and;
     if (op == U"||")
       return Kind::logical_or;
+    if (op == U"<<")
+      return Kind::bitwise_shift_left;
+    if (op == U">>")
+      return Kind::bitwise_shift_right;
 
     return Kind::unknown;
   }

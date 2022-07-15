@@ -280,6 +280,19 @@ createLogicalOr(CGContext& ctx, const Value& lhs, const Value& rhs)
 }
 
 [[nodiscard]] Value
+createShiftLeft(CGContext& ctx, const Value& lhs, const Value& rhs)
+{
+  return {ctx.builder.CreateShl(lhs.getValue(), rhs.getValue()), lhs.getType()};
+}
+
+[[nodiscard]] Value
+createShiftRight(CGContext& ctx, const Value& lhs, const Value& rhs)
+{
+  return {ctx.builder.CreateAShr(lhs.getValue(), rhs.getValue()),
+          lhs.getType()};
+}
+
+[[nodiscard]] Value
 createDereference(CGContext&                                  ctx,
                   const boost::iterator_range<InputIterator>& pos,
                   const Value&                                val)

@@ -208,6 +208,12 @@ createLogicalAnd(CGContext& ctx, const Value& lhs, const Value& rhs);
 createLogicalOr(CGContext& ctx, const Value& lhs, const Value& rhs);
 
 [[nodiscard]] Value
+createShiftLeft(CGContext& ctx, const Value& lhs, const Value& rhs);
+
+[[nodiscard]] Value
+createShiftRight(CGContext& ctx, const Value& lhs, const Value& rhs);
+
+[[nodiscard]] Value
 createDereference(CGContext&                                  ctx,
                   const boost::iterator_range<InputIterator>& pos,
                   const Value&                                val);
