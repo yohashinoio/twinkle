@@ -1,8 +1,8 @@
-struct Internal {
+class Internal {
   let mut io: i32;
 }
 
-struct Sample {
+class Sample {
   let mut shino: Internal;
 }
 

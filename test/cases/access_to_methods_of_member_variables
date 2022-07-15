@@ -1,11 +1,11 @@
-struct sample1 {
+class sample1 {
   func f() -> i32
   {
     return 58;
   }
 }
 
-struct sample2 {
+class sample2 {
   func test() -> i32
   {
     return s1.f();

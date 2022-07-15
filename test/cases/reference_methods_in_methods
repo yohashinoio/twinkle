@@ -3,7 +3,7 @@ func twice(n: i32) -> i32
   return 0;
 }
 
-struct Test {
+class Test {
   func variadic(num: i64, ...) -> i64
   {
     return num;

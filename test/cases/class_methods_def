@@ -3,7 +3,7 @@ func a() -> i32
   return 0;
 }
 
-struct Sample {
+class Sample {
   let mut n: i32;
 
   func a() -> i32

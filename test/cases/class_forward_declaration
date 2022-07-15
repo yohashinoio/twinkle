@@ -1,6 +1,6 @@
-declare struct sample;
+declare class sample;
 
-struct sample {
+class sample {
   sample(p_: ^sample)
   {
     p = p_;

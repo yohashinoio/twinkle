@@ -1,4 +1,4 @@
-struct Sample {
+class Sample {
   Sample(n_arg: i32)
   {
     n = n_arg;

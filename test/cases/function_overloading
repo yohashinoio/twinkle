@@ -1,4 +1,4 @@
-struct Sample {}
+class Sample {}
 
 func f(a: i32, b: i32) -> i32
 {

@@ -7,7 +7,7 @@
 // A part of this software is based on smallpt (http://www.kevinbeason.com/smallpt/) and
 // released under the MIT License (http://kagamin.net/hole/smallpt-license.txt).
 
-declare struct FILE;
+declare class FILE;
 
 [[nomangle]]
 declare func printf(format: ^i8, ...) -> i32;
@@ -48,7 +48,7 @@ declare func free(ptr: ^void);
 [[nomangle]]
 declare func exit(status: i32);
 
-struct HeapArray {
+class HeapArray {
   HeapArray(size: u64)
   {
     p = malloc(size);
@@ -68,7 +68,7 @@ private:
   let p: ^void;
 }
 
-struct File {
+class File {
   File(fd: i32, mode: ^i8)
   {
     fp = fdopen(fd, mode);
@@ -94,7 +94,7 @@ private:
   let fp: ^FILE;
 }
 
-struct Vec {
+class Vec {
   Vec()
   {
     x = 0.;
@@ -155,7 +155,7 @@ func cross(v1: &Vec, v2: &Vec) -> Vec
     , (v1.x * v2.y) - (v1.y * v2.x)};
 }
 
-struct Ray {
+class Ray {
   Ray(org_: &Vec, dir_: &Vec)
   {
     org = org_;
@@ -171,7 +171,7 @@ func dot(v1: &Vec, v2: &Vec) -> f64
 	return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
 }
 
-struct Sphere {
+class Sphere {
   Sphere(radius_: f64,
          // FIXME
          position_: Vec, // Copy
@@ -417,7 +417,7 @@ func createCamera() -> Ray
   return Ray{ref a, ref c};
 }
 
-struct HDRPixel {
+class HDRPixel {
   HDRPixel(r_: u8,
            g_: u8,
            b_: u8,
@@ -475,7 +475,7 @@ func get_hdr_pixel(color: &Color) -> HDRPixel
   };
 }
 
-struct HDRPixelArray {
+class HDRPixelArray {
   HDRPixelArray()
   {
   }

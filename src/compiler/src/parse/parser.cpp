@@ -72,9 +72,8 @@ const auto assignAttrToVal = [](const auto& ctx) {
 template <typename T>
 struct assignToValAs {
   template <typename Ctx, typename Ast = T>
-  auto operator()(const Ctx& ctx) const
-    -> std::enable_if_t<std::is_same_v<Ast, ast::BinOp>
-                        || std::is_same_v<Ast, ast::Pipeline>>
+  auto operator()(const Ctx& ctx) const -> std::enable_if_t<
+    std::is_same_v<Ast, ast::BinOp> || std::is_same_v<Ast, ast::Pipeline>>
   {
     assignAstToVal(ctx,
                    Ast{std::move(x3::_val(ctx)),
@@ -801,7 +800,8 @@ const auto expr_stmt_def = expr;
 
 const auto assignment_def = expr >> assignment_operator > expr;
 
-const auto prefix_increment_decrement_def = (string(U"++") | string(U"--")) > expr;
+const auto prefix_increment_decrement_def
+  = (string(U"++") | string(U"--")) > expr;
 
 const auto variable_def_def = lit(U"let") > -variable_qualifier > identifier
                               > -(lit(U":") > type_name) > -(lit(U"=") > expr);
@@ -816,11 +816,11 @@ const auto _loop_def = lit(U"loop") > stmt;
 const auto _while_def = lit(U"while") > lit(U"(") > expr /* Condition */
                         > lit(U")") > stmt;
 
-const auto _for_def = lit(U"for") > lit(U"(")
-                      > -(assignment | variable_def) /* Init */
-                      > lit(U";") > -expr            /* Condition */
-                      > lit(U";") > -(prefix_increment_decrement | assignment) /* Loop */
-                      > lit(U")") > stmt;
+const auto _for_def
+  = lit(U"for") > lit(U"(") > -(assignment | variable_def)   /* Init */
+    > lit(U";") > -expr                                      /* Condition */
+    > lit(U";") > -(prefix_increment_decrement | assignment) /* Loop */
+    > lit(U")") > stmt;
 
 const auto _break = x3::rule<struct BreakTag, ast::Break>{"break statement"}
 = lit(U"break") >> x3::attr(ast::Break{});
@@ -833,8 +833,9 @@ const auto stmt_def = lit(U";")                       /* Null statement */
                       | lit(U"{") > *stmt > lit(U"}") /* Compound statement */
                       | _loop | _while | _for | _if | _break >> lit(U";")
                       | _continue >> lit(U";") | _return >> lit(U";")
-                      | prefix_increment_decrement >> lit(U";") | assignment >> lit(U";")
-                      | variable_def >> lit(U";") | expr_stmt >> lit(U";");
+                      | prefix_increment_decrement >> lit(U";")
+                      | assignment >> lit(U";") | variable_def >> lit(U";")
+                      | expr_stmt >> lit(U";");
 
 BOOST_SPIRIT_DEFINE(expr_stmt)
 BOOST_SPIRIT_DEFINE(variable_def)
@@ -904,7 +905,7 @@ struct ContinueTag
 //===----------------------------------------------------------------------===//
 
 const auto class_key = x3::rule<struct ClassKeyTag>{"class key"}
-= lit(U"struct");
+= lit(U"class");
 
 const auto class_decl_def
   = lit(U"declare") >> class_key > identifier > lit(U";");

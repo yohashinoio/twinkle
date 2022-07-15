@@ -1,14 +1,14 @@
 [[nomangle]]
 declare func printf(format: ^i8, ...) -> i32;
 
-declare struct numnode;
+declare class numnode;
 
-struct numnode {
+class numnode {
   let mut n: i32;
   let mut next: ^numnode;
 }
 
-struct numlist {
+class numlist {
   numlist()
   {
     head = new numnode;

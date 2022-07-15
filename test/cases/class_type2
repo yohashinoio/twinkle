@@ -1,4 +1,4 @@
-declare struct Sample;
+declare class Sample;
 
 func main() -> i32
 {
@@ -7,7 +7,7 @@ func main() -> i32
   return 14;
 }
 
-struct Sample {
+class Sample {
   let n: i32;
   let ch: char;
 }

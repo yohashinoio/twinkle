@@ -1,4 +1,4 @@
-struct Sample {
+class Sample {
   Sample(yoha_arg: i32, shino: i32)
   {
     yoha = yoha_arg;

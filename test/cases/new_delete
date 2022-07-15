@@ -1,4 +1,4 @@
-struct sample {
+class sample {
   let mut n: i32;
 }
 

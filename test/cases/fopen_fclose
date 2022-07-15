@@ -1,4 +1,4 @@
-declare struct FILE;
+declare class FILE;
 
 [[nomangle]] declare func fopen(filename: ^i8, mode: ^i8) -> ^FILE;
 [[nomangle]] declare func fclose(stream: ^FILE) -> i32;

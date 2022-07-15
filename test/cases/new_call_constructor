@@ -1,4 +1,4 @@
-struct sample {
+class sample {
   sample(p_: ^i32, n: i32)
   {
     p = p_;

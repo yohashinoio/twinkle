@@ -1,8 +1,8 @@
-struct Internal {
+class Internal {
 
 }
 
-struct Sample {
+class Sample {
   let a: Internal;
 }
 

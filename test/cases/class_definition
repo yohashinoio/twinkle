@@ -1,11 +1,11 @@
-struct Sample1 {
+class Sample1 {
 }
 
-struct Sample2 {
+class Sample2 {
   let p_int: ^i32;
 }
 
-struct Sample3 {
+class Sample3 {
   let ascii_s: ^i8;
   let unicode_s: ^char;
 }
@@ -15,6 +15,6 @@ func main() -> i32
   return 38;
 }
 
-struct Sample4 {
+class Sample4 {
   let sample: i32;
 }
