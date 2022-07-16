@@ -335,15 +335,14 @@ func radiance(ray: &Ray, depth: i32) -> Color
   }
   else if (obj.ref_type == SPECULAR) {
     let tmp = normal.mul(2.0);
-    let tmp = tmp.mul(dot(ref normal, ref ray.dir));
-    let tmp = tmp.sub(ref ray.dir);
-    let tmp = Ray{ref hitpoint, ref tmp};
-    let tmp
-      = radiance(ref tmp, depth + 1);
+    let tmp1 = tmp.mul(dot(ref normal, ref ray.dir));
+    let tmp2 = ray.dir.sub(ref tmp1);
+    let tmp3 = Ray{ref hitpoint, ref tmp2};
+    let tmp4 = radiance(ref tmp3, depth + 1);
 
-    let tmp = multiply(ref obj.color, ref tmp);
+    let tmp5 = multiply(ref obj.color, ref tmp4);
 
-    return obj.emission.add(ref tmp);
+    return obj.emission.add(ref tmp5);
   }
   else if (obj.ref_type == REFRACTION) {
     let tmp = normal.mul(2.0);
