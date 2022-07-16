@@ -346,10 +346,10 @@ func radiance(ray: &Ray, depth: i32) -> Color
     return obj.emission.add(ref tmp);
   }
   else if (obj.ref_type == REFRACTION) {
-    let tmp = ray.dir.sub(ref normal);
-    let tmp = tmp.mul(2.);
-    let tmp = tmp.mul(dot(ref normal, ref ray.dir));
-    let reflection_ray = Ray{ref hitpoint, ref tmp};
+    let tmp = normal.mul(2.0);
+    let tmp1 = tmp.mul(dot(ref normal, ref ray.dir));
+    let tmp2 = tmp1.sub(ref ray.dir);
+    let reflection_ray = Ray{ref hitpoint, ref tmp2};
 
     let into = 0.0 < dot(ref normal, ref orienting_normal);
 
@@ -370,7 +370,6 @@ func radiance(ray: &Ray, depth: i32) -> Color
     }
 
     let tmp = ray.dir.mul(nnt);
-    let tmp = tmp.sub(ref normal);
 
     let mut tmp1: f64;
     if (into)
@@ -378,8 +377,10 @@ func radiance(ray: &Ray, depth: i32) -> Color
     else
       tmp1 = -1.0;
 
-    let tmp = tmp.mul(tmp1);
-    let tmp = tmp.mul(ddn * nnt + sqrt(cos2t));
+    let tmp2 = normal.mul(tmp1);
+    let tmp3 = tmp2.mul(ddn * nnt + sqrt(cos2t));
+
+    let tmp = tmp.sub(ref tmp3);
 
     let tdir = normalize(ref tmp);
 
