@@ -1,5 +1,3 @@
-// WIP
-
 // Copyright (c) 2022 Hiramoto Ittou
 
 // Copyright (c) 2014 hole
@@ -25,12 +23,6 @@ declare func fopen(filename: ^i8, mode: ^i8) -> ^FILE;
 declare func fclose(stream: ^FILE) -> i32;
 
 [[nomangle]]
-declare func rand() -> i32;
-
-[[nomangle]]
-declare func srand(seed: u32);
-
-[[nomangle]]
 declare func sqrt(x: f64) -> f64;
 
 [[nomangle]]
@@ -40,10 +32,10 @@ declare func pow(x: f64, y: f64) -> f64;
 declare func frexp(x: f64, exp: ^i32) -> f64;
 
 [[nomangle]]
-declare func malloc(size: u64) -> ^void;
+declare func malloc(size: u64) -> ^i8;
 
 [[nomangle]]
-declare func free(ptr: ^void);
+declare func free(ptr: ^i8);
 
 [[nomangle]]
 declare func exit(status: i32);
@@ -59,13 +51,13 @@ class HeapArray {
     free(p);
   }
 
-  func get() -> ^void
+  func get() -> ^i8
   {
     return p;
   }
 
 private:
-  let mut p: ^void;
+  let mut p: ^i8;
 }
 
 class File {
@@ -109,11 +101,6 @@ class Vec {
     z = z_;
   }
 
-  func length_squared() -> f64
-  {
-    return x * x + y * y + z * z;
-  }
-
   func length() -> f64
   {
     return sqrt(length_squared());
@@ -142,6 +129,12 @@ class Vec {
   let mut x: f64;
   let mut y: f64;
   let mut z: f64;
+
+private:
+  func length_squared() -> f64
+  {
+    return x * x + y * y + z * z;
+  }
 }
 
 typedef Color = Vec;
@@ -618,8 +611,6 @@ func main() -> i32
     , "Rendering %.4f%%"
     , 100.0 * y as f64 / (height - 1) as f64
     );
-
-    srand(y * y * y);
 
     for (let mut x = 0; x < width; ++x) {
       let image_idx = y * width + x;
