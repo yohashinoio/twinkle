@@ -318,30 +318,27 @@ func radiance(ray: &Ray, depth: i32) -> Color
 
     if (len <= t_) {
       let tmp1 = ldir.div(len);
-      let tmp = multiply(ref light_color, ref obj.color);
-      let tmp = tmp.mul(max(0.0, dot(ref orienting_normal, ref tmp1)));
-      let tmp = tmp.div(len * len);
+      let tmp = multiply(ref light_color, ref obj.color)
+                .mul(max(0.0, dot(ref orienting_normal, ref tmp1)))
+                .div(len * len);
       return obj.emission.add(ref tmp);
     }
     else
       return Color{};
   }
   else if (obj.ref_type == SPECULAR) {
-    let tmp = normal.mul(2.0);
-    let tmp1 = tmp.mul(dot(ref normal, ref ray.dir));
-    let tmp2 = ray.dir.sub(ref tmp1);
-    let tmp3 = Ray{ref hitpoint, ref tmp2};
-    let tmp4 = radiance(ref tmp3, depth + 1);
+    let tmp = normal.mul(2.0).mul(dot(ref normal, ref ray.dir));
+    let tmp1 = ray.dir.sub(ref tmp);
+    let tmp2 = Ray{ref hitpoint, ref tmp1};
+    let tmp = radiance(ref tmp2, depth + 1);
 
-    let tmp5 = multiply(ref obj.color, ref tmp4);
+    let tmp = multiply(ref obj.color, ref tmp);
 
-    return obj.emission.add(ref tmp5);
+    return obj.emission.add(ref tmp);
   }
   else if (obj.ref_type == REFRACTION) {
-    let tmp = normal.mul(2.0);
-    let tmp1 = tmp.mul(dot(ref normal, ref ray.dir));
-    let tmp2 = tmp1.sub(ref ray.dir);
-    let reflection_ray = Ray{ref hitpoint, ref tmp2};
+    let tmp = normal.mul(2.0).mul(dot(ref normal, ref ray.dir)).sub(ref ray.dir);
+    let reflection_ray = Ray{ref hitpoint, ref tmp};
 
     let into = 0.0 < dot(ref normal, ref orienting_normal);
 
@@ -388,12 +385,10 @@ func radiance(ray: &Ray, depth: i32) -> Color
     let tr = 1.0 - re;
 
     {
-      let tmp = radiance(ref reflection_ray, depth + 1);
-      let tmp = tmp.mul(re);
+      let tmp = radiance(ref reflection_ray, depth + 1).mul(re);
       let ray_tmp = Ray{ref hitpoint, ref tdir};
       let tmp1 = radiance(ref ray_tmp, depth + 1);
-      let tmp = tmp.add(ref tmp1);
-      let tmp = tmp.mul(tr);
+      let tmp = tmp.add(ref tmp1).mul(tr);
 
       let tmp = multiply(ref obj.color, ref tmp);
       return obj.emission.add(ref tmp);
@@ -568,10 +563,8 @@ func save_as_hdr(filename: ^i8, image: ^Color, width: i32, height: i32)
           let cursor_move = min(127, width - cursor);
           fprintf(fp, "%c", cursor_move);
 
-          for (let mut j = cursor;  j < cursor + cursor_move; ++j) {
-            let tmp = line.at(j);
-            fprintf(fp, "%c", tmp.get(i));
-          }
+          for (let mut j = cursor;  j < cursor + cursor_move; ++j)
+            fprintf(fp, "%c", line.at(j).get(i));
 
           cursor += cursor_move;
         }
@@ -600,8 +593,7 @@ func main() -> i32
                0.0};
 
   let tmp = cross(ref cx, ref camera.dir);
-  let tmp = normalize(ref tmp);
-  let cy = tmp.mul(0.5135);
+  let cy = normalize(ref tmp).mul(0.5135);
 
   let stderr = File{2, "w"};
 
@@ -625,8 +617,8 @@ func main() -> i32
             = cx.mul(((sx as f64 + 0.5 + dx) / 2.0 + x as f64) / width as f64 - 0.5);
 
           let tmp2
-            = cy.mul(((sy as f64 + 0.5 + dy) / 2.0 + y as f64) / height as f64 - 0.5);
-          let tmp2 = tmp2.add(ref camera.dir);
+            = cy.mul(((sy as f64 + 0.5 + dy) / 2.0 + y as f64) / height as f64 - 0.5)
+              .add(ref camera.dir);
 
           let dir = tmp1.add(ref tmp2);
 
