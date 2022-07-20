@@ -1,0 +1,20 @@
+class sample {
+  sample()
+  {
+  }
+
+  func mf() -> i32
+  {
+    return 58;
+  }
+}
+
+func f() -> sample
+{
+  return sample{};
+}
+
+func main() -> i32
+{
+  return f().mf();
+}

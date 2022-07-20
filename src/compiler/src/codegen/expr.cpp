@@ -427,17 +427,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     auto args = createArgVals(node.args, pos);
 
-    if (auto const func = findCalleeMethod(callee_name, args)) {
-      args.push_front((*this)(ast::Identifier{std::u32string{U"this"}}));
-      return createFunctionCall(func, args, pos);
-    }
-
-    if (auto const func = findCalleeFunc(callee_name, args))
-      return createFunctionCall(func, args, pos);
-
-    throw CodegenError{ctx.formatError(
-      pos,
-      fmt::format("unknown function '{}' referenced", callee_name))};
+    return createFunctionCall(callee_name, createArgVals(node.args, pos), pos);
   }
 
   [[nodiscard]] Value operator()(const ast::Cast& node) const
@@ -589,6 +579,24 @@ private:
   }
 
   [[nodiscard]] Value createFunctionCall(
+    const std::string&                                 callee_name,
+    std::deque<Value>&&                                args,
+    const boost::iterator_range<emera::InputIterator>& pos) const
+  {
+    if (auto const func = findCalleeMethod(callee_name, args)) {
+      args.push_front((*this)(ast::Identifier{std::u32string{U"this"}}));
+      return createFunctionCall(func, args, pos);
+    }
+
+    if (auto const func = findCalleeFunc(callee_name, args))
+      return createFunctionCall(func, args, pos);
+
+    throw CodegenError{ctx.formatError(
+      pos,
+      fmt::format("unknown function '{}' referenced", callee_name))};
+  }
+
+  [[nodiscard]] Value createFunctionCall(
     llvm::Function* const                              callee_func,
     const std::deque<Value>&                           args,
     const boost::iterator_range<emera::InputIterator>& pos) const
@@ -602,8 +610,22 @@ private:
 
     assert(return_type);
 
-    return {ctx.builder.CreateCall(callee_func, toLLVMVals(args)),
-            *return_type};
+    auto const return_value
+      = ctx.builder.CreateCall(callee_func, toLLVMVals(args));
+
+    if (!return_type.value()->isVoidTy(ctx)) {
+      auto const alloca
+        = createEntryAlloca(ctx.builder.GetInsertBlock()->getParent(),
+                            "",
+                            return_type.value()->getLLVMType(ctx));
+
+      ctx.builder.CreateStore(return_value, alloca);
+
+      return {ctx.builder.CreateLoad(alloca->getAllocatedType(), alloca),
+              *return_type};
+    }
+
+    return {return_value, *return_type};
   }
 
   // Note that the return value is a reference,
@@ -1021,25 +1043,35 @@ private:
   [[nodiscard]] Value methodAccess(const ast::Expr&         lhs,
                                    const ast::FunctionCall& rhs) const
   {
-    auto func_call = rhs; // Copy
+    const auto pos = ctx.positions.position_of(rhs);
 
-    // Insert 'this' pointer at the beginning of the arguments
-    func_call.args.push_front(ast::UnaryOp{std::u32string{U"&"}, lhs});
+    if (rhs.callee.type() != typeid(ast::Identifier)) {
+      throw CodegenError{
+        ctx.formatError(pos,
+                        "left-hand side of function call is not callable")};
+    }
+
+    const auto callee_name = boost::get<ast::Identifier>(rhs.callee).utf8();
+
+    auto args = createArgVals(rhs.args, pos);
 
     {
-      // FIXME: More efficient
       const auto lhs_value = createExpr(ctx, scope, stmt_ctx, lhs);
 
       assert(lhs_value.getType()->isClassTy(ctx));
 
       ctx.ns_hierarchy.push(
         {lhs_value.getType()->getClassName(ctx), NamespaceKind::class_});
+
+      // this*
+      args.push_front(createAddressOf(lhs_value));
     }
 
     try {
-      const auto retval = (*this)(func_call);
+      const auto return_value
+        = createFunctionCall(callee_name, std::move(args), pos);
       ctx.ns_hierarchy.pop();
-      return retval;
+      return return_value;
     }
     catch (const CodegenError&) {
       ctx.ns_hierarchy.pop();

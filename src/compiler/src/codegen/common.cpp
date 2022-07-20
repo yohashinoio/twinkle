@@ -11,12 +11,12 @@ namespace emera::codegen
 {
 
 [[nodiscard]] llvm::AllocaInst* createEntryAlloca(llvm::Function*    func,
-                                                  const std::string& var_name,
+                                                  const std::string& name,
                                                   llvm::Type* const  type)
 {
   return llvm::IRBuilder<>{&func->getEntryBlock(),
                            func->getEntryBlock().begin()}
-    .CreateAlloca(type, nullptr, var_name);
+    .CreateAlloca(type, nullptr, name);
 }
 
 [[nodiscard]] llvm::Type* getFloatNTy(CGContext& ctx, const int mantissa_width)

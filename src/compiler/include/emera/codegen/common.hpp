@@ -140,7 +140,7 @@ using SymbolTable
 // Create an alloca instruction in the entry block of
 // the function.
 [[nodiscard]] llvm::AllocaInst* createEntryAlloca(llvm::Function*    func,
-                                                  const std::string& var_name,
+                                                  const std::string& name,
                                                   llvm::Type* const  type);
 
 [[nodiscard]] llvm::Type* getFloatNTy(CGContext& ctx, const int mantissa_width);
