@@ -121,8 +121,9 @@ struct StmtVisitor : public boost::static_visitor<void> {
     verifyVariableType(ctx.positions.position_of(node), rhs.getType());
 
     auto const lhs_value
-      = ctx.builder.CreateLoad(lhs.getLLVMType()->getPointerElementType(),
-                               lhs.getValue());
+      = Value{ctx.builder.CreateLoad(lhs.getLLVMType()->getPointerElementType(),
+                                     lhs.getValue()),
+              lhs.getType()->getPointeeType(ctx)};
 
     switch (node.kind()) {
     case ast::Assignment::Kind::unknown:
@@ -135,34 +136,28 @@ struct StmtVisitor : public boost::static_visitor<void> {
       return;
 
     case ast::Assignment::Kind::add:
-      ctx.builder.CreateStore(ctx.builder.CreateAdd(lhs_value, rhs.getValue()),
+      ctx.builder.CreateStore(createAdd(ctx, lhs_value, rhs).getValue(),
                               lhs.getValue());
       return;
 
     case ast::Assignment::Kind::sub:
-      ctx.builder.CreateStore(ctx.builder.CreateSub(lhs_value, rhs.getValue()),
+      ctx.builder.CreateStore(createSub(ctx, lhs_value, rhs).getValue(),
                               lhs.getValue());
       return;
 
     case ast::Assignment::Kind::mul:
-      ctx.builder.CreateStore(ctx.builder.CreateMul(lhs_value, rhs.getValue()),
+      ctx.builder.CreateStore(createMul(ctx, lhs_value, rhs).getValue(),
                               lhs.getValue());
       return;
 
     case ast::Assignment::Kind::div:
-      ctx.builder.CreateStore(
-        isSigned(logicalOrSign(ctx, rhs, lhs))
-          ? ctx.builder.CreateSDiv(lhs_value, rhs.getValue())
-          : ctx.builder.CreateUDiv(lhs_value, rhs.getValue()),
-        lhs.getValue());
+      ctx.builder.CreateStore(createDiv(ctx, lhs_value, rhs).getValue(),
+                              lhs.getValue());
       return;
 
     case ast::Assignment::Kind::mod:
-      ctx.builder.CreateStore(
-        isSigned(logicalOrSign(ctx, rhs, lhs))
-          ? ctx.builder.CreateSRem(lhs_value, rhs.getValue())
-          : ctx.builder.CreateURem(lhs_value, rhs.getValue()),
-        lhs.getValue());
+      ctx.builder.CreateStore(createMod(ctx, lhs_value, rhs).getValue(),
+                              lhs.getValue());
       return;
     }
   }

@@ -1,0 +1,12 @@
+func main() -> i32
+{
+  let mut f = 4.8;
+  f += 1.0;
+
+  let mut p = &f;
+  p += 4;
+  for (let mut i = 0; i < 2; ++i)
+    p -= 2;
+
+  return (f + p^) as i32;
+}
