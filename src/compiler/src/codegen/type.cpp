@@ -146,12 +146,17 @@ UserDefinedType::getType(CGContext& ctx) const
       return *type;
   }
 
-  unreachable();
+  return {}; // Could not find the type
 }
 
 [[nodiscard]] llvm::Type* UserDefinedType::getLLVMType(CGContext& ctx) const
 {
-  return getType(ctx)->getLLVMType(ctx);
+  const auto type = getType(ctx);
+
+  if (type)
+    return type->getLLVMType(ctx);
+  else
+    return nullptr;
 }
 
 [[nodiscard]] std::string UserDefinedType::getMangledName(CGContext& ctx) const

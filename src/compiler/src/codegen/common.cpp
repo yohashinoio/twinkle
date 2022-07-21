@@ -342,6 +342,16 @@ createDereference(CGContext&                                  ctx,
           operand.isMutable()});
 }
 
+void verifyType(CGContext&                                  ctx,
+                const std::shared_ptr<Type>&                type,
+                const boost::iterator_range<InputIterator>& pos)
+{
+  assert(type);
+
+  if (!type->getLLVMType(ctx))
+    throw CodegenError{ctx.formatError(pos, "unknown type name specified")};
+}
+
 // The code is based on https://gist.github.com/quantumsheep.
 // Thank you!
 [[nodiscard]] bool strictEquals(const llvm::Type* const left,

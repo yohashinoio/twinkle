@@ -218,8 +218,11 @@ Mangler::mangleParams(CGContext& ctx, const ast::ParameterList& params) const
   for (const auto& param : *params) {
     if (param.is_vararg)
       mangled << "z";
-    else
-      mangled << createType(param.type)->getMangledName(ctx);
+    else {
+      const auto type = createType(param.type);
+      verifyType(ctx, type, ctx.positions.position_of(params));
+      mangled << type->getMangledName(ctx);
+    }
   }
 
   return mangled.str();

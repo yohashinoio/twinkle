@@ -229,6 +229,10 @@ createDereference(CGContext&                                  ctx,
                   const boost::iterator_range<InputIterator>& pos,
                   const Variable&                             operand);
 
+void verifyType(CGContext&                                  ctx,
+                const std::shared_ptr<Type>&                type,
+                const boost::iterator_range<InputIterator>& pos);
+
 [[nodiscard]] bool strictEquals(const llvm::Type* const left,
                                 const llvm::Type* const right);
 

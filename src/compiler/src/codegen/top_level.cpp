@@ -98,6 +98,8 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
     const auto return_type = createType(node.return_type);
 
+    verifyType(ctx, return_type, ctx.positions.position_of(node));
+
     if (name.length() == 4 /* For optimization */ && name == "main"
         && !return_type->isIntegerTy(ctx)) {
       throw CodegenError{
@@ -212,10 +214,12 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
           = variable->qualifier
             && (*variable->qualifier == VariableQual::mutable_);
 
-        member_variables.push_back({variable->name.utf8(),
-                                    createType(variable->type),
-                                    is_mutable,
-                                    accessibility});
+        const auto type = createType(variable->type);
+
+        verifyType(ctx, type, ctx.positions.position_of(*variable));
+
+        member_variables.push_back(
+          {variable->name.utf8(), type, is_mutable, accessibility});
       }
       else if (const auto function = boost::get<ast::FunctionDef>(&member)) {
         auto function_clone = *function;
@@ -408,6 +412,8 @@ private:
   {
     SymbolTable argument_table;
 
+    const auto pos = ctx.positions.position_of(param_list);
+
     for (auto& arg : args) {
       const auto& param_node = param_list->at(arg.getArgNo());
 
@@ -438,6 +444,8 @@ private:
                    const std::size_t         named_params_len) const
   {
     std::vector<llvm::Type*> types(named_params_len);
+
+    const auto pos = ctx.positions.position_of(params);
 
     for (std::size_t i = 0; i != named_params_len; ++i) {
       const auto& param_type = params->at(i).type;
