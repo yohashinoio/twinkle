@@ -56,63 +56,59 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     unreachable();
   }
 
-  // Floating point literals.
+  // Floating point literals
   [[nodiscard]] Value operator()(const double node) const
   {
-    return {llvm::ConstantFP::get(ctx.builder.getDoubleTy(), node),
-            std::make_shared<BuiltinType>(BuiltinTypeKind::f64)};
+    return createAllocaFP(std::make_shared<BuiltinType>(BuiltinTypeKind::f64),
+                          node);
   }
 
-  // 32bit unsigned integer literals.
+  // 32bit unsigned integer literals
   [[nodiscard]] Value operator()(const std::uint32_t node) const
   {
-    return {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), node),
-            std::make_shared<BuiltinType>(BuiltinTypeKind::u32)};
+    return createAllocaUnsignedInt(
+      std::make_shared<BuiltinType>(BuiltinTypeKind::u32),
+      node);
   }
 
-  // 32bit signed integer literals.
+  // 32bit signed integer literals
   [[nodiscard]] Value operator()(const std::int32_t node) const
   {
-    return {llvm::ConstantInt::getSigned(ctx.builder.getInt32Ty(), node),
-            std::make_shared<BuiltinType>(BuiltinTypeKind::i32)};
+    return createAllocaSignedInt(
+      std::make_shared<BuiltinType>(BuiltinTypeKind::i32),
+      node);
   }
 
-  // 64bit unsigned integer literals.
+  // 64bit unsigned integer literals
   [[nodiscard]] Value operator()(const std::uint64_t node) const
   {
-    return {llvm::ConstantInt::get(ctx.builder.getInt64Ty(), node),
-            std::make_shared<BuiltinType>(BuiltinTypeKind::u64)};
+    return createAllocaUnsignedInt(
+      std::make_shared<BuiltinType>(BuiltinTypeKind::u64),
+      node);
   }
 
-  // 64bit signed integer literals.
+  // 64bit signed integer literals
   [[nodiscard]] Value operator()(const std::int64_t node) const
   {
-    return {llvm::ConstantInt::getSigned(ctx.builder.getInt64Ty(), node),
-            std::make_shared<BuiltinType>(BuiltinTypeKind::i64)};
+    return createAllocaSignedInt(
+      std::make_shared<BuiltinType>(BuiltinTypeKind::i64),
+      node);
   }
 
-  // Boolean literals.
+  // Boolean literals
   [[nodiscard]] Value operator()(const bool node) const
   {
-    return {llvm::ConstantInt::get(
-              BuiltinType{BuiltinTypeKind::bool_}.getLLVMType(ctx),
-              node),
-            std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+    return createAllocaBool(node);
   }
 
   [[nodiscard]] Value operator()(const ast::StringLiteral& node) const
   {
-    return {
-      ctx.builder.CreateGlobalStringPtr(unicode::utf32toUtf8(node.str), ".str"),
-      std::make_shared<PointerType>(
-        std::make_shared<BuiltinType>(BuiltinTypeKind::i8))};
+    return createAllocaString(unicode::utf32toUtf8(node.str));
   }
 
   [[nodiscard]] Value operator()(const ast::CharLiteral& node) const
   {
-    // Unicode code point.
-    return {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), node.ch),
-            std::make_shared<BuiltinType>(BuiltinTypeKind::char_)};
+    return createAllocaChar(node.ch);
   }
 
   [[nodiscard]] Value operator()(const ast::ArrayLiteral& node) const
@@ -152,12 +148,12 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       [[fallthrough]];
 
     case BuiltinMacroKind::infinity_:
-      return {llvm::ConstantFP::getInfinity(ctx.builder.getFloatTy()),
-              std::make_shared<BuiltinType>(BuiltinTypeKind::f32)};
+      return createAllocaInfinityFP(
+        std::make_shared<BuiltinType>(BuiltinTypeKind::f32));
 
     case BuiltinMacroKind::huge_val:
-      return {llvm::ConstantFP::getInfinity(ctx.builder.getDoubleTy()),
-              std::make_shared<BuiltinType>(BuiltinTypeKind::f64)};
+      return createAllocaInfinityFP(
+        std::make_shared<BuiltinType>(BuiltinTypeKind::f64));
 
     case BuiltinMacroKind::unknown:
       unreachable();
@@ -184,16 +180,16 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     const auto variable = variable_refwrap->get();
 
-    auto const loaded_var = loadVariable(variable);
+    auto const variable_value = loadVariable(variable);
 
     if (variable.getType()->isRefTy(ctx)) {
       // Since reference types wrap pointer types
       return createDereference(ctx,
                                ctx.positions.position_of(node),
-                               loaded_var);
+                               variable_value);
     }
 
-    return loaded_var;
+    return variable_value;
   }
 
   [[nodiscard]] Value operator()(const ast::MemberAccess& node) const
@@ -535,6 +531,123 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   }
 
 private:
+  [[nodiscard]] Value createAllocaUnsignedInt(const std::shared_ptr<Type>& type,
+                                              const std::uint64_t value) const
+  {
+    assert(type->isIntegerTy(ctx) && !type->isSigned(ctx));
+
+    auto const llvm_type = type->getLLVMType(ctx);
+
+    auto const alloca
+      = createEntryAlloca(ctx.builder.GetInsertBlock()->getParent(),
+                          "",
+                          llvm_type);
+
+    ctx.builder.CreateStore(llvm::ConstantInt::get(llvm_type, value), alloca);
+
+    return {ctx.builder.CreateLoad(alloca->getAllocatedType(), alloca), type};
+  }
+
+  [[nodiscard]] Value createAllocaSignedInt(const std::shared_ptr<Type>& type,
+                                            const std::int64_t value) const
+  {
+    assert(type->isIntegerTy(ctx) && type->isSigned(ctx));
+
+    auto const llvm_type = type->getLLVMType(ctx);
+
+    auto const alloca
+      = createEntryAlloca(ctx.builder.GetInsertBlock()->getParent(),
+                          "",
+                          llvm_type);
+
+    ctx.builder.CreateStore(llvm::ConstantInt::getSigned(llvm_type, value),
+                            alloca);
+
+    return {ctx.builder.CreateLoad(alloca->getAllocatedType(), alloca), type};
+  }
+
+  [[nodiscard]] Value createAllocaFP(const std::shared_ptr<Type>& type,
+                                     const double                 value) const
+  {
+    assert(type->isFloatingPointTy(ctx));
+
+    auto const llvm_type = type->getLLVMType(ctx);
+
+    auto const alloca
+      = createEntryAlloca(ctx.builder.GetInsertBlock()->getParent(),
+                          "",
+                          llvm_type);
+
+    ctx.builder.CreateStore(llvm::ConstantFP::get(llvm_type, value), alloca);
+
+    return {ctx.builder.CreateLoad(alloca->getAllocatedType(), alloca), type};
+  }
+
+  [[nodiscard]] Value createAllocaBool(const bool value) const
+  {
+    const auto type = std::make_shared<BuiltinType>(BuiltinTypeKind::bool_);
+    auto const llvm_type = type->getLLVMType(ctx);
+
+    auto const alloca
+      = createEntryAlloca(ctx.builder.GetInsertBlock()->getParent(),
+                          "",
+                          llvm_type);
+
+    ctx.builder.CreateStore(llvm::ConstantInt::getBool(llvm_type, value),
+                            alloca);
+
+    return {ctx.builder.CreateLoad(alloca->getAllocatedType(), alloca), type};
+  }
+
+  [[nodiscard]] Value createAllocaString(const std::string_view str) const
+  {
+    const auto type = std::make_shared<PointerType>(
+      std::make_shared<BuiltinType>(BuiltinTypeKind::i8));
+    auto const llvm_type = type->getLLVMType(ctx);
+
+    auto const alloca
+      = createEntryAlloca(ctx.builder.GetInsertBlock()->getParent(),
+                          "",
+                          llvm_type);
+
+    ctx.builder.CreateStore(ctx.builder.CreateGlobalStringPtr(str, ".str"),
+                            alloca);
+
+    return {ctx.builder.CreateLoad(alloca->getAllocatedType(), alloca), type};
+  }
+
+  [[nodiscard]] Value createAllocaChar(const unicode::Codepoint ch) const
+  {
+    const auto type = std::make_shared<BuiltinType>(BuiltinTypeKind::char_);
+    auto const llvm_type = type->getLLVMType(ctx);
+
+    auto const alloca
+      = createEntryAlloca(ctx.builder.GetInsertBlock()->getParent(),
+                          "",
+                          llvm_type);
+
+    ctx.builder.CreateStore(llvm::ConstantInt::get(llvm_type, ch), alloca);
+
+    return {ctx.builder.CreateLoad(alloca->getAllocatedType(), alloca), type};
+  }
+
+  [[nodiscard]] Value
+  createAllocaInfinityFP(const std::shared_ptr<Type>& type) const
+  {
+    assert(type->isFloatingPointTy(ctx));
+
+    auto const llvm_type = type->getLLVMType(ctx);
+
+    auto const alloca
+      = createEntryAlloca(ctx.builder.GetInsertBlock()->getParent(),
+                          "",
+                          llvm_type);
+
+    ctx.builder.CreateStore(llvm::ConstantFP::getInfinity(llvm_type), alloca);
+
+    return {ctx.builder.CreateLoad(alloca->getAllocatedType(), alloca), type};
+  }
+
   void
   createConstructorCall(const boost::iterator_range<emera::InputIterator>& pos,
                         const std::string&       class_name,

@@ -198,6 +198,7 @@ int main(const int argc, const char* const* const argv)
     {                 "bitwise_and_or_negative",  58},
     {                   "call_method_of_rvalue",  58},
     {       "pointer_floating_point_assignment",  11},
+    {                  "reference_to_constants",  58},
   };
 
   std::size_t ok_c{};   // ok count.

@@ -1,0 +1,98 @@
+[[nomangle]]
+declare func strcmp(a: ^i8, b: ^i8) -> i32;
+
+func f() -> i32
+{
+  return 58;
+}
+
+func g(n: &i32) -> i32
+{
+  return n;
+}
+
+func h(f: &f64) -> i32
+{
+  return f as i32;
+}
+
+func i(b: &bool) -> bool
+{
+  return b;
+}
+
+func j(s: &^i8) -> ^i8
+{
+  return s;
+}
+
+func k(ch: &char) -> char
+{
+  return ch;
+}
+
+func ref_array(a: &i32[4]) -> i32
+{
+  return a[0] + a[1] + a[2] + a[3];
+}
+
+class sample {
+  sample(n_: i32)
+  {
+    n = n_;
+  }
+
+  let mut n: i32;
+}
+
+func ref_sample(s: &sample) -> i32
+{
+  return s.n;
+}
+
+func main() -> i32
+{
+  if (g(ref f()) != 58)
+    return 4;
+
+  if (g(ref 58) != 58)
+    return 8;
+
+  if (h(ref 48.10) != 48 || h(ref 10.48) != 10)
+    return 1;
+
+  h(ref __builtin_huge_val);
+
+  if (i(ref true) != true)
+    return 48;
+
+  if (i(ref false) != false)
+    return 10;
+
+  if (strcmp(j(ref "hello, yoha io"), "hello, yoha io") != 0)
+    return 4;
+
+  if (k(ref 'あ') != 'あ')
+    return 8;
+
+  if (ref_array(ref [4, 8, 1, 0]) != 13)
+    return 1;
+
+  let n = 58;
+  if (g(ref n) != 58)
+    return 0;
+
+  let a = [48, 10, 58];
+  if (g(ref a[2]) != 58)
+    return 41;
+
+  let s = sample{0};
+  s.n = 58;
+  if (g(ref s.n) != 58)
+    return 14;
+
+  if (ref_sample(ref sample{58}) != 58)
+    return 4810;
+
+  return 58;
+}
