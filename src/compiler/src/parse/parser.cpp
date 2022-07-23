@@ -342,7 +342,9 @@ const x3::rule<struct FunctionDeclTag, ast::FunctionDecl> function_decl{
   "function declaration"};
 const x3::rule<struct FunctionDefTag, ast::FunctionDef> function_def{
   "function definition"};
-const x3::rule<struct TypedefTag, ast::Typedef>   type_def{"typedef"};
+const x3::rule<struct TypedefTag, ast::Typedef> type_def{"typedef"};
+const x3::rule<struct RelativeImportTag, ast::RelativeImport> relative_import{
+  "relative import"};
 const x3::rule<struct TopLevelTag, ast::TopLevel> top_level{"top level"};
 const x3::rule<struct TopLevelWithAttrTag, ast::TopLevelWithAttr>
   top_level_with_attr{"top level"};
@@ -365,7 +367,7 @@ const x3::rule<struct TranslationUnitTag, ast::TranslationUnit>
 //===----------------------------------------------------------------------===//
 
 const auto punct = x3::rule<struct PunctTag>{"punctuation character"}
-= x3::unicode::punct | lit(U"^");
+= x3::unicode::punct | lit(U"^") | lit(U"\"");
 
 const auto identifier_internal
   = x3::rule<struct IdentifierInternalTag, std::u32string>{"identifier"}
@@ -376,6 +378,15 @@ const auto identifier_internal
 const auto identifier
   = x3::rule<struct IdentifierTag, ast::Identifier>{"identifier"}
 = identifier_internal - (lit(U"true") | lit(U"false"));
+
+const auto path_internal
+  = x3::rule<struct PathInternalTag, std::u32string>{"path"}
+= x3::raw[x3::lexeme[(x3::unicode::graph - (x3::unicode::digit | punct)
+                      | lit(U"_") | lit(U".") | lit(U"/"))
+                     >> *(x3::unicode::graph - punct | lit(U"_") | lit(U".")
+                          | lit(U"/"))]];
+
+const auto path = x3::rule<struct PathTag, ast::Path>{"path"} = path_internal;
 
 const auto variable_qualifier
   = x3::rule<struct VariableQualifierTag, VariableQual>{"variable qualifier"}
@@ -466,6 +477,10 @@ struct VariableIdentTag
   , AnnotatePosition {};
 
 struct IdentifierTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct PathTag
   : ErrorHandle
   , AnnotatePosition {};
 
@@ -967,8 +982,8 @@ const auto class_member_list_def
   = *((variable_def_without_init > lit(U";")) | (access_specifier > lit(U":"))
       | function_def | destructor | constructor);
 
-const auto class_def_def
-  = class_key > identifier > lit(U"{") > class_member_list > lit(U"}");
+const auto class_def_def = x3::matches[lit(U"pub")] >> class_key > identifier
+                           > lit(U"{") > class_member_list > lit(U"}");
 
 const auto parameter_def
   = (identifier > lit(U":") > *variable_qualifier > type_name > x3::attr(false))
@@ -985,13 +1000,17 @@ const auto function_proto_def
 const auto function_decl_def
   = lit(U"declare") >> lit(U"func") > function_proto > lit(U";");
 
-const auto function_def_def = lit(U"func") > function_proto > stmt;
+const auto function_def_def
+  = x3::matches[lit(U"pub")] >> lit(U"func") > function_proto > stmt;
 
 const auto type_def_def
   = lit(U"typedef") > identifier > lit(U"=") > type_name > lit(U";");
 
-const auto top_level_def
-  = function_decl | function_def | class_decl | class_def | type_def;
+const auto relative_import_def
+  = lit(U"import") > lit(U"\"") > path > lit(U"\"") > lit(U";");
+
+const auto top_level_def = function_decl | function_def | class_decl | class_def
+                           | type_def | relative_import;
 
 const auto top_level_with_attr_def = -attribute >> top_level_def;
 
@@ -1007,6 +1026,7 @@ BOOST_SPIRIT_DEFINE(function_proto)
 BOOST_SPIRIT_DEFINE(function_decl)
 BOOST_SPIRIT_DEFINE(function_def)
 BOOST_SPIRIT_DEFINE(type_def)
+BOOST_SPIRIT_DEFINE(relative_import)
 BOOST_SPIRIT_DEFINE(top_level)
 BOOST_SPIRIT_DEFINE(top_level_with_attr)
 
@@ -1055,6 +1075,10 @@ struct FunctionDeclTag
   , AnnotatePosition {};
 
 struct FunctionDefTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct RelativeImportTag
   : ErrorHandle
   , AnnotatePosition {};
 
@@ -1109,12 +1133,12 @@ struct TranslationUnitTag
 
 } // namespace syntax
 
-Parser::Parser(std::string&& input, std::filesystem::path&& file)
+Parser::Parser(std::string&& input, const std::filesystem::path& file)
   : input{std::move(input)}
   , u32_first{this->input.cbegin()}
   , u32_last{this->input.cend()}
   , positions{u32_first, u32_last}
-  , file{std::move(file)}
+  , file{file}
 {
   parse();
 }

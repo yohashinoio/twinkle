@@ -79,12 +79,9 @@ try {
 
   std::vector<parse::Parser::Result> parse_results;
 
-  for (const auto& file_path : getInputFiles(*argv, vmap)) {
-    auto input = loadFile(*argv, file_path);
-
-    parse::Parser parser{std::move(input), std::move(file_path)};
-
-    parse_results.emplace_back(parser.getResult());
+  for (const auto& path : getInputFiles(*argv, vmap)) {
+    parse_results.emplace_back(
+      parse::Parser{loadFile(*argv, path), path}.getResult());
   }
 
   codegen::CodeGenerator code_generator{*argv,

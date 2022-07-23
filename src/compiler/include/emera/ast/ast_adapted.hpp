@@ -22,6 +22,11 @@ BOOST_FUSION_ADAPT_STRUCT(
   (std::u32string, name)
 )
 
+BOOST_FUSION_ADAPT_STRUCT(
+  emera::ast::Path,
+  (std::u32string, path)
+)
+
 //===----------------------------------------------------------------------===//
 // Type AST adapt
 //===----------------------------------------------------------------------===//
@@ -242,6 +247,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   emera::ast::ClassDef,
+  (bool, is_public)
   (emera::ast::Identifier, name)
   (emera::ast::ClassMemberList, members)
 )
@@ -269,6 +275,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   emera::ast::FunctionDef,
+  (bool, is_public)
 	(emera::ast::FunctionDecl, decl)
   (emera::ast::Stmt, body)
 )
@@ -277,6 +284,11 @@ BOOST_FUSION_ADAPT_STRUCT(
   emera::ast::Typedef,
   (emera::ast::Identifier, alias)
   (emera::ast::Type, type)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+  emera::ast::RelativeImport,
+  (emera::ast::Path, path)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

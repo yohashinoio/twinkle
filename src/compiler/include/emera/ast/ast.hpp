@@ -60,6 +60,27 @@ struct Identifier : x3::position_tagged {
   }
 };
 
+struct Path : x3::position_tagged {
+  std::u32string path;
+
+  explicit Path(std::u32string&& path)
+    : path{std::move(path)}
+  {
+  }
+
+  Path() = default;
+
+  [[nodiscard]] std::string utf8() const
+  {
+    return unicode::utf32toUtf8(path);
+  }
+
+  [[nodiscard]] const std::u32string& utf32() const
+  {
+    return path;
+  }
+};
+
 //===----------------------------------------------------------------------===//
 // Type AST
 //===----------------------------------------------------------------------===//
@@ -657,14 +678,16 @@ struct FunctionDecl : x3::position_tagged {
 };
 
 struct FunctionDef : x3::position_tagged {
-  FunctionDef(FunctionDecl&& decl, Stmt&& body)
-    : decl{std::move(decl)}
+  FunctionDef(const bool is_public, FunctionDecl&& decl, Stmt&& body)
+    : is_public{is_public}
+    , decl{std::move(decl)}
     , body(std::move(body))
   {
   }
 
   FunctionDef() = default;
 
+  bool         is_public;
   FunctionDecl decl;
   Stmt         body;
 };
@@ -699,6 +722,7 @@ using StructMember = boost::variant<boost::blank,
 using ClassMemberList = std::vector<StructMember>;
 
 struct ClassDef : x3::position_tagged {
+  bool            is_public;
   Identifier      name;
   ClassMemberList members;
 };
@@ -708,12 +732,17 @@ struct Typedef : x3::position_tagged {
   Type       type;
 };
 
+struct RelativeImport : x3::position_tagged {
+  Path path;
+};
+
 using TopLevel = boost::variant<boost::blank,
                                 FunctionDecl,
                                 FunctionDef,
                                 ClassDecl,
                                 ClassDef,
-                                Typedef>;
+                                Typedef,
+                                RelativeImport>;
 
 // Example: [[nodiscard, nomangle]]
 using Attrs = std::vector<std::u32string>;

@@ -43,7 +43,7 @@ struct Parser : private boost::noncopyable {
             std::move(file)};
   }
 
-  Parser(std::string&& input, std::filesystem::path&& file);
+  Parser(std::string&& input, const std::filesystem::path& file);
 
 private:
   void parse();

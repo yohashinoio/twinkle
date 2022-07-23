@@ -7,18 +7,9 @@
 
 #include <emera/support/file.hpp>
 #include <emera/support/utils.hpp>
-#include <emera/support/exception.hpp>
 
 namespace emera
 {
-
-// Exception class for errors related to file operations.
-struct FileError : public ErrorBase {
-  explicit FileError(const std::string& what_arg)
-    : ErrorBase{what_arg}
-  {
-  }
-};
 
 // Load a file to std::string.
 [[nodiscard]] std::string loadFile(const std::string_view       program_name,

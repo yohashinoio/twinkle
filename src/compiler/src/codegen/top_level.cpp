@@ -228,6 +228,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
         pushThisPtr(function_clone.decl);
 
         function_clone.decl.accessibility = accessibility;
+        function_clone.is_public          = node.is_public;
 
         method_def_asts.push_back(std::move(function_clone));
       }
@@ -260,8 +261,9 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
         pushThisPtr(clone.decl);
 
-        method_def_asts.push_back(
-          ast::FunctionDef{std::move(clone.decl), std::move(clone.body)});
+        method_def_asts.push_back(ast::FunctionDef{node.is_public,
+                                                   std::move(clone.decl),
+                                                   std::move(clone.body)});
       }
       else if (const auto destructor = boost::get<ast::Destructor>(&member)) {
         if (accessibility != Accessibility::public_) {
@@ -278,8 +280,9 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
         pushThisPtr(clone.decl);
 
-        method_def_asts.push_back(
-          ast::FunctionDef{std::move(clone.decl), std::move(clone.body)});
+        method_def_asts.push_back(ast::FunctionDef{node.is_public,
+                                                   std::move(clone.decl),
+                                                   std::move(clone.body)});
       }
       else
         unreachable();
@@ -329,7 +332,44 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     return nullptr;
   }
 
+  llvm::Function* operator()(const ast::RelativeImport& node) const
+  {
+    const std::filesystem::path relative_path{node.path.utf32()};
+    auto                        path = ctx.file / relative_path;
+
+    const auto result
+      = parse::Parser{loadFile(path, ctx.positions.position_of(node)), path}
+          .getResult();
+
+    // TODO
+    for (const auto& node : result.ast)
+      ;
+
+    unreachable();
+  }
+
 private:
+  [[nodiscard]] std::string
+  loadFile(const std::filesystem::path&                path,
+           const boost::iterator_range<InputIterator>& pos) const
+  {
+    if (!std::filesystem::exists(path)) {
+      throw CodegenError{ctx.formatError(
+        pos,
+        fmt::format("{}: No such file or directory", path.string()))};
+    }
+
+    if (auto file = std::ifstream{path, std::ios_base::binary}) {
+      std::stringstream ss;
+      ss << file.rdbuf();
+      return ss.str();
+    }
+
+    throw CodegenError{
+      ctx.formatError(pos,
+                      fmt::format("{}: Could not open file", path.string()))};
+  }
+
   [[nodiscard]] std::string mangleFunction(const ast::FunctionDecl& node) const
   {
     const auto name = node.name.utf8();
