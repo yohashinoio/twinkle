@@ -7,6 +7,7 @@
 
 #include <emera/codegen/type.hpp>
 #include <emera/codegen/codegen.hpp>
+#include <emera/codegen/exception.hpp>
 
 namespace emera::codegen
 {
@@ -305,9 +306,26 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
   }
 };
 
-[[nodiscard]] std::shared_ptr<Type> createType(const ast::Type& ast)
+void verifyType(CGContext&                                  ctx,
+                const std::shared_ptr<Type>&                type,
+                const boost::iterator_range<InputIterator>& pos)
 {
-  return boost::apply_visitor(TypeVisitor(), ast);
+  assert(type);
+
+  if (!type->getLLVMType(ctx))
+    throw CodegenError{ctx.formatError(pos, "unknown type name specified")};
+}
+
+[[nodiscard]] std::shared_ptr<Type>
+createType(CGContext&                                  ctx,
+           const ast::Type&                            ast,
+           const boost::iterator_range<InputIterator>& pos)
+{
+  const auto type = boost::apply_visitor(TypeVisitor(), ast);
+
+  verifyType(ctx, type, pos);
+
+  return type;
 }
 
 } // namespace emera::codegen

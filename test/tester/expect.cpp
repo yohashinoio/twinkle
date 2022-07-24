@@ -5,28 +5,15 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <emera/compile/main.hpp>
-#include <filesystem>
-#include <sstream>
-#include <iostream>
+#include "expect.hpp"
 #include <unordered_map>
-#include <fmt/printf.h>
-#include <fmt/color.h>
 
-namespace fs = std::filesystem;
-
-int main(const int argc, const char* const* const argv)
+namespace test
 {
-  if (argc != 2) {
-    std::cerr << "Invalid commandline arguments!" << std::endl;
-    std::exit(EXIT_FAILURE);
-  }
-  else if (!fs::is_directory(argv[1])) {
-    std::cerr << "No such directory!" << std::endl;
-    std::exit(EXIT_FAILURE);
-  }
 
-  const std::unordered_map<std::string, int> expected_retcodes{
+[[nodiscard]] std::optional<int> getExpect(const std::string& test_name)
+{
+  static const std::unordered_map<std::string, int> expects{
     {                                  "return",  58},
     {                                "addition",  58},
     {                             "subtraction",  58},
@@ -199,65 +186,15 @@ int main(const int argc, const char* const* const argv)
     {                   "call_method_of_rvalue",  58},
     {       "pointer_floating_point_assignment",  11},
     {                   "reference_to_literals",  58},
+    {                         "import_function",  58},
   };
 
-  std::size_t ok_c{};   // ok count.
-  std::size_t fail_c{}; // fail count.
+  const auto it = expects.find(test_name);
 
-  for (const auto& r : fs::recursive_directory_iterator(argv[1])) {
-    std::cerr << r.path().stem().string();
+  if (it == expects.end())
+    return std::nullopt;
 
-    const char* c_argv[] = {"test", "--JIT", r.path().c_str()};
-
-    // Suppresses compile error output.
-    std::cerr.setstate(std::ios::failbit);
-
-    const auto result
-      = emera::compile::main(std::extent_v<decltype(c_argv)>, c_argv);
-
-    std::cerr.clear();
-
-    try {
-      const auto expected_retcode
-        = expected_retcodes.at(r.path().stem().string());
-
-      if (result.success()) {
-        if (*result.getJitResult() == expected_retcode) {
-          std::cerr << " => ";
-          fmt::print(stderr,
-                     fg(fmt::terminal_color::bright_green),
-                     "{} OK!\n",
-                     *result.getJitResult());
-          ++ok_c;
-          continue;
-        }
-      }
-
-      std::cerr << " => ";
-      fmt::print(stderr,
-                 fg(fmt::terminal_color::bright_red),
-                 "{} Fails! ",
-                 *result.getJitResult());
-      fmt::print(stderr, "{} expected\n", expected_retcode);
-      ++fail_c;
-    }
-    catch (const std::out_of_range&) {
-      fmt::print(stderr,
-                 "{} expected end code not set...",
-                 r.path().stem().string());
-      std::exit(EXIT_FAILURE);
-    }
-  }
-
-  std::cerr << "--------------------\n";
-  std::cerr << "| " + fmt::format(fg(fmt::terminal_color::bright_red), "Fail")
-                 + ": "
-            << std::setw(10) << fail_c << " |\n";
-  std::cerr << "|   " + fmt::format(fg(fmt::terminal_color::bright_green), "OK")
-                 + ": "
-            << std::setw(10) << ok_c << " |\n";
-  std::cerr << "--------------------\n";
-
-  if (fail_c)
-    return EXIT_FAILURE;
+  return it->second;
 }
+
+} // namespace test

@@ -96,9 +96,8 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
   {
     const auto name = node.name.utf8();
 
-    const auto return_type = createType(node.return_type);
-
-    verifyType(ctx, return_type, ctx.positions.position_of(node));
+    const auto return_type
+      = createType(ctx, node.return_type, ctx.positions.position_of(node));
 
     if (name.length() == 4 /* For optimization */ && name == "main"
         && !return_type->isIntegerTy(ctx)) {
@@ -168,7 +167,9 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     createFunctionBody(func,
                        name,
                        node.decl.params,
-                       createType(node.decl.return_type),
+                       createType(ctx,
+                                  node.decl.return_type,
+                                  ctx.positions.position_of(node.decl)),
                        node.body);
 
     fpm.run(*func);
@@ -214,9 +215,9 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
           = variable->qualifier
             && (*variable->qualifier == VariableQual::mutable_);
 
-        const auto type = createType(variable->type);
-
-        verifyType(ctx, type, ctx.positions.position_of(*variable));
+        const auto type = createType(ctx,
+                                     variable->type,
+                                     ctx.positions.position_of(*variable));
 
         member_variables.push_back(
           {variable->name.utf8(), type, is_mutable, accessibility});
@@ -327,25 +328,38 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
   {
     // TODO: If there is already an alias of the same type, make an error
 
-    ctx.alias_table.insertOrAssign(node.alias.utf8(), createType(node.type));
+    ctx.alias_table.insertOrAssign(
+      node.alias.utf8(),
+      createType(ctx, node.type, ctx.positions.position_of(node)));
 
     return nullptr;
   }
 
   llvm::Function* operator()(const ast::RelativeImport& node) const
   {
-    const std::filesystem::path relative_path{node.path.utf32()};
-    auto                        path = ctx.file / relative_path;
+    namespace fs = std::filesystem;
+
+    const fs::path relative_path{node.path.utf32()};
+    auto           path = ctx.file.parent_path() / relative_path;
 
     const auto result
       = parse::Parser{loadFile(path, ctx.positions.position_of(node)), path}
           .getResult();
 
-    // TODO
-    for (const auto& node : result.ast)
-      ;
+    for (const auto& node_with_attr : result.ast) {
+      const auto node = node_with_attr.top_level;
 
-    unreachable();
+      if (const auto func_def = boost::get<ast::FunctionDef>(&node)) {
+        if (func_def->is_public)
+          (*this)(func_def->decl);
+      }
+
+      if (const auto class_def = boost::get<ast::ClassDef>(&node)) {
+        // TODO
+      }
+    }
+
+    return nullptr;
   }
 
 private:
@@ -457,7 +471,10 @@ private:
     for (auto& arg : args) {
       const auto& param_node = param_list->at(arg.getArgNo());
 
-      const auto& param_type = createType(param_node.type);
+      const auto& param_type
+        = createType(ctx,
+                     param_node.type,
+                     ctx.positions.position_of(param_list));
 
       // Create an alloca for this variable.
       auto const alloca = createEntryAlloca(func,
@@ -489,7 +506,9 @@ private:
 
     for (std::size_t i = 0; i != named_params_len; ++i) {
       const auto& param_type = params->at(i).type;
-      types.at(i)            = createType(param_type)->getLLVMType(ctx);
+      types.at(i)
+        = createType(ctx, param_type, ctx.positions.position_of(params))
+            ->getLLVMType(ctx);
     }
 
     return types;

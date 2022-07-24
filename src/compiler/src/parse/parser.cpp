@@ -325,7 +325,7 @@ const x3::rule<struct StmtTag, ast::Stmt>     stmt{"statement"};
 
 const x3::rule<struct ClassDeclTag, ast::ClassDecl> class_decl{
   "class declaration"};
-const x3::rule<struct VariableDefWithoutInit, ast::VariableDefWithoutInit>
+const x3::rule<struct VariableDefWithoutInitTag, ast::VariableDefWithoutInit>
   variable_def_without_init{"variable definition without initializer"};
 const x3::rule<struct ConstructorTag, ast::Constructor> constructor{
   "constructor"};
@@ -1034,7 +1034,7 @@ struct ClassKeyTag
   : ErrorHandle
   , AnnotatePosition {};
 
-struct VariableDefWithoutInit
+struct VariableDefWithoutInitTag
   : ErrorHandle
   , AnnotatePosition {};
 

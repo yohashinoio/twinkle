@@ -338,9 +338,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::New& node) const
   {
-    const auto type = createType(node.type);
-
-    verifyType(ctx, type, ctx.positions.position_of(node));
+    const auto type
+      = createType(ctx, node.type, ctx.positions.position_of(node));
 
     const auto is_class_ty = type->isClassTy(ctx);
 
@@ -432,9 +431,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   {
     auto const lhs = boost::apply_visitor(*this, node.lhs);
 
-    const auto as = createType(node.as);
-
-    verifyType(ctx, as, ctx.positions.position_of(node));
+    const auto as = createType(ctx, node.as, ctx.positions.position_of(node));
 
     if (as->isPointerTy(ctx)) {
       // Pointer to pointer.

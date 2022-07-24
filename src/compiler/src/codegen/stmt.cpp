@@ -92,9 +92,8 @@ struct StmtVisitor : public boost::static_visitor<void> {
       = node.qualifier && (*node.qualifier == VariableQual::mutable_);
 
     if (node.type) {
-      const auto type = createType(*node.type);
-
-      verifyType(ctx, type, ctx.positions.position_of(node));
+      const auto type
+        = createType(ctx, *node.type, ctx.positions.position_of(node));
 
       scope.insertOrAssign(name,
                            createVariable(ctx.positions.position_of(node),

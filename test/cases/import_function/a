@@ -1,0 +1,6 @@
+import "./b";
+
+pub func a() -> i32
+{
+  return b() + 10;
+}

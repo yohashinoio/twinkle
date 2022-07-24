@@ -15,6 +15,7 @@
 #include <emera/pch/pch.hpp>
 #include <emera/support/utils.hpp>
 #include <emera/support/kind.hpp>
+#include <emera/support/typedef.hpp>
 #include <emera/unicode/unicode.hpp>
 #include <boost/lexical_cast.hpp>
 #include <emera/ast/ast.hpp>
@@ -507,7 +508,10 @@ private:
   std::shared_ptr<Type> refee_type;
 };
 
-[[nodiscard]] std::shared_ptr<Type> createType(const ast::Type& ast);
+[[nodiscard]] std::shared_ptr<Type>
+createType(CGContext&                                  ctx,
+           const ast::Type&                            ast,
+           const boost::iterator_range<InputIterator>& pos);
 
 } // namespace emera::codegen
 

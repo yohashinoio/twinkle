@@ -1,0 +1,4 @@
+pub func b() -> i32
+{
+  return 48;
+}
