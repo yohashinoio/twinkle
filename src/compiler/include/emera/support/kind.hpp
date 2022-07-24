@@ -53,9 +53,6 @@ getMangledAccessibility(const Accessibility accessibility);
 
 [[nodiscard]] bool isExternallyAccessible(const Accessibility& access) noexcept;
 
-[[nodiscard]] llvm::Function::LinkageTypes
-linkageToLLVM(const Linkage linkage) noexcept;
-
 } // namespace emera
 
 #endif

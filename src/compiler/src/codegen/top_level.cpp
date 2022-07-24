@@ -64,15 +64,6 @@ isVariadicArgs(const ast::ParameterList& params)
   return is_vararg;
 }
 
-[[nodiscard]] static llvm::Function*
-createLlvmFunction(const Linkage             linkage,
-                   llvm::FunctionType* const type,
-                   const llvm::Twine&        name,
-                   llvm::Module&             module)
-{
-  return llvm::Function::Create(type, linkageToLLVM(linkage), name, module);
-}
-
 //===----------------------------------------------------------------------===//
 // Top level statement visitor
 //===----------------------------------------------------------------------===//
@@ -99,8 +90,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     const auto return_type
       = createType(ctx, node.return_type, ctx.positions.position_of(node));
 
-    if (name.length() == 4 /* For optimization */ && name == "main"
-        && !return_type->isIntegerTy(ctx)) {
+    if (name == "main" && !return_type->isIntegerTy(ctx)) {
       throw CodegenError{
         ctx.formatError(ctx.positions.position_of(node),
                         "the return type of main must be an integer")};
@@ -132,11 +122,14 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     const auto mangled_name = mangleFunction(node);
 
     auto const func
-      = createLlvmFunction(node.linkage, func_type, mangled_name, *ctx.module);
+      = llvm::Function::Create(func_type,
+                               llvm::Function::LinkageTypes::ExternalLinkage,
+                               mangled_name,
+                               *ctx.module);
 
     ctx.return_type_table.insertOrAssign(func, return_type);
 
-    // Set names to all arguments.
+    // Set names to all arguments
     for (std::size_t idx = 0; auto&& arg : func->args())
       arg.setName(node.params->at(idx++).name.utf8());
 
@@ -164,6 +157,9 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
                         fmt::format("failed to create function '{}'", name))};
     }
 
+    if (!node.is_public && name != "main")
+      func->setLinkage(llvm::Function::LinkageTypes::InternalLinkage);
+
     createFunctionBody(func,
                        name,
                        node.decl.params,
@@ -182,7 +178,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     const auto name = node.name.utf8();
 
     if (ctx.class_table.exists(name)) {
-      // Do nothing, if already exists.
+      // Do nothing, if already exists
       return nullptr;
     }
 

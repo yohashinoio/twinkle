@@ -25,21 +25,6 @@ namespace emera
   unreachable();
 }
 
-[[nodiscard]] llvm::Function::LinkageTypes
-linkageToLLVM(const Linkage linkage) noexcept
-{
-  switch (linkage) {
-  case Linkage::unknown:
-    unreachable();
-  case Linkage::external:
-    return llvm::Function::LinkageTypes::ExternalLinkage;
-  case Linkage::internal:
-    return llvm::Function::LinkageTypes::InternalLinkage;
-  }
-
-  unreachable();
-}
-
 [[nodiscard]] std::string
 getMangledAccessibility(const Accessibility accessibility)
 {

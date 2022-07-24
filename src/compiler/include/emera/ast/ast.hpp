@@ -668,7 +668,6 @@ struct ParameterList : x3::position_tagged {
 };
 
 struct FunctionDecl : x3::position_tagged {
-  Linkage       linkage;
   Identifier    name;
   ParameterList params;
   Type          return_type;

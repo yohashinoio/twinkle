@@ -34,9 +34,6 @@ namespace test
     for (const auto& r : paths)
       args.push_back(r.c_str());
 
-    for (const auto& r : args)
-      std::cout << r << std::endl;
-
     const auto result = emera::compile::main(args.size(), args.data());
 
     std::cerr.clear();

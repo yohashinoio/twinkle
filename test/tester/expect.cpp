@@ -45,7 +45,6 @@ namespace test
     {                                    "for4", 110},
     {                                    "for5",  58},
     {                                 "comment",  58},
-    {                        "function_linkage",  58},
     {                            "scalar_types",  58},
     {                              "parameter1",  58},
     {                              "parameter2",  58},

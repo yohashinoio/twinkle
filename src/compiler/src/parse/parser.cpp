@@ -170,17 +170,6 @@ struct VariableQualifierSymbols : UnicodeSymbols<VariableQual> {
   }
 } variable_qualifier_symbols;
 
-struct FunctionLinkageSymbols : UnicodeSymbols<Linkage> {
-  FunctionLinkageSymbols()
-  {
-    // clang-format off
-    add
-      (U"private", Linkage::internal)
-    ;
-    // clang-format on
-  }
-} function_linkage_symbols;
-
 struct AccessSpecifierSymbols : UnicodeSymbols<Accessibility> {
   AccessSpecifierSymbols()
   {
@@ -391,10 +380,6 @@ const auto path = x3::rule<struct PathTag, ast::Path>{"path"} = path_internal;
 const auto variable_qualifier
   = x3::rule<struct VariableQualifierTag, VariableQual>{"variable qualifier"}
 = variable_qualifier_symbols;
-
-const auto function_linkage
-  = x3::rule<struct FunctionLinkageTag, Linkage>{"function linkage"}
-= function_linkage_symbols;
 
 const auto access_specifier
   = x3::rule<struct AccessSpecifierTag, Accessibility>{"access specifier"}
@@ -992,8 +977,7 @@ const auto parameter_def
 const auto parameter_list_def = -(parameter % lit(U","));
 
 const auto function_proto_def
-  = (function_linkage | x3::attr(Linkage::external)) >> identifier > lit(U"(")
-    > parameter_list > lit(U")")
+  = identifier > lit(U"(") > parameter_list > lit(U")")
     > ((lit(U"->") > type_name)
        | x3::attr(ast::BuiltinType{codegen::BuiltinTypeKind::void_}));
 
