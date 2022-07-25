@@ -191,7 +191,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
   {
     const auto class_name = node.name.utf8();
 
-    auto accessibility = STRUCT_DEFAULT_ACCESSIBILITY;
+    auto accessibility = CLASS_DEFAULT_ACCESSIBILITY;
 
     std::vector<ClassType::MemberVariable> member_variables;
     std::vector<ast::FunctionDef>          method_def_asts;

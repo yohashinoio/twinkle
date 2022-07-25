@@ -46,7 +46,7 @@ enum class Accessibility {
   private_,
 };
 
-constexpr Accessibility STRUCT_DEFAULT_ACCESSIBILITY = Accessibility::public_;
+constexpr Accessibility CLASS_DEFAULT_ACCESSIBILITY = Accessibility::public_;
 
 [[nodiscard]] std::string
 getMangledAccessibility(const Accessibility accessibility);
