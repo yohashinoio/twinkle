@@ -1,0 +1,20 @@
+func f1() -> isize
+{
+  return 48 as isize;
+}
+
+func f2() -> usize
+{
+  return 10 as usize;
+}
+
+func main() -> i32
+{
+  let is: isize;
+  let us: usize;
+
+  let is = 48 as isize;
+  let us = 10 as usize;
+
+  return (f1() + f2()) as i32;
+}

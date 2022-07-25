@@ -221,6 +221,8 @@ struct BuiltinTypeNameSymbolsTag : UnicodeSymbols<codegen::BuiltinTypeKind> {
       (U"char", codegen::BuiltinTypeKind::char_)
       (U"f64", codegen::BuiltinTypeKind::f64)
       (U"f32", codegen::BuiltinTypeKind::f32)
+      (U"isize", codegen::BuiltinTypeKind::isize)
+      (U"usize", codegen::BuiltinTypeKind::usize)
     ;
     // clang-format on
   }

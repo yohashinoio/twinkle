@@ -39,10 +39,9 @@ enum class BuiltinTypeKind {
   // Floating-point types.
   f64,
   f32,
+  isize,
+  usize,
 };
-
-[[nodiscard]] std::optional<BuiltinTypeKind>
-matchBuiltinType(const std::u32string_view type);
 
 // Forward declaration
 struct CGContext;
@@ -156,24 +155,7 @@ struct BuiltinType : public Type {
     return kind == BuiltinTypeKind::f64 || kind == BuiltinTypeKind::f32;
   }
 
-  [[nodiscard]] bool isIntegerTy(CGContext&) const override
-  {
-    switch (kind) {
-    case BuiltinTypeKind::i8:
-    case BuiltinTypeKind::i16:
-    case BuiltinTypeKind::i32:
-    case BuiltinTypeKind::i64:
-    case BuiltinTypeKind::u8:
-    case BuiltinTypeKind::u16:
-    case BuiltinTypeKind::u32:
-    case BuiltinTypeKind::u64:
-      return true;
-    default:
-      return false;
-    }
-
-    unreachable();
-  }
+  [[nodiscard]] bool isIntegerTy(CGContext&) const override;
 
   [[nodiscard]] llvm::Type* getLLVMType(CGContext& ctx) const override;
 

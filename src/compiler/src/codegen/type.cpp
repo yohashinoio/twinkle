@@ -12,36 +12,6 @@
 namespace emera::codegen
 {
 
-[[nodiscard]] std::optional<BuiltinTypeKind>
-matchBuiltinType(const std::u32string_view type)
-{
-  static const std::unordered_map<std::u32string_view, BuiltinTypeKind>
-    builtin_type_map = {
-      {U"void", BuiltinTypeKind::void_},
-      {  U"i8",    BuiltinTypeKind::i8},
-      {  U"u8",    BuiltinTypeKind::u8},
-      { U"i16",   BuiltinTypeKind::i16},
-      { U"u16",   BuiltinTypeKind::u16},
-      { U"i32",   BuiltinTypeKind::i32},
-      { U"u32",   BuiltinTypeKind::u32},
-      { U"i64",   BuiltinTypeKind::i64},
-      { U"u64",   BuiltinTypeKind::u64},
-      {U"bool", BuiltinTypeKind::bool_},
-      {U"char", BuiltinTypeKind::char_},
-      { U"f64",   BuiltinTypeKind::f64},
-      { U"f32",   BuiltinTypeKind::f32},
-  };
-
-  const auto iter = builtin_type_map.find(type);
-
-  if (iter == builtin_type_map.end())
-    return std::nullopt;
-  else
-    return iter->second;
-
-  unreachable();
-}
-
 [[nodiscard]] llvm::Type* BuiltinType::getLLVMType(CGContext& ctx) const
 {
   switch (kind) {
@@ -67,6 +37,11 @@ matchBuiltinType(const std::u32string_view type)
     return llvm::Type::getDoubleTy(ctx.context);
   case BuiltinTypeKind::f32:
     return llvm::Type::getFloatTy(ctx.context);
+  case BuiltinTypeKind::isize:
+  case BuiltinTypeKind::usize:
+    return llvm::Type::getIntNTy(
+      ctx.context,
+      ctx.module->getDataLayout().getMaxIndexSizeInBits());
   }
 
   unreachable();
@@ -79,6 +54,7 @@ matchBuiltinType(const std::u32string_view type)
   case BuiltinTypeKind::i16:
   case BuiltinTypeKind::i32:
   case BuiltinTypeKind::i64:
+  case BuiltinTypeKind::isize:
     return SignKind::signed_;
 
   case BuiltinTypeKind::u8:
@@ -87,12 +63,34 @@ matchBuiltinType(const std::u32string_view type)
   case BuiltinTypeKind::u64:
   case BuiltinTypeKind::bool_:
   case BuiltinTypeKind::char_:
+  case BuiltinTypeKind::usize:
     return SignKind::unsigned_;
 
   case BuiltinTypeKind::void_:
   case BuiltinTypeKind::f64:
   case BuiltinTypeKind::f32:
     return SignKind::no_sign;
+  }
+
+  unreachable();
+}
+
+[[nodiscard]] bool BuiltinType::isIntegerTy(CGContext&) const
+{
+  switch (kind) {
+  case BuiltinTypeKind::i8:
+  case BuiltinTypeKind::i16:
+  case BuiltinTypeKind::i32:
+  case BuiltinTypeKind::i64:
+  case BuiltinTypeKind::u8:
+  case BuiltinTypeKind::u16:
+  case BuiltinTypeKind::u32:
+  case BuiltinTypeKind::u64:
+  case BuiltinTypeKind::isize:
+  case BuiltinTypeKind::usize:
+    return true;
+  default:
+    return false;
   }
 
   unreachable();
@@ -127,6 +125,10 @@ matchBuiltinType(const std::u32string_view type)
     return "f64";
   case BuiltinTypeKind::f32:
     return "f32";
+  case BuiltinTypeKind::isize:
+    return "is";
+  case BuiltinTypeKind::usize:
+    return "us";
   }
 
   unreachable();

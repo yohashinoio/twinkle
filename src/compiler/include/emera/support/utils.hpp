@@ -18,7 +18,7 @@
 namespace emera
 {
 
-constexpr unsigned int VERSION = 000003;
+constexpr unsigned int VERSION = 000004;
 
 [[nodiscard]] std::string getVersion();
 
