@@ -167,43 +167,65 @@ UserDefinedType::getType(CGContext& ctx) const
   return getType(ctx)->getMangledName(ctx);
 }
 
+llvm::StructType*
+ClassType::createStructType(CGContext&                 ctx,
+                            std::vector<llvm::Type*>&& members,
+                            const std::string&         name)
+{
+  if (const auto type = llvm::StructType::getTypeByName(ctx.context, name))
+    return type;
+
+  return llvm::StructType::create(ctx.context, members, name);
+}
+
 ClassType::ClassType(CGContext&                    ctx,
                      std::vector<MemberVariable>&& members_arg,
-                     const std::u32string&         ident)
+                     const std::u32string&         u32_name)
   : is_opaque{false}
   , members{std::move(members_arg)}
-  , ident{unicode::utf32toUtf8(ident)}
-  , type{llvm::StructType::create(ctx.context,
-                                  extractTypes(ctx, members),
-                                  this->ident)}
+  , name{unicode::utf32toUtf8(u32_name)}
+  , type{createStructType(ctx, extractTypes(ctx, members), name)}
 {
 }
 
 ClassType::ClassType(CGContext&                    ctx,
                      std::vector<MemberVariable>&& members_arg,
-                     const std::string&            ident)
+                     const std::string&            name)
   : is_opaque{false}
   , members{std::move(members_arg)}
-  , ident{ident}
-  , type{
-      llvm::StructType::create(ctx.context, extractTypes(ctx, members), ident)}
+  , name{name}
+  , type{createStructType(ctx, extractTypes(ctx, members), this->name)}
 {
 }
 
-ClassType::ClassType(CGContext& ctx, const std::string& ident)
+ClassType::ClassType(CGContext&                    ctx,
+                     std::vector<MemberVariable>&& members,
+                     const std::string&            ident,
+                     llvm::StructType* const       type)
   : is_opaque{true}
-  , members{}
-  , ident{ident}
-  , type{llvm::StructType::create(ctx.context, ident)}
+  , members{std::move(members)}
+  , name{ident}
+  , type{type}
 {
+}
+
+std::shared_ptr<ClassType>
+ClassType::createOpaqueClass(CGContext& ctx, const std::string& ident)
+{
+  return std::make_shared<ClassType>(
+    ctx,
+    std::vector<MemberVariable>{},
+    ident,
+    llvm::StructType::create(ctx.context, ident));
 }
 
 std::vector<llvm::Type*>
-ClassType::extractTypes(CGContext& ctx, const std::vector<MemberVariable>& m)
+ClassType::extractTypes(CGContext&                         ctx,
+                        const std::vector<MemberVariable>& members)
 {
   std::vector<llvm::Type*> retval;
 
-  for (const auto& r : m)
+  for (const auto& r : members)
     retval.push_back(r.type->getLLVMType(ctx));
 
   return retval;

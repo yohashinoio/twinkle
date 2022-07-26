@@ -170,7 +170,7 @@ struct CGContext : private boost::noncopyable {
 
   std::filesystem::path file;
 
-  const PositionCache positions;
+  PositionCache positions;
 
   // Table
   ClassTable              class_table;

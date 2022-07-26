@@ -275,16 +275,26 @@ struct ClassType : public Type {
 
   ClassType(CGContext&                    ctx,
             std::vector<MemberVariable>&& members,
-            const std::u32string&         ident);
+            const std::u32string&         name);
 
   ClassType(CGContext&                    ctx,
             std::vector<MemberVariable>&& members,
-            const std::string&            ident);
+            const std::string&            name);
 
-  ClassType(CGContext& ctx, const std::string& ident);
+  ClassType(CGContext&                    ctx,
+            std::vector<MemberVariable>&& members,
+            const std::string&            name,
+            llvm::StructType* const       type);
+
+  static std::shared_ptr<ClassType> createOpaqueClass(CGContext&         ctx,
+                                                      const std::string& ident);
+
+  static llvm::StructType* createStructType(CGContext&                 ctx,
+                                            std::vector<llvm::Type*>&& members,
+                                            const std::string&         name);
 
   static std::vector<llvm::Type*>
-  extractTypes(CGContext& ctx, const std::vector<MemberVariable>& m);
+  extractTypes(CGContext& ctx, const std::vector<MemberVariable>& members);
 
   void setIsOpaque(const bool val) noexcept
   {
@@ -328,27 +338,27 @@ struct ClassType : public Type {
 
   [[nodiscard]] std::string getMangledName(CGContext&) const override
   {
-    return boost::lexical_cast<std::string>(ident.length()) + ident;
+    return boost::lexical_cast<std::string>(name.length()) + name;
   }
 
   [[nodiscard]] std::string getClassName(CGContext&) const override
   {
-    return ident;
+    return name;
   }
 
   [[nodiscard]] std::string getUserDefinedTyName(CGContext&) const override
   {
-    return ident;
+    return name;
   }
 
 private:
   bool                        is_opaque;
   std::vector<MemberVariable> members;
-  const std::string           ident;
+  const std::string           name;
 
   // If struct is created multiple times, the name will be duplicated, so create
   // it only once and store it in this variable.
-  llvm::StructType* const type;
+  llvm::StructType* type;
 };
 
 struct FunctionType : public Type {

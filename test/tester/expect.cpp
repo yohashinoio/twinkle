@@ -187,6 +187,7 @@ namespace test
     {                   "reference_to_literals",  58},
     {                         "import_function",  58},
     {                             "isize_usize",  58},
+    {                          "import_classes",  58},
   };
 
   const auto it = expects.find(test_name);

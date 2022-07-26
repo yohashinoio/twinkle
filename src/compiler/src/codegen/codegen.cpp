@@ -139,8 +139,7 @@ void CodeGenerator::verifyOptLevel(const unsigned int opt_level) const
   case 3:
     return;
   default:
-    throw CodegenError{
-      formatError(argv_front, "specify the correct optimization level")};
+    throw CodegenError{formatError(argv_front, "invalid optimization level")};
   }
 }
 

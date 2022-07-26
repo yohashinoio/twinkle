@@ -177,17 +177,98 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
   {
     const auto name = node.name.utf8();
 
-    if (ctx.class_table.exists(name)) {
-      // Do nothing, if already exists
+    if (ctx.class_table.exists(name))
       return nullptr;
-    }
 
-    ctx.class_table.insert(name, std::make_shared<ClassType>(ctx, name));
+    ctx.class_table.insert(name, ClassType::createOpaqueClass(ctx, name));
 
     return nullptr;
   }
 
   llvm::Function* operator()(const ast::ClassDef& node) const
+  {
+    const auto method_def_asts = createClass(node);
+
+    ctx.ns_hierarchy.push({node.name.utf8(), NamespaceKind::class_});
+
+    // By declaring first, the order of definitions can be ignored
+    for (const auto& r : method_def_asts)
+      (*this)(r.decl);
+
+    for (const auto& r : method_def_asts)
+      (*this)(r);
+
+    ctx.ns_hierarchy.pop();
+
+    return nullptr;
+  }
+
+  llvm::Function* operator()(const ast::Typedef& node) const
+  {
+    // TODO: If there is already an alias of the same type, make an error
+
+    ctx.alias_table.insertOrAssign(
+      node.alias.utf8(),
+      createType(ctx, node.type, ctx.positions.position_of(node)));
+
+    return nullptr;
+  }
+
+  llvm::Function* operator()(const ast::RelativeImport& node) const
+  {
+    namespace fs = std::filesystem;
+
+    const fs::path relative_path{node.path.utf32()};
+    auto           path = ctx.file.parent_path() / relative_path;
+
+    const auto result
+      = parse::Parser{loadFile(path, ctx.positions.position_of(node)), path}
+          .getResult();
+
+    const auto pos_backup = ctx.positions;
+    ctx.positions         = result.positions;
+
+    for (const auto& node_with_attr : result.ast) {
+      const auto node = node_with_attr.top_level;
+
+      if (const auto func_def = boost::get<ast::FunctionDef>(&node);
+          func_def && func_def->is_public) {
+        (*this)(func_def->decl);
+        continue;
+      }
+
+      if (const auto class_def = boost::get<ast::ClassDef>(&node);
+          class_def && class_def->is_public) {
+        importClass(*class_def);
+        continue;
+      }
+    }
+
+    ctx.positions = pos_backup;
+
+    return nullptr;
+  }
+
+private:
+  void importClass(const ast::ClassDef& node) const
+  {
+    const auto method_def_asts = createClass(node);
+
+    ctx.ns_hierarchy.push({node.name.utf8(), NamespaceKind::class_});
+
+    for (const auto& r : method_def_asts)
+      (*this)(r.decl);
+
+    // No method definition
+
+    ctx.ns_hierarchy.pop();
+  }
+
+  // No method declarations or definitions
+  // Definitions and declarations must be made by the caller with the return
+  // value
+  [[nodiscard]] std::vector<emera::ast::FunctionDef>
+  createClass(const ast::ClassDef& node) const
   {
     const auto class_name = node.name.utf8();
 
@@ -196,7 +277,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     std::vector<ClassType::MemberVariable> member_variables;
     std::vector<ast::FunctionDef>          method_def_asts;
 
-    const auto pushThisPtr = [&](ast::FunctionDecl& decl) {
+    const auto push_this_ptr = [&](ast::FunctionDecl& decl) {
       decl.params->push_front(
         {ast::Identifier{std::u32string{U"this"}},
          {VariableQual::mutable_},
@@ -221,8 +302,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
       else if (const auto function = boost::get<ast::FunctionDef>(&member)) {
         auto function_clone = *function;
 
-        // Push this pointer to front
-        pushThisPtr(function_clone.decl);
+        push_this_ptr(function_clone.decl);
 
         function_clone.decl.accessibility = accessibility;
         function_clone.is_public          = node.is_public;
@@ -256,7 +336,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
         clone.decl.is_constructor = true;
 
-        pushThisPtr(clone.decl);
+        push_this_ptr(clone.decl);
 
         method_def_asts.push_back(ast::FunctionDef{node.is_public,
                                                    std::move(clone.decl),
@@ -275,7 +355,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
         clone.decl.is_destructor = true;
 
-        pushThisPtr(clone.decl);
+        push_this_ptr(clone.decl);
 
         method_def_asts.push_back(ast::FunctionDef{node.is_public,
                                                    std::move(clone.decl),
@@ -305,60 +385,9 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
                                     class_name));
     }
 
-    {
-      // Generate the methods
-      // Because it will result in an error if the structure type is not
-      // registered
-      ctx.ns_hierarchy.push({class_name, NamespaceKind::class_});
-      for (const auto& r : method_def_asts)
-        (*this)(r.decl);
-      for (const auto& r : method_def_asts)
-        (*this)(r);
-      ctx.ns_hierarchy.pop();
-    }
-
-    return nullptr;
+    return method_def_asts;
   }
 
-  llvm::Function* operator()(const ast::Typedef& node) const
-  {
-    // TODO: If there is already an alias of the same type, make an error
-
-    ctx.alias_table.insertOrAssign(
-      node.alias.utf8(),
-      createType(ctx, node.type, ctx.positions.position_of(node)));
-
-    return nullptr;
-  }
-
-  llvm::Function* operator()(const ast::RelativeImport& node) const
-  {
-    namespace fs = std::filesystem;
-
-    const fs::path relative_path{node.path.utf32()};
-    auto           path = ctx.file.parent_path() / relative_path;
-
-    const auto result
-      = parse::Parser{loadFile(path, ctx.positions.position_of(node)), path}
-          .getResult();
-
-    for (const auto& node_with_attr : result.ast) {
-      const auto node = node_with_attr.top_level;
-
-      if (const auto func_def = boost::get<ast::FunctionDef>(&node)) {
-        if (func_def->is_public)
-          (*this)(func_def->decl);
-      }
-
-      if (const auto class_def = boost::get<ast::ClassDef>(&node)) {
-        // TODO
-      }
-    }
-
-    return nullptr;
-  }
-
-private:
   [[nodiscard]] std::string
   loadFile(const std::filesystem::path&                path,
            const boost::iterator_range<InputIterator>& pos) const

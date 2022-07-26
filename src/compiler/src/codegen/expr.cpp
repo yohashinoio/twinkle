@@ -1172,12 +1172,15 @@ private:
     {
       const auto lhs_value = createExpr(ctx, scope, stmt_ctx, lhs);
 
-      assert(lhs_value.getType()->isClassTy(ctx));
+      if (!lhs_value.getType()->isClassTy(ctx)) {
+        throw CodegenError{
+          ctx.formatError(pos, "the left-hand side requires classes")};
+      }
 
       ctx.ns_hierarchy.push(
         {lhs_value.getType()->getClassName(ctx), NamespaceKind::class_});
 
-      // this*
+      // pushing this pointer to the front
       args.push_front(createAddressOf(lhs_value));
     }
 
