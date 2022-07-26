@@ -5,12 +5,12 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <emera/codegen/expr.hpp>
-#include <emera/codegen/exception.hpp>
-#include <emera/codegen/kind.hpp>
-#include <emera/codegen/stmt.hpp>
+#include <spica/codegen/expr.hpp>
+#include <spica/codegen/exception.hpp>
+#include <spica/codegen/kind.hpp>
+#include <spica/codegen/stmt.hpp>
 
-namespace emera::codegen
+namespace spica::codegen
 {
 
 [[nodiscard]] llvm::Function*
@@ -646,7 +646,7 @@ private:
   }
 
   void
-  createConstructorCall(const boost::iterator_range<emera::InputIterator>& pos,
+  createConstructorCall(const boost::iterator_range<spica::InputIterator>& pos,
                         const std::string&       class_name,
                         const std::deque<Value>& args) const
   {
@@ -695,7 +695,7 @@ private:
   [[nodiscard]] Value createFunctionCall(
     const std::string&                                 callee_name,
     std::deque<Value>&&                                args,
-    const boost::iterator_range<emera::InputIterator>& pos) const
+    const boost::iterator_range<spica::InputIterator>& pos) const
   {
     if (auto const func = findCalleeMethod(callee_name, args)) {
       args.push_front((*this)(ast::Identifier{std::u32string{U"this"}}));
@@ -713,7 +713,7 @@ private:
   [[nodiscard]] Value createFunctionCall(
     llvm::Function* const                              callee_func,
     const std::deque<Value>&                           args,
-    const boost::iterator_range<emera::InputIterator>& pos) const
+    const boost::iterator_range<spica::InputIterator>& pos) const
   {
     if (!callee_func->isVarArg() && callee_func->arg_size() != args.size())
       throw CodegenError{ctx.formatError(pos, "incorrect arguments passed")};
@@ -1213,4 +1213,4 @@ private:
   return boost::apply_visitor(ExprVisitor{ctx, scope, stmt_ctx}, expr);
 }
 
-} // namespace emera::codegen
+} // namespace spica::codegen

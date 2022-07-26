@@ -5,10 +5,10 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <emera/support/kind.hpp>
-#include <emera/support/utils.hpp>
+#include <spica/support/kind.hpp>
+#include <spica/support/utils.hpp>
 
-namespace emera
+namespace spica
 {
 
 [[nodiscard]] bool isSigned(const SignKind sk) noexcept
@@ -53,4 +53,4 @@ getMangledAccessibility(const Accessibility accessibility)
   unreachable();
 }
 
-} // namespace emera
+} // namespace spica

@@ -1,4 +1,4 @@
-set(LIB_NAME emera)
+set(LIB_NAME spicac)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
@@ -37,7 +37,7 @@ add_library(
   compile/main.cpp
 )
 
-target_precompile_headers(${LIB_NAME} PRIVATE ../include/emera/pch/pch.hpp)
+target_precompile_headers(${LIB_NAME} PRIVATE ../include/spica/pch/pch.hpp)
 
 add_subdirectory(codegen)
 add_subdirectory(jit)

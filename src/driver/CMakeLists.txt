@@ -1,4 +1,4 @@
-set(RUNTIME_NAME emerac)
+set(RUNTIME_NAME spica)
 
 include(GNUInstallDirs)
 
@@ -12,7 +12,7 @@ add_executable(
 target_link_libraries(
   ${RUNTIME_NAME}
   PRIVATE
-  emera
+  spicac
 )
 
 target_compile_options(

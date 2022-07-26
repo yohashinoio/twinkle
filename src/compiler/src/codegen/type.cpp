@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <emera/codegen/type.hpp>
-#include <emera/codegen/codegen.hpp>
-#include <emera/codegen/exception.hpp>
+#include <spica/codegen/type.hpp>
+#include <spica/codegen/codegen.hpp>
+#include <spica/codegen/exception.hpp>
 
-namespace emera::codegen
+namespace spica::codegen
 {
 
 [[nodiscard]] llvm::Type* BuiltinType::getLLVMType(CGContext& ctx) const
@@ -352,4 +352,4 @@ createType(CGContext&                                  ctx,
   return type;
 }
 
-} // namespace emera::codegen
+} // namespace spica::codegen

@@ -5,9 +5,9 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <emera/codegen/common.hpp>
+#include <spica/codegen/common.hpp>
 
-namespace emera::codegen
+namespace spica::codegen
 {
 
 [[nodiscard]] llvm::AllocaInst* createEntryAlloca(llvm::Function*    func,
@@ -446,4 +446,4 @@ createDereference(CGContext&                                  ctx,
   unreachable();
 }
 
-} // namespace emera::codegen
+} // namespace spica::codegen

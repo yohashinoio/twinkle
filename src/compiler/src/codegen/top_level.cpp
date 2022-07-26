@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <emera/codegen/top_level.hpp>
-#include <emera/codegen/stmt.hpp>
-#include <emera/codegen/exception.hpp>
+#include <spica/codegen/top_level.hpp>
+#include <spica/codegen/stmt.hpp>
+#include <spica/codegen/exception.hpp>
 
-namespace emera::codegen
+namespace spica::codegen
 {
 
 enum class AttrKind {
@@ -267,7 +267,7 @@ private:
   // No method declarations or definitions
   // Definitions and declarations must be made by the caller with the return
   // value
-  [[nodiscard]] std::vector<emera::ast::FunctionDef>
+  [[nodiscard]] std::vector<spica::ast::FunctionDef>
   createClass(const ast::ClassDef& node) const
   {
     const auto class_name = node.name.utf8();
@@ -580,4 +580,4 @@ llvm::Function* createTopLevel(CGContext&                         ctx,
                               node.top_level);
 }
 
-} // namespace emera::codegen
+} // namespace spica::codegen

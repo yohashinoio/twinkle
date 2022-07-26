@@ -5,18 +5,18 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <emera/compile/main.hpp>
-#include <emera/codegen/codegen.hpp>
-#include <emera/jit/jit.hpp>
-#include <emera/parse/parser.hpp>
-#include <emera/option/option.hpp>
-#include <emera/support/file.hpp>
-#include <emera/support/utils.hpp>
-#include <emera/support/exception.hpp>
+#include <spica/compile/main.hpp>
+#include <spica/codegen/codegen.hpp>
+#include <spica/jit/jit.hpp>
+#include <spica/parse/parser.hpp>
+#include <spica/option/option.hpp>
+#include <spica/support/file.hpp>
+#include <spica/support/utils.hpp>
+#include <spica/support/exception.hpp>
 
 namespace program_options = boost::program_options;
 
-namespace emera::compile
+namespace spica::compile
 {
 
 static bool isBackNewline(const char* str) noexcept
@@ -69,7 +69,7 @@ try {
     std::exit(EXIT_SUCCESS);
   }
   if (vmap.contains("version")) {
-    std::cout << "emera version " << getVersion() << std::endl;
+    std::cout << "spica version " << getVersion() << std::endl;
     std::exit(EXIT_SUCCESS);
   }
   else if (vmap.contains("help")) {
@@ -113,4 +113,4 @@ catch (const ErrorBase& err) {
   return {false, std::nullopt};
 }
 
-} // namespace emera::compile
+} // namespace spica::compile

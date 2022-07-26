@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <emera/codegen/stmt.hpp>
-#include <emera/codegen/expr.hpp>
-#include <emera/codegen/exception.hpp>
+#include <spica/codegen/stmt.hpp>
+#include <spica/codegen/expr.hpp>
+#include <spica/codegen/exception.hpp>
 
-namespace emera::codegen
+namespace spica::codegen
 {
 
 [[nodiscard]] SymbolTable mergeSymbolTables(const SymbolTable& a,
@@ -593,4 +593,4 @@ void createStatement(CGContext&         ctx,
   }
 }
 
-} // namespace emera::codegen
+} // namespace spica::codegen

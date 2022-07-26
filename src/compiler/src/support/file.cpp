@@ -5,10 +5,10 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <emera/support/file.hpp>
-#include <emera/support/utils.hpp>
+#include <spica/support/file.hpp>
+#include <spica/support/utils.hpp>
 
-namespace emera
+namespace spica
 {
 
 // Load a file to std::string.
@@ -32,4 +32,4 @@ namespace emera
                 fmt::format("{}: Could not open file", path.string()))};
 }
 
-} // namespace emera
+} // namespace spica

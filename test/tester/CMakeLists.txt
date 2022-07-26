@@ -9,8 +9,8 @@ include_directories(
 
 add_executable(
   ${RUNTIME_NAME}
-  tester.cpp
-  expect.cpp
+  test.cpp
+  expectation.cpp
 )
 
 target_link_libraries(
@@ -18,7 +18,7 @@ target_link_libraries(
   PRIVATE
   Threads::Threads
   fmt::fmt
-  emera
+  spicac
 )
 
 target_compile_options(

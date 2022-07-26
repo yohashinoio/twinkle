@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <emera/option/option.hpp>
-#include <emera/option/exception.hpp>
-#include <emera/support/utils.hpp>
+#include <spica/option/option.hpp>
+#include <spica/option/exception.hpp>
+#include <spica/support/utils.hpp>
 
-namespace emera
+namespace spica
 {
 
 namespace program_options = boost::program_options;
@@ -92,4 +92,4 @@ getRelocationModel(const std::string_view                program_name,
   }
 }
 
-} // namespace emera
+} // namespace spica

@@ -5,18 +5,18 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <emera/codegen/codegen.hpp>
-#include <emera/codegen/top_level.hpp>
-#include <emera/codegen/type.hpp>
-#include <emera/codegen/exception.hpp>
-#include <emera/unicode/unicode.hpp>
+#include <spica/codegen/codegen.hpp>
+#include <spica/codegen/top_level.hpp>
+#include <spica/codegen/type.hpp>
+#include <spica/codegen/exception.hpp>
+#include <spica/unicode/unicode.hpp>
 #include <cassert>
 
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
 #include <unistd.h> // isatty
 #endif
 
-namespace emera::codegen
+namespace spica::codegen
 {
 
 template <typename R = std::vector<std::string>>
@@ -299,4 +299,4 @@ void CodeGenerator::initTargetTripleAndMachine()
                                     relocation_model)); // Set relocation model.
 }
 
-} // namespace emera::codegen
+} // namespace spica::codegen

@@ -5,9 +5,9 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <emera/unicode/unicode.hpp>
+#include <spica/unicode/unicode.hpp>
 
-namespace emera::unicode
+namespace spica::unicode
 {
 
 [[nodiscard]] std::string utf32toUtf8(const char32_t utf32)
@@ -26,4 +26,4 @@ namespace emera::unicode
   return std::string(first, last);
 }
 
-} // namespace emera::unicode
+} // namespace spica::unicode

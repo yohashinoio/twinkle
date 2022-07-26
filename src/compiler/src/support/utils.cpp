@@ -5,10 +5,10 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <emera/pch/pch.hpp>
-#include <emera/support/utils.hpp>
+#include <spica/pch/pch.hpp>
+#include <spica/support/utils.hpp>
 
-namespace emera
+namespace spica
 {
 
 [[nodiscard]] std::string getVersion()
@@ -64,4 +64,4 @@ namespace emera
 #endif
 }
 
-} // namespace emera
+} // namespace spica

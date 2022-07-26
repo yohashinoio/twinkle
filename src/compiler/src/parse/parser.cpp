@@ -5,17 +5,17 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <emera/pch/pch.hpp>
-#include <emera/ast/ast_adapted.hpp>
-#include <emera/parse/parser.hpp>
-#include <emera/codegen/type.hpp>
-#include <emera/codegen/kind.hpp>
-#include <emera/parse/exception.hpp>
+#include <spica/pch/pch.hpp>
+#include <spica/ast/ast_adapted.hpp>
+#include <spica/parse/parser.hpp>
+#include <spica/codegen/type.hpp>
+#include <spica/codegen/kind.hpp>
+#include <spica/parse/exception.hpp>
 
 namespace x3     = boost::spirit::x3;
 namespace fusion = boost::fusion;
 
-namespace emera::parse
+namespace spica::parse
 {
 
 //===----------------------------------------------------------------------===//
@@ -1147,4 +1147,4 @@ void Parser::parse()
   }
 }
 
-} // namespace emera::parse
+} // namespace spica::parse
