@@ -136,13 +136,21 @@ struct ArrayType : x3::position_tagged {
 
 struct PointerType : x3::position_tagged {
   explicit PointerType(Type&& pointee_type) noexcept
-    : pointee_type{std::move(pointee_type)}
+    : n_ops{boost::blank{}} // size 1
+    , pointee_type{std::move(pointee_type)}
+  {
+  }
+
+  PointerType(std::vector<boost::blank>&& n_ops, Type&& pointee_type) noexcept
+    : n_ops{std::move(n_ops)}
+    , pointee_type{std::move(pointee_type)}
   {
   }
 
   PointerType() = default;
 
-  Type pointee_type;
+  std::vector<boost::blank> n_ops; // operators
+  Type                      pointee_type;
 };
 
 struct ReferenceType : x3::position_tagged {

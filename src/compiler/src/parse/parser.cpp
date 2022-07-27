@@ -538,7 +538,8 @@ const auto array_type_def
     >> *(string(U"[") > uint_64bit
          > lit(U"]"))[action::assignToValAs<ast::ArrayType>{}];
 
-const auto pointer_type_internal_def = lit(U"^") > type_primary;
+const auto pointer_type_internal_def
+  = +(lit(U"^") > x3::attr(boost::blank{})) > type_primary;
 
 const auto pointer_type_def = type_primary | pointer_type_internal;
 

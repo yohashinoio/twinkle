@@ -312,8 +312,14 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
   [[nodiscard]] std::shared_ptr<Type>
   operator()(const ast::PointerType& node) const
   {
-    return std::make_shared<PointerType>(
-      boost::apply_visitor(*this, node.pointee_type));
+    assert(0 < node.n_ops.size());
+
+    auto type = boost::apply_visitor(*this, node.pointee_type);
+
+    for (std::size_t i = 0; i < node.n_ops.size(); ++i)
+      type = std::make_shared<PointerType>(type);
+
+    return type;
   }
 
   [[nodiscard]] std::shared_ptr<Type>

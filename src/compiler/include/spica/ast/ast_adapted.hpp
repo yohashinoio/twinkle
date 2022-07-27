@@ -44,6 +44,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   spica::ast::PointerType,
+  (std::vector<boost::blank>, n_ops)
   (spica::ast::Type, pointee_type)
 )
 

@@ -188,6 +188,7 @@ namespace test
     {                         "import_function",  58},
     {                             "isize_usize",  58},
     {                          "import_classes",  58},
+    {                      "pointer_to_pointer",  58},
   };
 
   const auto it = expects.find(test_name);

@@ -1,0 +1,17 @@
+func f(p: ^^i32) -> i32
+{
+  return p^^;
+}
+
+func main() -> i32
+{
+  let n = 58;
+
+  let p1 = &n;
+
+  let mut p2: ^^i32;
+
+  p2 = &p1;
+
+  return f(p2);
+}
