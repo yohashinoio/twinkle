@@ -932,12 +932,13 @@ private:
 
   [[nodiscard]] Value createSizeOf(llvm::Type* const type) const
   {
-    // Assuming a 64-bit environment.
-    // FIXME: To work in different environments
+    const auto usize_type
+      = std::make_shared<BuiltinType>(BuiltinTypeKind::usize);
+
     return {llvm::ConstantInt::get(
-              ctx.builder.getInt64Ty(),
+              usize_type->getLLVMType(ctx),
               ctx.module->getDataLayout().getTypeAllocSize(type)),
-            std::make_shared<BuiltinType>(BuiltinTypeKind::u64)};
+            usize_type};
   }
 
   [[nodiscard]] Value createSizeOf(const Value& value) const
