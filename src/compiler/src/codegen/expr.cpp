@@ -317,7 +317,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       return createLogicalNot(operand_val);
 
     case ast::UnaryOp::Kind::address_of:
-      return createAddressOf(operand_val);
+      return createAddressOf(operand_val, ctx.positions.position_of(node));
 
     case ast::UnaryOp::Kind::size_of:
       return createSizeOf(operand_val);
@@ -333,7 +333,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::Reference& node) const
   {
-    return createReference(boost::apply_visitor(*this, node.operand));
+    return createReference(boost::apply_visitor(*this, node.operand),
+                           ctx.positions.position_of(node));
   }
 
   [[nodiscard]] Value operator()(const ast::New& node) const
@@ -946,17 +947,24 @@ private:
     return createSizeOf(value.getLLVMType());
   }
 
-  [[nodiscard]] Value createReference(const Value& val) const
+  [[nodiscard]] Value
+  createReference(const Value&                                val,
+                  const boost::iterator_range<InputIterator>& pos) const
   {
-    return {createAddressOf(val).getValue(),
+    return {createAddressOf(val, pos).getValue(),
             std::make_shared<ReferenceType>(val.getType())};
   }
 
   // Do not use for constants!
-  [[nodiscard]] Value createAddressOf(const Value& val) const
+  [[nodiscard]] Value
+  createAddressOf(const Value&                                val,
+                  const boost::iterator_range<InputIterator>& pos) const
   {
     auto ptr = llvm::getPointerOperand(val.getValue());
-    assert(ptr);
+
+    if (!ptr)
+      throw CodegenError{ctx.formatError(pos, "operand has no address")};
+
     return {ptr, std::make_shared<PointerType>(val.getType())};
   }
 
@@ -1182,7 +1190,7 @@ private:
         {lhs_value.getType()->getClassName(ctx), NamespaceKind::class_});
 
       // pushing this pointer to the front
-      args.push_front(createAddressOf(lhs_value));
+      args.push_front(createAddressOf(lhs_value, pos));
     }
 
     try {
