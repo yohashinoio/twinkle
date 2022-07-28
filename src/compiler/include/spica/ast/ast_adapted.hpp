@@ -287,7 +287,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  spica::ast::RelativeImport,
+  spica::ast::Import,
   (spica::ast::Path, path)
 )
 

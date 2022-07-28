@@ -739,7 +739,7 @@ struct Typedef : x3::position_tagged {
   Type       type;
 };
 
-struct RelativeImport : x3::position_tagged {
+struct Import : x3::position_tagged {
   Path path;
 };
 
@@ -749,7 +749,7 @@ using TopLevel = boost::variant<boost::blank,
                                 ClassDecl,
                                 ClassDef,
                                 Typedef,
-                                RelativeImport>;
+                                Import>;
 
 // Example: [[nodiscard, nomangle]]
 using Attrs = std::vector<std::u32string>;

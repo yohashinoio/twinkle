@@ -333,9 +333,8 @@ const x3::rule<struct FunctionDeclTag, ast::FunctionDecl> function_decl{
   "function declaration"};
 const x3::rule<struct FunctionDefTag, ast::FunctionDef> function_def{
   "function definition"};
-const x3::rule<struct TypedefTag, ast::Typedef> type_def{"typedef"};
-const x3::rule<struct RelativeImportTag, ast::RelativeImport> relative_import{
-  "relative import"};
+const x3::rule<struct TypedefTag, ast::Typedef>   type_def{"typedef"};
+const x3::rule<struct ImportTag, ast::Import>     import_{"import"};
 const x3::rule<struct TopLevelTag, ast::TopLevel> top_level{"top level"};
 const x3::rule<struct TopLevelWithAttrTag, ast::TopLevelWithAttr>
   top_level_with_attr{"top level"};
@@ -993,11 +992,11 @@ const auto function_def_def
 const auto type_def_def
   = lit(U"typedef") > identifier > lit(U"=") > type_name > lit(U";");
 
-const auto relative_import_def
+const auto import__def
   = lit(U"import") > lit(U"\"") > path > lit(U"\"") > lit(U";");
 
-const auto top_level_def = function_decl | function_def | class_decl | class_def
-                           | type_def | relative_import;
+const auto top_level_def
+  = function_decl | function_def | class_decl | class_def | type_def | import_;
 
 const auto top_level_with_attr_def = -attribute >> top_level_def;
 
@@ -1013,7 +1012,7 @@ BOOST_SPIRIT_DEFINE(function_proto)
 BOOST_SPIRIT_DEFINE(function_decl)
 BOOST_SPIRIT_DEFINE(function_def)
 BOOST_SPIRIT_DEFINE(type_def)
-BOOST_SPIRIT_DEFINE(relative_import)
+BOOST_SPIRIT_DEFINE(import_)
 BOOST_SPIRIT_DEFINE(top_level)
 BOOST_SPIRIT_DEFINE(top_level_with_attr)
 
@@ -1065,7 +1064,7 @@ struct FunctionDefTag
   : ErrorHandle
   , AnnotatePosition {};
 
-struct RelativeImportTag
+struct ImportTag
   : ErrorHandle
   , AnnotatePosition {};
 

@@ -214,12 +214,11 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     return nullptr;
   }
 
-  llvm::Function* operator()(const ast::RelativeImport& node) const
+  llvm::Function* operator()(const ast::Import& node) const
   {
     namespace fs = std::filesystem;
 
-    const fs::path relative_path{node.path.utf32()};
-    auto           path = ctx.file.parent_path() / relative_path;
+    auto path = ctx.file.parent_path() / fs::path{node.path.utf32()};
 
     const auto result
       = parse::Parser{loadFile(path, ctx.positions.position_of(node)), path}
