@@ -95,22 +95,25 @@ struct StmtVisitor : public boost::static_visitor<void> {
       const auto type
         = createType(ctx, *node.type, ctx.positions.position_of(node));
 
-      scope.insertOrAssign(name,
-                           createVariable(ctx.positions.position_of(node),
-                                          func,
-                                          name,
-                                          type,
-                                          node.initializer,
-                                          is_mutable));
+      scope.insertOrAssign(
+        name,
+        std::make_shared<AllocaVariable>(
+          createAllocaVariable(ctx.positions.position_of(node),
+                               func,
+                               name,
+                               type,
+                               node.initializer,
+                               is_mutable)));
     }
     else {
       scope.insertOrAssign(
         name,
-        createVariableTyInference(ctx.positions.position_of(node),
-                                  func,
-                                  name,
-                                  node.initializer,
-                                  is_mutable));
+        std::make_shared<AllocaVariable>(
+          createAllocaVariableTyInference(ctx.positions.position_of(node),
+                                          func,
+                                          name,
+                                          node.initializer,
+                                          is_mutable)));
     }
   }
 
@@ -426,13 +429,13 @@ private:
     }
   }
 
-  [[nodiscard]] Variable
-  createVariable(const boost::iterator_range<InputIterator>& pos,
-                 llvm::Function*                             func,
-                 const std::string&                          name,
-                 const std::shared_ptr<Type>&                type,
-                 const std::optional<ast::Expr>&             initializer,
-                 const bool                                  is_mutable) const
+  [[nodiscard]] AllocaVariable
+  createAllocaVariable(const boost::iterator_range<InputIterator>& pos,
+                       llvm::Function*                             func,
+                       const std::string&                          name,
+                       const std::shared_ptr<Type>&                type,
+                       const std::optional<ast::Expr>&             initializer,
+                       const bool is_mutable) const
   {
     verifyVariableType(pos, type);
 
@@ -467,12 +470,12 @@ private:
     };
   }
 
-  [[nodiscard]] Variable
-  createVariableTyInference(const boost::iterator_range<InputIterator>& pos,
-                            llvm::Function*                             func,
-                            const std::string&                          name,
-                            const std::optional<ast::Expr>& initializer,
-                            const bool                      is_mutable) const
+  [[nodiscard]] AllocaVariable createAllocaVariableTyInference(
+    const boost::iterator_range<InputIterator>& pos,
+    llvm::Function*                             func,
+    const std::string&                          name,
+    const std::optional<ast::Expr>&             initializer,
+    const bool                                  is_mutable) const
   {
     auto const init_value
       = createExpr(ctx, getAllSymbols(), stmt_ctx, *initializer);
@@ -526,15 +529,15 @@ void invokeDestructor(CGContext& ctx, const Value& this_)
 }
 
 // If destructor is not defined, nothing is done
-void invokeDestructor(CGContext& ctx, const Variable& this_)
+void invokeDestructor(CGContext& ctx, const std::shared_ptr<Variable>& this_)
 {
-  assert(this_.getType()->isClassTy(ctx));
+  assert(this_->getType()->isClassTy(ctx));
 
   const auto destructor
-    = findDestructor(ctx, this_.getType()->getClassName(ctx));
+    = findDestructor(ctx, this_->getType()->getClassName(ctx));
 
   if (destructor)
-    ctx.builder.CreateCall(destructor, {this_.getAllocaInst()});
+    ctx.builder.CreateCall(destructor, {this_->getAllocaInst()});
 }
 
 static void createDestructBB(CGContext&         ctx,
@@ -547,7 +550,7 @@ static void createDestructBB(CGContext&         ctx,
   ctx.builder.SetInsertPoint(stmt_ctx.destruct_bb);
 
   for (const auto& symbol : symbols) {
-    if (symbol.second.getType()->isClassTy(ctx))
+    if (symbol.second->getType()->isClassTy(ctx))
       invokeDestructor(ctx, symbol.second);
   }
 

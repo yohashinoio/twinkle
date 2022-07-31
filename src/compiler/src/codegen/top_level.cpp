@@ -500,21 +500,20 @@ private:
                      param_node.type,
                      ctx.positions.position_of(param_list));
 
-      // Create an alloca for this variable.
+      // Create an alloca for this variable
       auto const alloca = createEntryAlloca(func,
                                             arg.getName().str(),
                                             param_type->getLLVMType(ctx));
 
-      // Store the initial value into the alloca.
+      // Store the initial value into the alloca
       ctx.builder.CreateStore(&arg, alloca);
 
-      // Add arguments to variable symbol table.
+      // Add arguments to variable symbol table
       argument_table.insertOrAssign(
         arg.getName().str(),
-        Variable{
-          {alloca, param_type},
-          param_node.qualifier.contains(VariableQual::mutable_)
-      });
+        std::make_shared<AllocaVariable>(
+          Value{alloca, param_type},
+          param_node.qualifier.contains(VariableQual::mutable_)));
     }
 
     return argument_table;

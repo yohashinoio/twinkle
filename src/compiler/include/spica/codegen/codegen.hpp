@@ -90,6 +90,9 @@ using AliasTable = Table<std::string, std::shared_ptr<Type>>;
 
 using ClassTable = Table<std::string, std::shared_ptr<ClassType>>;
 
+struct Variable;
+using SymbolTable = Table<std::string, std::shared_ptr<Variable>>;
+
 enum class NamespaceKind {
   unknown,
   namespace_,
@@ -152,7 +155,7 @@ private:
   std::deque<Namespace> namespaces;
 };
 
-// Codegen context.
+// Codegen context
 struct CGContext : private boost::noncopyable {
   CGContext(llvm::LLVMContext&      context,
             PositionCache&&         positions,

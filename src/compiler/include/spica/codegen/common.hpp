@@ -51,8 +51,7 @@ struct StmtContext {
   llvm::BasicBlock* continue_bb;
 };
 
-// Class that wraps llvm::Value.
-// Made to handle signs, etc.
+// Class that wraps llvm::Value
 struct Value {
   Value(llvm::Value*                 value,
         const std::shared_ptr<Type>& type,
@@ -98,32 +97,53 @@ private:
   bool is_mutable;
 };
 
+// Various variable classes inherit this class
 struct Variable {
-  Variable(const Value& alloca, const bool is_mutable) noexcept
+  [[nodiscard]] virtual Value getValue(CGContext& ctx) const = 0;
+
+  [[nodiscard]] virtual llvm::AllocaInst* getAllocaInst() const noexcept = 0;
+
+  [[nodiscard]] virtual std::shared_ptr<Type> getType() const = 0;
+
+  [[nodiscard]] virtual bool isSigned(CGContext& ctx) const = 0;
+
+  [[nodiscard]] virtual bool isMutable() const noexcept = 0;
+};
+
+struct AllocaVariable : public Variable {
+  AllocaVariable(const Value& alloca, const bool is_mutable) noexcept
     : alloca{alloca}
     , is_mutable{is_mutable}
   {
     assert(llvm::dyn_cast<llvm::AllocaInst>(alloca.getValue()));
   }
 
-  Variable() = delete;
+  AllocaVariable() = delete;
 
-  [[nodiscard]] llvm::AllocaInst* getAllocaInst() const noexcept
+  [[nodiscard]] Value getValue(CGContext& ctx) const override
+  {
+    return {ctx.builder.CreateLoad(getAllocaInst()->getAllocatedType(),
+                                   getAllocaInst()),
+            getType(),
+            is_mutable};
+  }
+
+  [[nodiscard]] llvm::AllocaInst* getAllocaInst() const noexcept override
   {
     return llvm::cast<llvm::AllocaInst>(alloca.getValue());
   }
 
-  [[nodiscard]] std::shared_ptr<Type> getType() const
+  [[nodiscard]] std::shared_ptr<Type> getType() const override
   {
     return alloca.getType();
   }
 
-  [[nodiscard]] bool isSigned(CGContext& ctx) const
+  [[nodiscard]] bool isSigned(CGContext& ctx) const override
   {
     return alloca.isSigned(ctx);
   }
 
-  [[nodiscard]] bool isMutable() const noexcept
+  [[nodiscard]] bool isMutable() const noexcept override
   {
     return is_mutable;
   }
@@ -133,9 +153,6 @@ private:
 
   bool is_mutable;
 };
-
-using SymbolTable
-  = Table<std::string, Variable, std::reference_wrapper<const Variable>>;
 
 // Create an alloca instruction in the entry block of
 // the function.
@@ -227,7 +244,7 @@ createDereference(CGContext&                                  ctx,
 [[nodiscard]] Value
 createDereference(CGContext&                                  ctx,
                   const boost::iterator_range<InputIterator>& pos,
-                  const Variable&                             operand);
+                  const std::shared_ptr<Variable>&            operand);
 
 [[nodiscard]] bool strictEquals(const llvm::Type* const left,
                                 const llvm::Type* const right);

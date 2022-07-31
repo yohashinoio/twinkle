@@ -331,15 +331,9 @@ createDereference(CGContext&                                  ctx,
 [[nodiscard]] Value
 createDereference(CGContext&                                  ctx,
                   const boost::iterator_range<InputIterator>& pos,
-                  const Variable&                             operand)
+                  const std::shared_ptr<Variable>&            operand)
 {
-  return createDereference(
-    ctx,
-    pos,
-    Value{ctx.builder.CreateLoad(operand.getAllocaInst()->getAllocatedType(),
-                                 operand.getAllocaInst()),
-          operand.getType(),
-          operand.isMutable()});
+  return createDereference(ctx, pos, operand->getValue(ctx));
 }
 
 // The code is based on https://gist.github.com/quantumsheep.

@@ -164,9 +164,9 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::Identifier& node) const
   {
-    const auto variable_refwrap = findVariable(node);
+    const auto variable = findVariable(node);
 
-    if (!variable_refwrap) {
+    if (!variable) {
       const auto member = findMemberOfThis(node);
 
       if (member)
@@ -178,11 +178,9 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       }
     }
 
-    const auto variable = variable_refwrap->get();
+    auto const variable_value = variable->getValue(ctx);
 
-    auto const variable_value = loadVariable(variable);
-
-    if (variable.getType()->isRefTy(ctx)) {
+    if (variable->getType()->isRefTy(ctx)) {
       // Since reference types wrap pointer types
       return createDereference(ctx,
                                ctx.positions.position_of(node),
@@ -669,14 +667,6 @@ private:
     }
   }
 
-  [[nodiscard]] Value loadVariable(const Variable& variable) const
-  {
-    return {ctx.builder.CreateLoad(variable.getAllocaInst()->getAllocatedType(),
-                                   variable.getAllocaInst()),
-            variable.getType(),
-            variable.isMutable()};
-  }
-
   [[nodiscard]] std::optional<std::shared_ptr<Type>>
   findClass(const std::string& name) const
   {
@@ -743,17 +733,15 @@ private:
     return {return_value, *return_type};
   }
 
-  // Note that the return value is a reference,
-  // so be careful about the lifetime.
-  [[nodiscard]] std::optional<std::reference_wrapper<const Variable>>
+  [[nodiscard]] std::shared_ptr<Variable>
   findVariable(const ast::Identifier& node) const
   {
     const auto ident = node.utf8();
 
     if (const auto variable = scope[ident])
-      return variable;
+      return *variable;
 
-    return std::nullopt;
+    return nullptr;
   }
 
   // Find a member of '*this'
@@ -767,10 +755,10 @@ private:
       if (!this_p)
         return std::nullopt;
 
-      const auto this_v
-        = createDereference(ctx, ctx.positions.position_of(node), *this_p);
+      const auto this_value
+        = createDereference(ctx, ctx.positions.position_of(node), this_p);
 
-      return memberVariableAccess(this_v, node, false);
+      return memberVariableAccess(this_value, node, false);
     }
 
     return std::nullopt;
