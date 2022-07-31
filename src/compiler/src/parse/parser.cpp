@@ -974,7 +974,7 @@ const auto class_def_def = x3::matches[lit(U"pub")] >> class_key > identifier
 
 const auto parameter_def
   = (identifier > lit(U":") > *variable_qualifier > type_name > x3::attr(false))
-    | lit(U"...") >> x3::attr(ast::Parameter{{}, {}, {}, true});
+    | lit(U"...") >> x3::attr(ast::Parameter::createVarArgParameter());
 
 const auto parameter_list_def = -(parameter % lit(U","));
 

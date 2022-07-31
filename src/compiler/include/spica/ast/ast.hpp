@@ -640,6 +640,11 @@ struct Parameter : x3::position_tagged {
   Type                             type;
   bool                             is_vararg;
 
+  static Parameter createVarArgParameter()
+  {
+    return Parameter{{}, {}, {}, true};
+  }
+
   Parameter(Identifier&&                       name,
             std::unordered_set<VariableQual>&& qualifier,
             Type&&                             type,
