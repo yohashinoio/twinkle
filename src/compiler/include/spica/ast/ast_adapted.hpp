@@ -267,8 +267,14 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
+  spica::ast::TemplateParameters,
+  (std::vector<spica::ast::Identifier>, type_names)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
   spica::ast::FunctionDecl,
   (spica::ast::Identifier, name)
+  (spica::ast::TemplateParameters, template_params)
   (spica::ast::ParameterList, params)
   (spica::ast::Type, return_type)
 )

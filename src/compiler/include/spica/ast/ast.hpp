@@ -675,13 +675,18 @@ struct ParameterList : x3::position_tagged {
   }
 };
 
+struct TemplateParameters : x3::position_tagged {
+  std::vector<Identifier> type_names;
+};
+
 struct FunctionDecl : x3::position_tagged {
-  Identifier    name;
-  ParameterList params;
-  Type          return_type;
-  Accessibility accessibility  = Accessibility::non_method;
-  bool          is_constructor = false;
-  bool          is_destructor  = false;
+  Identifier         name;
+  TemplateParameters template_params;
+  ParameterList      params;
+  Type               return_type;
+  Accessibility      accessibility  = Accessibility::non_method;
+  bool               is_constructor = false;
+  bool               is_destructor  = false;
 };
 
 struct FunctionDef : x3::position_tagged {

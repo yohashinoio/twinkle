@@ -357,7 +357,7 @@ const x3::rule<struct TranslationUnitTag, ast::TranslationUnit>
 //===----------------------------------------------------------------------===//
 
 const auto punct = x3::rule<struct PunctTag>{"punctuation character"}
-= x3::unicode::punct | lit(U"^") | lit(U"\"");
+= x3::unicode::punct | lit(U"^") | lit(U"\"") | lit(U"<") | lit(U">");
 
 const auto identifier_internal
   = x3::rule<struct IdentifierInternalTag, std::u32string>{"identifier"}
@@ -978,8 +978,13 @@ const auto parameter_def
 
 const auto parameter_list_def = -(parameter % lit(U","));
 
+const auto template_params
+  = x3::rule<struct TemplateParameterTag,
+             ast::TemplateParameters>{"template parameter"}
+= -(lit(U"<") > (identifier % lit(U",")) > lit(U">"));
+
 const auto function_proto_def
-  = identifier > lit(U"(") > parameter_list > lit(U")")
+  = identifier > template_params > lit(U"(") > parameter_list > lit(U")")
     > ((lit(U"->") > type_name)
        | x3::attr(ast::BuiltinType{codegen::BuiltinTypeKind::void_}));
 
@@ -1057,6 +1062,10 @@ struct FunctionProtoTag
   , AnnotatePosition {};
 
 struct FunctionDeclTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct TemplateParameterTag
   : ErrorHandle
   , AnnotatePosition {};
 
