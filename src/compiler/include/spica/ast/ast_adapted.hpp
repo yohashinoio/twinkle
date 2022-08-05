@@ -126,6 +126,13 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
+  spica::ast::FunctionTemplateCall,
+  (spica::ast::Expr, callee)
+  (spica::ast::TemplateArguments, template_args)
+  (std::deque<spica::ast::Expr>, args)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
   spica::ast::Cast,
   (spica::ast::Expr, lhs)
   (spica::ast::Type, as)

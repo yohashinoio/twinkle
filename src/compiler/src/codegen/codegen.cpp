@@ -43,14 +43,26 @@ template <typename R = std::vector<std::string>>
 CGContext::CGContext(llvm::LLVMContext&      context,
                      PositionCache&&         positions,
                      std::filesystem::path&& file,
-                     const std::string&      source_code) noexcept
+                     const std::string&      source_code,
+                     const unsigned int      opt_level) noexcept
   : context{context}
   , module{std::make_unique<llvm::Module>(file.filename().string(), context)}
   , builder{context}
   , file{std::move(file)}
   , positions{std::move(positions)}
   , source_code{splitByLine(source_code)}
+  , fpm{module.get()}
 {
+  // Setup pass manager
+  {
+    llvm::PassManagerBuilder builder;
+
+    builder.OptLevel = opt_level;
+
+    builder.populateFunctionPassManager(fpm);
+
+    fpm.doInitialization();
+  }
 }
 
 [[nodiscard]] std::string
@@ -102,29 +114,18 @@ CodeGenerator::CodeGenerator(const std::string_view               argv_front,
 
   for (auto it = parse_results.begin(), last = parse_results.end(); it != last;
        ++it) {
+    verifyOptLevel(opt_level);
+
     CGContext ctx{*context,
                   std::move(it->positions),
                   std::move(it->file),
-                  it->input};
-
-    llvm::legacy::FunctionPassManager fpm{ctx.module.get()};
-
-    {
-      verifyOptLevel(opt_level);
-
-      llvm::PassManagerBuilder builder;
-
-      builder.OptLevel = opt_level;
-
-      builder.populateFunctionPassManager(fpm);
-
-      fpm.doInitialization();
-    }
+                  it->input,
+                  opt_level};
 
     ctx.module->setTargetTriple(target_triple);
     ctx.module->setDataLayout(target_machine->createDataLayout());
 
-    codegen(it->ast, ctx, fpm);
+    codegen(it->ast, ctx);
 
     results.emplace_back(std::move(ctx.module), std::move(ctx.file));
   }
@@ -219,15 +220,13 @@ void CodeGenerator::emitObjectFiles()
   return main_addr();
 }
 
-void CodeGenerator::codegen(const ast::TranslationUnit&        ast,
-                            CGContext&                         ctx,
-                            llvm::legacy::FunctionPassManager& fpm)
+void CodeGenerator::codegen(const ast::TranslationUnit& ast, CGContext& ctx)
 {
   for (const auto& node : ast)
-    createTopLevel(ctx, fpm, node);
+    createTopLevel(ctx, node);
 
   {
-    // Verify module.
+    // Verify module
     std::string              str;
     llvm::raw_string_ostream stream{str};
     if (llvm::verifyModule(*ctx.module, &stream))

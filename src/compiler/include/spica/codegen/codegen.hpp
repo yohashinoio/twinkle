@@ -20,6 +20,7 @@
 #include <spica/jit/jit.hpp>
 #include <spica/parse/parser.hpp>
 #include <spica/mangle/mangler.hpp>
+#include <map>
 
 namespace spica::codegen
 {
@@ -30,7 +31,10 @@ namespace spica::codegen
   'R' is the return type of operator[] (std::optional<R>)
   'R' must be able to return from const function
 */
-template <typename Key, typename T, typename R = T>
+template <typename Key,
+          typename T,
+          typename MapT = std::unordered_map<Key, T>,
+          typename R    = T>
 struct Table {
   template <typename T1>
   [[nodiscard]] std::optional<R> operator[](T1&& key) const noexcept
@@ -59,6 +63,12 @@ struct Table {
     table.insert_or_assign(std::forward<T1>(key), std::forward<T2>(value));
   }
 
+  template <typename T1>
+  void erase(T1&& key)
+  {
+    table.erase(std::forward<T1>(key));
+  }
+
   auto begin() const noexcept
   {
     return table.begin();
@@ -81,7 +91,7 @@ struct Table {
   }
 
 private:
-  std::unordered_map<Key, T> table;
+  MapT table;
 };
 
 using FunctionReturnTypeTable = Table<llvm::Function*, std::shared_ptr<Type>>;
@@ -141,26 +151,46 @@ struct NsHierarchy {
     return namespaces.back();
   }
 
-  decltype(auto) begin() const noexcept
+  [[nodiscard]] decltype(auto) begin() const noexcept
   {
     return namespaces.begin();
   }
 
-  decltype(auto) end() const noexcept
+  [[nodiscard]] decltype(auto) end() const noexcept
   {
     return namespaces.end();
+  }
+
+  // Implemented to be a key in std::map
+  [[nodiscard]] bool operator<(const NsHierarchy& other) const noexcept
+  {
+    return namespaces.size() < other.namespaces.size();
   }
 
 private:
   std::deque<Namespace> namespaces;
 };
 
+using FunctionTemplateTableKey
+  = std::tuple<std::string, // Function name
+               std::size_t, // Template parameter length
+               NsHierarchy>;
+
+using FunctionTemplateTableValue = ast::FunctionDef;
+
+// std::unordered_map cannot use std::tuple as a key, so use std::map instead
+using FunctionTemplateTable
+  = Table<FunctionTemplateTableKey,
+          FunctionTemplateTableValue,
+          std::map<FunctionTemplateTableKey, FunctionTemplateTableValue>>;
+
 // Codegen context
 struct CGContext : private boost::noncopyable {
   CGContext(llvm::LLVMContext&      context,
             PositionCache&&         positions,
             std::filesystem::path&& file,
-            const std::string&      source_code) noexcept;
+            const std::string&      source_code,
+            const unsigned int      opt_level) noexcept;
 
   [[nodiscard]] std::string
   formatError(const boost::iterator_range<InputIterator>& pos,
@@ -179,14 +209,18 @@ struct CGContext : private boost::noncopyable {
   ClassTable              class_table;
   FunctionReturnTypeTable return_type_table;
   AliasTable              alias_table;
+  FunctionTemplateTable   func_template_table;
 
   NsHierarchy ns_hierarchy;
 
   // Mangle
   mangle::Mangler mangler;
 
+  // Pass manager
+  llvm::legacy::FunctionPassManager fpm;
+
 private:
-  // Stores source code line by line as elements.
+  // Stores source code line by line as elements
   const std::vector<std::string> source_code;
 
   [[nodiscard]] std::size_t
@@ -205,7 +239,7 @@ struct CodeGenerator : private boost::noncopyable {
 
   void emitAssemblyFiles();
 
-  // Returns the return value from the main function.
+  // Returns the return value from the main function
   [[nodiscard]] int doJIT();
 
 private:
@@ -214,9 +248,7 @@ private:
   using Result
     = std::tuple<std::unique_ptr<llvm::Module>, std::filesystem::path>;
 
-  void codegen(const ast::TranslationUnit&        ast,
-               CGContext&                         ctx,
-               llvm::legacy::FunctionPassManager& fpm);
+  void codegen(const ast::TranslationUnit& ast, CGContext& ctx);
 
   void emitFiles(const llvm::CodeGenFileType cgft);
 

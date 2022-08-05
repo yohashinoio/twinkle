@@ -72,8 +72,13 @@ const auto assignAttrToVal = [](const auto& ctx) {
 template <typename T>
 struct assignToValAs {
   template <typename Ctx, typename Ast = T>
-  auto operator()(const Ctx& ctx) const -> std::enable_if_t<
-    std::is_same_v<Ast, ast::BinOp> || std::is_same_v<Ast, ast::Pipeline>>
+  auto operator()(const Ctx& ctx) const
+    // clang-format off
+    -> std::enable_if_t<
+         std::is_same_v<Ast, ast::BinOp>
+      || std::is_same_v<Ast, ast::Pipeline>
+    >
+  // clang-format on
   {
     assignAstToVal(ctx,
                    Ast{std::move(x3::_val(ctx)),
@@ -115,6 +120,16 @@ struct assignToValAs {
     -> std::enable_if_t<std::is_same_v<Ast, ast::Dereference>>
   {
     assignAstToVal(ctx, Ast{std::move(x3::_val(ctx))});
+  }
+
+  template <typename Ctx, typename Ast = T>
+  auto operator()(const Ctx& ctx) const
+    -> std::enable_if_t<std::is_same_v<Ast, ast::FunctionTemplateCall>>
+  {
+    assignAstToVal(ctx,
+                   Ast{std::move(x3::_val(ctx)),
+                       std::move(fusion::at_c<0>(x3::_attr(ctx))),
+                       std::move(fusion::at_c<2>(x3::_attr(ctx)))});
   }
 
 private:
@@ -289,6 +304,8 @@ const x3::rule<struct ArgListTag, std::deque<ast::Expr>> arg_list{
   "argument list"};
 const x3::rule<struct FunctionCallTag, ast::Expr> function_call{
   "function call"};
+const x3::rule<struct FunctionTemplateCallTag, ast::Expr>
+  function_template_call{"function template call"};
 const x3::rule<struct PrimaryTag, ast::Expr> primary{"primary"};
 
 //===----------------------------------------------------------------------===//
@@ -708,9 +725,19 @@ const auto dereference_def
 const auto arg_list_def = -(expr % lit(U","));
 
 const auto function_call_def
-  = primary[action::assignAttrToVal]
+  = function_template_call[action::assignAttrToVal]
     >> *(string(U"(") > arg_list
          > lit(U")"))[action::assignToValAs<ast::FunctionCall>{}];
+
+const auto template_args
+  = x3::rule<struct TemplateArgsTag,
+             ast::TemplateArguments>{"template arguments"}
+= lit(U"<") > (type_name % lit(U",")) > lit(U">");
+
+const auto function_template_call_def
+  = primary[action::assignAttrToVal]
+    >> *(template_args > string(U"(") > arg_list
+         > lit(U")"))[action::assignToValAs<ast::FunctionTemplateCall>{}];
 
 const auto primary_def
   = builtin_macro | class_literal | identifier | float_64bit | binary_literal
@@ -741,6 +768,7 @@ BOOST_SPIRIT_DEFINE(member_access)
 BOOST_SPIRIT_DEFINE(subscript)
 BOOST_SPIRIT_DEFINE(arg_list)
 BOOST_SPIRIT_DEFINE(function_call)
+BOOST_SPIRIT_DEFINE(function_template_call)
 BOOST_SPIRIT_DEFINE(unary_internal)
 BOOST_SPIRIT_DEFINE(primary)
 
@@ -837,6 +865,14 @@ struct ArgListTag
   , AnnotatePosition {};
 
 struct FunctionCallTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct TemplateArgsTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct FunctionTemplateCallTag
   : ErrorHandle
   , AnnotatePosition {};
 
@@ -980,7 +1016,7 @@ const auto parameter_list_def = -(parameter % lit(U","));
 
 const auto template_params
   = x3::rule<struct TemplateParameterTag,
-             ast::TemplateParameters>{"template parameter"}
+             ast::TemplateParameters>{"template parameters"}
 = -(lit(U"<") > (identifier % lit(U",")) > lit(U">"));
 
 const auto function_proto_def

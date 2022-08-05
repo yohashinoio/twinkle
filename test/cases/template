@@ -1,0 +1,40 @@
+func nothing<T>()
+{
+}
+
+func twice<T>(n: T) -> T
+{
+  return n * (2 as T);
+}
+
+func takestring(s: ^i8)
+{
+}
+
+func f<T1, S>(number: T1, s: S) -> T1
+{
+  takestring(s);
+  return number;
+}
+
+func va<P>(p: P, ...) -> P
+{
+  return p;
+}
+
+func main() -> i32
+{
+  nothing<^(char[48])[10]>();
+
+  if (f<i32, ^i8>(4810, "hello, Yoha and Io") != 4810)
+    return 123;
+
+  let n = twice<i32>(58);
+
+  if (n == twice<f64>(58.0) as i32) {
+    if (va<^i32>(&n, 48, 10, "daisuki") == &n)
+      return n / 2;
+  }
+
+  return 456;
+}

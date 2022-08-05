@@ -24,6 +24,7 @@ namespace codegen
 struct NsHierarchy;
 struct CGContext;
 struct Value;
+struct Type;
 
 namespace mangle
 {
@@ -32,14 +33,27 @@ constexpr const char* ellipsis = "z";
 
 constexpr const char* prefix = "_Z";
 
+using TemplateArguments = std::vector<std::shared_ptr<Type>>;
+
 struct Mangler : private boost::noncopyable {
   [[nodiscard]] std::string mangleFunction(CGContext&               ctx,
-                                           const ast::FunctionDecl& node) const;
+                                           const ast::FunctionDecl& decl) const;
+
+  [[nodiscard]] std::string
+  mangleFunctionTemplate(CGContext&               ctx,
+                         const NsHierarchy&       space,
+                         const ast::FunctionDecl& decl,
+                         const TemplateArguments& template_args) const;
 
   [[nodiscard]] std::vector<std::string>
   mangleFunctionCall(CGContext&               ctx,
                      const std::string_view   callee,
                      const std::deque<Value>& args) const;
+
+  [[nodiscard]] std::vector<std::string>
+  mangleFunctionTemplateCall(CGContext&               ctx,
+                             const std::string_view   callee,
+                             const std::deque<Value>& args) const;
 
   // The mangled this pointer type is inserted automatically
   [[nodiscard]] std::vector<std::string>
@@ -58,11 +72,14 @@ struct Mangler : private boost::noncopyable {
   mangleDestructorCall(CGContext& ctx, const std::string& class_name) const;
 
 private:
+  [[nodiscard]] std::string
+  mangleTemplateArguments(CGContext& ctx, const TemplateArguments& args) const;
+
   [[nodiscard]] std::string mangleFunctionName(const std::string& name) const;
 
   // Return results stored in order of priority
   [[nodiscard]] std::vector<std::string>
-  mangleNamespace(const NsHierarchy& namespaces) const;
+  mangleNamespaceHierarchy(const NsHierarchy& namespaces) const;
 
   [[nodiscard]] std::string
   mangleThisPointer(CGContext& ctx, const std::string& class_name) const;

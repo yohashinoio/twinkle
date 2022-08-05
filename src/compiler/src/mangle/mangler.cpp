@@ -13,28 +13,89 @@ namespace spica::codegen::mangle
 {
 
 [[nodiscard]] std::string
-Mangler::mangleFunction(CGContext& ctx, const ast::FunctionDecl& node) const
+Mangler::mangleFunction(CGContext& ctx, const ast::FunctionDecl& decl) const
 {
-  assert(!(node.is_constructor && node.is_destructor));
+  assert(!decl.isTemplate());
+
+  assert(!(decl.is_constructor && decl.is_destructor));
 
   std::ostringstream mangled;
 
   mangled << prefix;
 
-  mangled << getMangledAccessibility(node.accessibility);
+  mangled << getMangledAccessibility(decl.accessibility);
 
-  mangled << mangleNamespace(ctx.ns_hierarchy).front();
+  mangled << mangleNamespaceHierarchy(ctx.ns_hierarchy).front();
 
-  if (node.is_constructor)
+  if (decl.is_constructor)
     mangled << 'C';
-  else if (node.is_destructor)
+  else if (decl.is_destructor)
     mangled << 'D';
   else
-    mangled << mangleFunctionName(node.name.utf8());
+    mangled << mangleFunctionName(decl.name.utf8());
 
-  mangled << 'E' << mangleParams(ctx, node.params);
+  mangled << 'E' << mangleParams(ctx, decl.params);
 
   return mangled.str();
+}
+
+[[nodiscard]] std::string
+Mangler::mangleFunctionTemplate(CGContext&               ctx,
+                                const NsHierarchy&       space,
+                                const ast::FunctionDecl& decl,
+                                const TemplateArguments& template_args) const
+{
+  assert(!decl.is_constructor && !decl.is_destructor);
+
+  std::ostringstream mangled;
+
+  mangled << prefix;
+
+  mangled << getMangledAccessibility(decl.accessibility);
+
+  mangled << mangleNamespaceHierarchy(ctx.ns_hierarchy).front();
+
+  assert(!template_args.empty());
+
+  mangled << mangleFunctionName(decl.name.utf8());
+
+  mangled << mangleTemplateArguments(ctx, template_args);
+
+  mangled << 'E' << 'T' << mangleParams(ctx, decl.params);
+
+  return mangled.str();
+}
+
+[[nodiscard]] std::vector<std::string>
+Mangler::mangleFunctionTemplateCall(CGContext&               ctx,
+                                    const std::string_view   callee,
+                                    const std::deque<Value>& args) const
+{
+  std::vector<std::string> candidates;
+
+  // Previous
+  {
+    std::ostringstream mangled;
+
+    mangled << prefix;
+
+    for (const auto& r : mangleNamespaceHierarchy(ctx.ns_hierarchy))
+      candidates.push_back(mangled.str() + r);
+  }
+
+  // Back
+  {
+    std::ostringstream mangled;
+
+    mangled << mangleFunctionName(std::string{callee});
+
+    mangled << 'E' << 'T' << mangleArgs(ctx, args);
+
+    for (auto& r : candidates)
+      r += mangled.str();
+  }
+
+  return candidates;
 }
 
 [[nodiscard]] std::vector<std::string>
@@ -50,7 +111,7 @@ Mangler::mangleFunctionCall(CGContext&               ctx,
 
     mangled << prefix;
 
-    for (const auto& r : mangleNamespace(ctx.ns_hierarchy))
+    for (const auto& r : mangleNamespaceHierarchy(ctx.ns_hierarchy))
       candidates.push_back(mangled.str() + r);
   }
 
@@ -86,7 +147,7 @@ Mangler::mangleMethodCall(CGContext&               ctx,
 
     mangled << getMangledAccessibility(accessibility);
 
-    for (const auto& r : mangleNamespace(ctx.ns_hierarchy))
+    for (const auto& r : mangleNamespaceHierarchy(ctx.ns_hierarchy))
       candidates.push_back(mangled.str() + r);
   }
 
@@ -118,7 +179,7 @@ Mangler::mangleConstructorCall(CGContext&               ctx,
 
     mangled << prefix;
 
-    for (const auto& r : mangleNamespace(ctx.ns_hierarchy))
+    for (const auto& r : mangleNamespaceHierarchy(ctx.ns_hierarchy))
       candidates.push_back(mangled.str() + r);
   }
 
@@ -147,7 +208,7 @@ Mangler::mangleDestructorCall(CGContext&         ctx,
 
     mangled << prefix;
 
-    for (const auto& r : mangleNamespace(ctx.ns_hierarchy))
+    for (const auto& r : mangleNamespaceHierarchy(ctx.ns_hierarchy))
       candidates.push_back(mangled.str() + r);
   }
 
@@ -165,13 +226,27 @@ Mangler::mangleDestructorCall(CGContext&         ctx,
 }
 
 [[nodiscard]] std::string
+Mangler::mangleTemplateArguments(CGContext&               ctx,
+                                 const TemplateArguments& args) const
+{
+  std::ostringstream mangled;
+
+  mangled << 'I';
+
+  for (const auto& r : args)
+    mangled << r->getMangledName(ctx);
+
+  return mangled.str();
+}
+
+[[nodiscard]] std::string
 Mangler::mangleFunctionName(const std::string& name) const
 {
   return boost::lexical_cast<std::string>(name.length()) + name;
 }
 
 [[nodiscard]] std::vector<std::string>
-Mangler::mangleNamespace(const NsHierarchy& namespaces) const
+Mangler::mangleNamespaceHierarchy(const NsHierarchy& namespaces) const
 {
   std::vector<std::string> candidates;
 

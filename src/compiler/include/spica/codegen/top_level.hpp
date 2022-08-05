@@ -19,10 +19,25 @@
 namespace spica::codegen
 {
 
-// It is not mandatory to receive a return value.
-llvm::Function* createTopLevel(CGContext&                         ctx,
-                               llvm::legacy::FunctionPassManager& fpm,
-                               const ast::TopLevelWithAttr&       node);
+[[nodiscard]] std::optional<bool>
+isVariadicArgs(const ast::ParameterList& params);
+
+[[nodiscard]] std::vector<llvm::Type*>
+createParamTypes(CGContext&                ctx,
+                 const ast::ParameterList& params,
+                 const std::size_t         named_params_len);
+
+void createFunctionBody(CGContext&                  ctx,
+                        llvm::Function* const       func,
+                        const std::string_view      name,
+                        const ast::ParameterList&   params,
+                        const std::shared_ptr<Type> return_type,
+                        const ast::Stmt&            body);
+
+llvm::Function* createTopLevel(CGContext& ctx, const ast::TopLevel& node);
+
+llvm::Function* createTopLevel(CGContext&                   ctx,
+                               const ast::TopLevelWithAttr& node);
 
 } // namespace spica::codegen
 

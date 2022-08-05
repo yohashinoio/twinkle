@@ -43,7 +43,7 @@ createAttrKindsFrom(const ast::Attrs& attrs)
 }
 
 // Returns std::nullopt if there are multiple variadic arguments
-[[nodiscard]] static std::optional<bool>
+[[nodiscard]] std::optional<bool>
 isVariadicArgs(const ast::ParameterList& params)
 {
   bool is_vararg = false;
@@ -64,16 +64,132 @@ isVariadicArgs(const ast::ParameterList& params)
   return is_vararg;
 }
 
+[[nodiscard]] std::vector<llvm::Type*>
+createParamTypes(CGContext&                ctx,
+                 const ast::ParameterList& params,
+                 const std::size_t         named_params_len)
+{
+  std::vector<llvm::Type*> types(named_params_len);
+
+  const auto pos = ctx.positions.position_of(params);
+
+  for (std::size_t i = 0; i != named_params_len; ++i) {
+    const auto& param_type = params->at(i).type;
+    types.at(i) = createType(ctx, param_type, ctx.positions.position_of(params))
+                    ->getLLVMType(ctx);
+  }
+
+  return types;
+};
+
+[[nodiscard]] static SymbolTable
+createArgumentTable(CGContext&                ctx,
+                    llvm::Function* const     func,
+                    const ast::ParameterList& param_list,
+                    llvm::iterator_range<llvm::Function::arg_iterator>&& args)
+{
+  SymbolTable argument_table;
+
+  const auto pos = ctx.positions.position_of(param_list);
+
+  for (auto& arg : args) {
+    const auto& param_node = param_list->at(arg.getArgNo());
+
+    const auto& param_type
+      = createType(ctx, param_node.type, ctx.positions.position_of(param_list));
+
+    // Create an alloca for this variable
+    auto const alloca = createEntryAlloca(func,
+                                          arg.getName().str(),
+                                          param_type->getLLVMType(ctx));
+
+    // Store the initial value into the alloca
+    ctx.builder.CreateStore(&arg, alloca);
+
+    // Add arguments to variable symbol table
+    argument_table.insertOrAssign(
+      arg.getName().str(),
+      std::make_shared<AllocaVariable>(
+        Value{alloca, param_type},
+        param_node.qualifier.contains(VariableQual::mutable_)));
+  }
+
+  return argument_table;
+}
+
+void createFunctionBody(CGContext&                  ctx,
+                        llvm::Function* const       func,
+                        const std::string_view      name,
+                        const ast::ParameterList&   params,
+                        const std::shared_ptr<Type> return_type,
+                        const ast::Stmt&            body)
+{
+  auto const entry_bb = llvm::BasicBlock::Create(ctx.context, "", func);
+  ctx.builder.SetInsertPoint(entry_bb);
+
+  auto argument_table = createArgumentTable(ctx, func, params, func->args());
+
+  // Used to combine returns into one
+  auto const end_bb = llvm::BasicBlock::Create(ctx.context, "end");
+
+  // Return variable
+  auto const return_variable
+    = return_type->isVoidTy(ctx)
+        ? nullptr
+        : createEntryAlloca(func, "", return_type->getLLVMType(ctx));
+
+  createStatement(ctx,
+                  argument_table,
+                  {nullptr, return_variable, end_bb, nullptr, nullptr},
+                  body);
+
+  // If there is no return, returns undef
+  if (!ctx.builder.GetInsertBlock()->getTerminator()
+      && !(return_type->isVoidTy(ctx))) {
+    // Return 0 specially for main
+    if (name == "main") {
+      ctx.builder.CreateStore(
+        llvm::ConstantInt::getSigned(func->getReturnType(), 0),
+        return_variable);
+      ctx.builder.CreateBr(end_bb);
+    }
+    else {
+      ctx.builder.CreateStore(llvm::UndefValue::get(func->getReturnType()),
+                              return_variable);
+      ctx.builder.CreateBr(end_bb);
+    }
+  }
+
+  // Inserts a terminator if the function returning void does not have
+  // one
+  if (return_type->isVoidTy(ctx)
+      && !ctx.builder.GetInsertBlock()->getTerminator()) {
+    ctx.builder.CreateBr(end_bb);
+  }
+
+  // Return
+  func->getBasicBlockList().push_back(end_bb);
+  ctx.builder.SetInsertPoint(end_bb);
+
+  if (return_variable) {
+    auto const retval
+      = ctx.builder.CreateLoad(return_variable->getAllocatedType(),
+                               return_variable);
+    ctx.builder.CreateRet(retval);
+  }
+  else {
+    // Function that returns void
+    ctx.builder.CreateRet(nullptr);
+  }
+}
+
 //===----------------------------------------------------------------------===//
 // Top level statement visitor
 //===----------------------------------------------------------------------===//
 
 struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
-  TopLevelVisitor(CGContext&                         ctx,
-                  llvm::legacy::FunctionPassManager& fpm,
-                  const ast::Attrs&                  attrs) noexcept
+  TopLevelVisitor(CGContext& ctx, const ast::Attrs& attrs) noexcept
     : ctx{ctx}
-    , fpm{fpm}
     , attr_kinds{createAttrKindsFrom(attrs)}
   {
   }
@@ -112,7 +228,8 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     const auto named_params_len
       = *is_vararg ? node.params->size() - 1 : node.params->size();
 
-    const auto param_types = createParamTypes(node.params, named_params_len);
+    const auto param_types
+      = createParamTypes(ctx, node.params, named_params_len);
 
     auto const func_type
       = llvm::FunctionType::get(return_type->getLLVMType(ctx),
@@ -138,6 +255,27 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
   llvm::Function* operator()(const ast::FunctionDef& node) const
   {
+    if (node.decl.isTemplate()) {
+      verifyTemplateParameter(node.decl.template_params);
+
+      const auto name = node.decl.name.utf8();
+
+      const auto key
+        = FunctionTemplateTableKey{name,
+                                   node.decl.template_params->size(),
+                                   ctx.ns_hierarchy};
+
+      if (ctx.func_template_table.exists(key)) {
+        throw CodegenError{
+          ctx.formatError(ctx.positions.position_of(node.decl),
+                          fmt::format("redefinition of '{}'", name))};
+      }
+
+      ctx.func_template_table.insert(key, node);
+
+      return nullptr;
+    }
+
     const auto name = node.decl.name.utf8();
 
     auto func = ctx.module->getFunction(mangleFunction(node.decl));
@@ -151,16 +289,13 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     if (!func)
       func = (*this)(node.decl);
 
-    if (!func) {
-      throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(node.decl),
-                        fmt::format("failed to create function '{}'", name))};
-    }
+    assert(func);
 
     if (!node.is_public && name != "main")
       func->setLinkage(llvm::Function::LinkageTypes::InternalLinkage);
 
-    createFunctionBody(func,
+    createFunctionBody(ctx,
+                       func,
                        name,
                        node.decl.params,
                        createType(ctx,
@@ -168,7 +303,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
                                   ctx.positions.position_of(node.decl)),
                        node.body);
 
-    fpm.run(*func);
+    ctx.fpm.run(*func);
 
     return func;
   }
@@ -249,6 +384,23 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
   }
 
 private:
+  void verifyTemplateParameter(const ast::TemplateParameters& params) const
+  {
+    const auto& param_names = params.type_names;
+
+    // Check if template parameters are unique
+    for (auto it = param_names.cbegin(), last = param_names.cend(); it != last;
+         ++it) {
+      for (auto it_c = it + 1; it_c != last; ++it_c) {
+        if (*it == *it_c) {
+          throw CodegenError{
+            ctx.formatError(ctx.positions.position_of(params),
+                            fmt::format("redeclaration of '{}'", it->utf8()))};
+        }
+      }
+    }
+  }
+
   void importClass(const ast::ClassDef& node) const
   {
     const auto method_def_asts = createClass(node);
@@ -410,131 +562,14 @@ private:
 
   [[nodiscard]] std::string mangleFunction(const ast::FunctionDecl& node) const
   {
+    assert(!node.isTemplate());
+
     const auto name = node.name.utf8();
 
     if (name == "main" || attr_kinds.contains(AttrKind::nomangle))
       return name;
 
     return ctx.mangler.mangleFunction(ctx, node);
-  }
-
-  void createFunctionBody(llvm::Function* const       func,
-                          const std::string_view      name,
-                          const ast::ParameterList&   params,
-                          const std::shared_ptr<Type> return_type,
-                          const ast::Stmt&            body) const
-  {
-    auto const entry_bb = llvm::BasicBlock::Create(ctx.context, "", func);
-    ctx.builder.SetInsertPoint(entry_bb);
-
-    auto argument_table = createArgumentTable(func, params, func->args());
-
-    // Used to combine returns into one.
-    auto const end_bb = llvm::BasicBlock::Create(ctx.context, "end");
-
-    // Return variable.
-    auto const return_variable
-      = return_type->isVoidTy(ctx)
-          ? nullptr
-          : createEntryAlloca(func, "", return_type->getLLVMType(ctx));
-
-    createStatement(ctx,
-                    argument_table,
-                    {nullptr, return_variable, end_bb, nullptr, nullptr},
-                    body);
-
-    // If there is no return, returns undef.
-    if (!ctx.builder.GetInsertBlock()->getTerminator()
-        && !(return_type->isVoidTy(ctx))) {
-      // Return 0 specially for main.
-      if (name == "main") {
-        ctx.builder.CreateStore(
-          llvm::ConstantInt::getSigned(func->getReturnType(), 0),
-          return_variable);
-        ctx.builder.CreateBr(end_bb);
-      }
-      else {
-        ctx.builder.CreateStore(llvm::UndefValue::get(func->getReturnType()),
-                                return_variable);
-        ctx.builder.CreateBr(end_bb);
-      }
-    }
-
-    // Inserts a terminator if the function returning void does not have
-    // one.
-    if (return_type->isVoidTy(ctx)
-        && !ctx.builder.GetInsertBlock()->getTerminator()) {
-      ctx.builder.CreateBr(end_bb);
-    }
-
-    // Return.
-    func->getBasicBlockList().push_back(end_bb);
-    ctx.builder.SetInsertPoint(end_bb);
-
-    if (return_variable) {
-      auto const retval
-        = ctx.builder.CreateLoad(return_variable->getAllocatedType(),
-                                 return_variable);
-      ctx.builder.CreateRet(retval);
-    }
-    else {
-      // Function that returns void.
-      ctx.builder.CreateRet(nullptr);
-    }
-  }
-
-  [[nodiscard]] SymbolTable createArgumentTable(
-    llvm::Function* const                                func,
-    const ast::ParameterList&                            param_list,
-    llvm::iterator_range<llvm::Function::arg_iterator>&& args) const
-  {
-    SymbolTable argument_table;
-
-    const auto pos = ctx.positions.position_of(param_list);
-
-    for (auto& arg : args) {
-      const auto& param_node = param_list->at(arg.getArgNo());
-
-      const auto& param_type
-        = createType(ctx,
-                     param_node.type,
-                     ctx.positions.position_of(param_list));
-
-      // Create an alloca for this variable
-      auto const alloca = createEntryAlloca(func,
-                                            arg.getName().str(),
-                                            param_type->getLLVMType(ctx));
-
-      // Store the initial value into the alloca
-      ctx.builder.CreateStore(&arg, alloca);
-
-      // Add arguments to variable symbol table
-      argument_table.insertOrAssign(
-        arg.getName().str(),
-        std::make_shared<AllocaVariable>(
-          Value{alloca, param_type},
-          param_node.qualifier.contains(VariableQual::mutable_)));
-    }
-
-    return argument_table;
-  }
-
-  [[nodiscard]] std::vector<llvm::Type*>
-  createParamTypes(const ast::ParameterList& params,
-                   const std::size_t         named_params_len) const
-  {
-    std::vector<llvm::Type*> types(named_params_len);
-
-    const auto pos = ctx.positions.position_of(params);
-
-    for (std::size_t i = 0; i != named_params_len; ++i) {
-      const auto& param_type = params->at(i).type;
-      types.at(i)
-        = createType(ctx, param_type, ctx.positions.position_of(params))
-            ->getLLVMType(ctx);
-    }
-
-    return types;
   }
 
   void verifyConstructor(const std::string_view  class_name,
@@ -565,17 +600,18 @@ private:
 
   CGContext& ctx;
 
-  llvm::legacy::FunctionPassManager& fpm;
-
   std::unordered_set<AttrKind> attr_kinds;
 };
 
-llvm::Function* createTopLevel(CGContext&                         ctx,
-                               llvm::legacy::FunctionPassManager& fpm,
-                               const ast::TopLevelWithAttr&       node)
+llvm::Function* createTopLevel(CGContext& ctx, const ast::TopLevel& node)
 {
-  return boost::apply_visitor(TopLevelVisitor{ctx, fpm, node.attrs},
-                              node.top_level);
+  return boost::apply_visitor(TopLevelVisitor{ctx, {}}, node);
+}
+
+llvm::Function* createTopLevel(CGContext&                   ctx,
+                               const ast::TopLevelWithAttr& node)
+{
+  return boost::apply_visitor(TopLevelVisitor{ctx, node.attrs}, node.top_level);
 }
 
 } // namespace spica::codegen

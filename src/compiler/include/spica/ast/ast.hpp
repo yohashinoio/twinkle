@@ -58,6 +58,11 @@ struct Identifier : x3::position_tagged {
   {
     return name;
   }
+
+  [[nodiscard]] bool operator==(const ast::Identifier& other) const
+  {
+    return name == other.utf32();
+  }
 };
 
 struct Path : x3::position_tagged {
@@ -190,6 +195,7 @@ struct New;
 struct Delete;
 struct Dereference;
 struct FunctionCall;
+struct FunctionTemplateCall;
 struct Cast;
 struct Subscript;
 struct Pipeline;
@@ -255,7 +261,11 @@ using ExprT13
 using ExprT14
   = boost::mpl::push_back<ExprT13, boost::recursive_wrapper<Delete>>::type;
 
-using ExprTypes = ExprT14;
+using ExprT15
+  = boost::mpl::push_back<ExprT14,
+                          boost::recursive_wrapper<FunctionTemplateCall>>::type;
+
+using ExprTypes = ExprT15;
 
 using Expr = boost::make_variant_over<ExprTypes>::type;
 
@@ -442,6 +452,23 @@ struct FunctionCall : x3::position_tagged {
 
   FunctionCall(Expr&& callee, std::deque<Expr>&& args) noexcept
     : callee{std::move(callee)}
+    , args{std::move(args)}
+  {
+  }
+};
+
+using TemplateArguments = std::vector<Type>;
+
+struct FunctionTemplateCall : x3::position_tagged {
+  Expr              callee;
+  TemplateArguments template_args;
+  std::deque<Expr>  args;
+
+  FunctionTemplateCall(Expr&&              callee,
+                       TemplateArguments&& template_args,
+                       std::deque<Expr>&&  args) noexcept
+    : callee{std::move(callee)}
+    , template_args{template_args}
     , args{std::move(args)}
   {
   }
@@ -669,12 +696,12 @@ struct ParameterList : x3::position_tagged {
     return params;
   }
 
-  const std::deque<Parameter>* operator->() const noexcept
+  [[nodiscard]] const std::deque<Parameter>* operator->() const noexcept
   {
     return &params;
   }
 
-  std::deque<Parameter>* operator->() noexcept
+  [[nodiscard]] std::deque<Parameter>* operator->() noexcept
   {
     return &params;
   }
@@ -682,6 +709,21 @@ struct ParameterList : x3::position_tagged {
 
 struct TemplateParameters : x3::position_tagged {
   std::vector<Identifier> type_names;
+
+  [[nodiscard]] bool empty() const noexcept
+  {
+    return type_names.empty();
+  }
+
+  [[nodiscard]] const std::vector<Identifier>* operator->() const noexcept
+  {
+    return &type_names;
+  }
+
+  [[nodiscard]] std::vector<Identifier>* operator->() noexcept
+  {
+    return &type_names;
+  }
 };
 
 struct FunctionDecl : x3::position_tagged {
@@ -692,6 +734,11 @@ struct FunctionDecl : x3::position_tagged {
   Accessibility      accessibility  = Accessibility::non_method;
   bool               is_constructor = false;
   bool               is_destructor  = false;
+
+  [[nodiscard]] bool isTemplate() const noexcept
+  {
+    return !template_params.empty();
+  }
 };
 
 struct FunctionDef : x3::position_tagged {

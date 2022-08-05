@@ -135,7 +135,7 @@ namespace spica::codegen
 }
 
 [[nodiscard]] std::shared_ptr<Type>
-UserDefinedType::getType(CGContext& ctx) const
+UserDefinedType::getRealType(CGContext& ctx) const
 {
   {
     const auto type = ctx.class_table[ident];
@@ -154,7 +154,7 @@ UserDefinedType::getType(CGContext& ctx) const
 
 [[nodiscard]] llvm::Type* UserDefinedType::getLLVMType(CGContext& ctx) const
 {
-  const auto type = getType(ctx);
+  const auto type = getRealType(ctx);
 
   if (type)
     return type->getLLVMType(ctx);
@@ -164,7 +164,7 @@ UserDefinedType::getType(CGContext& ctx) const
 
 [[nodiscard]] std::string UserDefinedType::getMangledName(CGContext& ctx) const
 {
-  return getType(ctx)->getMangledName(ctx);
+  return getRealType(ctx)->getMangledName(ctx);
 }
 
 llvm::StructType*

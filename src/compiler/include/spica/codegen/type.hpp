@@ -126,6 +126,11 @@ struct Type {
     return false;
   }
 
+  [[nodiscard]] virtual bool isUserDefinedType() const
+  {
+    return false;
+  }
+
   [[nodiscard]] bool isSigned(CGContext& ctx) const
   {
     return getSignKind(ctx) == SignKind::signed_;
@@ -178,10 +183,10 @@ struct UserDefinedType : public Type {
 
   [[nodiscard]] SignKind getSignKind(CGContext& ctx) const override
   {
-    return getType(ctx)->getSignKind(ctx);
+    return getRealType(ctx)->getSignKind(ctx);
   }
 
-  [[nodiscard]] std::shared_ptr<Type> getType(CGContext& ctx) const;
+  [[nodiscard]] std::shared_ptr<Type> getRealType(CGContext& ctx) const;
 
   [[nodiscard]] llvm::Type* getLLVMType(CGContext& ctx) const override;
 
@@ -189,69 +194,74 @@ struct UserDefinedType : public Type {
   getPointeeType(CGContext& ctx) const override
   {
     assert(isPointerTy(ctx));
-    return getType(ctx)->getPointeeType(ctx);
+    return getRealType(ctx)->getPointeeType(ctx);
   }
 
   [[nodiscard]] std::shared_ptr<Type>
   getArrayElementType(CGContext& ctx) const override
   {
-    return getType(ctx)->getArrayElementType(ctx);
+    return getRealType(ctx)->getArrayElementType(ctx);
   }
 
   [[nodiscard]] std::shared_ptr<Type>
   getRefeeType(CGContext& ctx) const override
   {
-    return getType(ctx)->getRefeeType(ctx);
+    return getRealType(ctx)->getRefeeType(ctx);
   }
 
   [[nodiscard]] bool isVoidTy(CGContext& ctx) const override
   {
-    return getType(ctx)->isVoidTy(ctx);
+    return getRealType(ctx)->isVoidTy(ctx);
   }
 
   [[nodiscard]] bool isIntegerTy(CGContext& ctx) const override
   {
-    return getType(ctx)->isIntegerTy(ctx);
+    return getRealType(ctx)->isIntegerTy(ctx);
   }
 
   [[nodiscard]] bool isFloatingPointTy(CGContext& ctx) const override
   {
-    return getType(ctx)->isFloatingPointTy(ctx);
+    return getRealType(ctx)->isFloatingPointTy(ctx);
   }
 
   [[nodiscard]] bool isOpaque(CGContext& ctx) const override
   {
-    return getType(ctx)->isOpaque(ctx);
+    return getRealType(ctx)->isOpaque(ctx);
   }
 
   [[nodiscard]] bool isClassTy(CGContext& ctx) const override
   {
-    return getType(ctx)->isClassTy(ctx);
+    return getRealType(ctx)->isClassTy(ctx);
   }
 
   [[nodiscard]] bool isPointerTy(CGContext& ctx) const override
   {
-    return getType(ctx)->isPointerTy(ctx);
+    return getRealType(ctx)->isPointerTy(ctx);
   }
 
   [[nodiscard]] bool isArrayTy(CGContext& ctx) const override
   {
-    return getType(ctx)->isArrayTy(ctx);
+    return getRealType(ctx)->isArrayTy(ctx);
   }
 
   [[nodiscard]] bool isRefTy(CGContext& ctx) const override
   {
-    return getType(ctx)->isRefTy(ctx);
+    return getRealType(ctx)->isRefTy(ctx);
+  }
+
+  [[nodiscard]] bool isUserDefinedType() const override
+  {
+    return true;
   }
 
   [[nodiscard]] std::uint64_t getArraySize(CGContext& ctx) const override
   {
-    return getType(ctx)->getArraySize(ctx);
+    return getRealType(ctx)->getArraySize(ctx);
   }
 
   [[nodiscard]] std::string getClassName(CGContext& ctx) const override
   {
-    return getType(ctx)->getClassName(ctx);
+    return getRealType(ctx)->getClassName(ctx);
   }
 
   [[nodiscard]] std::string getUserDefinedTyName(CGContext&) const override

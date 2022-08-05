@@ -18,7 +18,7 @@
 namespace spica
 {
 
-constexpr unsigned int VERSION = 000004;
+constexpr unsigned int VERSION = 000005;
 
 [[nodiscard]] std::string getVersion();
 

@@ -9,6 +9,7 @@
 #include <spica/codegen/exception.hpp>
 #include <spica/codegen/kind.hpp>
 #include <spica/codegen/stmt.hpp>
+#include <spica/codegen/top_level.hpp>
 
 namespace spica::codegen
 {
@@ -50,6 +51,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     , stmt_ctx{stmt_ctx}
   {
   }
+
+  using TemplateArguments = std::vector<std::shared_ptr<Type>>;
 
   [[nodiscard]] Value operator()(boost::blank) const
   {
@@ -426,6 +429,44 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     return createFunctionCall(callee_name, createArgVals(node.args, pos), pos);
   }
 
+  [[nodiscard]] Value operator()(const ast::FunctionTemplateCall& node) const
+  {
+    const auto pos = ctx.positions.position_of(node);
+
+    const auto callee_name = boost::get<ast::Identifier>(node.callee).utf8();
+
+    const auto args = createArgVals(node.args, pos);
+
+    // Trying to call
+    const auto mangled_names
+      = ctx.mangler.mangleFunctionTemplateCall(ctx, callee_name, args);
+
+    for (const auto& name : mangled_names) {
+      if (const auto func = ctx.module->getFunction(name))
+        return createFunctionCall(func, args, pos);
+    }
+
+    // Trying to define
+    const auto template_args = createTypes(node.template_args, pos);
+
+    const auto func_template_ast
+      = findFunctionTemplate(callee_name, template_args);
+
+    if (!func_template_ast) {
+      throw CodegenError{ctx.formatError(
+        pos,
+        fmt::format("unknown function template '{}' called", callee_name))};
+    }
+
+    return createFunctionCall(createFunctionTemplate(func_template_ast->first,
+                                                     template_args,
+                                                     func_template_ast->second),
+                              args,
+                              pos);
+
+    unreachable();
+  }
+
   [[nodiscard]] Value operator()(const ast::Cast& node) const
   {
     auto const lhs = boost::apply_visitor(*this, node.lhs);
@@ -433,7 +474,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     const auto as = createType(ctx, node.as, ctx.positions.position_of(node));
 
     if (as->isPointerTy(ctx)) {
-      // Pointer to pointer.
+      // Pointer to pointer
       return {
         ctx.builder.CreatePointerCast(lhs.getValue(), as->getLLVMType(ctx)),
         as};
@@ -450,14 +491,14 @@ struct ExprVisitor : public boost::static_visitor<Value> {
           as};
       }
 
-      // Floating point number to floating point number.
+      // Floating point number to floating point number
       return {ctx.builder.CreateFPCast(lhs.getValue(), as->getLLVMType(ctx)),
               as};
     }
 
     if (as->getLLVMType(ctx)->isIntegerTy()) {
       if (lhs.getType()->isFloatingPointTy(ctx)) {
-        // Floating point number to integer.
+        // Floating point number to integer
         const auto cast_op = as->isSigned(ctx)
                                ? llvm::CastInst::CastOps::FPToSI
                                : llvm::CastInst::CastOps::FPToUI;
@@ -467,7 +508,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
           as};
       }
 
-      // Integer to integer.
+      // Integer to integer
       return {ctx.builder.CreateIntCast(lhs.getValue(),
                                         as->getLLVMType(ctx),
                                         as->isSigned(ctx)),
@@ -527,6 +568,166 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   }
 
 private:
+  [[nodiscard]] std::optional<
+    std::pair<FunctionTemplateTableValue, NsHierarchy>>
+  findFunctionTemplate(const std::string_view   name,
+                       const TemplateArguments& args) const
+  {
+    auto namespace_copy = ctx.ns_hierarchy;
+
+    for (;;) {
+      if (const auto value
+          = ctx.func_template_table[FunctionTemplateTableKey{name,
+                                                             args.size(),
+                                                             namespace_copy}]) {
+        return std::make_pair(*value, namespace_copy);
+      }
+
+      namespace_copy.pop();
+    }
+
+    return std::nullopt;
+  }
+
+  [[nodiscard]] llvm::Function*
+  createFunctionTemplate(const FunctionTemplateTableValue& ast,
+                         const TemplateArguments&          template_args,
+                         const NsHierarchy&                space) const
+  {
+    assert(ast.decl.isTemplate());
+
+    assert(ast.decl.template_params->size() == template_args.size());
+
+    return defineFunctionTemplate(ast, template_args, space);
+  }
+
+  [[nodiscard]] llvm::Function*
+  declareFunctionTemplate(const ast::FunctionDecl& decl,
+                          const TemplateArguments& template_args,
+                          const NsHierarchy&       space) const
+  {
+    const auto return_type
+      = createType(ctx, decl.return_type, ctx.positions.position_of(decl));
+
+    if (decl.params->size() && decl.params->at(0).is_vararg) {
+      throw CodegenError{
+        ctx.formatError(ctx.positions.position_of(decl),
+                        "requires a named argument before '...'")};
+    }
+
+    const auto is_vararg = isVariadicArgs(decl.params);
+    if (!is_vararg) {
+      throw CodegenError{
+        ctx.formatError(ctx.positions.position_of(decl),
+                        "cannot have multiple variable arguments")};
+    }
+
+    const auto named_params_len
+      = *is_vararg ? decl.params->size() - 1 : decl.params->size();
+
+    const auto param_types
+      = createParamTypes(ctx, decl.params, named_params_len);
+
+    auto const func_type
+      = llvm::FunctionType::get(return_type->getLLVMType(ctx),
+                                param_types,
+                                *is_vararg);
+
+    const auto mangled_name
+      = ctx.mangler.mangleFunctionTemplate(ctx, space, decl, template_args);
+
+    assert(!ctx.module->getFunction(mangled_name));
+
+    auto const func
+      = llvm::Function::Create(func_type,
+                               llvm::Function::LinkageTypes::ExternalLinkage,
+                               mangled_name,
+                               *ctx.module);
+
+    if (return_type->isUserDefinedType()) {
+      // Return value may be of a type passed in template arguments
+      // If so, it will be erased
+      // So register a real type
+      const auto tmp = dynamic_cast<UserDefinedType*>(return_type.get());
+      assert(tmp);
+      ctx.return_type_table.insertOrAssign(func, tmp->getRealType(ctx));
+    }
+    else
+      ctx.return_type_table.insertOrAssign(func, return_type);
+
+    // Set names to all arguments
+    for (std::size_t idx = 0; auto&& arg : func->args())
+      arg.setName(decl.params->at(idx++).name.utf8());
+
+    return func;
+  }
+
+  // Assumption not yet defined
+  [[nodiscard]] llvm::Function*
+  defineFunctionTemplate(const FunctionTemplateTableValue& ast,
+                         const TemplateArguments&          template_args,
+                         const NsHierarchy&                space) const
+  {
+    const auto pos = ctx.positions.position_of(ast.decl);
+
+    // Insert template arguments to alias table
+    for (std::size_t idx = 0;
+         const auto& param : ast.decl.template_params.type_names) {
+      const auto param_name = param.utf8();
+
+      if (ctx.alias_table.exists(param_name)) {
+        throw CodegenError{ctx.formatError(
+          pos,
+          fmt::format("redefinition of template parameter '{}'", param_name))};
+      }
+
+      ctx.alias_table.insert(param_name, template_args[idx]);
+      ++idx;
+    }
+
+    const auto name = ast.decl.name.utf8();
+
+    auto const func = declareFunctionTemplate(ast.decl, template_args, space);
+
+    assert(func);
+
+    if (!ast.is_public)
+      func->setLinkage(llvm::Function::LinkageTypes::InternalLinkage);
+
+    {
+      const auto return_bb = ctx.builder.GetInsertBlock();
+
+      createFunctionBody(ctx,
+                         func,
+                         name,
+                         ast.decl.params,
+                         createType(ctx, ast.decl.return_type, pos),
+                         ast.body);
+
+      ctx.fpm.run(*func);
+
+      ctx.builder.SetInsertPoint(return_bb);
+    }
+
+    // Clean up
+    for (const auto& param : ast.decl.template_params.type_names)
+      ctx.alias_table.erase(param.utf8());
+
+    return func;
+  }
+
+  [[nodiscard]] std::vector<std::shared_ptr<Type>>
+  createTypes(const std::vector<ast::Type>&               type_asts,
+              const boost::iterator_range<InputIterator>& pos) const
+  {
+    std::vector<std::shared_ptr<Type>> types;
+
+    for (const auto& r : type_asts)
+      types.push_back(createType(ctx, r, pos));
+
+    return types;
+  }
+
   [[nodiscard]] Value createAllocaUnsignedInt(const std::shared_ptr<Type>& type,
                                               const std::uint64_t value) const
   {
@@ -698,7 +899,7 @@ private:
 
     throw CodegenError{ctx.formatError(
       pos,
-      fmt::format("unknown function '{}' referenced", callee_name))};
+      fmt::format("unknown function '{}' called", callee_name))};
   }
 
   [[nodiscard]] Value createFunctionCall(
