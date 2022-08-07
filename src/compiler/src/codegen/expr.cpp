@@ -583,10 +583,13 @@ private:
         return std::make_pair(*value, namespace_copy);
       }
 
+      if (namespace_copy.empty())
+        return std::nullopt;
+
       namespace_copy.pop();
     }
 
-    return std::nullopt;
+    unreachable();
   }
 
   [[nodiscard]] llvm::Function*
