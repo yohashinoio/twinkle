@@ -9,41 +9,19 @@
 #include <spica/codegen/codegen.hpp>
 #include <spica/jit/jit.hpp>
 #include <spica/parse/parser.hpp>
-#include <spica/option/option.hpp>
 #include <spica/support/file.hpp>
 #include <spica/support/utils.hpp>
 #include <spica/support/exception.hpp>
 
-namespace program_options = boost::program_options;
-
-namespace spica::compile
+namespace spica
 {
 
-static bool isBackNewline(const char* str) noexcept
+// Emit object file without error even if target does not exist
+static void emitFile(codegen::CodeGenerator&           generator,
+                     const std::optional<std::string>& emit_target)
 {
-  for (;;) {
-    if (*str == '\0')
-      return *--str == '\n';
-    ++str;
-  }
-
-  unreachable();
-}
-
-static std::ostream& printHelp(std::ostream&          ostm,
-                               const std::string_view command,
-                               const program_options::options_description& desc)
-{
-  fmt::print(ostm, "Usage: {} [options] file...\n", command);
-  return ostm << desc;
-}
-
-// Emit object file without error even if target does not exist.
-static void emitFile(codegen::CodeGenerator&               generator,
-                     const program_options::variables_map& vmap)
-{
-  if (vmap.contains("emit")) {
-    const auto target = stringToLower(vmap["emit"].as<std::string>());
+  if (emit_target) {
+    const auto target = *emit_target;
 
     if (target == "llvm") {
       generator.emitLlvmIRFiles();
@@ -58,53 +36,45 @@ static void emitFile(codegen::CodeGenerator&               generator,
   generator.emitObjectFiles();
 }
 
-CompileResult main(const int argc, const char* const* const argv)
+[[nodiscard]] static llvm::Reloc::Model
+getRelocationModel(const std::string_view reloc_model,
+                   const std::string_view argv_front)
+{
+  if (reloc_model == "static")
+    return llvm::Reloc::Model::Static;
+  else if (reloc_model == "pic")
+    return llvm::Reloc::Model::PIC_;
+  else {
+    throw ErrorBase{formatError(
+      argv_front,
+      fmt::format("the value '{}' for --relocation-model is invalid!",
+                  reloc_model))};
+  }
+}
+
+CompileResult compile(const Context& ctx, const std::string_view argv_front)
 try {
-  const auto desc = createOptionsDesc();
-
-  const auto vmap = getVariableMap(desc, argc, argv);
-
-  if (argc == 1) {
-    printHelp(std::cerr, *argv, desc);
-    std::exit(EXIT_SUCCESS);
-  }
-  if (vmap.contains("version")) {
-    std::cout << "spica version " << getVersion() << std::endl;
-    std::exit(EXIT_SUCCESS);
-  }
-  else if (vmap.contains("help")) {
-    printHelp(std::cout, *argv, desc);
-    std::exit(EXIT_SUCCESS);
-  }
-
   std::vector<parse::Parser::Result> parse_results;
 
-  for (const auto& path : getInputFiles(*argv, vmap)) {
+  for (const auto& path : ctx.input_files) {
     parse_results.emplace_back(
-      parse::Parser{loadFile(*argv, path), path}.getResult());
+      parse::Parser{loadFile(argv_front, path), path}.getResult());
   }
 
-  codegen::CodeGenerator code_generator{*argv,
-                                        std::move(parse_results),
-                                        vmap["Opt"].as<unsigned int>(),
-                                        getRelocationModel(*argv, vmap)};
+  codegen::CodeGenerator code_generator{
+    argv_front,
+    std::move(parse_results),
+    ctx.opt_level,
+    getRelocationModel(ctx.relocation_model, argv_front)};
 
-  if (vmap.contains("JIT")) {
+  if (ctx.jit)
     return {true, code_generator.doJIT()};
-  }
   else {
-    emitFile(code_generator, vmap);
+    emitFile(code_generator, ctx.emit_target);
     return {true, std::nullopt};
   }
 
   unreachable();
-}
-catch (const program_options::error& err) {
-  // Error about command line options.
-  std::cerr << formatError(*argv, err.what())
-            << (isBackNewline(err.what()) ? "" : "\n") << std::flush;
-
-  return {false, std::nullopt};
 }
 catch (const ErrorBase& err) {
   std::cerr << err.what() << (isBackNewline(err.what()) ? "" : "\n")
@@ -113,4 +83,4 @@ catch (const ErrorBase& err) {
   return {false, std::nullopt};
 }
 
-} // namespace spica::compile
+} // namespace spica

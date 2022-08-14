@@ -12,8 +12,7 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <spica/pch/pch.hpp>
-#include <deque>
+#include <string>
 
 namespace spica
 {
@@ -30,6 +29,8 @@ constexpr unsigned int VERSION = 000005;
 [[nodiscard]] std::string formatError(const std::string_view message);
 
 [[nodiscard]] std::string stringToLower(const std::string_view str);
+
+[[nodiscard]] bool isBackNewline(const char* str) noexcept;
 
 [[noreturn]] void unreachableInternal(const std::size_t line, const char* file);
 

@@ -2,12 +2,7 @@ set(LIB_NAME spicac)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
-find_package(Threads REQUIRED)
-
-find_package(Boost REQUIRED COMPONENTS program_options) # 1.71.0 in development
-message(STATUS "Using .cmake in: ${Boost_DIR}")
-
-find_package(LLVM REQUIRED CONFIG) # 14.0.0 in development
+find_package(LLVM REQUIRED CONFIG) # 14 13 in development
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using .cmake in: ${LLVM_DIR}")
 
@@ -25,8 +20,6 @@ endif()
 string(REGEX REPLACE "[ \t]*[\r\n]+[ \t]*" ";" CONFIG_OUTPUT ${CONFIG_OUTPUT})
 
 include_directories(
-  ${CMAKE_SOURCE_DIR}/src/compiler/include
-  ${CMAKE_SOURCE_DIR}/third-party/fmt/include
   ${Boost_INCLUDE_DIRS}
   ${LLVM_INCLUDE_DIRS}
 )
@@ -44,22 +37,18 @@ add_subdirectory(jit)
 add_subdirectory(mangle)
 add_subdirectory(parse)
 add_subdirectory(unicode)
-add_subdirectory(option)
 add_subdirectory(support)
 
 target_link_libraries(
   ${LIB_NAME}
   PRIVATE
-  Threads::Threads
   fmt::fmt
-  ${Boost_LIBRARIES}
   ${CONFIG_OUTPUT}
   codegen
   jit
   mangle
   parse
   unicode
-  option
   support
 )
 

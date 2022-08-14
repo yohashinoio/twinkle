@@ -48,6 +48,17 @@ namespace spica
   return result;
 }
 
+[[nodiscard]] bool isBackNewline(const char* str) noexcept
+{
+  for (;;) {
+    if (*str == '\0')
+      return *--str == '\n';
+    ++str;
+  }
+
+  unreachable();
+}
+
 [[noreturn]] void unreachableInternal(const std::size_t line, const char* file)
 {
 #ifndef NDEBUG

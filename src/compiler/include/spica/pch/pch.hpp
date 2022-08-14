@@ -68,9 +68,9 @@
 #include <boost/spirit/home/x3/support/ast/position_tagged.hpp>
 #include <boost/spirit/home/x3/support/utility/error_reporting.hpp>
 #include <boost/spirit/home/x3/support/utility/annotate_on_success.hpp>
+#include <boost/lexical_cast.hpp>
 #include <boost/fusion/adapted/struct/adapt_struct.hpp>
 #include <boost/fusion/include/adapt_struct.hpp>
-#include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/mpl/vector.hpp>

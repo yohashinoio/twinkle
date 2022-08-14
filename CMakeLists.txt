@@ -8,6 +8,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 add_subdirectory(third-party)
 
+include_directories(
+  ${CMAKE_SOURCE_DIR}/src/common
+  ${CMAKE_SOURCE_DIR}/src/compiler/include
+  ${CMAKE_SOURCE_DIR}/third-party/fmt/include
+)
+
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 # Enable sanitizers
 add_compile_options(

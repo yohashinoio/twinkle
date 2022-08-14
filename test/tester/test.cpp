@@ -7,6 +7,7 @@
 
 #include "expectation.hpp"
 #include <spica/compile/main.hpp>
+#include <context.hpp>
 #include <filesystem>
 #include <sstream>
 #include <iostream>
@@ -30,11 +31,15 @@ namespace test
     for (const auto& path : fs::recursive_directory_iterator(test_path))
       paths.push_back(path.path().string());
 
-    std::vector<const char*> args = {"test", "--JIT"};
-    for (const auto& r : paths)
-      args.push_back(r.c_str());
-
-    const auto result = spica::compile::main(args.size(), args.data());
+    const auto result = spica::compile(
+      spica::Context{
+        std::move(paths),
+        true,
+        std::nullopt,
+        spica::DEFAULT_OPT_LEVEL,
+        "pic",
+      },
+      "test");
 
     std::cerr.clear();
 
@@ -44,9 +49,15 @@ namespace test
     return std::nullopt;
   }
   else {
-    std::vector<const char*> args = {"test", "--JIT", test_path.path().c_str()};
-
-    const auto result = spica::compile::main(args.size(), args.data());
+    const auto result = spica::compile(
+      spica::Context{
+        std::vector<std::string>{test_path.path()},
+        true,
+        std::nullopt,
+        spica::DEFAULT_OPT_LEVEL,
+        "pic",
+      },
+      "test");
 
     std::cerr.clear();
 

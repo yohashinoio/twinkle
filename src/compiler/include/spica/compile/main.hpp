@@ -12,9 +12,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <optional>
+#include <context.hpp>
 
-namespace spica::compile
+namespace spica
 {
 
 struct CompileResult {
@@ -37,13 +37,12 @@ struct CompileResult {
 private:
   bool success_;
 
-  // If not JIT compiled, std::nullopt is stored.
+  // If not JIT compiled, std::nullopt is stored
   std::optional<int> jit_result;
 };
 
-// Compilation.
-CompileResult main(const int argc, const char* const* const argv);
+CompileResult compile(const Context& ctx, const std::string_view argv_front);
 
-} // namespace spica::compile
+} // namespace spica
 
 #endif
