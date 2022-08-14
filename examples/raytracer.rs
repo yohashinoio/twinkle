@@ -41,7 +41,7 @@ declare func free(ptr: ^i8);
 declare func exit(status: i32);
 
 class HeapArray {
-  HeapArray(size: u64)
+  HeapArray(size: usize)
   {
     p = malloc(size);
   }
