@@ -562,7 +562,7 @@ const auto pointer_type_def = type_primary | pointer_type_internal;
 const auto user_defined_type_def = identifier;
 
 const auto type_primary_def
-  = builtin_type | user_defined_type | (lit(U"(") > type_name > lit(U")"));
+  = builtin_type | user_defined_type | (lit(U"(") >> type_name > lit(U")"));
 
 BOOST_SPIRIT_DEFINE(type_name)
 BOOST_SPIRIT_DEFINE(array_type)
@@ -729,10 +729,12 @@ const auto function_call_def
     >> *(string(U"(") > arg_list
          > lit(U")"))[action::assignToValAs<ast::FunctionCall>{}];
 
+// Do not use the expectation operator because it may be a comparison operation
+// (< or >)
 const auto template_args
   = x3::rule<struct TemplateArgsTag,
              ast::TemplateArguments>{"template arguments"}
-= lit(U"<") > (type_name % lit(U",")) > lit(U">");
+= lit(U"<") >> (type_name % lit(U",")) >> lit(U">");
 
 const auto function_template_call_def
   = primary[action::assignAttrToVal]

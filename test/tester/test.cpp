@@ -15,6 +15,8 @@
 #include <fmt/printf.h>
 #include <fmt/color.h>
 
+#define SUPPRESS_COMPILE_ERROR_OUTPUT 0
+
 namespace fs = std::filesystem;
 
 namespace test
@@ -22,8 +24,10 @@ namespace test
 
 [[nodiscard]] std::optional<int> runTest(const fs::directory_entry& test_path)
 {
+#if SUPPRESS_COMPILE_ERROR_OUTPUT
   // Suppresses compile error output
   std::cerr.setstate(std::ios::failbit);
+#endif
 
   if (test_path.is_directory()) {
     std::vector<std::string> paths;
@@ -41,7 +45,9 @@ namespace test
       },
       "test");
 
+#if SUPPRESS_COMPILE_ERROR_OUTPUT
     std::cerr.clear();
+#endif
 
     if (result.success())
       return result.getJitResult();
@@ -59,7 +65,9 @@ namespace test
       },
       "test");
 
+#if SUPPRESS_COMPILE_ERROR_OUTPUT
     std::cerr.clear();
+#endif
 
     if (result.success())
       return result.getJitResult();
