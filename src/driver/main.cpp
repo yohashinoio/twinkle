@@ -22,7 +22,7 @@ int main(const int argc, const char* const* const argv)
   if (std::holds_alternative<spica::JITResult>(*result))
     return std::get<spica::JITResult>(*result).exit_status;
 
-  if (context.emit_target == "exe"
+  if (context.emit_target == EMIT_EXE_ARG
       && std::holds_alternative<spica::AOTResult>(*result)) {
     const auto& aotresult = std::get<spica::AOTResult>(*result);
 
