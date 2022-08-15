@@ -52,7 +52,8 @@ getRelocationModel(const std::string_view reloc_model,
   }
 }
 
-CompileResult compile(const Context& ctx, const std::string_view argv_front)
+std::optional<CompileResult> compile(const Context&         ctx,
+                                     const std::string_view argv_front)
 try {
   std::vector<parse::Parser::Result> parse_results;
 
@@ -68,10 +69,10 @@ try {
     getRelocationModel(ctx.relocation_model, argv_front)};
 
   if (ctx.jit)
-    return {true, code_generator.doJIT()};
+    return JITResult{code_generator.doJIT()};
   else {
     emitFile(code_generator, ctx.emit_target);
-    return {true, std::nullopt};
+    return AOTResult{};
   }
 
   unreachable();
@@ -80,7 +81,7 @@ catch (const ErrorBase& err) {
   std::cerr << err.what() << (isBackNewline(err.what()) ? "" : "\n")
             << std::flush;
 
-  return {false, std::nullopt};
+  return std::nullopt;
 }
 
 } // namespace spica

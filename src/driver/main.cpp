@@ -11,14 +11,14 @@
 
 int main(const int argc, const char* const* const argv)
 {
-  const auto compile_res
+  const auto result
     = spica::compile(spica::parseCmdlineOption(argc, argv), *argv);
 
-  if (!compile_res.success())
+  if (!result)
     return EXIT_FAILURE;
 
-  if (const auto& retval_from_main = compile_res.getJitResult())
-    return *retval_from_main;
+  if (std::holds_alternative<spica::JITResult>(*result))
+    return std::get<spica::JITResult>(*result).exit_status;
 
   // TODO: link
   // system("cc");

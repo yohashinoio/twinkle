@@ -49,10 +49,10 @@ namespace test
     std::cerr.clear();
 #endif
 
-    if (result.success())
-      return result.getJitResult();
-
-    return std::nullopt;
+    if (result)
+      return std::get<spica::JITResult>(*result).exit_status;
+    else
+      return std::nullopt;
   }
   else {
     const auto result = spica::compile(
@@ -69,10 +69,10 @@ namespace test
     std::cerr.clear();
 #endif
 
-    if (result.success())
-      return result.getJitResult();
-
-    return std::nullopt;
+    if (result)
+      return std::get<spica::JITResult>(*result).exit_status;
+    else
+      return std::nullopt;
   }
 }
 
