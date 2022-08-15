@@ -17,23 +17,23 @@ namespace spica
 {
 
 // Emit object file without error even if target does not exist
-static void emitFile(codegen::CodeGenerator&           generator,
-                     const std::optional<std::string>& emit_target)
+// Returns the created file paths
+static FilePaths emitFile(codegen::CodeGenerator& generator,
+                          const std::string&      target)
 {
-  if (emit_target) {
-    const auto target = *emit_target;
+  if (target == EMIT_EXE_ARG)
+    return generator.emitTemporaryObjectFiles();
 
-    if (target == "llvm") {
-      generator.emitLlvmIRFiles();
-      return;
-    }
-    else if (target == "asm") {
-      generator.emitAssemblyFiles();
-      return;
-    }
-  }
+  if (target == EMIT_OBJ_ARG)
+    return generator.emitObjectFiles();
 
-  generator.emitObjectFiles();
+  if (target == EMIT_ASM_ARG)
+    return generator.emitAssemblyFiles();
+
+  if (target == EMIT_LLVMIR_ARG)
+    return generator.emitLlvmIRFiles();
+
+  unreachable();
 }
 
 [[nodiscard]] static llvm::Reloc::Model
@@ -70,10 +70,8 @@ try {
 
   if (ctx.jit)
     return JITResult{code_generator.doJIT()};
-  else {
-    emitFile(code_generator, ctx.emit_target);
-    return AOTResult{};
-  }
+  else
+    return AOTResult{emitFile(code_generator, ctx.emit_target)};
 
   unreachable();
 }

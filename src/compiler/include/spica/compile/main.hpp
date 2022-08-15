@@ -15,6 +15,7 @@
 #include <context.hpp>
 #include <optional>
 #include <variant>
+#include <filesystem>
 
 namespace spica
 {
@@ -28,7 +29,15 @@ struct JITResult {
   const int exit_status;
 };
 
-struct AOTResult {};
+struct AOTResult {
+  explicit AOTResult(
+    std::vector<std::filesystem::path>&& created_files) noexcept
+    : created_files{std::move(created_files)}
+  {
+  }
+
+  const std::vector<std::filesystem::path> created_files;
+};
 
 using CompileResult = std::variant<JITResult, AOTResult>;
 

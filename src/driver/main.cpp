@@ -8,11 +8,13 @@
 #include "cmd.hpp"
 #include <spica/compile/main.hpp>
 #include <cstdlib>
+#include <iostream>
 
 int main(const int argc, const char* const* const argv)
 {
-  const auto result
-    = spica::compile(spica::parseCmdlineOption(argc, argv), *argv);
+  const auto context = spica::parseCmdlineOption(argc, argv);
+
+  const auto result = spica::compile(context, *argv);
 
   if (!result)
     return EXIT_FAILURE;
@@ -20,8 +22,16 @@ int main(const int argc, const char* const* const argv)
   if (std::holds_alternative<spica::JITResult>(*result))
     return std::get<spica::JITResult>(*result).exit_status;
 
-  // TODO: link
-  // system("cc");
+  if (context.emit_target == "exe"
+      && std::holds_alternative<spica::AOTResult>(*result)) {
+    const auto& aotresult = std::get<spica::AOTResult>(*result);
+
+    // Call linker
+    std::string command = "cc";
+    for (const auto& r : aotresult.created_files)
+      command += (' ' + r.string());
+    system(command.c_str());
+  }
 
   return EXIT_SUCCESS;
 }

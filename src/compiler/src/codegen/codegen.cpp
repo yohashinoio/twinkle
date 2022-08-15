@@ -11,10 +11,23 @@
 #include <spica/codegen/exception.hpp>
 #include <spica/unicode/unicode.hpp>
 #include <cassert>
+#include <boost/filesystem.hpp>
 
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
 #include <unistd.h> // isatty
 #endif
+
+namespace
+{
+
+[[nodiscard]] std::string createTemporaryFilepath()
+{
+  return (boost::filesystem::temp_directory_path()
+          / boost::filesystem::unique_path())
+    .native();
+}
+
+} // namespace
 
 namespace spica::codegen
 {
@@ -144,13 +157,19 @@ void CodeGenerator::verifyOptLevel(const unsigned int opt_level) const
   }
 }
 
-void CodeGenerator::emitLlvmIRFiles()
+[[nodiscard]] FilePaths CodeGenerator::emitLlvmIRFiles()
 {
+  FilePaths created_files;
+
   for (auto it = results.begin(), last = results.end(); it != last; ++it) {
     const auto& file = std::get<std::filesystem::path>(*it);
 
+    const auto output_file = file.stem().string() + ".ll";
+
+    created_files.push_back(output_file);
+
     std::error_code      ostream_ec;
-    llvm::raw_fd_ostream os{file.stem().string() + ".ll",
+    llvm::raw_fd_ostream os{output_file,
                             ostream_ec,
                             llvm::sys::fs::OpenFlags::OF_None};
 
@@ -162,16 +181,23 @@ void CodeGenerator::emitLlvmIRFiles()
 
     std::get<std::unique_ptr<llvm::Module>>(*it)->print(os, nullptr);
   }
+
+  return created_files;
 }
 
-void CodeGenerator::emitAssemblyFiles()
+[[nodiscard]] FilePaths CodeGenerator::emitAssemblyFiles()
 {
-  emitFiles(llvm::CGFT_AssemblyFile);
+  return emitFiles(llvm::CGFT_AssemblyFile);
 }
 
-void CodeGenerator::emitObjectFiles()
+[[nodiscard]] FilePaths CodeGenerator::emitObjectFiles()
 {
-  emitFiles(llvm::CGFT_ObjectFile);
+  return emitFiles(llvm::CGFT_ObjectFile);
+}
+
+[[nodiscard]] FilePaths CodeGenerator::emitTemporaryObjectFiles()
+{
+  return emitFiles(llvm::CGFT_ObjectFile, true);
 }
 
 [[nodiscard]] int CodeGenerator::doJIT()
@@ -188,7 +214,7 @@ void CodeGenerator::emitObjectFiles()
 
   auto [front_module, file] = std::move(results.front());
 
-  // Link all modules.
+  // Link all modules
   for (auto it = results.begin() + 1, last = results.end(); it != last; ++it) {
     auto [module, file] = std::move(*it);
 
@@ -216,7 +242,7 @@ void CodeGenerator::emitObjectFiles()
     = reinterpret_cast<int (*)(/* TODO: command line arguments */)>(
       symbol.getAddress());
 
-  // Run main.
+  // Run main
   return main_addr();
 }
 
@@ -234,7 +260,9 @@ void CodeGenerator::codegen(const ast::TranslationUnit& ast, CGContext& ctx)
   }
 }
 
-void CodeGenerator::emitFiles(const llvm::CodeGenFileType cgft)
+[[nodiscard]] FilePaths
+CodeGenerator::emitFiles(const llvm::CodeGenFileType cgft,
+                         const bool                  create_as_tmpfile)
 {
   static const std::unordered_map<llvm::CodeGenFileType, std::string>
     extension_map = {
@@ -242,12 +270,19 @@ void CodeGenerator::emitFiles(const llvm::CodeGenFileType cgft)
       {  llvm::CodeGenFileType::CGFT_ObjectFile, "o"}
   };
 
+  FilePaths created_files;
+
   for (auto it = results.begin(), last = results.end(); it != last; ++it) {
     const auto& file = std::get<std::filesystem::path>(*it);
 
+    const auto output_file
+      = (create_as_tmpfile ? createTemporaryFilepath() : file.stem().string())
+        + "." + extension_map.at(cgft);
+
+    created_files.push_back(output_file);
+
     std::error_code      ostream_ec;
-    llvm::raw_fd_ostream ostream{file.stem().string() + "."
-                                   + extension_map.at(cgft),
+    llvm::raw_fd_ostream ostream{output_file,
                                  ostream_ec,
                                  llvm::sys::fs::OpenFlags::OF_None};
 
@@ -269,6 +304,8 @@ void CodeGenerator::emitFiles(const llvm::CodeGenFileType cgft)
     p_manager.run(*std::get<std::unique_ptr<llvm::Module>>(*it));
     ostream.flush();
   }
+
+  return created_files;
 }
 
 void CodeGenerator::initTargetTripleAndMachine()

@@ -21,12 +21,17 @@ namespace spica
 
 constexpr unsigned int DEFAULT_OPT_LEVEL = 2;
 
+#define EMIT_EXE_ARG    "exe"
+#define EMIT_OBJ_ARG    "obj"
+#define EMIT_ASM_ARG    "asm"
+#define EMIT_LLVMIR_ARG "llvm"
+
 struct Context {
-  Context(std::vector<std::string>&&   input_files,
-          const bool                   jit,
-          std::optional<std::string>&& emit_target,
-          const unsigned int           opt_level,
-          std::string&&                relocation_model) noexcept
+  Context(std::vector<std::string>&& input_files,
+          const bool                 jit,
+          std::string&&              emit_target,
+          const unsigned int         opt_level,
+          std::string&&              relocation_model) noexcept
     : input_files{std::move(input_files)}
     , jit{jit}
     , emit_target{std::move(emit_target)}
@@ -39,7 +44,7 @@ struct Context {
 
   const bool jit;
 
-  const std::optional<std::string> emit_target;
+  const std::string emit_target;
 
   const unsigned int opt_level;
 

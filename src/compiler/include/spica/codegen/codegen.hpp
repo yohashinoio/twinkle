@@ -22,7 +22,12 @@
 #include <spica/mangle/mangler.hpp>
 #include <map>
 
-namespace spica::codegen
+namespace spica
+{
+
+using FilePaths = std::vector<std::filesystem::path>;
+
+namespace codegen
 {
 
 /*
@@ -233,11 +238,17 @@ struct CodeGenerator : private boost::noncopyable {
                 const unsigned int                   opt_level,
                 const llvm::Reloc::Model             relocation_model);
 
-  void emitLlvmIRFiles();
+  // Returns the created file paths
+  [[nodiscard]] FilePaths emitLlvmIRFiles();
 
-  void emitObjectFiles();
+  // Returns the created file paths
+  [[nodiscard]] FilePaths emitObjectFiles();
 
-  void emitAssemblyFiles();
+  // Returns the created file paths
+  [[nodiscard]] FilePaths emitTemporaryObjectFiles();
+
+  // Returns the created file paths
+  [[nodiscard]] FilePaths emitAssemblyFiles();
 
   // Returns the return value from the main function
   [[nodiscard]] int doJIT();
@@ -250,7 +261,9 @@ private:
 
   void codegen(const ast::TranslationUnit& ast, CGContext& ctx);
 
-  void emitFiles(const llvm::CodeGenFileType cgft);
+  // Returns the created file paths
+  [[nodiscard]] FilePaths emitFiles(const llvm::CodeGenFileType cgft,
+                                    const bool create_as_tmpfile = false);
 
   void initTargetTripleAndMachine();
 
@@ -270,6 +283,8 @@ private:
   std::vector<parse::Parser::Result> parse_results;
 };
 
-} // namespace spica::codegen
+} // namespace codegen
+
+} // namespace spica
 
 #endif

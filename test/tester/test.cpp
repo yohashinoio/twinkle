@@ -39,7 +39,7 @@ namespace test
       spica::Context{
         std::move(paths),
         true,
-        std::nullopt,
+        "", // JIT compile, so it's empty
         spica::DEFAULT_OPT_LEVEL,
         "pic",
       },
@@ -59,7 +59,7 @@ namespace test
       spica::Context{
         std::vector<std::string>{test_path.path()},
         true,
-        std::nullopt,
+        "", // JIT compile, so it's empty
         spica::DEFAULT_OPT_LEVEL,
         "pic",
       },

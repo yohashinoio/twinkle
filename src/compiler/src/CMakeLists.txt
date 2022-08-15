@@ -2,6 +2,13 @@ set(LIB_NAME spicac)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
+find_package(Boost REQUIRED COMPONENTS filesystem system) # 1.80.0 in development
+message(STATUS "Using .cmake in: ${Boost_DIR}")
+
+include_directories(
+  ${Boost_INCLUDE_DIRS}
+)
+
 find_package(LLVM REQUIRED CONFIG) # 14 13 in development
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using .cmake in: ${LLVM_DIR}")
@@ -43,6 +50,7 @@ target_link_libraries(
   ${LIB_NAME}
   PRIVATE
   fmt::fmt
+  ${Boost_LIBRARIES}
   ${CONFIG_OUTPUT}
   codegen
   jit

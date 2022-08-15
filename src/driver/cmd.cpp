@@ -28,9 +28,10 @@ namespace
     ("version,v", "Display version.")
     ("JIT", "Perform Just-in-time(JIT) compilation.\n"
       "If there are multiple input files, they are linked and executed.")
-    ("emit", program_options::value<std::string>(),
-      "Set a compilation target. Assembly file is 'asm', "
-      "object file is 'obj', LLVM IR is 'llvm'.\n"
+    ("emit", program_options::value<std::string>()->default_value(EMIT_EXE_ARG),
+      "Set a compilation target. Executable file is '" EMIT_EXE_ARG
+      "', Assembly file is '" EMIT_ASM_ARG "', "
+      "object file is '" EMIT_OBJ_ARG "', LLVM IR is '" EMIT_LLVMIR_ARG "'.\n"
       "If there are multiple input files, compile each to the target. Not linked.")
     ("Opt,O", program_options::value<unsigned int>()->default_value(spica::DEFAULT_OPT_LEVEL),
       "Specify the optimization level.\n"
@@ -118,9 +119,7 @@ try {
 
   return {std::move(input_files),
           v_map.contains("JIT"),
-          v_map.contains("emit")
-            ? std::make_optional(stringToLower(v_map["emit"].as<std::string>()))
-            : std::nullopt,
+          stringToLower(v_map["emit"].as<std::string>()),
           v_map["Opt"].as<unsigned int>(),
           stringToLower(v_map["relocation-model"].as<std::string>())};
 }

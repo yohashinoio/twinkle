@@ -7,6 +7,10 @@ find_package(Threads REQUIRED)
 find_package(Boost REQUIRED COMPONENTS program_options) # 1.80.0 in development
 message(STATUS "Using .cmake in: ${Boost_DIR}")
 
+include_directories(
+  ${Boost_INCLUDE_DIRS}
+)
+
 add_executable(
   ${RUNTIME_NAME}
   main.cpp
