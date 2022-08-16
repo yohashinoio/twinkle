@@ -35,15 +35,14 @@ namespace test
     for (const auto& path : fs::recursive_directory_iterator(test_path))
       paths.push_back(path.path().string());
 
-    const auto result = spica::compile(
-      spica::Context{
-        std::move(paths),
-        true,
-        "", // JIT compile, so it's empty
-        spica::DEFAULT_OPT_LEVEL,
-        "pic",
-      },
-      "test");
+    const auto result
+      = spica::compile(spica::Context{std::move(paths),
+                                      true,
+                                      "", // JIT compile, so it's empty
+                                      spica::DEFAULT_OPT_LEVEL,
+                                      "pic",
+                                      {}},
+                       "test");
 
 #if SUPPRESS_COMPILE_ERROR_OUTPUT
     std::cerr.clear();
@@ -56,13 +55,12 @@ namespace test
   }
   else {
     const auto result = spica::compile(
-      spica::Context{
-        std::vector<std::string>{test_path.path()},
-        true,
-        "", // JIT compile, so it's empty
-        spica::DEFAULT_OPT_LEVEL,
-        "pic",
-      },
+      spica::Context{std::vector<std::string>{test_path.path()},
+                     true,
+                     "", // JIT compile, so it's empty
+                     spica::DEFAULT_OPT_LEVEL,
+                     "pic",
+                     {}},
       "test");
 
 #if SUPPRESS_COMPILE_ERROR_OUTPUT

@@ -31,12 +31,14 @@ struct Context {
           const bool                 jit,
           std::string&&              emit_target,
           const unsigned int         opt_level,
-          std::string&&              relocation_model) noexcept
+          std::string&&              relocation_model,
+          std::vector<std::string>&& linked_libs) noexcept
     : input_files{std::move(input_files)}
     , jit{jit}
     , emit_target{std::move(emit_target)}
     , opt_level{opt_level}
     , relocation_model{std::move(relocation_model)}
+    , linked_libs{std::move(linked_libs)}
   {
   }
 
@@ -49,6 +51,8 @@ struct Context {
   const unsigned int opt_level;
 
   const std::string relocation_model;
+
+  const std::vector<std::string> linked_libs;
 };
 
 } // namespace spica

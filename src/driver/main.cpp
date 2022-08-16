@@ -13,7 +13,8 @@
 // If the 'system' function could not be run, return std::nullopt; otherwise,
 // return linker exit status
 [[nodiscard]] std::optional<int>
-callLinker(const std::vector<std::filesystem::path>& files)
+callLinker(const std::vector<std::filesystem::path>& files,
+           const std::vector<std::string>&           linked_libs)
 {
   if (!system(nullptr))
     return std::nullopt;
@@ -22,6 +23,9 @@ callLinker(const std::vector<std::filesystem::path>& files)
 
   for (const auto& r : files)
     command += (' ' + r.string());
+
+  for (const auto& r : linked_libs)
+    command += (" -l" + r);
 
   return system(command.c_str());
 }
@@ -44,7 +48,8 @@ int main(const int argc, const char* const* const argv)
 
     {
       // Call linker
-      const auto linker_exit_status = callLinker(aotresult.created_files);
+      const auto linker_exit_status
+        = callLinker(aotresult.created_files, context.linked_libs);
 
       if (linker_exit_status)
         return *linker_exit_status;

@@ -27,21 +27,24 @@ namespace
     ("help,h", "Display this information.")
     ("version,v", "Display version.")
     ("JIT", "Perform Just-in-time(JIT) compilation.\n"
-      "If there are multiple input files, they are linked and executed.")
+     "If there are multiple input files, they are linked and executed.")
     ("emit", program_options::value<std::string>()->default_value(EMIT_EXE_ARG),
-      "Set a compilation target. Executable file is '" EMIT_EXE_ARG
-      "', Assembly file is '" EMIT_ASM_ARG "', "
-      "object file is '" EMIT_OBJ_ARG "', LLVM IR is '" EMIT_LLVMIR_ARG "'.\n"
-      "If there are multiple input files, compile each to the target. Not linked.")
+     "Set a compilation target. Executable file is '" EMIT_EXE_ARG
+     "', Assembly file is '" EMIT_ASM_ARG "', "
+     "object file is '" EMIT_OBJ_ARG "', LLVM IR is '" EMIT_LLVMIR_ARG "'.\n"
+     "If there are multiple input files, compile each to the target. Not linked.")
     ("Opt,O", program_options::value<unsigned int>()->default_value(spica::DEFAULT_OPT_LEVEL),
-      "Specify the optimization level.\n"
-      "Possible values are 0 1 2 3 and the meaning is the same as clang.")
+     "Specify the optimization level.\n"
+     "Possible values are 0 1 2 3 and the meaning is the same as clang.")
+    ("link,l", program_options::value<std::vector<std::string>>()->multitoken(),
+     "Specify library names to be linked.\n"
+     "The -l option is passed directly to the linker.")
     ("relocation-model",
-      program_options::value<std::string>()->default_value("pic"),
-      "Set the relocation model. Possible values are 'static' or 'pic'.\n"
-      "If llvm is specified for the emit option, this option is disabled.")
+     program_options::value<std::string>()->default_value("pic"),
+     "Set the relocation model. Possible values are 'static' or 'pic'.\n"
+     "If llvm is specified for the emit option, this option is disabled.")
     ("input-file", program_options::value<std::vector<std::string>>(),
-      "Input file. Non-optional arguments are equivalent to this.")
+     "Input file. Non-optional arguments are equivalent to this.")
     ;
   // clang-format on
 
@@ -85,6 +88,15 @@ std::ostream& writeHelp(std::ostream&                               ostm,
   return ostm << desc;
 }
 
+std::vector<std::string>
+getLinkedLibs(const program_options::variables_map& v_map)
+{
+  if (!v_map.contains("link"))
+    return {};
+
+  return v_map["link"].as<std::vector<std::string>>();
+}
+
 } // namespace
 
 namespace spica
@@ -121,7 +133,8 @@ try {
           v_map.contains("JIT"),
           stringToLower(v_map["emit"].as<std::string>()),
           v_map["Opt"].as<unsigned int>(),
-          stringToLower(v_map["relocation-model"].as<std::string>())};
+          stringToLower(v_map["relocation-model"].as<std::string>()),
+          getLinkedLibs(v_map)};
 }
 catch (const program_options::error& err) {
   std::cerr << formatError(*argv, err.what())
