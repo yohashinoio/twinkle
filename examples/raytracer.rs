@@ -290,11 +290,9 @@ func radiance(ray: &Ray, depth: i32) -> Color
 
   let obj = ref spheres[id];
 
-  let tmp = ray.dir.mul(t);
-  let hitpoint = ray.org.add(ref tmp);
+  let hitpoint = ray.org.add(ref ray.dir.mul(t));
 
-  let tmp = hitpoint.sub(ref obj.position);
-  let normal = normalize(ref tmp);
+  let normal = normalize(ref hitpoint.sub(ref obj.position));
 
   let mut orienting_normal: Vec;
   if (dot(ref normal, ref ray.dir) < 0.0)
@@ -310,35 +308,43 @@ func radiance(ray: &Ray, depth: i32) -> Color
 
     let len = ldir.length();
 
-    let tmp = ldir.div(len);
-    let tmp = Ray{ref hitpoint, ref tmp};
     let mut t_: f64;
     let mut id_: i32;
-    intersect_scene(&spheres[0], spheres_size, ref tmp, ref t_, ref id_);
+    intersect_scene
+    ( &spheres[0]
+    , spheres_size
+    , ref Ray{ref hitpoint, ref ldir.div(len)}
+    , ref t_
+    , ref id_
+    );
 
     if (len <= t_) {
-      let tmp1 = ldir.div(len);
-      let tmp = multiply(ref light_color, ref obj.color)
-                .mul(max(0.0, dot(ref orienting_normal, ref tmp1)))
-                .div(len * len);
-      return obj.emission.add(ref tmp);
+      return obj.emission.add(
+                ref multiply(ref light_color, ref obj.color)
+                .mul(max(0.0, dot(ref orienting_normal, ref ldir.div(len))))
+                .div(len * len)
+              );
     }
     else
       return Color{};
   }
   else if (obj.ref_type == SPECULAR) {
-    let tmp = normal.mul(2.0).mul(dot(ref normal, ref ray.dir));
-    let tmp1 = ray.dir.sub(ref tmp);
-    let tmp2 = Ray{ref hitpoint, ref tmp1};
-    let tmp = radiance(ref tmp2, depth + 1);
-
-    let tmp = multiply(ref obj.color, ref tmp);
-
-    return obj.emission.add(ref tmp);
+    return obj.emission.add(
+      ref multiply
+      ( ref obj.color
+      , ref radiance
+            ( ref Ray{ref hitpoint
+            , ref ray.dir.sub(ref normal.mul(2.0).mul(dot(ref normal, ref ray.dir)))}
+            , depth + 1)
+      )
+    );
   }
   else if (obj.ref_type == REFRACTION) {
-    let tmp = normal.mul(2.0).mul(dot(ref normal, ref ray.dir)).sub(ref ray.dir);
-    let reflection_ray = Ray{ref hitpoint, ref tmp};
+    let reflection_ray = Ray{ref hitpoint,
+                             ref normal
+                                 .mul(2.0)
+                                 .mul(dot(ref normal, ref ray.dir))
+                                 .sub(ref ray.dir)};
 
     let into = 0.0 < dot(ref normal, ref orienting_normal);
 
@@ -353,25 +359,19 @@ func radiance(ray: &Ray, depth: i32) -> Color
     let cos2t = 1.0 - nnt * nnt * (1.0 - ddn * ddn);
 
     if (cos2t < 0.0) {
-      let tmp = radiance(ref reflection_ray, depth + 1);
-      let tmp = multiply(ref obj.color, ref tmp);
-      return obj.emission.add(ref tmp);
+      return obj.emission.add(ref multiply(ref obj.color,
+                                           ref radiance(ref reflection_ray, depth + 1)));
     }
 
-    let tmp = ray.dir.mul(nnt);
-
-    let mut tmp1: f64;
+    let mut tmp: f64;
     if (into)
-      tmp1 = 1.0;
+      tmp = 1.0;
     else
-      tmp1 = -1.0;
+      tmp = -1.0;
 
-    let tmp2 = normal.mul(tmp1);
-    let tmp3 = tmp2.mul(ddn * nnt + sqrt(cos2t));
-
-    let tmp = tmp.sub(ref tmp3);
-
-    let tdir = normalize(ref tmp);
+    let tdir = normalize(ref ray.dir.mul(nnt)
+                             .sub(ref normal.mul(tmp)
+                                      .mul(ddn * nnt + sqrt(cos2t))));
 
     let a = nt - nc;
     let b = nt + nc;
@@ -384,15 +384,11 @@ func radiance(ray: &Ray, depth: i32) -> Color
     let re = r0 + (1.0 - r0) * pow(c, 5.0);
     let tr = 1.0 - re;
 
-    {
-      let tmp = radiance(ref reflection_ray, depth + 1).mul(re);
-      let ray_tmp = Ray{ref hitpoint, ref tdir};
-      let tmp1 = radiance(ref ray_tmp, depth + 1);
-      let tmp = tmp.add(ref tmp1).mul(tr);
-
-      let tmp = multiply(ref obj.color, ref tmp);
-      return obj.emission.add(ref tmp);
-    }
+    return obj.emission.add(ref multiply(ref obj.color, ref radiance(ref reflection_ray, depth + 1)
+                                         .mul(re)
+                                         .add(ref radiance(ref Ray{ref hitpoint, ref tdir},
+                                                           depth + 1))
+                                         .mul(tr)));
   }
 }
 
@@ -592,8 +588,7 @@ func main() -> i32
                0.0,
                0.0};
 
-  let tmp = cross(ref cx, ref camera.dir);
-  let cy = normalize(ref tmp).mul(0.5135);
+  let cy = normalize(ref cross(ref cx, ref camera.dir)).mul(0.5135);
 
   let stderr = File{2, "w"};
 
@@ -613,22 +608,13 @@ func main() -> i32
           let dx = sx as f64 / 2.0;
           let dy = sy as f64 / 2.0;
 
-          let tmp1
-            = cx.mul(((sx as f64 + 0.5 + dx) / 2.0 + x as f64) / width as f64 - 0.5);
+          let dir = cx.mul(((sx as f64 + 0.5 + dx) / 2.0 + x as f64) / width as f64 - 0.5)
+                    .add(ref cy.mul(((sy as f64 + 0.5 + dy) / 2.0 + y as f64) / height as f64 - 0.5)
+                             .add(ref camera.dir));
 
-          let tmp2
-            = cy.mul(((sy as f64 + 0.5 + dy) / 2.0 + y as f64) / height as f64 - 0.5)
-              .add(ref camera.dir);
-
-          let dir = tmp1.add(ref tmp2);
-
-          let tmp0 = dir.mul(130.0);
-          let tmp1 = camera.org.add(ref tmp0);
-          let tmp2 = normalize(ref dir);
-          let tmp = Ray{ref tmp1, ref tmp2};
-          let tmp = radiance(ref tmp, 0);
-
-          image[image_idx] = image[image_idx].add(ref tmp);
+          image[image_idx]
+            = image[image_idx].add(ref radiance(ref Ray{ref camera.org.add(ref dir.mul(130.0)),
+                                   ref normalize(ref dir)}, 0));
         }
       }
     }
