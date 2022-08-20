@@ -1,12 +1,12 @@
 /**
- * These codes are licensed under LICNSE_NAME License.
- * See the LICENSE for details.
+ * These codes are licensed under LICNSE_NAME License
+ * See the LICENSE for details
  *
- * Copyright (c) 2022 Hiramoto Ittou.
+ * Copyright (c) 2022 Hiramoto Ittou
  */
 
-#include "expectation.hpp"
-#include <twinkle/compile/main.hpp>
+#include "expect.hpp"
+#include <twinkle/compile/compile.hpp>
 #include <context.hpp>
 #include <filesystem>
 #include <sstream>

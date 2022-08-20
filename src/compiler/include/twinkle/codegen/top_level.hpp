@@ -1,8 +1,8 @@
 /**
- * These codes are licensed under LICNSE_NAME License.
- * See the LICENSE for details.
+ * These codes are licensed under LICNSE_NAME License
+ * See the LICENSE for details
  *
- * Copyright (c) 2022 Hiramoto Ittou.
+ * Copyright (c) 2022 Hiramoto Ittou
  */
 
 #ifndef _339045f6_bc82_11ec_8422_0242ac120002

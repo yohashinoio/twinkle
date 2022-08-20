@@ -34,7 +34,7 @@ include_directories(
 add_library(
   ${LIB_NAME}
   STATIC
-  compile/main.cpp
+  compile/compile.cpp
 )
 
 target_precompile_headers(${LIB_NAME} PRIVATE ../include/twinkle/pch/pch.hpp)

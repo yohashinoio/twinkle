@@ -10,7 +10,7 @@ include_directories(
 add_executable(
   ${RUNTIME_NAME}
   test.cpp
-  expectation.cpp
+  expect.cpp
 )
 
 target_link_libraries(
