@@ -12,9 +12,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <spica/pch/pch.hpp>
+#include <twinkle/pch/pch.hpp>
 
-namespace spica
+namespace twinkle
 {
 
 //===----------------------------------------------------------------------===//
@@ -27,6 +27,6 @@ using InputIterator
 using PositionCache
   = boost::spirit::x3::position_cache<std::vector<InputIterator>>;
 
-} // namespace spica
+} // namespace twinkle
 
 #endif

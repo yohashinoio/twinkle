@@ -16,7 +16,7 @@
 #include <vector>
 #include <optional>
 
-namespace spica
+namespace twinkle
 {
 
 constexpr unsigned int DEFAULT_OPT_LEVEL = 2;
@@ -55,6 +55,6 @@ struct Context {
   const std::vector<std::string> linked_libs;
 };
 
-} // namespace spica
+} // namespace twinkle
 
 #endif

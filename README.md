@@ -1,12 +1,12 @@
 <div align="center">
-  <h1>The Spica Programming Language</h1>
+  <h1>The Twinkle Programming Language</h1>
 
   [Getting Started](docs/GettingStarted.md) |
   [Language Reference](docs/LanguageReference.md) |
   [Examples](examples)
 </div>
 
-## Key Features of Spica
+## Key Features of Twinkle
 - Syntax is like c++, swift and rust combined.
 - Language specification is similar to c++.
 - LLVM backend.
@@ -39,8 +39,8 @@ $ sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
 ### Installation
 Clone this repository.
 ```bash
-$ git clone https://github.com/yohashinoio/spica.git
-$ cd spica
+$ git clone https://github.com/yohashinoio/twinkle.git
+$ cd twinkle
 ```
 Create build directory.
 ```bash

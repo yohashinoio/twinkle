@@ -5,10 +5,10 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <spica/support/file.hpp>
-#include <spica/support/utils.hpp>
+#include <twinkle/support/file.hpp>
+#include <twinkle/support/utils.hpp>
 
-namespace spica
+namespace twinkle
 {
 
 // Load a file to std::string.
@@ -32,4 +32,4 @@ namespace spica
                 fmt::format("{}: Could not open file", path.string()))};
 }
 
-} // namespace spica
+} // namespace twinkle

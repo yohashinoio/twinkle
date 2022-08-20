@@ -5,15 +5,15 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <spica/compile/main.hpp>
-#include <spica/codegen/codegen.hpp>
-#include <spica/jit/jit.hpp>
-#include <spica/parse/parser.hpp>
-#include <spica/support/file.hpp>
-#include <spica/support/utils.hpp>
-#include <spica/support/exception.hpp>
+#include <twinkle/compile/main.hpp>
+#include <twinkle/codegen/codegen.hpp>
+#include <twinkle/jit/jit.hpp>
+#include <twinkle/parse/parser.hpp>
+#include <twinkle/support/file.hpp>
+#include <twinkle/support/utils.hpp>
+#include <twinkle/support/exception.hpp>
 
-namespace spica
+namespace twinkle
 {
 
 // Emit object file without error even if target does not exist
@@ -82,4 +82,4 @@ catch (const ErrorBase& err) {
   return std::nullopt;
 }
 
-} // namespace spica
+} // namespace twinkle

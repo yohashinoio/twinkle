@@ -5,10 +5,10 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <spica/jit/jit.hpp>
-#include <spica/support/utils.hpp>
+#include <twinkle/jit/jit.hpp>
+#include <twinkle/support/utils.hpp>
 
-namespace spica::jit
+namespace twinkle::jit
 {
 
 JitCompiler::JitCompiler(
@@ -87,4 +87,4 @@ JitCompiler::lookup(const llvm::StringRef name)
   return exec_session->lookup({&main_jd}, mangle(name.str()));
 }
 
-} // namespace spica::jit
+} // namespace twinkle::jit

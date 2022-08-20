@@ -5,10 +5,10 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <spica/support/kind.hpp>
-#include <spica/support/utils.hpp>
+#include <twinkle/support/kind.hpp>
+#include <twinkle/support/utils.hpp>
 
-namespace spica
+namespace twinkle
 {
 
 [[nodiscard]] bool isSigned(const SignKind sk) noexcept
@@ -53,4 +53,4 @@ getMangledAccessibility(const Accessibility accessibility)
   unreachable();
 }
 
-} // namespace spica
+} // namespace twinkle

@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <spica/mangle/mangler.hpp>
-#include <spica/codegen/type.hpp>
-#include <spica/codegen/common.hpp>
+#include <twinkle/mangle/mangler.hpp>
+#include <twinkle/codegen/type.hpp>
+#include <twinkle/codegen/common.hpp>
 
-namespace spica::codegen::mangle
+namespace twinkle::codegen::mangle
 {
 
 [[nodiscard]] std::string
@@ -303,4 +303,4 @@ Mangler::mangleParams(CGContext& ctx, const ast::ParameterList& params) const
   return mangled.str();
 }
 
-} // namespace spica::codegen::mangle
+} // namespace twinkle::codegen::mangle

@@ -12,9 +12,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <spica/pch/pch.hpp>
+#include <twinkle/pch/pch.hpp>
 
-namespace spica::jit
+namespace twinkle::jit
 {
 
 struct JitCompiler {
@@ -49,6 +49,6 @@ private:
   llvm::orc::JITDylib& main_jd;
 };
 
-} // namespace spica::jit
+} // namespace twinkle::jit
 
 #endif

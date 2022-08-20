@@ -5,10 +5,10 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <spica/pch/pch.hpp>
-#include <spica/support/utils.hpp>
+#include <twinkle/pch/pch.hpp>
+#include <twinkle/support/utils.hpp>
 
-namespace spica
+namespace twinkle
 {
 
 [[nodiscard]] std::string getVersion()
@@ -75,4 +75,4 @@ namespace spica
 #endif
 }
 
-} // namespace spica
+} // namespace twinkle

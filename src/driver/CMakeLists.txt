@@ -1,4 +1,4 @@
-set(RUNTIME_NAME spica)
+set(RUNTIME_NAME twinkle)
 
 include(GNUInstallDirs)
 
@@ -20,7 +20,7 @@ add_executable(
 target_link_libraries(
   ${RUNTIME_NAME}
   PRIVATE
-  spicac
+  twinklec
   Threads::Threads
   ${Boost_LIBRARIES}
   fmt::fmt

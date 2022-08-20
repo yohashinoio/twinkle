@@ -12,10 +12,10 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <spica/pch/pch.hpp>
+#include <twinkle/pch/pch.hpp>
 #include <stdexcept>
 
-namespace spica
+namespace twinkle
 {
 
 struct ErrorBase : public std::runtime_error {
@@ -25,6 +25,6 @@ struct ErrorBase : public std::runtime_error {
   }
 };
 
-} // namespace spica
+} // namespace twinkle
 
 #endif

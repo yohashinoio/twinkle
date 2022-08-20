@@ -5,13 +5,13 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <spica/codegen/expr.hpp>
-#include <spica/codegen/exception.hpp>
-#include <spica/codegen/kind.hpp>
-#include <spica/codegen/stmt.hpp>
-#include <spica/codegen/top_level.hpp>
+#include <twinkle/codegen/expr.hpp>
+#include <twinkle/codegen/exception.hpp>
+#include <twinkle/codegen/kind.hpp>
+#include <twinkle/codegen/stmt.hpp>
+#include <twinkle/codegen/top_level.hpp>
 
-namespace spica::codegen
+namespace twinkle::codegen
 {
 
 [[nodiscard]] llvm::Function*
@@ -848,10 +848,10 @@ private:
     return {ctx.builder.CreateLoad(alloca->getAllocatedType(), alloca), type};
   }
 
-  void
-  createConstructorCall(const boost::iterator_range<spica::InputIterator>& pos,
-                        const std::string&       class_name,
-                        const std::deque<Value>& args) const
+  void createConstructorCall(
+    const boost::iterator_range<twinkle::InputIterator>& pos,
+    const std::string&                                   class_name,
+    const std::deque<Value>&                             args) const
   {
     ctx.ns_hierarchy.push({class_name, NamespaceKind::class_});
 
@@ -888,9 +888,9 @@ private:
   }
 
   [[nodiscard]] Value createFunctionCall(
-    const std::string&                                 callee_name,
-    std::deque<Value>&&                                args,
-    const boost::iterator_range<spica::InputIterator>& pos) const
+    const std::string&                                   callee_name,
+    std::deque<Value>&&                                  args,
+    const boost::iterator_range<twinkle::InputIterator>& pos) const
   {
     if (auto const func = findCalleeMethod(callee_name, args)) {
       args.push_front((*this)(ast::Identifier{std::u32string{U"this"}}));
@@ -906,9 +906,9 @@ private:
   }
 
   [[nodiscard]] Value createFunctionCall(
-    llvm::Function* const                              callee_func,
-    const std::deque<Value>&                           args,
-    const boost::iterator_range<spica::InputIterator>& pos) const
+    llvm::Function* const                                callee_func,
+    const std::deque<Value>&                             args,
+    const boost::iterator_range<twinkle::InputIterator>& pos) const
   {
     if (!callee_func->isVarArg() && callee_func->arg_size() != args.size())
       throw CodegenError{ctx.formatError(pos, "incorrect arguments passed")};
@@ -1414,4 +1414,4 @@ private:
   return boost::apply_visitor(ExprVisitor{ctx, scope, stmt_ctx}, expr);
 }
 
-} // namespace spica::codegen
+} // namespace twinkle::codegen

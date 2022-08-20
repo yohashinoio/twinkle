@@ -5,9 +5,9 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <spica/unicode/unicode.hpp>
+#include <twinkle/unicode/unicode.hpp>
 
-namespace spica::unicode
+namespace twinkle::unicode
 {
 
 [[nodiscard]] std::string utf32toUtf8(const char32_t utf32)
@@ -26,4 +26,4 @@ namespace spica::unicode
   return std::string(first, last);
 }
 
-} // namespace spica::unicode
+} // namespace twinkle::unicode

@@ -12,11 +12,11 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <spica/ast/ast.hpp>
-#include <spica/support/utils.hpp>
-#include <spica/support/typedef.hpp>
+#include <twinkle/ast/ast.hpp>
+#include <twinkle/support/utils.hpp>
+#include <twinkle/support/typedef.hpp>
 
-namespace spica::parse
+namespace twinkle::parse
 {
 
 struct Parser : private boost::noncopyable {
@@ -60,6 +60,6 @@ private:
   std::filesystem::path file;
 };
 
-} // namespace spica::parse
+} // namespace twinkle::parse
 
 #endif

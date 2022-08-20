@@ -12,9 +12,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <spica/pch/pch.hpp>
+#include <twinkle/pch/pch.hpp>
 
-namespace spica
+namespace twinkle
 {
 
 enum class SignKind {
@@ -53,6 +53,6 @@ getMangledAccessibility(const Accessibility accessibility);
 
 [[nodiscard]] bool isExternallyAccessible(const Accessibility& access) noexcept;
 
-} // namespace spica
+} // namespace twinkle
 
 #endif

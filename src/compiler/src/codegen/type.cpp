@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <spica/codegen/type.hpp>
-#include <spica/codegen/codegen.hpp>
-#include <spica/codegen/exception.hpp>
+#include <twinkle/codegen/type.hpp>
+#include <twinkle/codegen/codegen.hpp>
+#include <twinkle/codegen/exception.hpp>
 
-namespace spica::codegen
+namespace twinkle::codegen
 {
 
 [[nodiscard]] llvm::Type* BuiltinType::getLLVMType(CGContext& ctx) const
@@ -358,4 +358,4 @@ createType(CGContext&                                  ctx,
   return type;
 }
 
-} // namespace spica::codegen
+} // namespace twinkle::codegen

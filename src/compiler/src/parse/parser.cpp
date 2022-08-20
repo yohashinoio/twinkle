@@ -5,17 +5,17 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <spica/pch/pch.hpp>
-#include <spica/ast/ast_adapted.hpp>
-#include <spica/parse/parser.hpp>
-#include <spica/codegen/type.hpp>
-#include <spica/codegen/kind.hpp>
-#include <spica/parse/exception.hpp>
+#include <twinkle/pch/pch.hpp>
+#include <twinkle/ast/ast_adapted.hpp>
+#include <twinkle/parse/parser.hpp>
+#include <twinkle/codegen/type.hpp>
+#include <twinkle/codegen/kind.hpp>
+#include <twinkle/parse/exception.hpp>
 
 namespace x3     = boost::spirit::x3;
 namespace fusion = boost::fusion;
 
-namespace spica::parse
+namespace twinkle::parse
 {
 
 //===----------------------------------------------------------------------===//
@@ -1194,4 +1194,4 @@ void Parser::parse()
   }
 }
 
-} // namespace spica::parse
+} // namespace twinkle::parse

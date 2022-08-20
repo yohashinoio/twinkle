@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <spica/codegen/top_level.hpp>
-#include <spica/codegen/stmt.hpp>
-#include <spica/codegen/exception.hpp>
+#include <twinkle/codegen/top_level.hpp>
+#include <twinkle/codegen/stmt.hpp>
+#include <twinkle/codegen/exception.hpp>
 
-namespace spica::codegen
+namespace twinkle::codegen
 {
 
 enum class AttrKind {
@@ -418,7 +418,7 @@ private:
   // No method declarations or definitions
   // Definitions and declarations must be made by the caller with the return
   // value
-  [[nodiscard]] std::vector<spica::ast::FunctionDef>
+  [[nodiscard]] std::vector<twinkle::ast::FunctionDef>
   createClass(const ast::ClassDef& node) const
   {
     const auto class_name = node.name.utf8();
@@ -614,4 +614,4 @@ llvm::Function* createTopLevel(CGContext&                   ctx,
   return boost::apply_visitor(TopLevelVisitor{ctx, node.attrs}, node.top_level);
 }
 
-} // namespace spica::codegen
+} // namespace twinkle::codegen

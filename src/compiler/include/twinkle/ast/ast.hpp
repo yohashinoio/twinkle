@@ -12,15 +12,15 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <spica/pch/pch.hpp>
-#include <spica/unicode/unicode.hpp>
-#include <spica/codegen/kind.hpp>
-#include <spica/support/kind.hpp>
+#include <twinkle/pch/pch.hpp>
+#include <twinkle/unicode/unicode.hpp>
+#include <twinkle/codegen/kind.hpp>
+#include <twinkle/support/kind.hpp>
 
 // Note If the template argument of boost::variant exceeds 10, use
 // boost::make_variant_over
 
-namespace spica
+namespace twinkle
 {
 
 namespace codegen
@@ -820,6 +820,6 @@ using TranslationUnit = std::vector<TopLevelWithAttr>;
 
 } // namespace ast
 
-} // namespace spica
+} // namespace twinkle
 
 #endif

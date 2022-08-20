@@ -5,9 +5,9 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <spica/codegen/common.hpp>
+#include <twinkle/codegen/common.hpp>
 
-namespace spica::codegen
+namespace twinkle::codegen
 {
 
 [[nodiscard]] llvm::AllocaInst* createEntryAlloca(llvm::Function*    func,
@@ -440,4 +440,4 @@ createDereference(CGContext&                                  ctx,
   unreachable();
 }
 
-} // namespace spica::codegen
+} // namespace twinkle::codegen

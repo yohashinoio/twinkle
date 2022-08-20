@@ -12,17 +12,17 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <spica/pch/pch.hpp>
-#include <spica/ast/ast.hpp>
-#include <spica/codegen/type.hpp>
-#include <spica/support/utils.hpp>
-#include <spica/support/typedef.hpp>
-#include <spica/jit/jit.hpp>
-#include <spica/parse/parser.hpp>
-#include <spica/mangle/mangler.hpp>
+#include <twinkle/pch/pch.hpp>
+#include <twinkle/ast/ast.hpp>
+#include <twinkle/codegen/type.hpp>
+#include <twinkle/support/utils.hpp>
+#include <twinkle/support/typedef.hpp>
+#include <twinkle/jit/jit.hpp>
+#include <twinkle/parse/parser.hpp>
+#include <twinkle/mangle/mangler.hpp>
 #include <map>
 
-namespace spica
+namespace twinkle
 {
 
 using FilePaths = std::vector<std::filesystem::path>;
@@ -285,6 +285,6 @@ private:
 
 } // namespace codegen
 
-} // namespace spica
+} // namespace twinkle
 
 #endif

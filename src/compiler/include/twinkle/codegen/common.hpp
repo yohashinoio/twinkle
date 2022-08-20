@@ -12,11 +12,11 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <spica/pch/pch.hpp>
-#include <spica/codegen/codegen.hpp>
-#include <spica/codegen/exception.hpp>
+#include <twinkle/pch/pch.hpp>
+#include <twinkle/codegen/codegen.hpp>
+#include <twinkle/codegen/exception.hpp>
 
-namespace spica::codegen
+namespace twinkle::codegen
 {
 
 struct StmtContext {
@@ -249,6 +249,6 @@ createDereference(CGContext&                                  ctx,
 [[nodiscard]] bool strictEquals(const llvm::Type* const left,
                                 const llvm::Type* const right);
 
-} // namespace spica::codegen
+} // namespace twinkle::codegen
 
 #endif

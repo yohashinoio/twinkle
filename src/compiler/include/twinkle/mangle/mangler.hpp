@@ -12,10 +12,10 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <spica/pch/pch.hpp>
-#include <spica/ast/ast.hpp>
+#include <twinkle/pch/pch.hpp>
+#include <twinkle/ast/ast.hpp>
 
-namespace spica
+namespace twinkle
 {
 
 namespace codegen
@@ -95,6 +95,6 @@ private:
 
 } // namespace codegen
 
-} // namespace spica
+} // namespace twinkle
 
 #endif

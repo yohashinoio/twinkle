@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <spica/codegen/codegen.hpp>
-#include <spica/codegen/top_level.hpp>
-#include <spica/codegen/type.hpp>
-#include <spica/codegen/exception.hpp>
-#include <spica/unicode/unicode.hpp>
+#include <twinkle/codegen/codegen.hpp>
+#include <twinkle/codegen/top_level.hpp>
+#include <twinkle/codegen/type.hpp>
+#include <twinkle/codegen/exception.hpp>
+#include <twinkle/unicode/unicode.hpp>
 #include <cassert>
 #include <boost/filesystem.hpp>
 
@@ -29,7 +29,7 @@ namespace
 
 } // namespace
 
-namespace spica::codegen
+namespace twinkle::codegen
 {
 
 template <typename R = std::vector<std::string>>
@@ -335,4 +335,4 @@ void CodeGenerator::initTargetTripleAndMachine()
                                     relocation_model)); // Set relocation model.
 }
 
-} // namespace spica::codegen
+} // namespace twinkle::codegen

@@ -12,11 +12,11 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <spica/pch/pch.hpp>
-#include <spica/codegen/codegen.hpp>
-#include <spica/codegen/common.hpp>
+#include <twinkle/pch/pch.hpp>
+#include <twinkle/codegen/codegen.hpp>
+#include <twinkle/codegen/common.hpp>
 
-namespace spica::codegen
+namespace twinkle::codegen
 {
 
 void invokeDestructor(CGContext& ctx, const Value& this_);
@@ -26,6 +26,6 @@ void createStatement(CGContext&         ctx,
                      const StmtContext& stmt_ctx_arg,
                      const ast::Stmt&   statement);
 
-} // namespace spica::codegen
+} // namespace twinkle::codegen
 
 #endif

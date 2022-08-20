@@ -12,9 +12,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <spica/pch/pch.hpp>
+#include <twinkle/pch/pch.hpp>
 
-namespace spica::unicode
+namespace twinkle::unicode
 {
 
 using Codepoint = char32_t;
@@ -23,6 +23,6 @@ using Codepoint = char32_t;
 
 [[nodiscard]] std::string utf32toUtf8(const std::u32string_view utf32_str);
 
-} // namespace spica::unicode
+} // namespace twinkle::unicode
 
 #endif

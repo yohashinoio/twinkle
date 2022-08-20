@@ -12,11 +12,11 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <spica/pch/pch.hpp>
-#include <spica/codegen/codegen.hpp>
-#include <spica/codegen/common.hpp>
+#include <twinkle/pch/pch.hpp>
+#include <twinkle/codegen/codegen.hpp>
+#include <twinkle/codegen/common.hpp>
 
-namespace spica::codegen
+namespace twinkle::codegen
 {
 
 [[nodiscard]] std::optional<bool>
@@ -39,6 +39,6 @@ llvm::Function* createTopLevel(CGContext& ctx, const ast::TopLevel& node);
 llvm::Function* createTopLevel(CGContext&                   ctx,
                                const ast::TopLevelWithAttr& node);
 
-} // namespace spica::codegen
+} // namespace twinkle::codegen
 
 #endif

@@ -14,12 +14,12 @@
 
 #include <context.hpp>
 
-namespace spica
+namespace twinkle
 {
 
 [[nodiscard]] Context parseCmdlineOption(const int                argc,
                                          const char* const* const argv);
 
-} // namespace spica
+} // namespace twinkle
 
 #endif

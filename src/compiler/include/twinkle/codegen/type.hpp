@@ -12,15 +12,15 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <spica/pch/pch.hpp>
-#include <spica/support/utils.hpp>
-#include <spica/support/kind.hpp>
-#include <spica/support/typedef.hpp>
-#include <spica/unicode/unicode.hpp>
+#include <twinkle/pch/pch.hpp>
+#include <twinkle/support/utils.hpp>
+#include <twinkle/support/kind.hpp>
+#include <twinkle/support/typedef.hpp>
+#include <twinkle/unicode/unicode.hpp>
 #include <boost/lexical_cast.hpp>
-#include <spica/ast/ast.hpp>
+#include <twinkle/ast/ast.hpp>
 
-namespace spica::codegen
+namespace twinkle::codegen
 {
 
 enum class BuiltinTypeKind {
@@ -515,6 +515,6 @@ createType(CGContext&                                  ctx,
            const ast::Type&                            ast,
            const boost::iterator_range<InputIterator>& pos);
 
-} // namespace spica::codegen
+} // namespace twinkle::codegen
 
 #endif

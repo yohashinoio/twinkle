@@ -6,7 +6,7 @@
  */
 
 #include "expectation.hpp"
-#include <spica/compile/main.hpp>
+#include <twinkle/compile/main.hpp>
 #include <context.hpp>
 #include <filesystem>
 #include <sstream>
@@ -36,31 +36,31 @@ namespace test
       paths.push_back(path.path().string());
 
     const auto result
-      = spica::compile(spica::Context{std::move(paths),
-                                      true,
-                                      "", // JIT compile, so it's empty
-                                      spica::DEFAULT_OPT_LEVEL,
-                                      "pic",
-                                      {}},
-                       "test");
+      = twinkle::compile(twinkle::Context{std::move(paths),
+                                          true,
+                                          "", // JIT compile, so it's empty
+                                          twinkle::DEFAULT_OPT_LEVEL,
+                                          "pic",
+                                          {}},
+                         "test");
 
 #if SUPPRESS_COMPILE_ERROR_OUTPUT
     std::cerr.clear();
 #endif
 
     if (result)
-      return std::get<spica::JITResult>(*result).exit_status;
+      return std::get<twinkle::JITResult>(*result).exit_status;
     else
       return std::nullopt;
   }
   else {
-    const auto result = spica::compile(
-      spica::Context{std::vector<std::string>{test_path.path()},
-                     true,
-                     "", // JIT compile, so it's empty
-                     spica::DEFAULT_OPT_LEVEL,
-                     "pic",
-                     {}},
+    const auto result = twinkle::compile(
+      twinkle::Context{std::vector<std::string>{test_path.path()},
+                       true,
+                       "", // JIT compile, so it's empty
+                       twinkle::DEFAULT_OPT_LEVEL,
+                       "pic",
+                       {}},
       "test");
 
 #if SUPPRESS_COMPILE_ERROR_OUTPUT
@@ -68,7 +68,7 @@ namespace test
 #endif
 
     if (result)
-      return std::get<spica::JITResult>(*result).exit_status;
+      return std::get<twinkle::JITResult>(*result).exit_status;
     else
       return std::nullopt;
   }

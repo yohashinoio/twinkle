@@ -12,18 +12,18 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <spica/support/exception.hpp>
+#include <twinkle/support/exception.hpp>
 
-namespace spica::codegen
+namespace twinkle::parse
 {
 
-struct CodegenError : public ErrorBase {
-  explicit CodegenError(const std::string& what_arg)
+struct ParseError : public ErrorBase {
+  explicit ParseError(const std::string& what_arg)
     : ErrorBase{what_arg}
   {
   }
 };
 
-} // namespace spica::codegen
+} // namespace twinkle::parse
 
 #endif

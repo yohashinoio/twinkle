@@ -6,7 +6,7 @@
  */
 
 #include "cmd.hpp"
-#include <spica/compile/main.hpp>
+#include <twinkle/compile/main.hpp>
 #include <cstdlib>
 #include <iostream>
 
@@ -32,19 +32,19 @@ callLinker(const std::vector<std::filesystem::path>& files,
 
 int main(const int argc, const char* const* const argv)
 {
-  const auto context = spica::parseCmdlineOption(argc, argv);
+  const auto context = twinkle::parseCmdlineOption(argc, argv);
 
-  const auto result = spica::compile(context, *argv);
+  const auto result = twinkle::compile(context, *argv);
 
   if (!result)
     return EXIT_FAILURE;
 
-  if (std::holds_alternative<spica::JITResult>(*result))
-    return std::get<spica::JITResult>(*result).exit_status;
+  if (std::holds_alternative<twinkle::JITResult>(*result))
+    return std::get<twinkle::JITResult>(*result).exit_status;
 
   if (context.emit_target == EMIT_EXE_ARG
-      && std::holds_alternative<spica::AOTResult>(*result)) {
-    const auto& aotresult = std::get<spica::AOTResult>(*result);
+      && std::holds_alternative<twinkle::AOTResult>(*result)) {
+    const auto& aotresult = std::get<twinkle::AOTResult>(*result);
 
     {
       // Call linker

@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou.
  */
 
-#include <spica/codegen/stmt.hpp>
-#include <spica/codegen/expr.hpp>
-#include <spica/codegen/exception.hpp>
+#include <twinkle/codegen/stmt.hpp>
+#include <twinkle/codegen/expr.hpp>
+#include <twinkle/codegen/exception.hpp>
 
-namespace spica::codegen
+namespace twinkle::codegen
 {
 
 [[nodiscard]] SymbolTable mergeSymbolTables(const SymbolTable& a,
@@ -596,4 +596,4 @@ void createStatement(CGContext&         ctx,
   }
 }
 
-} // namespace spica::codegen
+} // namespace twinkle::codegen
