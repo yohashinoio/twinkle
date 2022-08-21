@@ -226,7 +226,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
     ctx.builder.CreateCondBr(cond, then_bb, else_bb);
 
-    // Then statement codegen.
+    // Then statement codegen
     ctx.builder.SetInsertPoint(then_bb);
 
     createStatement(ctx, getAllSymbols(), stmt_ctx, node.then_statement);
@@ -234,7 +234,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
     if (!ctx.builder.GetInsertBlock()->getTerminator())
       ctx.builder.CreateBr(merge_bb);
 
-    // Else statement codegen.
+    // Else statement codegen
     func->getBasicBlockList().push_back(else_bb);
     ctx.builder.SetInsertPoint(else_bb);
 
@@ -353,7 +353,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
       ctx.builder.CreateCondBr(cond, body_bb, loop_end_bb);
     }
     else {
-      // If condition is absent, unconditionally true.
+      // If condition is absent, unconditionally true
       ctx.builder.CreateCondBr(
         llvm::ConstantInt::get(ctx.builder.getInt1Ty(), true),
         body_bb,
@@ -371,7 +371,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
     func->getBasicBlockList().push_back(loop_bb);
     ctx.builder.SetInsertPoint(loop_bb);
 
-    // Generate loop statement.
+    // Generate loop statement
     if (node.loop_stmt)
       createStatement(ctx, getAllSymbols(), new_stmt_ctx, *node.loop_stmt);
 
@@ -383,13 +383,13 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
   void operator()(ast::Break) const
   {
-    if (stmt_ctx.break_bb) // If in a loop.
+    if (stmt_ctx.break_bb) // If in a loop
       ctx.builder.CreateBr(stmt_ctx.break_bb);
   }
 
   void operator()(ast::Continue) const
   {
-    if (stmt_ctx.continue_bb) // If in a loop.
+    if (stmt_ctx.continue_bb) // If in a loop
       ctx.builder.CreateBr(stmt_ctx.continue_bb);
   }
 

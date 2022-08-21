@@ -11,7 +11,7 @@
 namespace twinkle
 {
 
-// Load a file to std::string.
+// Load a file to std::string
 [[nodiscard]] std::string loadFile(const std::string_view       program_name,
                                    const std::filesystem::path& path)
 {
