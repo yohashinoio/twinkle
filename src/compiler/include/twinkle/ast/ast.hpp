@@ -202,6 +202,7 @@ struct Pipeline;
 struct MemberAccess;
 struct ArrayLiteral;
 struct ClassLiteral;
+struct ClassTemplateLiteral;
 
 //===----------------------------------------------------------------------===//
 // Expression Variant
@@ -265,7 +266,11 @@ using ExprT15
   = boost::mpl::push_back<ExprT14,
                           boost::recursive_wrapper<FunctionTemplateCall>>::type;
 
-using ExprTypes = ExprT15;
+using ExprT16
+  = boost::mpl::push_back<ExprT15,
+                          boost::recursive_wrapper<ClassTemplateLiteral>>::type;
+
+using ExprTypes = ExprT16;
 
 using Expr = boost::make_variant_over<ExprTypes>::type;
 
@@ -504,6 +509,12 @@ struct ArrayLiteral : x3::position_tagged {
 
 struct ClassLiteral : x3::position_tagged {
   Identifier        class_name;
+  std::vector<Expr> initializer_list;
+};
+
+struct ClassTemplateLiteral : x3::position_tagged {
+  Identifier        class_name;
+  TemplateArguments template_args;
   std::vector<Expr> initializer_list;
 };
 
@@ -786,9 +797,15 @@ using StructMember = boost::variant<boost::blank,
 using ClassMemberList = std::vector<StructMember>;
 
 struct ClassDef : x3::position_tagged {
-  bool            is_public;
-  Identifier      name;
-  ClassMemberList members;
+  bool               is_public;
+  Identifier         name;
+  TemplateParameters template_params;
+  ClassMemberList    members;
+
+  [[nodiscard]] bool isTemplate() const noexcept
+  {
+    return !template_params.empty();
+  }
 };
 
 struct Typedef : x3::position_tagged {

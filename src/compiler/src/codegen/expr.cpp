@@ -567,6 +567,11 @@ struct ExprVisitor : public boost::static_visitor<Value> {
             this_pointer_type->getPointeeType(ctx)};
   }
 
+  [[nodiscard]] Value operator()(const ast::ClassTemplateLiteral& node) const
+  {
+    unreachable();
+  }
+
 private:
   [[nodiscard]] std::optional<
     std::pair<FunctionTemplateTableValue, NsHierarchy>>
@@ -577,9 +582,9 @@ private:
 
     for (;;) {
       if (const auto value
-          = ctx.func_template_table[FunctionTemplateTableKey{name,
-                                                             args.size(),
-                                                             namespace_copy}]) {
+          = ctx.func_template_table[TemplateTableKey{name,
+                                                     args.size(),
+                                                     namespace_copy}]) {
         return std::make_pair(*value, namespace_copy);
       }
 

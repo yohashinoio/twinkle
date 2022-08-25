@@ -157,6 +157,13 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
+  twinkle::ast::ClassTemplateLiteral,
+  (twinkle::ast::Identifier, class_name)
+  (twinkle::ast::TemplateArguments, template_args)
+  (std::vector<twinkle::ast::Expr>, initializer_list)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
   twinkle::ast::BuiltinMacro,
   (twinkle::codegen::BuiltinMacroKind, kind)
 )
@@ -257,6 +264,7 @@ BOOST_FUSION_ADAPT_STRUCT(
   twinkle::ast::ClassDef,
   (bool, is_public)
   (twinkle::ast::Identifier, name)
+  (twinkle::ast::TemplateParameters, template_params)
   (twinkle::ast::ClassMemberList, members)
 )
 

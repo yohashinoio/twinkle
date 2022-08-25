@@ -260,10 +260,9 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
       const auto name = node.decl.name.utf8();
 
-      const auto key
-        = FunctionTemplateTableKey{name,
-                                   node.decl.template_params->size(),
-                                   ctx.ns_hierarchy};
+      const auto key = TemplateTableKey{name,
+                                        node.decl.template_params->size(),
+                                        ctx.ns_hierarchy};
 
       if (ctx.func_template_table.exists(key)) {
         throw CodegenError{
@@ -322,6 +321,26 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
   llvm::Function* operator()(const ast::ClassDef& node) const
   {
+    if (node.isTemplate()) {
+      verifyTemplateParameter(node.template_params);
+
+      const auto name = node.name.utf8();
+
+      const auto key = TemplateTableKey{name,
+                                        node.template_params->size(),
+                                        ctx.ns_hierarchy};
+
+      if (ctx.class_template_table.exists(key)) {
+        throw CodegenError{
+          ctx.formatError(ctx.positions.position_of(node),
+                          fmt::format("redefinition of '{}'", name))};
+      }
+
+      ctx.class_template_table.insert(key, node);
+
+      return nullptr;
+    }
+
     const auto method_def_asts = createClass(node);
 
     ctx.ns_hierarchy.push({node.name.utf8(), NamespaceKind::class_});

@@ -257,6 +257,12 @@ struct BuiltinMacroSymbols : UnicodeSymbols<codegen::BuiltinMacroKind> {
 } builtin_macro_symbols;
 
 //===----------------------------------------------------------------------===//
+// Type rules declaration
+//===----------------------------------------------------------------------===//
+
+const x3::rule<struct TypeTag, ast::Type> type_name{"type name"};
+
+//===----------------------------------------------------------------------===//
 // Common rules declaration
 //===----------------------------------------------------------------------===//
 
@@ -264,6 +270,8 @@ const x3::rule<struct ArrayLiteralTag, ast::ArrayLiteral> array_literal{
   "array literal"};
 const x3::rule<struct ClassLiteralTag, ast::ClassLiteral> class_literal{
   "class literal"};
+const x3::rule<struct ClassTemplateLiteralTag, ast::ClassTemplateLiteral>
+  class_template_literal{"class template literal"};
 
 //===----------------------------------------------------------------------===//
 // Expression rules declaration
@@ -461,10 +469,20 @@ const auto char_literal
 const auto attribute = x3::rule<struct AttrTag, ast::Attrs>{"attribute"}
 = lit(U"[[") >> (identifier_internal % lit(U",")) > lit(U"]]");
 
+// Do not use the expectation operator because it may be a comparison operation
+// (< or >)
+const auto template_args
+  = x3::rule<struct TemplateArgsTag,
+             ast::TemplateArguments>{"template arguments"}
+= lit(U"<") >> (type_name % lit(U",")) >> lit(U">");
+
 const auto array_literal_def = lit(U"[") > (expr % lit(U",")) > lit(U"]");
 
 const auto class_literal_def
   = identifier >> lit(U"{") > -(expr % lit(U",")) > lit(U"}");
+
+const auto class_template_literal_def
+  = identifier >> template_args >> lit(U"{") > -(expr % lit(U",")) > lit(U"}");
 
 const auto builtin_macro
   = x3::rule<struct BuiltinMacroTag, ast::BuiltinMacro>{"builtin macro"}
@@ -474,6 +492,7 @@ const auto space = x3::rule<struct SpaceTag>{"space"} = x3::unicode::space;
 
 BOOST_SPIRIT_DEFINE(array_literal)
 BOOST_SPIRIT_DEFINE(class_literal)
+BOOST_SPIRIT_DEFINE(class_template_literal)
 
 struct VariableIdentTag
   : ErrorHandle
@@ -499,6 +518,10 @@ struct AttrTag
   : ErrorHandle
   , AnnotatePosition {};
 
+struct TemplateArgsTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
 struct ArrayLiteralTag
   : ErrorHandle
   , AnnotatePosition {};
@@ -518,8 +541,6 @@ struct SpaceTag
 //===----------------------------------------------------------------------===//
 // Type name rules and tags definition
 //===----------------------------------------------------------------------===//
-
-const x3::rule<struct TypeTag, ast::Type> type_name{"type name"};
 
 const x3::rule<struct ReferenceTypeInternalTag, ast::ReferenceType>
   reference_type_internal{"reference type"};
@@ -729,23 +750,16 @@ const auto function_call_def
     >> *(string(U"(") > arg_list
          > lit(U")"))[action::assignToValAs<ast::FunctionCall>{}];
 
-// Do not use the expectation operator because it may be a comparison operation
-// (< or >)
-const auto template_args
-  = x3::rule<struct TemplateArgsTag,
-             ast::TemplateArguments>{"template arguments"}
-= lit(U"<") >> (type_name % lit(U",")) >> lit(U">");
-
 const auto function_template_call_def
   = primary[action::assignAttrToVal]
     >> *(template_args > string(U"(") > arg_list
          > lit(U")"))[action::assignToValAs<ast::FunctionTemplateCall>{}];
 
 const auto primary_def
-  = builtin_macro | class_literal | identifier | float_64bit | binary_literal
-    | octal_literal | hex_literal | int_32bit | uint_32bit | int_64bit
-    | uint_64bit | boolean_literal | string_literal | char_literal
-    | array_literal | (lit(U"(") > expr > lit(U")"));
+  = builtin_macro | class_template_literal | class_literal | identifier
+    | float_64bit | binary_literal | octal_literal | hex_literal | int_32bit
+    | uint_32bit | int_64bit | uint_64bit | boolean_literal | string_literal
+    | char_literal | array_literal | (lit(U"(") > expr > lit(U")"));
 
 BOOST_SPIRIT_DEFINE(expr)
 BOOST_SPIRIT_DEFINE(binary_logical)
@@ -870,10 +884,6 @@ struct FunctionCallTag
   : ErrorHandle
   , AnnotatePosition {};
 
-struct TemplateArgsTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
 struct FunctionTemplateCallTag
   : ErrorHandle
   , AnnotatePosition {};
@@ -990,6 +1000,11 @@ struct ContinueTag
 // Top level rules and tags definition
 //===----------------------------------------------------------------------===//
 
+const auto template_params
+  = x3::rule<struct TemplateParameterTag,
+             ast::TemplateParameters>{"template parameters"}
+= -(lit(U"<") > (identifier % lit(U",")) > lit(U">"));
+
 const auto class_key = x3::rule<struct ClassKeyTag>{"class key"}
 = lit(U"class");
 
@@ -1008,18 +1023,14 @@ const auto class_member_list_def
       | function_def | destructor | constructor);
 
 const auto class_def_def = x3::matches[lit(U"pub")] >> class_key > identifier
-                           > lit(U"{") > class_member_list > lit(U"}");
+                           > template_params > lit(U"{") > class_member_list
+                           > lit(U"}");
 
 const auto parameter_def
   = (identifier > lit(U":") > *variable_qualifier > type_name > x3::attr(false))
     | lit(U"...") >> x3::attr(ast::Parameter::createVarArgParameter());
 
 const auto parameter_list_def = -(parameter % lit(U","));
-
-const auto template_params
-  = x3::rule<struct TemplateParameterTag,
-             ast::TemplateParameters>{"template parameters"}
-= -(lit(U"<") > (identifier % lit(U",")) > lit(U">"));
 
 const auto function_proto_def
   = identifier > template_params > lit(U"(") > parameter_list > lit(U")")

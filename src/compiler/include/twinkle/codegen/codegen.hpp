@@ -127,6 +127,11 @@ struct Namespace {
   {
   }
 
+  [[nodiscard]] bool operator<(const Namespace& other) const
+  {
+    return name < other.name;
+  }
+
   const std::string   name;
   const NamespaceKind kind;
 };
@@ -167,27 +172,37 @@ struct NsHierarchy {
   }
 
   // Implemented to be a key in std::map
-  [[nodiscard]] bool operator<(const NsHierarchy& other) const noexcept
+  [[nodiscard]] bool operator<(const NsHierarchy& other) const
   {
-    return namespaces.size() < other.namespaces.size();
+    return std::lexicographical_compare(namespaces.begin(),
+                                        namespaces.end(),
+                                        other.namespaces.begin(),
+                                        other.namespaces.end());
   }
 
 private:
   std::deque<Namespace> namespaces;
 };
 
-using FunctionTemplateTableKey
-  = std::tuple<std::string, // Function name
-               std::size_t, // Template parameter length
-               NsHierarchy>;
+using TemplateTableKey = std::tuple<std::string, // Function name
+                                    std::size_t, // Template parameter length
+                                    NsHierarchy>;
 
 using FunctionTemplateTableValue = ast::FunctionDef;
 
 // std::unordered_map cannot use std::tuple as a key, so use std::map instead
 using FunctionTemplateTable
-  = Table<FunctionTemplateTableKey,
+  = Table<TemplateTableKey,
           FunctionTemplateTableValue,
-          std::map<FunctionTemplateTableKey, FunctionTemplateTableValue>>;
+          std::map<TemplateTableKey, FunctionTemplateTableValue>>;
+
+using ClassTemplateTableValue = ast::ClassDef;
+
+// std::unordered_map cannot use std::tuple as a key, so use std::map instead
+using ClassTemplateTable
+  = Table<TemplateTableKey,
+          ClassTemplateTableValue,
+          std::map<TemplateTableKey, ClassTemplateTableValue>>;
 
 // Codegen context
 struct CGContext : private boost::noncopyable {
@@ -215,6 +230,7 @@ struct CGContext : private boost::noncopyable {
   FunctionReturnTypeTable return_type_table;
   AliasTable              alias_table;
   FunctionTemplateTable   func_template_table;
+  ClassTemplateTable      class_template_table;
 
   NsHierarchy ns_hierarchy;
 
