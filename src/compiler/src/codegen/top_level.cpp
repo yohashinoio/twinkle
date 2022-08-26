@@ -183,8 +183,6 @@ void createFunctionBody(CGContext&                  ctx,
   }
 }
 
-// It is the caller's responsibility to register a return type in the return
-// type table
 [[nodiscard]] llvm::Function*
 declareFunction(CGContext&                   ctx,
                 const ast::FunctionDecl&     node,
@@ -219,11 +217,197 @@ declareFunction(CGContext&                   ctx,
                              mangled_name,
                              *ctx.module);
 
+  {
+    // Register return types in the return type table
+    if (return_type->isUserDefinedType()) {
+      // Return value may be of a type passed in template arguments
+      // If so, it will be erased
+      // So register a real type
+      const auto tmp = dynamic_cast<UserDefinedType*>(return_type.get());
+      assert(tmp);
+      ctx.return_type_table.insertOrAssign(func, tmp->getRealType(ctx));
+    }
+    else
+      ctx.return_type_table.insertOrAssign(func, return_type);
+  }
+
   // Set names to all arguments
   for (std::size_t idx = 0; auto&& arg : func->args())
     arg.setName(node.params->at(idx++).name.utf8());
 
   return func;
+}
+
+void verifyConstructor(CGContext&              ctx,
+                       const std::string_view  class_name,
+                       const ast::Constructor& constructor)
+{
+  if (class_name != constructor.decl.name.utf8()) {
+    throw CodegenError{
+      ctx.formatError(ctx.positions.position_of(constructor),
+                      "constructor name must be the same as the class name")};
+  }
+}
+
+void verifyDestructor(CGContext&             ctx,
+                      const std::string_view class_name,
+                      const ast::Destructor& destructor)
+{
+  if (class_name != destructor.decl.name.utf8()) {
+    throw CodegenError{
+      ctx.formatError(ctx.positions.position_of(destructor),
+                      "destructor name must be the same as the class name")};
+  }
+
+  if (!destructor.decl.params->empty()) {
+    throw CodegenError{ctx.formatError(ctx.positions.position_of(destructor),
+                                       "destructor does not accept arguments")};
+  }
+}
+
+// No method declarations or definitions
+// Definitions and declarations must be made by the caller with the return
+// value
+[[nodiscard]] std::vector<ast::FunctionDef>
+createClassNoMethodDeclDef(CGContext& ctx, const ast::ClassDef& node)
+{
+  const auto class_name = node.name.utf8();
+
+  auto accessibility = CLASS_DEFAULT_ACCESSIBILITY;
+
+  std::vector<ClassType::MemberVariable> member_variables;
+  std::vector<ast::FunctionDef>          method_def_asts;
+
+  const auto push_this_ptr = [&](ast::FunctionDecl& decl) {
+    decl.params->push_front({ast::Identifier{std::u32string{U"this"}},
+                             {VariableQual::mutable_},
+                             ast::PointerType{ast::UserDefinedType{node.name}},
+                             false});
+  };
+
+  for (const auto& member : node.members) {
+    if (const auto variable
+        = boost::get<ast::VariableDefWithoutInit>(&member)) {
+      const auto is_mutable
+        = variable->qualifier
+          && (*variable->qualifier == VariableQual::mutable_);
+
+      const auto type
+        = createType(ctx, variable->type, ctx.positions.position_of(*variable));
+
+      member_variables.push_back(
+        {variable->name.utf8(), type, is_mutable, accessibility});
+    }
+    else if (const auto function = boost::get<ast::FunctionDef>(&member)) {
+      auto function_clone = *function;
+
+      push_this_ptr(function_clone.decl);
+
+      function_clone.decl.accessibility = accessibility;
+      function_clone.is_public          = node.is_public;
+
+      method_def_asts.push_back(std::move(function_clone));
+    }
+    else if (const auto access_specifier = boost::get<Accessibility>(&member)) {
+      switch (*access_specifier) {
+      case Accessibility::public_:
+        accessibility = Accessibility::public_;
+        continue;
+      case Accessibility::private_:
+        accessibility = Accessibility::private_;
+        continue;
+      case Accessibility::non_method:
+      case Accessibility::unknown:
+        unreachable();
+      }
+    }
+    else if (const auto constructor = boost::get<ast::Constructor>(&member)) {
+      if (accessibility != Accessibility::public_) {
+        throw CodegenError{
+          ctx.formatError(ctx.positions.position_of(*constructor),
+                          "constructor must be public")};
+      }
+
+      verifyConstructor(ctx, class_name, *constructor);
+
+      auto clone = *constructor;
+
+      clone.decl.is_constructor = true;
+
+      push_this_ptr(clone.decl);
+
+      method_def_asts.push_back(ast::FunctionDef{node.is_public,
+                                                 std::move(clone.decl),
+                                                 std::move(clone.body)});
+    }
+    else if (const auto destructor = boost::get<ast::Destructor>(&member)) {
+      if (accessibility != Accessibility::public_) {
+        throw CodegenError{
+          ctx.formatError(ctx.positions.position_of(*destructor),
+                          "destructor must be public")};
+      }
+
+      verifyDestructor(ctx, class_name, *destructor);
+
+      auto clone = *destructor;
+
+      clone.decl.is_destructor = true;
+
+      push_this_ptr(clone.decl);
+
+      method_def_asts.push_back(ast::FunctionDef{node.is_public,
+                                                 std::move(clone.decl),
+                                                 std::move(clone.body)});
+    }
+    else
+      unreachable();
+  }
+
+  if (const auto opaque_class_ty = ctx.class_table[class_name]) {
+    const auto type = opaque_class_ty.value();
+
+    if (!type->isOpaque(ctx)) {
+      throw CodegenError{
+        ctx.formatError(ctx.positions.position_of(node),
+                        fmt::format("redefinition of '{}'", class_name))};
+    }
+
+    type->setBody(ctx, std::move(member_variables));
+    type->setIsOpaque(false);
+  }
+  else {
+    ctx.class_table.insert(
+      class_name,
+      std::make_shared<ClassType>(ctx,
+                                  std::move(member_variables),
+                                  class_name));
+  }
+
+  return method_def_asts;
+}
+
+void defineMethods(CGContext&                           ctx,
+                   const std::vector<ast::FunctionDef>& methods,
+                   const std::string&                   class_name)
+{
+  ctx.ns_hierarchy.push({class_name, NamespaceKind::class_});
+
+  for (const auto& r : methods)
+    createTopLevel(ctx, ast::TopLevel{r});
+
+  ctx.ns_hierarchy.pop();
+}
+
+void declareMethods(CGContext&                           ctx,
+                    const std::vector<ast::FunctionDef>& methods,
+                    const std::string&                   class_name)
+{
+  ctx.ns_hierarchy.push({class_name, NamespaceKind::class_});
+
+  for (const auto& r : methods)
+    createTopLevel(ctx, ast::TopLevel{r.decl});
+
+  ctx.ns_hierarchy.pop();
 }
 
 //===----------------------------------------------------------------------===//
@@ -244,15 +428,11 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
   llvm::Function* operator()(const ast::FunctionDecl& node) const
   {
-    const auto return_type
-      = createType(ctx, node.return_type, ctx.positions.position_of(node));
-
-    auto const func
-      = declareFunction(ctx, node, mangleFunction(node), return_type);
-
-    ctx.return_type_table.insertOrAssign(func, return_type);
-
-    return func;
+    return declareFunction(
+      ctx,
+      node,
+      mangleFunction(node),
+      createType(ctx, node.return_type, ctx.positions.position_of(node)));
   }
 
   llvm::Function* operator()(const ast::FunctionDef& node) const
@@ -343,18 +523,14 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
       return nullptr;
     }
 
-    const auto method_def_asts = createClass(node);
+    const auto method_def_asts = createClassNoMethodDeclDef(ctx, node);
 
-    ctx.ns_hierarchy.push({node.name.utf8(), NamespaceKind::class_});
+    const auto name = node.name.utf8();
 
     // By declaring first, the order of definitions can be ignored
-    for (const auto& r : method_def_asts)
-      (*this)(r.decl);
+    declareMethods(ctx, method_def_asts, name);
 
-    for (const auto& r : method_def_asts)
-      (*this)(r);
-
-    ctx.ns_hierarchy.pop();
+    defineMethods(ctx, method_def_asts, name);
 
     return nullptr;
   }
@@ -424,140 +600,11 @@ private:
 
   void importClass(const ast::ClassDef& node) const
   {
-    const auto method_def_asts = createClass(node);
-
-    ctx.ns_hierarchy.push({node.name.utf8(), NamespaceKind::class_});
-
-    for (const auto& r : method_def_asts)
-      (*this)(r.decl);
+    declareMethods(ctx,
+                   createClassNoMethodDeclDef(ctx, node),
+                   node.name.utf8());
 
     // No method definition
-
-    ctx.ns_hierarchy.pop();
-  }
-
-  // No method declarations or definitions
-  // Definitions and declarations must be made by the caller with the return
-  // value
-  [[nodiscard]] std::vector<twinkle::ast::FunctionDef>
-  createClass(const ast::ClassDef& node) const
-  {
-    const auto class_name = node.name.utf8();
-
-    auto accessibility = CLASS_DEFAULT_ACCESSIBILITY;
-
-    std::vector<ClassType::MemberVariable> member_variables;
-    std::vector<ast::FunctionDef>          method_def_asts;
-
-    const auto push_this_ptr = [&](ast::FunctionDecl& decl) {
-      decl.params->push_front(
-        {ast::Identifier{std::u32string{U"this"}},
-         {VariableQual::mutable_},
-         ast::PointerType{ast::UserDefinedType{node.name}},
-         false});
-    };
-
-    for (const auto& member : node.members) {
-      if (const auto variable
-          = boost::get<ast::VariableDefWithoutInit>(&member)) {
-        const auto is_mutable
-          = variable->qualifier
-            && (*variable->qualifier == VariableQual::mutable_);
-
-        const auto type = createType(ctx,
-                                     variable->type,
-                                     ctx.positions.position_of(*variable));
-
-        member_variables.push_back(
-          {variable->name.utf8(), type, is_mutable, accessibility});
-      }
-      else if (const auto function = boost::get<ast::FunctionDef>(&member)) {
-        auto function_clone = *function;
-
-        push_this_ptr(function_clone.decl);
-
-        function_clone.decl.accessibility = accessibility;
-        function_clone.is_public          = node.is_public;
-
-        method_def_asts.push_back(std::move(function_clone));
-      }
-      else if (const auto access_specifier
-               = boost::get<Accessibility>(&member)) {
-        switch (*access_specifier) {
-        case Accessibility::public_:
-          accessibility = Accessibility::public_;
-          continue;
-        case Accessibility::private_:
-          accessibility = Accessibility::private_;
-          continue;
-        case Accessibility::non_method:
-        case Accessibility::unknown:
-          unreachable();
-        }
-      }
-      else if (const auto constructor = boost::get<ast::Constructor>(&member)) {
-        if (accessibility != Accessibility::public_) {
-          throw CodegenError{
-            ctx.formatError(ctx.positions.position_of(*constructor),
-                            "constructor must be public")};
-        }
-
-        verifyConstructor(class_name, *constructor);
-
-        auto clone = *constructor;
-
-        clone.decl.is_constructor = true;
-
-        push_this_ptr(clone.decl);
-
-        method_def_asts.push_back(ast::FunctionDef{node.is_public,
-                                                   std::move(clone.decl),
-                                                   std::move(clone.body)});
-      }
-      else if (const auto destructor = boost::get<ast::Destructor>(&member)) {
-        if (accessibility != Accessibility::public_) {
-          throw CodegenError{
-            ctx.formatError(ctx.positions.position_of(*destructor),
-                            "destructor must be public")};
-        }
-
-        verifyDestructor(class_name, *destructor);
-
-        auto clone = *destructor;
-
-        clone.decl.is_destructor = true;
-
-        push_this_ptr(clone.decl);
-
-        method_def_asts.push_back(ast::FunctionDef{node.is_public,
-                                                   std::move(clone.decl),
-                                                   std::move(clone.body)});
-      }
-      else
-        unreachable();
-    }
-
-    if (const auto opaque_class_ty = ctx.class_table[class_name]) {
-      const auto type = opaque_class_ty.value();
-
-      if (!type->isOpaque(ctx)) {
-        throw CodegenError{
-          ctx.formatError(ctx.positions.position_of(node),
-                          fmt::format("redefinition of '{}'", class_name))};
-      }
-
-      type->setBody(ctx, std::move(member_variables));
-      type->setIsOpaque(false);
-    }
-    else {
-      ctx.class_table.insert(
-        class_name,
-        std::make_shared<ClassType>(ctx,
-                                    std::move(member_variables),
-                                    class_name));
-    }
-
-    return method_def_asts;
   }
 
   [[nodiscard]] std::string loadFile(const std::filesystem::path& path,
@@ -590,32 +637,6 @@ private:
       return name;
 
     return ctx.mangler.mangleFunction(ctx, node);
-  }
-
-  void verifyConstructor(const std::string_view  class_name,
-                         const ast::Constructor& constructor) const
-  {
-    if (class_name != constructor.decl.name.utf8()) {
-      throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(constructor),
-                        "constructor name must be the same as the class name")};
-    }
-  }
-
-  void verifyDestructor(const std::string_view class_name,
-                        const ast::Destructor& destructor) const
-  {
-    if (class_name != destructor.decl.name.utf8()) {
-      throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(destructor),
-                        "destructor name must be the same as the class name")};
-    }
-
-    if (!destructor.decl.params->empty()) {
-      throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(destructor),
-                        "destructor does not accept arguments")};
-    }
   }
 
   CGContext& ctx;

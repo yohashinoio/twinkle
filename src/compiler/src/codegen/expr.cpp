@@ -643,11 +643,31 @@ private:
   [[nodiscard]] std::shared_ptr<Type>
   createClassFromTemplate(const ClassTemplateTableValue& ast,
                           const TemplateArguments&       template_args,
-                          const NsHierarchy&             space,
-                          const PositionRange&           pos) const
+                          const NsHierarchy& space, // FIXME: Use this argument
+                          const PositionRange& pos) const
   {
-    // TODO
-    unreachable();
+    const TemplateArgmentsDefiner ta_definer{ctx,
+                                             template_args,
+                                             ast.template_params.type_names,
+                                             pos};
+
+    const auto methods = createClassNoMethodDeclDef(ctx, ast);
+
+    const auto class_name = ast.name.utf8();
+
+    {
+      // Save the current insert block because a function template is created
+      // from within a function
+      const auto return_bb = ctx.builder.GetInsertBlock();
+
+      declareMethods(ctx, methods, class_name);
+      defineMethods(ctx, methods, class_name);
+
+      // Return insert point to previous location
+      ctx.builder.SetInsertPoint(return_bb);
+    }
+
+    return createType(ctx, ast::UserDefinedType{ast.name}, pos);
   }
 
   [[nodiscard]] Value
@@ -740,21 +760,7 @@ private:
 
     assert(!ctx.module->getFunction(mangled_name));
 
-    auto const func = declareFunction(ctx, decl, mangled_name, return_type);
-
-    // Register return types in the return type table
-    if (return_type->isUserDefinedType()) {
-      // Return value may be of a type passed in template arguments
-      // If so, it will be erased
-      // So register a real type
-      const auto tmp = dynamic_cast<UserDefinedType*>(return_type.get());
-      assert(tmp);
-      ctx.return_type_table.insertOrAssign(func, tmp->getRealType(ctx));
-    }
-    else
-      ctx.return_type_table.insertOrAssign(func, return_type);
-
-    return func;
+    return declareFunction(ctx, decl, mangled_name, return_type);
   }
 
   // Assumption not yet defined

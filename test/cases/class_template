@@ -1,0 +1,20 @@
+class sample<T> {
+  sample(val_: T)
+  {
+    val = val_;
+  }
+
+  func get() -> T
+  {
+    return val;
+  }
+
+private:
+  let mut val: T;
+}
+
+func main() -> i32
+{
+  let s = sample<i32>{58};
+  return s.get();
+}

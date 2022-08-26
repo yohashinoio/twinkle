@@ -40,6 +40,17 @@ declareFunction(CGContext&                   ctx,
                 const std::string_view       mangled_name,
                 const std::shared_ptr<Type>& return_type);
 
+[[nodiscard]] std::vector<twinkle::ast::FunctionDef>
+createClassNoMethodDeclDef(CGContext& ctx, const ast::ClassDef& node);
+
+void defineMethods(CGContext&                           ctx,
+                   const std::vector<ast::FunctionDef>& methods,
+                   const std::string&                   class_name);
+
+void declareMethods(CGContext&                           ctx,
+                    const std::vector<ast::FunctionDef>& methods,
+                    const std::string&                   class_name);
+
 llvm::Function* createTopLevel(CGContext& ctx, const ast::TopLevel& node);
 
 llvm::Function* createTopLevel(CGContext&                   ctx,
