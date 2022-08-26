@@ -1,0 +1,15 @@
+[[nomangle]]
+declare func printf(fmt: ^i8, ...) -> i32;
+
+[[nomangle]]
+declare func pow(x: f64, y: f64) -> f64;
+
+func main() -> i32
+{
+  let mut s = 0.;
+
+  for (let mut i = 0; i <= 100000000; ++i)
+    s += pow(-1.0, i as f64) / (2.0 * (i as f64) + 1.0);
+
+  printf("%.16f\n", 4.0 * s);
+}
