@@ -336,9 +336,9 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
   }
 };
 
-void verifyType(CGContext&                                  ctx,
-                const std::shared_ptr<Type>&                type,
-                const boost::iterator_range<InputIterator>& pos)
+void verifyType(CGContext&                   ctx,
+                const std::shared_ptr<Type>& type,
+                const PositionRange&         pos)
 {
   assert(type);
 
@@ -347,9 +347,7 @@ void verifyType(CGContext&                                  ctx,
 }
 
 [[nodiscard]] std::shared_ptr<Type>
-createType(CGContext&                                  ctx,
-           const ast::Type&                            ast,
-           const boost::iterator_range<InputIterator>& pos)
+createType(CGContext& ctx, const ast::Type& ast, const PositionRange& pos)
 {
   const auto type = boost::apply_visitor(TypeVisitor(), ast);
 

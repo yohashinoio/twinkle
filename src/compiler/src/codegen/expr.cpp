@@ -38,6 +38,57 @@ toLLVMVals(const std::deque<Value>& v)
   return ret;
 }
 
+using TemplateArguments  = std::vector<std::shared_ptr<Type>>;
+using TemplateParameters = std::vector<ast::Identifier>;
+
+// Add template arguments as aliases
+// Clean up in destructor
+struct TemplateArgmentsDefiner {
+  TemplateArgmentsDefiner(CGContext&                ctx,
+                          const TemplateArguments&  args,
+                          const TemplateParameters& params,
+                          const PositionRange&      pos)
+    : ctx{ctx}
+    , args{args}
+    , params{params}
+  {
+    insertToAliasTable(pos);
+  }
+
+  ~TemplateArgmentsDefiner()
+  {
+    cleanup();
+  }
+
+  void insertToAliasTable(const PositionRange& pos) const
+  {
+    for (std::size_t idx = 0; const auto& param : params) {
+      const auto param_name = param.utf8();
+
+      if (ctx.alias_table.exists(param_name)) {
+        throw CodegenError{ctx.formatError(
+          pos,
+          fmt::format("redefinition of template parameter '{}'", param_name))};
+      }
+
+      ctx.alias_table.insert(param_name, args[idx]);
+      ++idx;
+    }
+  }
+
+  void cleanup() const
+  {
+    for (const auto& param : params)
+      ctx.alias_table.erase(param.utf8());
+  }
+
+private:
+  CGContext& ctx;
+
+  const TemplateArguments&  args;
+  const TemplateParameters& params;
+};
+
 //===----------------------------------------------------------------------===//
 // Expression visitor
 //===----------------------------------------------------------------------===//
@@ -51,8 +102,6 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     , stmt_ctx{stmt_ctx}
   {
   }
-
-  using TemplateArguments = std::vector<std::shared_ptr<Type>>;
 
   [[nodiscard]] Value operator()(boost::blank) const
   {
@@ -449,18 +498,17 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     // Trying to define
     const auto template_args = createTypes(node.template_args, pos);
 
-    const auto func_template_ast
-      = findFunctionTemplate(callee_name, template_args);
+    const auto func_template = findFunctionTemplate(callee_name, template_args);
 
-    if (!func_template_ast) {
+    if (!func_template) {
       throw CodegenError{ctx.formatError(
         pos,
         fmt::format("unknown function template '{}' called", callee_name))};
     }
 
-    return createFunctionCall(createFunctionTemplate(func_template_ast->first,
+    return createFunctionCall(createFunctionTemplate(func_template->first,
                                                      template_args,
-                                                     func_template_ast->second),
+                                                     func_template->second),
                               args,
                               pos);
 
@@ -536,43 +584,113 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::ClassLiteral& node) const
   {
-    const auto class_type = findClass(node.class_name.utf8());
+    return createClassLiteral(node.class_name.utf8(),
+                              node.initializer_list,
+                              ctx.positions.position_of(node));
+  }
 
+  [[nodiscard]] Value operator()(const ast::ClassTemplateLiteral& node) const
+  {
     const auto pos = ctx.positions.position_of(node);
 
-    if (!class_type) {
+    const auto class_name = node.class_name.utf8();
+
+    // TODO:
+    // もし既に同じテンプレート引数で定義されているなら新しく作らないように
+
+    const auto template_args = createTypes(node.template_args, pos);
+
+    const auto class_template = findClassTemplate(class_name, template_args);
+
+    if (!class_template) {
       throw CodegenError{ctx.formatError(
         pos,
-        fmt::format("class {} is undefined", node.class_name.utf8()))};
+        fmt::format("unknown class template '{}'", class_name))};
     }
 
-    const auto class_name = class_type.value()->getClassName(ctx);
+    return createClassLiteral(createClassFromTemplate(class_template->first,
+                                                      template_args,
+                                                      class_template->second,
+                                                      pos),
+                              node.initializer_list,
+                              pos);
+  }
+
+private:
+  [[nodiscard]] std::optional<std::pair<ClassTemplateTableValue, NsHierarchy>>
+  findClassTemplate(const std::string_view   name,
+                    const TemplateArguments& args) const
+  {
+    auto namespace_copy = ctx.ns_hierarchy;
+
+    for (;;) {
+      if (const auto value
+          = ctx.class_template_table[TemplateTableKey{name,
+                                                      args.size(),
+                                                      namespace_copy}]) {
+        return std::make_pair(*value, std::move(namespace_copy));
+      }
+
+      if (namespace_copy.empty())
+        return std::nullopt;
+
+      namespace_copy.pop();
+    }
+
+    unreachable();
+  }
+
+  [[nodiscard]] std::shared_ptr<Type>
+  createClassFromTemplate(const ClassTemplateTableValue& ast,
+                          const TemplateArguments&       template_args,
+                          const NsHierarchy&             space,
+                          const PositionRange&           pos) const
+  {
+    // TODO
+    unreachable();
+  }
+
+  [[nodiscard]] Value
+  createClassLiteral(const std::shared_ptr<Type>&  class_type,
+                     const std::vector<ast::Expr>& initializer_list,
+                     const PositionRange&          pos) const
+  {
+    const auto real_class_name = class_type->getClassName(ctx);
 
     auto const alloca
       = createEntryAlloca(ctx.builder.GetInsertBlock()->getParent(),
                           "",
-                          class_type.value()->getLLVMType(ctx));
+                          class_type->getLLVMType(ctx));
 
     const auto this_pointer_type = std::make_shared<PointerType>(
-      std::make_shared<UserDefinedType>(class_name));
+      std::make_shared<UserDefinedType>(real_class_name));
 
-    auto args = createArgVals(node.initializer_list, pos);
+    auto args = createArgVals(initializer_list, pos);
 
     // Push 'this' pointer
     args.push_front({alloca, this_pointer_type});
 
-    createConstructorCall(pos, class_name, args);
+    createConstructorCall(pos, real_class_name, args);
 
     return {ctx.builder.CreateLoad(alloca->getAllocatedType(), alloca),
             this_pointer_type->getPointeeType(ctx)};
   }
 
-  [[nodiscard]] Value operator()(const ast::ClassTemplateLiteral& node) const
+  [[nodiscard]] Value
+  createClassLiteral(const std::string&            class_name,
+                     const std::vector<ast::Expr>& initializer_list,
+                     const PositionRange&          pos) const
   {
-    unreachable();
+    const auto class_type = findClass(class_name);
+
+    if (!class_type) {
+      throw CodegenError{
+        ctx.formatError(pos, fmt::format("class {} is undefined", class_name))};
+    }
+
+    return createClassLiteral(*class_type, initializer_list, pos);
   }
 
-private:
   [[nodiscard]] std::optional<
     std::pair<FunctionTemplateTableValue, NsHierarchy>>
   findFunctionTemplate(const std::string_view   name,
@@ -585,7 +703,7 @@ private:
           = ctx.func_template_table[TemplateTableKey{name,
                                                      args.size(),
                                                      namespace_copy}]) {
-        return std::make_pair(*value, namespace_copy);
+        return std::make_pair(*value, std::move(namespace_copy));
       }
 
       if (namespace_copy.empty())
@@ -617,41 +735,14 @@ private:
     const auto return_type
       = createType(ctx, decl.return_type, ctx.positions.position_of(decl));
 
-    if (decl.params->size() && decl.params->at(0).is_vararg) {
-      throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(decl),
-                        "requires a named argument before '...'")};
-    }
-
-    const auto is_vararg = isVariadicArgs(decl.params);
-    if (!is_vararg) {
-      throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(decl),
-                        "cannot have multiple variable arguments")};
-    }
-
-    const auto named_params_len
-      = *is_vararg ? decl.params->size() - 1 : decl.params->size();
-
-    const auto param_types
-      = createParamTypes(ctx, decl.params, named_params_len);
-
-    auto const func_type
-      = llvm::FunctionType::get(return_type->getLLVMType(ctx),
-                                param_types,
-                                *is_vararg);
-
     const auto mangled_name
       = ctx.mangler.mangleFunctionTemplate(ctx, space, decl, template_args);
 
     assert(!ctx.module->getFunction(mangled_name));
 
-    auto const func
-      = llvm::Function::Create(func_type,
-                               llvm::Function::LinkageTypes::ExternalLinkage,
-                               mangled_name,
-                               *ctx.module);
+    auto const func = declareFunction(ctx, decl, mangled_name, return_type);
 
+    // Register return types in the return type table
     if (return_type->isUserDefinedType()) {
       // Return value may be of a type passed in template arguments
       // If so, it will be erased
@@ -662,10 +753,6 @@ private:
     }
     else
       ctx.return_type_table.insertOrAssign(func, return_type);
-
-    // Set names to all arguments
-    for (std::size_t idx = 0; auto&& arg : func->args())
-      arg.setName(decl.params->at(idx++).name.utf8());
 
     return func;
   }
@@ -678,20 +765,11 @@ private:
   {
     const auto pos = ctx.positions.position_of(ast.decl);
 
-    // Insert template arguments to alias table
-    for (std::size_t idx = 0;
-         const auto& param : ast.decl.template_params.type_names) {
-      const auto param_name = param.utf8();
-
-      if (ctx.alias_table.exists(param_name)) {
-        throw CodegenError{ctx.formatError(
-          pos,
-          fmt::format("redefinition of template parameter '{}'", param_name))};
-      }
-
-      ctx.alias_table.insert(param_name, template_args[idx]);
-      ++idx;
-    }
+    const TemplateArgmentsDefiner ta_definer{
+      ctx,
+      template_args,
+      ast.decl.template_params.type_names,
+      pos};
 
     const auto name = ast.decl.name.utf8();
 
@@ -703,6 +781,8 @@ private:
       func->setLinkage(llvm::Function::LinkageTypes::InternalLinkage);
 
     {
+      // Save the current insert block because a function template is created
+      // from within a function
       const auto return_bb = ctx.builder.GetInsertBlock();
 
       createFunctionBody(ctx,
@@ -714,19 +794,16 @@ private:
 
       ctx.fpm.run(*func);
 
+      // Return insert point to previous location
       ctx.builder.SetInsertPoint(return_bb);
     }
-
-    // Clean up
-    for (const auto& param : ast.decl.template_params.type_names)
-      ctx.alias_table.erase(param.utf8());
 
     return func;
   }
 
   [[nodiscard]] std::vector<std::shared_ptr<Type>>
-  createTypes(const std::vector<ast::Type>&               type_asts,
-              const boost::iterator_range<InputIterator>& pos) const
+  createTypes(const std::vector<ast::Type>& type_asts,
+              const PositionRange&          pos) const
   {
     std::vector<std::shared_ptr<Type>> types;
 
@@ -1144,18 +1221,16 @@ private:
     return createSizeOf(value.getLLVMType());
   }
 
-  [[nodiscard]] Value
-  createReference(const Value&                                val,
-                  const boost::iterator_range<InputIterator>& pos) const
+  [[nodiscard]] Value createReference(const Value&         val,
+                                      const PositionRange& pos) const
   {
     return {createAddressOf(val, pos).getValue(),
             std::make_shared<ReferenceType>(val.getType())};
   }
 
   // Do not use for constants!
-  [[nodiscard]] Value
-  createAddressOf(const Value&                                val,
-                  const boost::iterator_range<InputIterator>& pos) const
+  [[nodiscard]] Value createAddressOf(const Value&         val,
+                                      const PositionRange& pos) const
   {
     auto ptr = llvm::getPointerOperand(val.getValue());
 
@@ -1165,9 +1240,9 @@ private:
     return {ptr, std::make_shared<PointerType>(val.getType())};
   }
 
-  void verifyArguments(const std::deque<Value>&                    args,
-                       llvm::Function* const                       callee,
-                       const boost::iterator_range<InputIterator>& pos) const
+  void verifyArguments(const std::deque<Value>& args,
+                       llvm::Function* const    callee,
+                       const PositionRange&     pos) const
   {
     for (std::size_t idx = 0; auto&& arg : callee->args()) {
       if (!strictEquals(args[idx++].getValue()->getType(), arg.getType())) {
@@ -1179,8 +1254,8 @@ private:
   }
 
   [[nodiscard]] std::deque<Value>
-  createArgVals(const std::vector<ast::Expr>&               exprs,
-                const boost::iterator_range<InputIterator>& pos) const
+  createArgVals(const std::vector<ast::Expr>& exprs,
+                const PositionRange&          pos) const
   {
     std::deque<Value> args;
 
@@ -1191,8 +1266,8 @@ private:
   }
 
   [[nodiscard]] std::deque<Value>
-  createArgVals(const std::deque<ast::Expr>&                exprs,
-                const boost::iterator_range<InputIterator>& pos) const
+  createArgVals(const std::deque<ast::Expr>& exprs,
+                const PositionRange&         pos) const
   {
     std::deque<Value> args;
 

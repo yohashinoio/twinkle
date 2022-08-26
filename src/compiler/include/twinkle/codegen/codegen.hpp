@@ -232,6 +232,7 @@ struct CGContext : private boost::noncopyable {
   FunctionTemplateTable   func_template_table;
   ClassTemplateTable      class_template_table;
 
+  // Namespace
   NsHierarchy ns_hierarchy;
 
   // Mangle

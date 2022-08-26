@@ -237,14 +237,11 @@ createBitwiseAnd(CGContext& ctx, const Value& lhs, const Value& rhs);
 createBitwiseOr(CGContext& ctx, const Value& lhs, const Value& rhs);
 
 [[nodiscard]] Value
-createDereference(CGContext&                                  ctx,
-                  const boost::iterator_range<InputIterator>& pos,
-                  const Value&                                val);
+createDereference(CGContext& ctx, const PositionRange& pos, const Value& val);
 
-[[nodiscard]] Value
-createDereference(CGContext&                                  ctx,
-                  const boost::iterator_range<InputIterator>& pos,
-                  const std::shared_ptr<Variable>&            operand);
+[[nodiscard]] Value createDereference(CGContext&                       ctx,
+                                      const PositionRange&             pos,
+                                      const std::shared_ptr<Variable>& operand);
 
 [[nodiscard]] bool strictEquals(const llvm::Type* const left,
                                 const llvm::Type* const right);

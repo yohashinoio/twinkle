@@ -511,9 +511,7 @@ private:
 };
 
 [[nodiscard]] std::shared_ptr<Type>
-createType(CGContext&                                  ctx,
-           const ast::Type&                            ast,
-           const boost::iterator_range<InputIterator>& pos);
+createType(CGContext& ctx, const ast::Type& ast, const PositionRange& pos);
 
 } // namespace twinkle::codegen
 

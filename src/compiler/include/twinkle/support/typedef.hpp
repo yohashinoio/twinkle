@@ -27,6 +27,8 @@ using InputIterator
 using PositionCache
   = boost::spirit::x3::position_cache<std::vector<InputIterator>>;
 
+using PositionRange = boost::iterator_range<InputIterator>;
+
 } // namespace twinkle
 
 #endif

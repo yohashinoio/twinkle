@@ -399,9 +399,8 @@ private:
     return mergeSymbolTables(parent_scope, scope);
   }
 
-  [[nodiscard]] Value
-  createAssignableValue(const ast::Expr&                           node,
-                        const boost::iterator_range<InputIterator> pos) const
+  [[nodiscard]] Value createAssignableValue(const ast::Expr&    node,
+                                            const PositionRange pos) const
   {
     const auto value = createExpr(ctx, getAllSymbols(), stmt_ctx, node);
 
@@ -420,7 +419,7 @@ private:
             value.isMutable()};
   }
 
-  void verifyVariableType(const boost::iterator_range<InputIterator>& pos,
+  void verifyVariableType(const PositionRange&         pos,
                           const std::shared_ptr<Type>& type) const
   {
     if (type->isVoidTy(ctx)) {
@@ -430,12 +429,12 @@ private:
   }
 
   [[nodiscard]] AllocaVariable
-  createAllocaVariable(const boost::iterator_range<InputIterator>& pos,
-                       llvm::Function*                             func,
-                       const std::string&                          name,
-                       const std::shared_ptr<Type>&                type,
-                       const std::optional<ast::Expr>&             initializer,
-                       const bool is_mutable) const
+  createAllocaVariable(const PositionRange&            pos,
+                       llvm::Function*                 func,
+                       const std::string&              name,
+                       const std::shared_ptr<Type>&    type,
+                       const std::optional<ast::Expr>& initializer,
+                       const bool                      is_mutable) const
   {
     verifyVariableType(pos, type);
 
@@ -470,12 +469,12 @@ private:
     };
   }
 
-  [[nodiscard]] AllocaVariable createAllocaVariableTyInference(
-    const boost::iterator_range<InputIterator>& pos,
-    llvm::Function*                             func,
-    const std::string&                          name,
-    const std::optional<ast::Expr>&             initializer,
-    const bool                                  is_mutable) const
+  [[nodiscard]] AllocaVariable
+  createAllocaVariableTyInference(const PositionRange&            pos,
+                                  llvm::Function*                 func,
+                                  const std::string&              name,
+                                  const std::optional<ast::Expr>& initializer,
+                                  const bool is_mutable) const
   {
     auto const init_value
       = createExpr(ctx, getAllSymbols(), stmt_ctx, *initializer);

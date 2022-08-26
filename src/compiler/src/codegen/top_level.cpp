@@ -183,6 +183,49 @@ void createFunctionBody(CGContext&                  ctx,
   }
 }
 
+// It is the caller's responsibility to register a return type in the return
+// type table
+[[nodiscard]] llvm::Function*
+declareFunction(CGContext&                   ctx,
+                const ast::FunctionDecl&     node,
+                const std::string_view       mangled_name,
+                const std::shared_ptr<Type>& return_type)
+{
+  if (node.params->size() && node.params->at(0).is_vararg) {
+    throw CodegenError{
+      ctx.formatError(ctx.positions.position_of(node),
+                      "requires a named argument before '...'")};
+  }
+
+  const auto is_vararg = isVariadicArgs(node.params);
+  if (!is_vararg) {
+    throw CodegenError{
+      ctx.formatError(ctx.positions.position_of(node),
+                      "cannot have multiple variable arguments")};
+  }
+
+  const auto named_params_len
+    = *is_vararg ? node.params->size() - 1 : node.params->size();
+
+  const auto param_types = createParamTypes(ctx, node.params, named_params_len);
+
+  auto const func_type = llvm::FunctionType::get(return_type->getLLVMType(ctx),
+                                                 param_types,
+                                                 *is_vararg);
+
+  auto const func
+    = llvm::Function::Create(func_type,
+                             llvm::Function::LinkageTypes::ExternalLinkage,
+                             mangled_name,
+                             *ctx.module);
+
+  // Set names to all arguments
+  for (std::size_t idx = 0; auto&& arg : func->args())
+    arg.setName(node.params->at(idx++).name.utf8());
+
+  return func;
+}
+
 //===----------------------------------------------------------------------===//
 // Top level statement visitor
 //===----------------------------------------------------------------------===//
@@ -201,54 +244,13 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
   llvm::Function* operator()(const ast::FunctionDecl& node) const
   {
-    const auto name = node.name.utf8();
-
     const auto return_type
       = createType(ctx, node.return_type, ctx.positions.position_of(node));
 
-    if (name == "main" && !return_type->isIntegerTy(ctx)) {
-      throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(node),
-                        "the return type of main must be an integer")};
-    }
-
-    if (node.params->size() && node.params->at(0).is_vararg) {
-      throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(node),
-                        "requires a named argument before '...'")};
-    }
-
-    const auto is_vararg = isVariadicArgs(node.params);
-    if (!is_vararg) {
-      throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(node),
-                        "cannot have multiple variable arguments")};
-    }
-
-    const auto named_params_len
-      = *is_vararg ? node.params->size() - 1 : node.params->size();
-
-    const auto param_types
-      = createParamTypes(ctx, node.params, named_params_len);
-
-    auto const func_type
-      = llvm::FunctionType::get(return_type->getLLVMType(ctx),
-                                param_types,
-                                *is_vararg);
-
-    const auto mangled_name = mangleFunction(node);
-
     auto const func
-      = llvm::Function::Create(func_type,
-                               llvm::Function::LinkageTypes::ExternalLinkage,
-                               mangled_name,
-                               *ctx.module);
+      = declareFunction(ctx, node, mangleFunction(node), return_type);
 
     ctx.return_type_table.insertOrAssign(func, return_type);
-
-    // Set names to all arguments
-    for (std::size_t idx = 0; auto&& arg : func->args())
-      arg.setName(node.params->at(idx++).name.utf8());
 
     return func;
   }
@@ -558,9 +560,8 @@ private:
     return method_def_asts;
   }
 
-  [[nodiscard]] std::string
-  loadFile(const std::filesystem::path&                path,
-           const boost::iterator_range<InputIterator>& pos) const
+  [[nodiscard]] std::string loadFile(const std::filesystem::path& path,
+                                     const PositionRange&         pos) const
   {
     if (!std::filesystem::exists(path)) {
       throw CodegenError{ctx.formatError(

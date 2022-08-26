@@ -305,9 +305,7 @@ createBitwiseOr(CGContext& ctx, const Value& lhs, const Value& rhs)
 }
 
 [[nodiscard]] Value
-createDereference(CGContext&                                  ctx,
-                  const boost::iterator_range<InputIterator>& pos,
-                  const Value&                                val)
+createDereference(CGContext& ctx, const PositionRange& pos, const Value& val)
 {
   if (val.getType()->isRefTy(ctx)) {
     return {ctx.builder.CreateLoad(val.getLLVMType()->getPointerElementType(),
@@ -328,10 +326,9 @@ createDereference(CGContext&                                  ctx,
           val.isMutable()};
 }
 
-[[nodiscard]] Value
-createDereference(CGContext&                                  ctx,
-                  const boost::iterator_range<InputIterator>& pos,
-                  const std::shared_ptr<Variable>&            operand)
+[[nodiscard]] Value createDereference(CGContext&                       ctx,
+                                      const PositionRange&             pos,
+                                      const std::shared_ptr<Variable>& operand)
 {
   return createDereference(ctx, pos, operand->getValue(ctx));
 }

@@ -34,6 +34,12 @@ void createFunctionBody(CGContext&                  ctx,
                         const std::shared_ptr<Type> return_type,
                         const ast::Stmt&            body);
 
+[[nodiscard]] llvm::Function*
+declareFunction(CGContext&                   ctx,
+                const ast::FunctionDecl&     node,
+                const std::string_view       mangled_name,
+                const std::shared_ptr<Type>& return_type);
+
 llvm::Function* createTopLevel(CGContext& ctx, const ast::TopLevel& node);
 
 llvm::Function* createTopLevel(CGContext&                   ctx,

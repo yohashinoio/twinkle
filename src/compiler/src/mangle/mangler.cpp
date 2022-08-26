@@ -53,7 +53,7 @@ Mangler::mangleFunctionTemplate(CGContext&               ctx,
 
   mangled << getMangledAccessibility(decl.accessibility);
 
-  mangled << mangleNamespaceHierarchy(ctx.ns_hierarchy).front();
+  mangled << mangleNamespaceHierarchy(space).front();
 
   assert(!template_args.empty());
 

@@ -530,6 +530,10 @@ struct ClassLiteralTag
   : ErrorHandle
   , AnnotatePosition {};
 
+struct ClassTemplateLiteralTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
 struct BuiltinMacroTag
   : ErrorHandle
   , AnnotatePosition {};

@@ -79,7 +79,7 @@ CGContext::CGContext(llvm::LLVMContext&      context,
 }
 
 [[nodiscard]] std::string
-CGContext::formatError(const boost::iterator_range<InputIterator>& pos,
+CGContext::formatError(const PositionRange&   pos,
                        const std::string_view message) const
 {
   const auto rows = calcRows(pos);
@@ -90,8 +90,7 @@ CGContext::formatError(const boost::iterator_range<InputIterator>& pos,
          + boost::algorithm::trim_copy(source_code.at(rows - 1));
 }
 
-[[nodiscard]] std::size_t
-CGContext::calcRows(const boost::iterator_range<InputIterator>& pos) const
+[[nodiscard]] std::size_t CGContext::calcRows(const PositionRange& pos) const
 {
   std::size_t rows{};
 
