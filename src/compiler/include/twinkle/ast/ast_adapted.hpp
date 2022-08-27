@@ -27,6 +27,16 @@ BOOST_FUSION_ADAPT_STRUCT(
   (std::u32string, path)
 )
 
+BOOST_FUSION_ADAPT_STRUCT(
+  twinkle::ast::TemplateParameters,
+  (twinkle::ast::TemplateParameters::TypeNames, type_names)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+  twinkle::ast::TemplateArguments,
+  (twinkle::ast::TemplateArguments::Types, types)
+)
+
 //===----------------------------------------------------------------------===//
 // Type AST adapt
 //===----------------------------------------------------------------------===//
@@ -51,6 +61,12 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   twinkle::ast::UserDefinedType,
   (twinkle::ast::Identifier, name)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+  twinkle::ast::UserDefinedTemplateType,
+  (twinkle::ast::UserDefinedType, template_type)
+  (twinkle::ast::TemplateArguments, template_args)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -279,11 +295,6 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
   twinkle::ast::ParameterList,
   (std::deque<twinkle::ast::Parameter>, params)
-)
-
-BOOST_FUSION_ADAPT_STRUCT(
-  twinkle::ast::TemplateParameters,
-  (std::vector<twinkle::ast::Identifier>, type_names)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

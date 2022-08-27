@@ -86,6 +86,27 @@ struct Path : x3::position_tagged {
   }
 };
 
+struct TemplateParameters : x3::position_tagged {
+  using TypeNames = std::vector<Identifier>;
+
+  TypeNames type_names;
+
+  [[nodiscard]] bool empty() const noexcept
+  {
+    return type_names.empty();
+  }
+
+  [[nodiscard]] const TypeNames* operator->() const noexcept
+  {
+    return &type_names;
+  }
+
+  [[nodiscard]] TypeNames* operator->() noexcept
+  {
+    return &type_names;
+  }
+};
+
 //===----------------------------------------------------------------------===//
 // Type AST
 //===----------------------------------------------------------------------===//
@@ -101,9 +122,23 @@ struct BuiltinType : x3::position_tagged {
   codegen::BuiltinTypeKind kind;
 };
 
+struct UserDefinedType;
+struct UserDefinedTemplateType;
+struct ArrayType;
+struct PointerType;
+struct ReferenceType;
+
+using Type = boost::variant<boost::blank,
+                            BuiltinType,
+                            UserDefinedType,
+                            boost::recursive_wrapper<UserDefinedTemplateType>,
+                            boost::recursive_wrapper<ArrayType>,
+                            boost::recursive_wrapper<PointerType>,
+                            boost::recursive_wrapper<ReferenceType>>;
+
 struct UserDefinedType : x3::position_tagged {
   explicit UserDefinedType(Identifier&& name)
-    : name{name}
+    : name{std::move(name)}
   {
   }
 
@@ -117,16 +152,25 @@ struct UserDefinedType : x3::position_tagged {
   Identifier name;
 };
 
-struct ArrayType;
-struct PointerType;
-struct ReferenceType;
+struct TemplateArguments {
+  using Types = std::vector<Type>;
 
-using Type = boost::variant<boost::blank,
-                            BuiltinType,
-                            UserDefinedType,
-                            boost::recursive_wrapper<ArrayType>,
-                            boost::recursive_wrapper<PointerType>,
-                            boost::recursive_wrapper<ReferenceType>>;
+  Types types;
+};
+
+struct UserDefinedTemplateType : x3::position_tagged {
+  UserDefinedTemplateType(UserDefinedType&&   template_type,
+                          TemplateArguments&& template_args)
+    : template_type{std::move(template_type)}
+    , template_args{std::move(template_args)}
+  {
+  }
+
+  UserDefinedTemplateType() = default;
+
+  UserDefinedType   template_type;
+  TemplateArguments template_args;
+};
 
 struct ArrayType : x3::position_tagged {
   ArrayType(Type&& element_type, const std::uint64_t size)
@@ -462,8 +506,6 @@ struct FunctionCall : x3::position_tagged {
   }
 };
 
-using TemplateArguments = std::vector<Type>;
-
 struct FunctionTemplateCall : x3::position_tagged {
   Expr              callee;
   TemplateArguments template_args;
@@ -715,25 +757,6 @@ struct ParameterList : x3::position_tagged {
   [[nodiscard]] std::deque<Parameter>* operator->() noexcept
   {
     return &params;
-  }
-};
-
-struct TemplateParameters : x3::position_tagged {
-  std::vector<Identifier> type_names;
-
-  [[nodiscard]] bool empty() const noexcept
-  {
-    return type_names.empty();
-  }
-
-  [[nodiscard]] const std::vector<Identifier>* operator->() const noexcept
-  {
-    return &type_names;
-  }
-
-  [[nodiscard]] std::vector<Identifier>* operator->() noexcept
-  {
-    return &type_names;
   }
 };
 

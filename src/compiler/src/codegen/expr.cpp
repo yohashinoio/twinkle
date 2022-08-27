@@ -496,7 +496,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     }
 
     // Trying to define
-    const auto template_args = createTypes(node.template_args, pos);
+    const auto template_args = createTypes(node.template_args.types, pos);
 
     const auto func_template = findFunctionTemplate(callee_name, template_args);
 
@@ -598,7 +598,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     // TODO:
     // もし既に同じテンプレート引数で定義されているなら新しく作らないように
 
-    const auto template_args = createTypes(node.template_args, pos);
+    const auto template_args = createTypes(node.template_args.types, pos);
 
     const auto class_template = findClassTemplate(class_name, template_args);
 

@@ -329,6 +329,13 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
   }
 
   [[nodiscard]] std::shared_ptr<Type>
+  operator()(const ast::UserDefinedTemplateType& node) const
+  {
+    // TODO
+    unreachable();
+  }
+
+  [[nodiscard]] std::shared_ptr<Type>
   operator()(const ast::ReferenceType& node) const
   {
     return std::make_shared<ReferenceType>(

@@ -257,12 +257,6 @@ struct BuiltinMacroSymbols : UnicodeSymbols<codegen::BuiltinMacroKind> {
 } builtin_macro_symbols;
 
 //===----------------------------------------------------------------------===//
-// Type rules declaration
-//===----------------------------------------------------------------------===//
-
-const x3::rule<struct TypeTag, ast::Type> type_name{"type name"};
-
-//===----------------------------------------------------------------------===//
 // Common rules declaration
 //===----------------------------------------------------------------------===//
 
@@ -272,6 +266,14 @@ const x3::rule<struct ClassLiteralTag, ast::ClassLiteral> class_literal{
   "class literal"};
 const x3::rule<struct ClassTemplateLiteralTag, ast::ClassTemplateLiteral>
   class_template_literal{"class template literal"};
+const x3::rule<struct TemplateArgsTag, ast::TemplateArguments> template_args{
+  "template arguments"};
+
+//===----------------------------------------------------------------------===//
+// Type rules declaration
+//===----------------------------------------------------------------------===//
+
+const x3::rule<struct TypeTag, ast::Type> type_name{"type name"};
 
 //===----------------------------------------------------------------------===//
 // Expression rules declaration
@@ -471,10 +473,8 @@ const auto attribute = x3::rule<struct AttrTag, ast::Attrs>{"attribute"}
 
 // Do not use the expectation operator because it may be a comparison operation
 // (< or >)
-const auto template_args
-  = x3::rule<struct TemplateArgsTag,
-             ast::TemplateArguments>{"template arguments"}
-= lit(U"<") >> (type_name % lit(U",")) >> lit(U">");
+const auto template_args_def
+  = lit(U"<") >> (type_name % lit(U",")) >> lit(U">");
 
 const auto array_literal_def = lit(U"[") > (expr % lit(U",")) > lit(U"]");
 
@@ -493,6 +493,7 @@ const auto space = x3::rule<struct SpaceTag>{"space"} = x3::unicode::space;
 BOOST_SPIRIT_DEFINE(array_literal)
 BOOST_SPIRIT_DEFINE(class_literal)
 BOOST_SPIRIT_DEFINE(class_template_literal)
+BOOST_SPIRIT_DEFINE(template_args)
 
 struct VariableIdentTag
   : ErrorHandle
@@ -562,6 +563,9 @@ const x3::rule<struct PointerTypeTag, ast::Type> pointer_type{"pointer type"};
 const x3::rule<struct UserDefinedTypeTag, ast::UserDefinedType>
   user_defined_type{"user defined type"};
 
+const x3::rule<struct UserDefinedTemplateTypeTag, ast::UserDefinedTemplateType>
+  user_defined_template_type{"user defined template type"};
+
 const auto builtin_type
   = x3::rule<struct BuiltinTypeTag, ast::BuiltinType>{"builtin type name"}
 = builtin_type_symbols;
@@ -586,8 +590,11 @@ const auto pointer_type_def = type_primary | pointer_type_internal;
 
 const auto user_defined_type_def = identifier;
 
-const auto type_primary_def
-  = builtin_type | user_defined_type | (lit(U"(") >> type_name > lit(U")"));
+const auto user_defined_template_type_def = user_defined_type >> template_args;
+
+const auto type_primary_def = builtin_type | user_defined_template_type
+                              | user_defined_type
+                              | (lit(U"(") >> type_name > lit(U")"));
 
 BOOST_SPIRIT_DEFINE(type_name)
 BOOST_SPIRIT_DEFINE(array_type)
@@ -596,6 +603,7 @@ BOOST_SPIRIT_DEFINE(reference_type)
 BOOST_SPIRIT_DEFINE(pointer_type_internal)
 BOOST_SPIRIT_DEFINE(pointer_type)
 BOOST_SPIRIT_DEFINE(user_defined_type)
+BOOST_SPIRIT_DEFINE(user_defined_template_type)
 BOOST_SPIRIT_DEFINE(type_primary)
 
 struct BuiltinTypeTag : ErrorHandle {};
@@ -615,6 +623,8 @@ struct ReferenceTypeInternalTag : ErrorHandle {};
 struct ReferenceTypeTag : ErrorHandle {};
 
 struct UserDefinedTypeTag : ErrorHandle {};
+
+struct UserDefinedTemplateTypeTag : ErrorHandle {};
 
 //===----------------------------------------------------------------------===//
 // Operator rules definition
