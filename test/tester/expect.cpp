@@ -192,6 +192,7 @@ namespace test
     {                                "template",  58},
     {                  "class_template_literal",  58},
     {                     "class_template_type", 116},
+    {            "multiple_class_template_type", 116},
   };
 
   const auto it = expects.find(test_name);

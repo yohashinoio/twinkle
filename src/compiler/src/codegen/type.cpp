@@ -340,7 +340,12 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
   {
     const auto pos = ctx.positions.position_of(node);
 
-    const auto class_name = node.template_type.name.utf8();
+    const auto template_type = (*this)(node.template_type);
+
+    const auto class_name
+      = template_type->getLLVMType(ctx) ? template_type->getClassName(
+          ctx) /* Already defined template type or aliased type */
+                                        : node.template_type.name.utf8();
 
     const auto class_template
       = findClassTemplate(ctx, class_name, node.template_args);
@@ -351,10 +356,21 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
         fmt::format("unknown class template '{}'", class_name))};
     }
 
-    return createClassFromTemplate(class_template->first,
-                                   node.template_args,
-                                   class_template->second,
-                                   pos);
+    const auto table_key = CreateClassTemplateTableKey{class_name,
+                                                       node.template_args,
+                                                       class_template->second};
+
+    if (const auto type = ctx.created_class_template_table[table_key])
+      return *type;
+
+    const auto type = createClassFromTemplate(class_template->first,
+                                              node.template_args,
+                                              class_template->second,
+                                              pos);
+
+    ctx.created_class_template_table.insert(table_key, type);
+
+    return type;
   }
 
   [[nodiscard]] std::shared_ptr<Type>
@@ -389,7 +405,9 @@ private:
       defineMethods(ctx, methods, class_name);
 
       // Return insert point to previous location
-      ctx.builder.SetInsertPoint(return_bb);
+      // If null, it means it was called from outside functions, so do nothing
+      if (return_bb)
+        ctx.builder.SetInsertPoint(return_bb);
     }
 
     return createType(ctx, ast::UserDefinedType{ast.name}, pos);

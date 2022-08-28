@@ -59,9 +59,15 @@ struct Identifier : x3::position_tagged {
     return name;
   }
 
-  [[nodiscard]] bool operator==(const ast::Identifier& other) const
+  [[nodiscard]] bool operator==(const Identifier& other) const
   {
     return name == other.utf32();
+  }
+
+  // Implemented to be a key in std::map
+  [[nodiscard]] bool operator<(const Identifier& other) const
+  {
+    return name < other.utf32();
   }
 };
 
@@ -120,6 +126,12 @@ struct BuiltinType : x3::position_tagged {
   BuiltinType() = default;
 
   codegen::BuiltinTypeKind kind;
+
+  // Implemented to be a key in std::map
+  [[nodiscard]] bool operator<(const BuiltinType& other) const
+  {
+    return kind < other.kind;
+  }
 };
 
 struct UserDefinedType;
@@ -150,12 +162,24 @@ struct UserDefinedType : x3::position_tagged {
   UserDefinedType() = default;
 
   Identifier name;
+
+  // Implemented to be a key in std::map
+  [[nodiscard]] bool operator<(const UserDefinedType& other) const
+  {
+    return name < other.name;
+  }
 };
 
 struct TemplateArguments {
   using Types = std::vector<Type>;
 
   Types types;
+
+  // Implemented to be a key in std::map
+  [[nodiscard]] bool operator<(const TemplateArguments& other) const
+  {
+    return types < other.types;
+  }
 };
 
 struct UserDefinedTemplateType : x3::position_tagged {
@@ -170,6 +194,13 @@ struct UserDefinedTemplateType : x3::position_tagged {
 
   UserDefinedType   template_type;
   TemplateArguments template_args;
+
+  // Implemented to be a key in std::map
+  [[nodiscard]] bool operator<(const UserDefinedTemplateType& other) const
+  {
+    return template_type < other.template_type
+           && template_args < other.template_args;
+  }
 };
 
 struct ArrayType : x3::position_tagged {
@@ -181,6 +212,12 @@ struct ArrayType : x3::position_tagged {
 
   Type          element_type;
   std::uint64_t size;
+
+  // Implemented to be a key in std::map
+  [[nodiscard]] bool operator<(const ArrayType& other) const
+  {
+    return element_type < other.element_type && size < other.size;
+  }
 };
 
 struct PointerType : x3::position_tagged {
@@ -200,6 +237,12 @@ struct PointerType : x3::position_tagged {
 
   std::vector<boost::blank> n_ops; // operators
   Type                      pointee_type;
+
+  // Implemented to be a key in std::map
+  [[nodiscard]] bool operator<(const PointerType& other) const
+  {
+    return n_ops < other.n_ops && pointee_type < other.pointee_type;
+  }
 };
 
 struct ReferenceType : x3::position_tagged {
@@ -211,6 +254,12 @@ struct ReferenceType : x3::position_tagged {
   ReferenceType() = default;
 
   Type refee_type;
+
+  // Implemented to be a key in std::map
+  [[nodiscard]] bool operator<(const ReferenceType& other) const
+  {
+    return refee_type < other.refee_type;
+  }
 };
 
 //===----------------------------------------------------------------------===//

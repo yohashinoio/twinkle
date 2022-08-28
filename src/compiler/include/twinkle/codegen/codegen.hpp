@@ -184,7 +184,7 @@ private:
   std::deque<Namespace> namespaces;
 };
 
-using TemplateTableKey = std::tuple<std::string, // Function name
+using TemplateTableKey = std::tuple<std::string, // Name
                                     std::size_t, // Template parameter length
                                     NsHierarchy>;
 
@@ -203,6 +203,16 @@ using ClassTemplateTable
   = Table<TemplateTableKey,
           ClassTemplateTableValue,
           std::map<TemplateTableKey, ClassTemplateTableValue>>;
+
+using CreateClassTemplateTableKey = std::tuple<std::string, // Name
+                                               ast::TemplateArguments,
+                                               NsHierarchy>;
+
+// std::unordered_map cannot use std::tuple as a key, so use std::map instead
+using CreatedClassTemplateTable
+  = Table<CreateClassTemplateTableKey,
+          std::shared_ptr<Type>,
+          std::map<CreateClassTemplateTableKey, std::shared_ptr<Type>>>;
 
 // Codegen context
 struct CGContext : private boost::noncopyable {
@@ -226,11 +236,12 @@ struct CGContext : private boost::noncopyable {
   PositionCache positions;
 
   // Table
-  ClassTable              class_table;
-  FunctionReturnTypeTable return_type_table;
-  AliasTable              alias_table;
-  FunctionTemplateTable   func_template_table;
-  ClassTemplateTable      class_template_table;
+  ClassTable                class_table;
+  FunctionReturnTypeTable   return_type_table;
+  AliasTable                alias_table;
+  FunctionTemplateTable     func_template_table;
+  ClassTemplateTable        class_template_table;
+  CreatedClassTemplateTable created_class_template_table;
 
   // Namespace
   NsHierarchy ns_hierarchy;

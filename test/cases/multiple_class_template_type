@@ -1,0 +1,17 @@
+class twicer<T> {
+  func twice(n: T) -> T
+  {
+    return n * 2;
+  }
+}
+
+func f(s: ^twicer<i32>, n: i32) -> i32
+{
+  return s^.twice(n);
+}
+
+func main() -> i32
+{
+  let s: twicer<i32>;
+  return f(&s, 58);
+}
