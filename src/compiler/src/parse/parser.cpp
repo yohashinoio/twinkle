@@ -570,8 +570,8 @@ const auto reference_type_def = array_type | reference_type_internal;
 
 const auto array_type_def
   = pointer_type[action::assignAttrToVal]
-    >> *(string(U"[") > uint_64bit
-         > lit(U"]"))[action::assignToValAs<ast::ArrayType>{}];
+    >> *(string(U"[") >> uint_64bit
+         >> lit(U"]"))[action::assignToValAs<ast::ArrayType>{}];
 
 const auto pointer_type_internal_def
   = +(lit(U"^") > x3::attr(boost::blank{})) > type_primary;
@@ -584,7 +584,7 @@ const auto user_defined_template_type_def = user_defined_type >> template_args;
 
 const auto type_primary_def = builtin_type | user_defined_template_type
                               | user_defined_type
-                              | (lit(U"(") >> type_name > lit(U")"));
+                              | (lit(U"(") >> type_name >> lit(U")"));
 
 BOOST_SPIRIT_DEFINE(type_name)
 BOOST_SPIRIT_DEFINE(array_type)
