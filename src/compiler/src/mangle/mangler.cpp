@@ -39,11 +39,11 @@ Mangler::mangleFunction(CGContext& ctx, const ast::FunctionDecl& decl) const
   return mangled.str();
 }
 
-[[nodiscard]] std::string
-Mangler::mangleFunctionTemplate(CGContext&               ctx,
-                                const NsHierarchy&       space,
-                                const ast::FunctionDecl& decl,
-                                const TemplateArguments& template_args) const
+[[nodiscard]] std::string Mangler::mangleFunctionTemplate(
+  CGContext&                    ctx,
+  const NsHierarchy&            space,
+  const ast::FunctionDecl&      decl,
+  const ast::TemplateArguments& template_args) const
 {
   assert(!decl.is_constructor && !decl.is_destructor);
 
@@ -55,7 +55,7 @@ Mangler::mangleFunctionTemplate(CGContext&               ctx,
 
   mangled << mangleNamespaceHierarchy(space).front();
 
-  assert(!template_args.empty());
+  assert(!template_args.types.empty());
 
   mangled << mangleFunctionName(decl.name.utf8());
 
@@ -226,15 +226,17 @@ Mangler::mangleDestructorCall(CGContext&         ctx,
 }
 
 [[nodiscard]] std::string
-Mangler::mangleTemplateArguments(CGContext&               ctx,
-                                 const TemplateArguments& args) const
+Mangler::mangleTemplateArguments(CGContext&                    ctx,
+                                 const ast::TemplateArguments& args) const
 {
   std::ostringstream mangled;
 
   mangled << 'I';
 
-  for (const auto& r : args)
-    mangled << r->getMangledName(ctx);
+  for (const auto& r : args.types) {
+    mangled << createType(ctx, r, ctx.positions.position_of(args))
+                 ->getMangledName(ctx);
+  }
 
   return mangled.str();
 }

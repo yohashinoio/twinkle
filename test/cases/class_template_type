@@ -1,0 +1,12 @@
+class sample<T> {
+  func twice(n: T) -> T
+  {
+    return n * 2;
+  }
+}
+
+func main() -> i32
+{
+  let s: sample<i32>;
+  return s.twice(58);
+}

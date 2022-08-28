@@ -10,6 +10,30 @@
 namespace twinkle::codegen
 {
 
+[[nodiscard]] std::optional<std::pair<ClassTemplateTableValue, NsHierarchy>>
+findClassTemplate(CGContext&                    ctx,
+                  const std::string_view        name,
+                  const ast::TemplateArguments& args)
+{
+  auto namespace_copy = ctx.ns_hierarchy;
+
+  for (;;) {
+    if (const auto value
+        = ctx.class_template_table[TemplateTableKey{name,
+                                                    args.types.size(),
+                                                    namespace_copy}]) {
+      return std::make_pair(*value, std::move(namespace_copy));
+    }
+
+    if (namespace_copy.empty())
+      return std::nullopt;
+
+    namespace_copy.pop();
+  }
+
+  unreachable();
+}
+
 [[nodiscard]] llvm::AllocaInst* createEntryAlloca(llvm::Function*    func,
                                                   const std::string& name,
                                                   llvm::Type* const  type)

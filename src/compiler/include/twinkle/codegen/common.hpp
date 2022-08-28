@@ -154,6 +154,61 @@ private:
   bool is_mutable;
 };
 
+// Returns a AST of a class template and a namespace information where it is
+// located
+[[nodiscard]] std::optional<std::pair<ClassTemplateTableValue, NsHierarchy>>
+findClassTemplate(CGContext&                    ctx,
+                  const std::string_view        name,
+                  const ast::TemplateArguments& args);
+
+// Add template arguments as aliases
+// Clean up in destructor
+struct TemplateArgmentsDefiner {
+  TemplateArgmentsDefiner(CGContext&                     ctx,
+                          const ast::TemplateArguments&  args,
+                          const ast::TemplateParameters& params,
+                          const PositionRange&           pos)
+    : ctx{ctx}
+    , args{args}
+    , params{params}
+  {
+    insertToAliasTable(pos);
+  }
+
+  ~TemplateArgmentsDefiner()
+  {
+    cleanup();
+  }
+
+  void insertToAliasTable(const PositionRange& pos) const
+  {
+    for (std::size_t idx = 0; const auto& param : params.type_names) {
+      const auto param_name = param.utf8();
+
+      if (ctx.alias_table.exists(param_name)) {
+        throw CodegenError{ctx.formatError(
+          pos,
+          fmt::format("redefinition of template parameter '{}'", param_name))};
+      }
+
+      ctx.alias_table.insert(param_name, createType(ctx, args.types[idx], pos));
+      ++idx;
+    }
+  }
+
+  void cleanup() const
+  {
+    for (const auto& param : params.type_names)
+      ctx.alias_table.erase(param.utf8());
+  }
+
+private:
+  CGContext& ctx;
+
+  const ast::TemplateArguments&  args;
+  const ast::TemplateParameters& params;
+};
+
 // Create an alloca instruction in the entry block of
 // the function.
 [[nodiscard]] llvm::AllocaInst* createEntryAlloca(llvm::Function*    func,

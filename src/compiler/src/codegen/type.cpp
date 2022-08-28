@@ -7,7 +7,9 @@
 
 #include <twinkle/codegen/type.hpp>
 #include <twinkle/codegen/codegen.hpp>
+#include <twinkle/codegen/common.hpp>
 #include <twinkle/codegen/exception.hpp>
+#include <twinkle/codegen/top_level.hpp>
 
 namespace twinkle::codegen
 {
@@ -290,6 +292,11 @@ ClassType::offsetByName(const std::string_view member_name) const
 
 // Type AST to std::shared_ptr<Type>
 struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
+  TypeVisitor(CGContext& ctx) noexcept
+    : ctx{ctx}
+  {
+  }
+
   [[nodiscard]] std::shared_ptr<Type> operator()(boost::blank) const
   {
     unreachable();
@@ -331,8 +338,23 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
   [[nodiscard]] std::shared_ptr<Type>
   operator()(const ast::UserDefinedTemplateType& node) const
   {
-    // TODO
-    unreachable();
+    const auto pos = ctx.positions.position_of(node);
+
+    const auto class_name = node.template_type.name.utf8();
+
+    const auto class_template
+      = findClassTemplate(ctx, class_name, node.template_args);
+
+    if (!class_template) {
+      throw CodegenError{ctx.formatError(
+        pos,
+        fmt::format("unknown class template '{}'", class_name))};
+    }
+
+    return createClassFromTemplate(class_template->first,
+                                   node.template_args,
+                                   class_template->second,
+                                   pos);
   }
 
   [[nodiscard]] std::shared_ptr<Type>
@@ -341,6 +363,39 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
     return std::make_shared<ReferenceType>(
       boost::apply_visitor(*this, node.refee_type));
   }
+
+private:
+  [[nodiscard]] std::shared_ptr<Type>
+  createClassFromTemplate(const ClassTemplateTableValue& ast,
+                          const ast::TemplateArguments&  template_args,
+                          const NsHierarchy& space, // FIXME: Use this argument
+                          const PositionRange& pos) const
+  {
+    const TemplateArgmentsDefiner ta_definer{ctx,
+                                             template_args,
+                                             ast.template_params,
+                                             pos};
+
+    const auto methods = createClassNoMethodDeclDef(ctx, ast);
+
+    const auto class_name = ast.name.utf8();
+
+    {
+      // Save the current insert block because a function template is created
+      // from within a function
+      const auto return_bb = ctx.builder.GetInsertBlock();
+
+      declareMethods(ctx, methods, class_name);
+      defineMethods(ctx, methods, class_name);
+
+      // Return insert point to previous location
+      ctx.builder.SetInsertPoint(return_bb);
+    }
+
+    return createType(ctx, ast::UserDefinedType{ast.name}, pos);
+  }
+
+  CGContext& ctx;
 };
 
 void verifyType(CGContext&                   ctx,
@@ -356,7 +411,7 @@ void verifyType(CGContext&                   ctx,
 [[nodiscard]] std::shared_ptr<Type>
 createType(CGContext& ctx, const ast::Type& ast, const PositionRange& pos)
 {
-  const auto type = boost::apply_visitor(TypeVisitor(), ast);
+  const auto type = boost::apply_visitor(TypeVisitor{ctx}, ast);
 
   verifyType(ctx, type, pos);
 

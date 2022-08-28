@@ -33,17 +33,15 @@ constexpr const char* ellipsis = "z";
 
 constexpr const char* prefix = "_Z";
 
-using TemplateArguments = std::vector<std::shared_ptr<Type>>;
-
 struct Mangler : private boost::noncopyable {
   [[nodiscard]] std::string mangleFunction(CGContext&               ctx,
                                            const ast::FunctionDecl& decl) const;
 
   [[nodiscard]] std::string
-  mangleFunctionTemplate(CGContext&               ctx,
-                         const NsHierarchy&       space,
-                         const ast::FunctionDecl& decl,
-                         const TemplateArguments& template_args) const;
+  mangleFunctionTemplate(CGContext&                    ctx,
+                         const NsHierarchy&            space,
+                         const ast::FunctionDecl&      decl,
+                         const ast::TemplateArguments& template_args) const;
 
   [[nodiscard]] std::vector<std::string>
   mangleFunctionCall(CGContext&               ctx,
@@ -73,7 +71,8 @@ struct Mangler : private boost::noncopyable {
 
 private:
   [[nodiscard]] std::string
-  mangleTemplateArguments(CGContext& ctx, const TemplateArguments& args) const;
+  mangleTemplateArguments(CGContext&                    ctx,
+                          const ast::TemplateArguments& args) const;
 
   [[nodiscard]] std::string mangleFunctionName(const std::string& name) const;
 

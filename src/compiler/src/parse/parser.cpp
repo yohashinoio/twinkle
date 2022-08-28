@@ -264,8 +264,6 @@ const x3::rule<struct ArrayLiteralTag, ast::ArrayLiteral> array_literal{
   "array literal"};
 const x3::rule<struct ClassLiteralTag, ast::ClassLiteral> class_literal{
   "class literal"};
-const x3::rule<struct ClassTemplateLiteralTag, ast::ClassTemplateLiteral>
-  class_template_literal{"class template literal"};
 const x3::rule<struct TemplateArgsTag, ast::TemplateArguments> template_args{
   "template arguments"};
 
@@ -479,10 +477,7 @@ const auto template_args_def
 const auto array_literal_def = lit(U"[") > (expr % lit(U",")) > lit(U"]");
 
 const auto class_literal_def
-  = identifier >> lit(U"{") > -(expr % lit(U",")) > lit(U"}");
-
-const auto class_template_literal_def
-  = identifier >> template_args >> lit(U"{") > -(expr % lit(U",")) > lit(U"}");
+  = type_name >> lit(U"{") > -(expr % lit(U",")) > lit(U"}");
 
 const auto builtin_macro
   = x3::rule<struct BuiltinMacroTag, ast::BuiltinMacro>{"builtin macro"}
@@ -492,7 +487,6 @@ const auto space = x3::rule<struct SpaceTag>{"space"} = x3::unicode::space;
 
 BOOST_SPIRIT_DEFINE(array_literal)
 BOOST_SPIRIT_DEFINE(class_literal)
-BOOST_SPIRIT_DEFINE(class_template_literal)
 BOOST_SPIRIT_DEFINE(template_args)
 
 struct VariableIdentTag
@@ -528,10 +522,6 @@ struct ArrayLiteralTag
   , AnnotatePosition {};
 
 struct ClassLiteralTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct ClassTemplateLiteralTag
   : ErrorHandle
   , AnnotatePosition {};
 
@@ -606,25 +596,45 @@ BOOST_SPIRIT_DEFINE(user_defined_type)
 BOOST_SPIRIT_DEFINE(user_defined_template_type)
 BOOST_SPIRIT_DEFINE(type_primary)
 
-struct BuiltinTypeTag : ErrorHandle {};
+struct BuiltinTypeTag
+  : ErrorHandle
+  , AnnotatePosition {};
 
-struct TypePrimaryTag : ErrorHandle {};
+struct TypePrimaryTag
+  : ErrorHandle
+  , AnnotatePosition {};
 
-struct TypeTag : ErrorHandle {};
+struct TypeTag
+  : ErrorHandle
+  , AnnotatePosition {};
 
-struct PointerTypeInternalTag : ErrorHandle {};
+struct PointerTypeInternalTag
+  : ErrorHandle
+  , AnnotatePosition {};
 
-struct PointerTypeTag : ErrorHandle {};
+struct PointerTypeTag
+  : ErrorHandle
+  , AnnotatePosition {};
 
-struct ArrayTypeTag : ErrorHandle {};
+struct ArrayTypeTag
+  : ErrorHandle
+  , AnnotatePosition {};
 
-struct ReferenceTypeInternalTag : ErrorHandle {};
+struct ReferenceTypeInternalTag
+  : ErrorHandle
+  , AnnotatePosition {};
 
-struct ReferenceTypeTag : ErrorHandle {};
+struct ReferenceTypeTag
+  : ErrorHandle
+  , AnnotatePosition {};
 
-struct UserDefinedTypeTag : ErrorHandle {};
+struct UserDefinedTypeTag
+  : ErrorHandle
+  , AnnotatePosition {};
 
-struct UserDefinedTemplateTypeTag : ErrorHandle {};
+struct UserDefinedTemplateTypeTag
+  : ErrorHandle
+  , AnnotatePosition {};
 
 //===----------------------------------------------------------------------===//
 // Operator rules definition
@@ -770,10 +780,10 @@ const auto function_template_call_def
          > lit(U")"))[action::assignToValAs<ast::FunctionTemplateCall>{}];
 
 const auto primary_def
-  = builtin_macro | class_template_literal | class_literal | identifier
-    | float_64bit | binary_literal | octal_literal | hex_literal | int_32bit
-    | uint_32bit | int_64bit | uint_64bit | boolean_literal | string_literal
-    | char_literal | array_literal | (lit(U"(") > expr > lit(U")"));
+  = builtin_macro | class_literal | identifier | float_64bit | binary_literal
+    | octal_literal | hex_literal | int_32bit | uint_32bit | int_64bit
+    | uint_64bit | boolean_literal | string_literal | char_literal
+    | array_literal | (lit(U"(") > expr > lit(U")"));
 
 BOOST_SPIRIT_DEFINE(expr)
 BOOST_SPIRIT_DEFINE(binary_logical)

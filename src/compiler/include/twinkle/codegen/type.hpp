@@ -186,8 +186,10 @@ struct UserDefinedType : public Type {
     return getRealType(ctx)->getSignKind(ctx);
   }
 
+  // Return nullptr if the type does not exist
   [[nodiscard]] std::shared_ptr<Type> getRealType(CGContext& ctx) const;
 
+  // Return nullptr if the type does not exist
   [[nodiscard]] llvm::Type* getLLVMType(CGContext& ctx) const override;
 
   [[nodiscard]] std::shared_ptr<Type>

@@ -168,14 +168,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   twinkle::ast::ClassLiteral,
-  (twinkle::ast::Identifier, class_name)
-  (std::vector<twinkle::ast::Expr>, initializer_list)
-)
-
-BOOST_FUSION_ADAPT_STRUCT(
-  twinkle::ast::ClassTemplateLiteral,
-  (twinkle::ast::Identifier, class_name)
-  (twinkle::ast::TemplateArguments, template_args)
+  (twinkle::ast::Type, type)
   (std::vector<twinkle::ast::Expr>, initializer_list)
 )
 

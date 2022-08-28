@@ -38,57 +38,6 @@ toLLVMVals(const std::deque<Value>& v)
   return ret;
 }
 
-using TemplateArguments  = std::vector<std::shared_ptr<Type>>;
-using TemplateParameters = std::vector<ast::Identifier>;
-
-// Add template arguments as aliases
-// Clean up in destructor
-struct TemplateArgmentsDefiner {
-  TemplateArgmentsDefiner(CGContext&                ctx,
-                          const TemplateArguments&  args,
-                          const TemplateParameters& params,
-                          const PositionRange&      pos)
-    : ctx{ctx}
-    , args{args}
-    , params{params}
-  {
-    insertToAliasTable(pos);
-  }
-
-  ~TemplateArgmentsDefiner()
-  {
-    cleanup();
-  }
-
-  void insertToAliasTable(const PositionRange& pos) const
-  {
-    for (std::size_t idx = 0; const auto& param : params) {
-      const auto param_name = param.utf8();
-
-      if (ctx.alias_table.exists(param_name)) {
-        throw CodegenError{ctx.formatError(
-          pos,
-          fmt::format("redefinition of template parameter '{}'", param_name))};
-      }
-
-      ctx.alias_table.insert(param_name, args[idx]);
-      ++idx;
-    }
-  }
-
-  void cleanup() const
-  {
-    for (const auto& param : params)
-      ctx.alias_table.erase(param.utf8());
-  }
-
-private:
-  CGContext& ctx;
-
-  const TemplateArguments&  args;
-  const TemplateParameters& params;
-};
-
 //===----------------------------------------------------------------------===//
 // Expression visitor
 //===----------------------------------------------------------------------===//
@@ -496,9 +445,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     }
 
     // Trying to define
-    const auto template_args = createTypes(node.template_args.types, pos);
-
-    const auto func_template = findFunctionTemplate(callee_name, template_args);
+    const auto func_template
+      = findFunctionTemplate(callee_name, node.template_args);
 
     if (!func_template) {
       throw CodegenError{ctx.formatError(
@@ -507,7 +455,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     }
 
     return createFunctionCall(createFunctionTemplate(func_template->first,
-                                                     template_args,
+                                                     node.template_args,
                                                      func_template->second),
                               args,
                               pos);
@@ -584,92 +532,19 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::ClassLiteral& node) const
   {
-    return createClassLiteral(node.class_name.utf8(),
+    const auto pos = ctx.positions.position_of(node);
+
+    const auto type = createType(ctx, node.type, pos);
+
+    if (!type->getLLVMType(ctx)->isStructTy())
+      throw CodegenError{ctx.formatError(pos, "no support for non-class type")};
+
+    return createClassLiteral(type,
                               node.initializer_list,
                               ctx.positions.position_of(node));
   }
 
-  [[nodiscard]] Value operator()(const ast::ClassTemplateLiteral& node) const
-  {
-    const auto pos = ctx.positions.position_of(node);
-
-    const auto class_name = node.class_name.utf8();
-
-    // TODO:
-    // もし既に同じテンプレート引数で定義されているなら新しく作らないように
-
-    const auto template_args = createTypes(node.template_args.types, pos);
-
-    const auto class_template = findClassTemplate(class_name, template_args);
-
-    if (!class_template) {
-      throw CodegenError{ctx.formatError(
-        pos,
-        fmt::format("unknown class template '{}'", class_name))};
-    }
-
-    return createClassLiteral(createClassFromTemplate(class_template->first,
-                                                      template_args,
-                                                      class_template->second,
-                                                      pos),
-                              node.initializer_list,
-                              pos);
-  }
-
 private:
-  [[nodiscard]] std::optional<std::pair<ClassTemplateTableValue, NsHierarchy>>
-  findClassTemplate(const std::string_view   name,
-                    const TemplateArguments& args) const
-  {
-    auto namespace_copy = ctx.ns_hierarchy;
-
-    for (;;) {
-      if (const auto value
-          = ctx.class_template_table[TemplateTableKey{name,
-                                                      args.size(),
-                                                      namespace_copy}]) {
-        return std::make_pair(*value, std::move(namespace_copy));
-      }
-
-      if (namespace_copy.empty())
-        return std::nullopt;
-
-      namespace_copy.pop();
-    }
-
-    unreachable();
-  }
-
-  [[nodiscard]] std::shared_ptr<Type>
-  createClassFromTemplate(const ClassTemplateTableValue& ast,
-                          const TemplateArguments&       template_args,
-                          const NsHierarchy& space, // FIXME: Use this argument
-                          const PositionRange& pos) const
-  {
-    const TemplateArgmentsDefiner ta_definer{ctx,
-                                             template_args,
-                                             ast.template_params.type_names,
-                                             pos};
-
-    const auto methods = createClassNoMethodDeclDef(ctx, ast);
-
-    const auto class_name = ast.name.utf8();
-
-    {
-      // Save the current insert block because a function template is created
-      // from within a function
-      const auto return_bb = ctx.builder.GetInsertBlock();
-
-      declareMethods(ctx, methods, class_name);
-      defineMethods(ctx, methods, class_name);
-
-      // Return insert point to previous location
-      ctx.builder.SetInsertPoint(return_bb);
-    }
-
-    return createType(ctx, ast::UserDefinedType{ast.name}, pos);
-  }
-
   [[nodiscard]] Value
   createClassLiteral(const std::shared_ptr<Type>&  class_type,
                      const std::vector<ast::Expr>& initializer_list,
@@ -697,31 +572,33 @@ private:
   }
 
   [[nodiscard]] Value
-  createClassLiteral(const std::string&            class_name,
+  createClassLiteral(const ast::Identifier&        class_name,
                      const std::vector<ast::Expr>& initializer_list,
                      const PositionRange&          pos) const
   {
-    const auto class_type = findClass(class_name);
+    const auto class_type
+      = createType(ctx, ast::UserDefinedType{class_name}, pos);
 
     if (!class_type) {
-      throw CodegenError{
-        ctx.formatError(pos, fmt::format("class {} is undefined", class_name))};
+      throw CodegenError{ctx.formatError(
+        pos,
+        fmt::format("class {} is undefined", class_name.utf8()))};
     }
 
-    return createClassLiteral(*class_type, initializer_list, pos);
+    return createClassLiteral(class_type, initializer_list, pos);
   }
 
   [[nodiscard]] std::optional<
     std::pair<FunctionTemplateTableValue, NsHierarchy>>
-  findFunctionTemplate(const std::string_view   name,
-                       const TemplateArguments& args) const
+  findFunctionTemplate(const std::string_view        name,
+                       const ast::TemplateArguments& args) const
   {
     auto namespace_copy = ctx.ns_hierarchy;
 
     for (;;) {
       if (const auto value
           = ctx.func_template_table[TemplateTableKey{name,
-                                                     args.size(),
+                                                     args.types.size(),
                                                      namespace_copy}]) {
         return std::make_pair(*value, std::move(namespace_copy));
       }
@@ -737,20 +614,20 @@ private:
 
   [[nodiscard]] llvm::Function*
   createFunctionTemplate(const FunctionTemplateTableValue& ast,
-                         const TemplateArguments&          template_args,
+                         const ast::TemplateArguments&     template_args,
                          const NsHierarchy&                space) const
   {
     assert(ast.decl.isTemplate());
 
-    assert(ast.decl.template_params->size() == template_args.size());
+    assert(ast.decl.template_params->size() == template_args.types.size());
 
     return defineFunctionTemplate(ast, template_args, space);
   }
 
   [[nodiscard]] llvm::Function*
-  declareFunctionTemplate(const ast::FunctionDecl& decl,
-                          const TemplateArguments& template_args,
-                          const NsHierarchy&       space) const
+  declareFunctionTemplate(const ast::FunctionDecl&      decl,
+                          const ast::TemplateArguments& template_args,
+                          const NsHierarchy&            space) const
   {
     const auto return_type
       = createType(ctx, decl.return_type, ctx.positions.position_of(decl));
@@ -766,16 +643,15 @@ private:
   // Assumption not yet defined
   [[nodiscard]] llvm::Function*
   defineFunctionTemplate(const FunctionTemplateTableValue& ast,
-                         const TemplateArguments&          template_args,
+                         const ast::TemplateArguments&     template_args,
                          const NsHierarchy&                space) const
   {
     const auto pos = ctx.positions.position_of(ast.decl);
 
-    const TemplateArgmentsDefiner ta_definer{
-      ctx,
-      template_args,
-      ast.decl.template_params.type_names,
-      pos};
+    const TemplateArgmentsDefiner ta_definer{ctx,
+                                             template_args,
+                                             ast.decl.template_params,
+                                             pos};
 
     const auto name = ast.decl.name.utf8();
 
@@ -957,22 +833,6 @@ private:
         fmt::format("no matching constructor for initialization of {}",
                     class_name))};
     }
-  }
-
-  [[nodiscard]] std::optional<std::shared_ptr<Type>>
-  findClass(const std::string& name) const
-  {
-    if (const auto alias = ctx.alias_table[name];
-        alias && alias.value()->isClassTy(ctx)) {
-      return *alias;
-    }
-
-    if (const auto class_ = ctx.class_table[name];
-        class_ && class_.value()->isClassTy(ctx)) {
-      return *class_;
-    }
-
-    return std::nullopt;
   }
 
   [[nodiscard]] Value createFunctionCall(
