@@ -208,15 +208,30 @@ using ClassTemplateTable
           ClassTemplateTableValue,
           std::map<TemplateTableKey, ClassTemplateTableValue>>;
 
-using CreateClassTemplateTableKey = std::tuple<std::string, // Name
-                                               ast::TemplateArguments,
-                                               NsHierarchy>;
+using CreatedClassTemplateTableKey = std::tuple<std::string, // Name
+                                                ast::TemplateArguments,
+                                                NsHierarchy>;
 
-// std::unordered_map cannot use std::tuple as a key, so use std::map instead
-using CreatedClassTemplateTable
-  = Table<CreateClassTemplateTableKey,
-          std::shared_ptr<Type>,
-          std::map<CreateClassTemplateTableKey, std::shared_ptr<Type>>>;
+using CreatedClassTemplateTableElem
+  = std::pair<CreatedClassTemplateTableKey, std::shared_ptr<Type>>;
+
+struct CreatedClassTemplateTable {
+  CreatedClassTemplateTable(CGContext& ctx)
+    : ctx{ctx}
+    , table{}
+  {
+  }
+
+  [[nodiscard]] std::optional<std::shared_ptr<Type>>
+  operator[](const CreatedClassTemplateTableKey& key) const;
+
+  void insert(CreatedClassTemplateTableKey&& key,
+              const std::shared_ptr<Type>&   value);
+
+private:
+  CGContext&                              ctx;
+  std::set<CreatedClassTemplateTableElem> table;
+};
 
 // Codegen context
 struct CGContext : private boost::noncopyable {

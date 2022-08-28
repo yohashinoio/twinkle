@@ -32,6 +32,48 @@ namespace
 namespace twinkle::codegen
 {
 
+[[nodiscard]] std::optional<std::shared_ptr<Type>>
+CreatedClassTemplateTable::operator[](
+  const CreatedClassTemplateTableKey& key) const
+{
+  for (const auto& r : table) {
+    auto& [name, args, namespace_] = r.first;
+
+    const auto template_arg_types_of_keyarg = std::get<1>(key);
+
+    if (std::get<0>(key) == name) {
+      for (std::size_t idx = 0;
+           const auto& type : template_arg_types_of_keyarg.types) {
+        const auto pos
+          = ctx.positions.position_of(template_arg_types_of_keyarg);
+
+        const auto t1 = createType(ctx, args.types.at(idx), pos);
+        const auto t2 = createType(ctx, type, pos);
+
+        assert(t1->getLLVMType(ctx) && t2->getLLVMType(ctx));
+
+        // Mangled name comparisons allow pure type comparisons (aliased types
+        // can also be compared to ordinary types)
+        if (t1->getMangledName(ctx) == t2->getMangledName(ctx))
+          return r.second;
+
+        ++idx;
+      }
+    }
+  }
+
+  return std::nullopt;
+}
+
+void CreatedClassTemplateTable::insert(CreatedClassTemplateTableKey&& key,
+                                       const std::shared_ptr<Type>&   value)
+{
+  const auto r = table.insert(
+    std::move(CreatedClassTemplateTableElem{std::move(key), value}));
+
+  assert(r.second);
+}
+
 template <typename R = std::vector<std::string>>
 [[nodiscard]] static R splitByLine(const std::string& str)
 {
@@ -62,6 +104,7 @@ CGContext::CGContext(llvm::LLVMContext&      context,
   , module{std::make_unique<llvm::Module>(file.filename().string(), context)}
   , builder{context}
   , file{std::move(file)}
+  , created_class_template_table{*this}
   , positions{std::move(positions)}
   , source_code{splitByLine(source_code)}
   , fpm{module.get()}

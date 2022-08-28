@@ -415,6 +415,7 @@ struct PointerType : public Type {
 
   [[nodiscard]] llvm::Type* getLLVMType(CGContext& ctx) const override
   {
+    assert(pointee_type);
     return llvm::PointerType::getUnqual(pointee_type->getLLVMType(ctx));
   }
 

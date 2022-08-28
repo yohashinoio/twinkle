@@ -361,19 +361,21 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
         fmt::format("unknown class template '{}'", class_name))};
     }
 
-    const auto table_key = CreateClassTemplateTableKey{class_name,
-                                                       node.template_args,
-                                                       class_template->second};
+    auto table_key = CreatedClassTemplateTableKey{class_name,
+                                                  node.template_args,
+                                                  class_template->second};
 
-    if (const auto type = ctx.created_class_template_table[table_key])
-      return *type;
+    {
+      if (const auto type = ctx.created_class_template_table[table_key])
+        return *type;
+    }
 
     const auto type = createClassFromTemplate(class_template->first,
                                               node.template_args,
                                               class_template->second,
                                               pos);
 
-    ctx.created_class_template_table.insert(table_key, type);
+    ctx.created_class_template_table.insert(std::move(table_key), type);
 
     return type;
   }
