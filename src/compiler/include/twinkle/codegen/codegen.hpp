@@ -101,7 +101,11 @@ private:
 
 using FunctionReturnTypeTable = Table<llvm::Function*, std::shared_ptr<Type>>;
 
-using AliasTable = Table<std::string, std::shared_ptr<Type>>;
+using TypeTable = Table<std::string, std::shared_ptr<Type>>;
+
+using AliasTable = TypeTable;
+
+using TemplateArgumentTable = TypeTable;
 
 using ClassTable = Table<std::string, std::shared_ptr<ClassType>>;
 
@@ -236,12 +240,15 @@ struct CGContext : private boost::noncopyable {
   PositionCache positions;
 
   // Table
-  ClassTable                class_table;
-  FunctionReturnTypeTable   return_type_table;
-  AliasTable                alias_table;
-  FunctionTemplateTable     func_template_table;
-  ClassTemplateTable        class_template_table;
-  CreatedClassTemplateTable created_class_template_table;
+  ClassTable                        class_table;
+  FunctionReturnTypeTable           return_type_table;
+  AliasTable                        alias_table;
+  FunctionTemplateTable             func_template_table;
+  ClassTemplateTable                class_template_table;
+  CreatedClassTemplateTable         created_class_template_table;
+  // If you want to find template arguments, look for them in the symbol table
+  // of top
+  std::stack<TemplateArgumentTable> template_argument_tables;
 
   // Namespace
   NsHierarchy ns_hierarchy;

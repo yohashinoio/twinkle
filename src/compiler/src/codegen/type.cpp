@@ -140,15 +140,20 @@ namespace twinkle::codegen
 UserDefinedType::getRealType(CGContext& ctx) const
 {
   {
-    const auto type = ctx.class_table[ident];
-    if (type)
+    if (const auto type = ctx.class_table[ident])
       return *type;
   }
 
   {
-    const auto type = ctx.alias_table[ident];
-    if (type)
+    if (const auto type = ctx.alias_table[ident])
       return *type;
+  }
+
+  {
+    if (!ctx.template_argument_tables.empty()) {
+      if (const auto type = ctx.template_argument_tables.top()[ident])
+        return *type;
+    }
   }
 
   return {}; // Could not find the type
@@ -387,10 +392,10 @@ private:
                           const NsHierarchy& space, // FIXME: Use this argument
                           const PositionRange& pos) const
   {
-    const TemplateArgmentsDefiner ta_definer{ctx,
-                                             template_args,
-                                             ast.template_params,
-                                             pos};
+    const TemplateArgumentsDefiner ta_definer{ctx,
+                                              template_args,
+                                              ast.template_params,
+                                              pos};
 
     const auto methods = createClassNoMethodDeclDef(ctx, ast);
 

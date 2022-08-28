@@ -98,6 +98,7 @@
 #include <fstream>
 #include <algorithm>
 #include <sstream>
+#include <stack>
 
 //===----------------------------------------------------------------------===//
 // C standard

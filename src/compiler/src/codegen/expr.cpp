@@ -648,10 +648,10 @@ private:
   {
     const auto pos = ctx.positions.position_of(ast.decl);
 
-    const TemplateArgmentsDefiner ta_definer{ctx,
-                                             template_args,
-                                             ast.decl.template_params,
-                                             pos};
+    const TemplateArgumentsDefiner ta_definer{ctx,
+                                              template_args,
+                                              ast.decl.template_params,
+                                              pos};
 
     const auto name = ast.decl.name.utf8();
 

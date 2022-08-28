@@ -10,6 +10,28 @@
 namespace twinkle::codegen
 {
 
+void TemplateArgumentsDefiner::insertToAliasTable(
+  const PositionRange& pos) const
+{
+  TemplateArgumentTable template_argument_table;
+
+  for (std::size_t idx = 0; const auto& param : params.type_names) {
+    const auto param_name = param.utf8();
+
+    if (template_argument_table.exists(param_name)) {
+      throw CodegenError{ctx.formatError(
+        pos,
+        fmt::format("redefinition of template parameter '{}'", param_name))};
+    }
+
+    template_argument_table.insert(param_name,
+                                   createType(ctx, args.types[idx], pos));
+    ++idx;
+  }
+
+  ctx.template_argument_tables.emplace(std::move(template_argument_table));
+}
+
 [[nodiscard]] std::optional<std::pair<ClassTemplateTableValue, NsHierarchy>>
 findClassTemplate(CGContext&                    ctx,
                   const std::string_view        name,

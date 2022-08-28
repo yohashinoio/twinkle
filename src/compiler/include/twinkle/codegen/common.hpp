@@ -163,11 +163,11 @@ findClassTemplate(CGContext&                    ctx,
 
 // Add template arguments as aliases
 // Clean up in destructor
-struct TemplateArgmentsDefiner {
-  TemplateArgmentsDefiner(CGContext&                     ctx,
-                          const ast::TemplateArguments&  args,
-                          const ast::TemplateParameters& params,
-                          const PositionRange&           pos)
+struct TemplateArgumentsDefiner {
+  TemplateArgumentsDefiner(CGContext&                     ctx,
+                           const ast::TemplateArguments&  args,
+                           const ast::TemplateParameters& params,
+                           const PositionRange&           pos)
     : ctx{ctx}
     , args{args}
     , params{params}
@@ -175,31 +175,16 @@ struct TemplateArgmentsDefiner {
     insertToAliasTable(pos);
   }
 
-  ~TemplateArgmentsDefiner()
+  ~TemplateArgumentsDefiner()
   {
     cleanup();
   }
 
-  void insertToAliasTable(const PositionRange& pos) const
-  {
-    for (std::size_t idx = 0; const auto& param : params.type_names) {
-      const auto param_name = param.utf8();
-
-      if (ctx.alias_table.exists(param_name)) {
-        throw CodegenError{ctx.formatError(
-          pos,
-          fmt::format("redefinition of template parameter '{}'", param_name))};
-      }
-
-      ctx.alias_table.insert(param_name, createType(ctx, args.types[idx], pos));
-      ++idx;
-    }
-  }
+  void insertToAliasTable(const PositionRange& pos) const;
 
   void cleanup() const
   {
-    for (const auto& param : params.type_names)
-      ctx.alias_table.erase(param.utf8());
+    ctx.template_argument_tables.pop();
   }
 
 private:
