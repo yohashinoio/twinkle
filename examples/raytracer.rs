@@ -166,10 +166,9 @@ func dot(v1: &Vec, v2: &Vec) -> f64
 
 class Sphere {
   Sphere(radius_: f64,
-         // FIXME
-         position_: Vec, // Copy
-         emission_: Color, // Copy
-         color_: Color, // Copy
+         position_: &Vec,
+         emission_: &Color,
+         color_: &Color,
          ref_type_: i32)
   {
     radius = radius_;
@@ -271,14 +270,14 @@ func radiance(ray: &Ray, depth: i32) -> Color
   let light_color = Color{256., 256., 256.};
 
   let spheres = [
-    Sphere{ 1e5, Vec{1e5 + 1., 40.8, 81.6},   Color{}, Color{0.75, 0.25, 0.25},    DIFFUSE},
-    Sphere{ 1e5, Vec{-1e5 + 99., 40.8, 81.6}, Color{}, Color{0.25, 0.25, 0.75},    DIFFUSE},
-    Sphere{ 1e5, Vec{50., 40.8, 1e5},         Color{}, Color{0.75, 0.75, 0.75},    DIFFUSE},
-    Sphere{ 1e5, Vec{50., 40.8, -1e5 + 170.}, Color{}, Color{},                    DIFFUSE},
-    Sphere{ 1e5, Vec{50., 1e5, 81.6},         Color{}, Color{0.75, 0.75, 0.75},    DIFFUSE},
-    Sphere{ 1e5, Vec{50., -1e5 + 81.6, 81.6}, Color{}, Color{0.75, 0.75, 0.75},    DIFFUSE},
-    Sphere{16.5, Vec{27., 16.5, 47.},         Color{}, Color{1., 1., 1.}.mul(.99), SPECULAR},
-    Sphere{16.5, Vec{73., 16.5, 78.},         Color{}, Color{1., 1., 1.}.mul(.99), REFRACTION}
+    Sphere{ 1e5, ref Vec{1e5 + 1., 40.8, 81.6},   ref Color{}, ref Color{0.75, 0.25, 0.25},    DIFFUSE},
+    Sphere{ 1e5, ref Vec{-1e5 + 99., 40.8, 81.6}, ref Color{}, ref Color{0.25, 0.25, 0.75},    DIFFUSE},
+    Sphere{ 1e5, ref Vec{50., 40.8, 1e5},         ref Color{}, ref Color{0.75, 0.75, 0.75},    DIFFUSE},
+    Sphere{ 1e5, ref Vec{50., 40.8, -1e5 + 170.}, ref Color{}, ref Color{},                    DIFFUSE},
+    Sphere{ 1e5, ref Vec{50., 1e5, 81.6},         ref Color{}, ref Color{0.75, 0.75, 0.75},    DIFFUSE},
+    Sphere{ 1e5, ref Vec{50., -1e5 + 81.6, 81.6}, ref Color{}, ref Color{0.75, 0.75, 0.75},    DIFFUSE},
+    Sphere{16.5, ref Vec{27., 16.5, 47.},         ref Color{}, ref Color{1., 1., 1.}.mul(.99), SPECULAR},
+    Sphere{16.5, ref Vec{73., 16.5, 78.},         ref Color{}, ref Color{1., 1., 1.}.mul(.99), REFRACTION}
   ];
 
   let spheres_size = (sizeof spheres / sizeof spheres[0]) as i32;
