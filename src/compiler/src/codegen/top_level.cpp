@@ -217,19 +217,7 @@ declareFunction(CGContext&                   ctx,
                              mangled_name,
                              *ctx.module);
 
-  {
-    // Register return types in the return type table
-    if (return_type->isUserDefinedType()) {
-      // Return value may be of a type passed in template arguments
-      // If so, it will be erased
-      // So register a real type
-      const auto tmp = dynamic_cast<UserDefinedType*>(return_type.get());
-      assert(tmp);
-      ctx.return_type_table.insertOrAssign(func, tmp->getRealType(ctx));
-    }
-    else
-      ctx.return_type_table.insertOrAssign(func, return_type);
-  }
+  ctx.return_type_table.insertOrAssign(func, return_type);
 
   // Set names to all arguments
   for (std::size_t idx = 0; auto&& arg : func->args())

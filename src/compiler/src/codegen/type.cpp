@@ -337,7 +337,10 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
   [[nodiscard]] std::shared_ptr<Type>
   operator()(const ast::UserDefinedType& node) const
   {
-    return std::make_shared<UserDefinedType>(node.name.utf32());
+    // If it was a template argument, it will be erased later, so return a real
+    // type
+    return std::make_shared<UserDefinedType>(node.name.utf32())
+      ->getRealType(ctx);
   }
 
   [[nodiscard]] std::shared_ptr<Type>
@@ -345,7 +348,8 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
   {
     const auto pos = ctx.positions.position_of(node);
 
-    const auto template_type = (*this)(node.template_type);
+    const auto template_type
+      = std::make_shared<UserDefinedType>(node.template_type.name.utf32());
 
     const auto class_name
       = template_type->getLLVMType(ctx) ? template_type->getClassName(

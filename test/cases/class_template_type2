@@ -1,0 +1,26 @@
+class A<T> {
+  A(a: &T)
+  {
+    🌸 = a;
+  }
+
+  func get() -> T
+  {
+    return 🌸;
+  }
+
+  let mut 🌸: T;
+}
+
+func main() -> i32
+{
+  let mut x = A<i32>{ref 10};
+
+  for (let mut i = 0; i < 48; ++i)
+    ++x.🌸;
+
+  let p = &x;
+
+  if (p^.🌸 == x.get())
+    return p^.🌸;
+}
