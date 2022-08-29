@@ -6,6 +6,10 @@ set(CMAKE_CXX_STANDARD 20)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
+if(USE_STATIC_LIBS)
+  set(Boost_USE_STATIC_LIBS ON)
+endif()
+
 add_subdirectory(third-party)
 
 include_directories(
@@ -14,7 +18,7 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/third-party/fmt/include
 )
 
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 # Enable sanitizers
 add_compile_options(
   # -fno-omit-frame-pointer

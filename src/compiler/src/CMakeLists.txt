@@ -16,12 +16,26 @@ message(STATUS "Using .cmake in: ${LLVM_DIR}")
 separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
 add_definitions(${LLVM_DEFINITIONS})
 
+set(LLVM_CONFIG_COMMON_OPTION --system-libs --libs all)
+set(LLVM_CONFIG_OPTION ${LLVM_CONFIG_COMMON_OPTION})
+set(LLVM_CONFIG_OPTION_STATIC --link-static ${LLVM_CONFIG_COMMON_OPTION})
+
 if(LLVM_CONFIG_PATH)
-  execute_process(COMMAND ${LLVM_CONFIG_PATH} --libs all
-                  OUTPUT_VARIABLE CONFIG_OUTPUT)
+  if(USE_STATIC_LIBS)
+    execute_process(COMMAND ${LLVM_CONFIG_PATH} ${LLVM_CONFIG_OPTION_STATIC}
+                    OUTPUT_VARIABLE CONFIG_OUTPUT)
+  else()
+    execute_process(COMMAND ${LLVM_CONFIG_PATH} ${LLVM_CONFIG_OPTION}
+                    OUTPUT_VARIABLE CONFIG_OUTPUT)
+  endif()
 else()
-  execute_process(COMMAND llvm-config --libs all
-                  OUTPUT_VARIABLE CONFIG_OUTPUT)
+  if(USE_STATIC_LIBS)
+    execute_process(COMMAND llvm-config ${LLVM_CONFIG_OPTION_STATIC}
+                    OUTPUT_VARIABLE CONFIG_OUTPUT)
+  else()
+    execute_process(COMMAND llvm-config ${LLVM_CONFIG_OPTION}
+                    OUTPUT_VARIABLE CONFIG_OUTPUT)
+  endif()
 endif()
 
 string(REGEX REPLACE "[ \t]*[\r\n]+[ \t]*" ";" CONFIG_OUTPUT ${CONFIG_OUTPUT})
