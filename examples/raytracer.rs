@@ -103,7 +103,7 @@ class Vec {
 
   func length() -> f64
   {
-    return sqrt(length_squared());
+    return length_squared() |> sqrt();
   }
 
   func add(b: &Vec) -> Vec
@@ -391,15 +391,6 @@ func radiance(ray: &Ray, depth: i32) -> Color
   }
 }
 
-func createCamera() -> Ray
-{
-  let a = Vec{50.0, 52.0, 295.6};
-  let b = Vec{0.0, -0.042612, -1.0};
-  let c = normalize(ref b);
-
-  return Ray{ref a, ref c};
-}
-
 class HDRPixel {
   HDRPixel(r_: u8,
            g_: u8,
@@ -526,6 +517,15 @@ private:
   let mut head: ^HDRPixelNode;
 
   let mut size: i32;
+}
+
+func createCamera() -> Ray
+{
+  let a = Vec{50.0, 52.0, 295.6};
+  let b = Vec{0.0, -0.042612, -1.0};
+  let c = normalize(ref b);
+
+  return Ray{ref a, ref c};
 }
 
 func save_as_hdr(filename: ^i8, image: ^Color, width: i32, height: i32)
