@@ -52,7 +52,7 @@ Temporary Items
 # Others
 #
 
-build
+*build
 release
 .cache
 .vscode
