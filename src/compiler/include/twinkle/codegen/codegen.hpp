@@ -101,6 +101,9 @@ private:
 
 using FunctionReturnTypeTable = Table<llvm::Function*, std::shared_ptr<Type>>;
 
+using FunctionParameterTypesTable
+  = Table<llvm::Function*, std::vector<std::shared_ptr<Type>>>;
+
 using TypeTable = Table<std::string, std::shared_ptr<Type>>;
 
 using AliasTable = TypeTable;
@@ -257,6 +260,7 @@ struct CGContext : private boost::noncopyable {
   // Table
   ClassTable                        class_table;
   FunctionReturnTypeTable           return_type_table;
+  FunctionParameterTypesTable       param_types_table;
   AliasTable                        alias_table;
   FunctionTemplateTable             func_template_table;
   ClassTemplateTable                class_template_table;

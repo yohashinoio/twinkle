@@ -22,11 +22,6 @@ namespace twinkle::codegen
 [[nodiscard]] std::optional<bool>
 isVariadicArgs(const ast::ParameterList& params);
 
-[[nodiscard]] std::vector<llvm::Type*>
-createParamTypes(CGContext&                ctx,
-                 const ast::ParameterList& params,
-                 const std::size_t         named_params_len);
-
 void createFunctionBody(CGContext&                  ctx,
                         llvm::Function* const       func,
                         const std::string_view      name,

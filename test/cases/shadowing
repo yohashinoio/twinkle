@@ -9,7 +9,7 @@ func shadowing() -> i32
     let shadowed = 1;
   }
 
-  for (let mut i: char = 0; i < 58; ++i)
+  for (let mut i: char = 0 as char; i < 58; ++i)
     let shadowed = i;
 
   if (strcmp(shadowed, "yohaio") == 0)

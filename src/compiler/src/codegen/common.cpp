@@ -379,108 +379,11 @@ createDereference(CGContext& ctx, const PositionRange& pos, const Value& val)
   return createDereference(ctx, pos, operand->getValue(ctx));
 }
 
-// The code is based on https://gist.github.com/quantumsheep.
-// Thank you!
-[[nodiscard]] bool strictEquals(const llvm::Type* const left,
-                                const llvm::Type* const right)
+[[nodiscard]] bool equals(CGContext&                   ctx,
+                          const std::shared_ptr<Type>& left,
+                          const std::shared_ptr<Type>& right)
 {
-  auto left_ptr  = llvm::dyn_cast<llvm::PointerType>(left);
-  auto right_ptr = llvm::dyn_cast<llvm::PointerType>(right);
-
-  if (left != right)
-    return false;
-
-  if (left->getTypeID() != right->getTypeID())
-    return false;
-
-  switch (left->getTypeID()) {
-  case llvm::Type::IntegerTyID:
-    return llvm::cast<llvm::IntegerType>(left)->getBitWidth()
-           == llvm::cast<llvm::IntegerType>(right)->getBitWidth();
-
-  // left == right would have returned true earlier, because types are
-  // uniqued.
-  case llvm::Type::VoidTyID:
-  case llvm::Type::FloatTyID:
-  case llvm::Type::DoubleTyID:
-  case llvm::Type::X86_FP80TyID:
-  case llvm::Type::FP128TyID:
-  case llvm::Type::PPC_FP128TyID:
-  case llvm::Type::LabelTyID:
-  case llvm::Type::MetadataTyID:
-  case llvm::Type::TokenTyID:
-    return true;
-
-  case llvm::Type::PointerTyID:
-    assert(left_ptr && right_ptr && "Both types must be pointers here.");
-    return left_ptr->getAddressSpace() == right_ptr->getAddressSpace();
-
-  case llvm::Type::StructTyID:
-  {
-    auto left_struct  = llvm::cast<llvm::StructType>(left);
-    auto right_struct = llvm::cast<llvm::StructType>(right);
-
-    if (left_struct->getNumElements() != right_struct->getNumElements())
-      return false;
-
-    if (left_struct->isPacked() != right_struct->isPacked())
-      return false;
-
-    for (unsigned i = 0, e = left_struct->getNumElements(); i != e; ++i) {
-      if (!strictEquals(left_struct->getElementType(i),
-                        right_struct->getElementType(i)))
-        return false;
-    }
-
-    return true;
-  }
-
-  case llvm::Type::FunctionTyID:
-  {
-    auto left_function  = llvm::cast<llvm::FunctionType>(left);
-    auto right_function = llvm::cast<llvm::FunctionType>(right);
-
-    if (left_function->getNumParams() != right_function->getNumParams())
-      return false;
-
-    if (left_function->isVarArg() != right_function->isVarArg())
-      return false;
-
-    if (!strictEquals(left_function->getReturnType(),
-                      right_function->getReturnType()))
-      return false;
-
-    for (unsigned i = 0, e = left_function->getNumParams(); i != e; ++i) {
-      if (!strictEquals(left_function->getParamType(i),
-                        right_function->getParamType(i)))
-        return false;
-    }
-
-    return true;
-  }
-
-  case llvm::Type::ArrayTyID:
-  {
-    auto left_sequential  = llvm::cast<llvm::ArrayType>(left);
-    auto right_sequential = llvm::cast<llvm::ArrayType>(right);
-
-    if (left_sequential->getNumElements() != right_sequential->getNumElements())
-      return false;
-
-    return strictEquals(left_sequential->getElementType(),
-                        right_sequential->getElementType());
-  }
-
-  // VectorType has not yet been used and is not yet implemented.
-  case llvm::Type::FixedVectorTyID:
-  case llvm::Type::ScalableVectorTyID:
-    unreachable();
-
-  default:
-    return false;
-  }
-
-  unreachable();
+  return left->getMangledName(ctx) == right->getMangledName(ctx);
 }
 
 } // namespace twinkle::codegen

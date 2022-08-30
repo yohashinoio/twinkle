@@ -1110,8 +1110,12 @@ private:
                        llvm::Function* const    callee,
                        const PositionRange&     pos) const
   {
-    for (std::size_t idx = 0; auto&& arg : callee->args()) {
-      if (!strictEquals(args[idx++].getValue()->getType(), arg.getType())) {
+    const auto param_types = ctx.param_types_table[callee];
+
+    assert(param_types);
+
+    for (std::size_t idx = 0; const auto& param_type : *param_types) {
+      if (!equals(ctx, args[idx++].getType(), param_type)) {
         throw CodegenError{ctx.formatError(
           pos,
           fmt::format("incompatible type for argument {}", idx))};

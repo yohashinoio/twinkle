@@ -82,8 +82,6 @@ namespace test
     {                "init_time_type_inference",  58},
     {                   "implicit_conversions1",  41},
     {                   "implicit_conversions2",  58},
-    {                     "integer_literals_32",  58},
-    {                     "integer_literals_64",  58},
     {                                    "sign",  58},
     {                        "prefix_increment",  58},
     {                        "prefix_decrement",  58},

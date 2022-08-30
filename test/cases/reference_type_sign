@@ -4,7 +4,7 @@ class Sample {
 
 func array_() -> i32
 {
-  let a: u32[1] = [-1];
+  let a: u32[1] = [-1 as u32];
 
   let r = ref a;
 
@@ -26,7 +26,7 @@ func class_() -> i32
 
 func main() -> i32
 {
-  let n: u32 = -1;
+  let n: u32 = -1 as u32;
 
   let r = ref n;
 

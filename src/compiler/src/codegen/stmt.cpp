@@ -62,9 +62,11 @@ struct StmtVisitor : public boost::static_visitor<void> {
       auto const retval = createExpr(ctx, getAllSymbols(), stmt_ctx, *node.rhs);
 
       auto const return_type
-        = ctx.builder.GetInsertBlock()->getParent()->getReturnType();
+        = ctx.return_type_table[ctx.builder.GetInsertBlock()->getParent()];
 
-      if (!strictEquals(return_type, retval.getLLVMType())) {
+      assert(return_type);
+
+      if (!equals(ctx, *return_type, retval.getType())) {
         throw CodegenError{
           ctx.formatError(ctx.positions.position_of(node),
                           "incompatible type for result type")};
@@ -438,8 +440,7 @@ private:
   {
     verifyVariableType(pos, type);
 
-    const auto llvm_type = type->getLLVMType(ctx);
-    auto const alloca    = createEntryAlloca(func, name, llvm_type);
+    auto const alloca = createEntryAlloca(func, name, type->getLLVMType(ctx));
 
     if (!initializer) {
       return {
@@ -451,15 +452,8 @@ private:
     auto const init_value
       = createExpr(ctx, getAllSymbols(), stmt_ctx, *initializer);
 
-    if (!strictEquals(llvm_type, init_value.getLLVMType()))
+    if (!equals(ctx, type, init_value.getType()))
       throw CodegenError{ctx.formatError(pos, "invalid initializer type")};
-
-    if (llvm_type->isIntegerTy()
-        && llvm_type->getIntegerBitWidth()
-             != init_value.getLLVMType()->getIntegerBitWidth()) {
-      throw CodegenError{
-        ctx.formatError(pos, "different bit widths between operands")};
-    }
 
     ctx.builder.CreateStore(init_value.getValue(), alloca);
 

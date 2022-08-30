@@ -64,23 +64,33 @@ isVariadicArgs(const ast::ParameterList& params)
   return is_vararg;
 }
 
-[[nodiscard]] std::vector<llvm::Type*>
+[[nodiscard]] std::vector<std::shared_ptr<Type>>
 createParamTypes(CGContext&                ctx,
                  const ast::ParameterList& params,
                  const std::size_t         named_params_len)
 {
-  std::vector<llvm::Type*> types(named_params_len);
+  std::vector<std::shared_ptr<Type>> types(named_params_len);
 
   const auto pos = ctx.positions.position_of(params);
 
   for (std::size_t i = 0; i != named_params_len; ++i) {
     const auto& param_type = params->at(i).type;
-    types.at(i) = createType(ctx, param_type, ctx.positions.position_of(params))
-                    ->getLLVMType(ctx);
+    types.at(i)            = createType(ctx, param_type, pos);
   }
 
   return types;
-};
+}
+
+[[nodiscard]] std::vector<llvm::Type*>
+createLLVMTypes(CGContext& ctx, const std::vector<std::shared_ptr<Type>>& types)
+{
+  std::vector<llvm::Type*> llvm_types;
+
+  for (const auto& r : types)
+    llvm_types.push_back(r->getLLVMType(ctx));
+
+  return llvm_types;
+}
 
 [[nodiscard]] static SymbolTable
 createArgumentTable(CGContext&                ctx,
@@ -207,9 +217,10 @@ declareFunction(CGContext&                   ctx,
 
   const auto param_types = createParamTypes(ctx, node.params, named_params_len);
 
-  auto const func_type = llvm::FunctionType::get(return_type->getLLVMType(ctx),
-                                                 param_types,
-                                                 *is_vararg);
+  auto const func_type
+    = llvm::FunctionType::get(return_type->getLLVMType(ctx),
+                              createLLVMTypes(ctx, param_types),
+                              *is_vararg);
 
   auto const func
     = llvm::Function::Create(func_type,
@@ -217,7 +228,8 @@ declareFunction(CGContext&                   ctx,
                              mangled_name,
                              *ctx.module);
 
-  ctx.return_type_table.insertOrAssign(func, return_type);
+  ctx.return_type_table.insert(func, return_type);
+  ctx.param_types_table.insert(func, std::move(param_types));
 
   // Set names to all arguments
   for (std::size_t idx = 0; auto&& arg : func->args())

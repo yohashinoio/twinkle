@@ -283,8 +283,9 @@ createDereference(CGContext& ctx, const PositionRange& pos, const Value& val);
                                       const PositionRange&             pos,
                                       const std::shared_ptr<Variable>& operand);
 
-[[nodiscard]] bool strictEquals(const llvm::Type* const left,
-                                const llvm::Type* const right);
+[[nodiscard]] bool equals(CGContext&                   ctx,
+                          const std::shared_ptr<Type>& left,
+                          const std::shared_ptr<Type>& right);
 
 } // namespace twinkle::codegen
 

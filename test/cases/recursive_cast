@@ -1,5 +1,5 @@
 func main() -> i32
 {
-  let n = 58 as i32 as i64 as char;
+  let n = 58 as i32 as i64 as char as i32;
   return n;
 }
