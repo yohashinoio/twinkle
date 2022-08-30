@@ -1,5 +1,6 @@
 // Copyright (c) 2022 Hiramoto Ittou
 
+// This program is based on https://github.com/githole/simple-raytracer
 // Copyright (c) 2014 hole
 // This software is released under the MIT License (http://kagamin.net/hole/license.txt).
 // A part of this software is based on smallpt (http://www.kevinbeason.com/smallpt/) and
