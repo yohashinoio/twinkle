@@ -33,7 +33,7 @@ declare func pow(x: f64, y: f64) -> f64;
 declare func frexp(x: f64, exp: ^i32) -> f64;
 
 [[nomangle]]
-declare func malloc(size: u64) -> ^i8;
+declare func malloc(size: usize) -> ^i8;
 
 [[nomangle]]
 declare func free(ptr: ^i8);
