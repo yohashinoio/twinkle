@@ -1,4 +1,4 @@
-import "./sample.rs";
+import "./sample";
 
 func main() -> i32
 {
