@@ -136,7 +136,7 @@ struct Type {
     return getSignKind(ctx) == SignKind::signed_;
   }
 
-  [[nodiscard]] bool isUnigned(CGContext& ctx) const
+  [[nodiscard]] bool isUnsigned(CGContext& ctx) const
   {
     return getSignKind(ctx) == SignKind::unsigned_;
   }

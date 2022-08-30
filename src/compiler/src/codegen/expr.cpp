@@ -230,10 +230,18 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::BinOp& node) const
   {
-    const auto uncasted_lhs = boost::apply_visitor(*this, node.lhs);
-    const auto uncasted_rhs = boost::apply_visitor(*this, node.rhs);
+    const auto [lhs, rhs] = implicitConv(boost::apply_visitor(*this, node.lhs),
+                                         boost::apply_visitor(*this, node.rhs));
 
-    const auto [lhs, rhs] = castToLarger(uncasted_lhs, uncasted_rhs);
+    if (!isPointerArithmetic(lhs, rhs)
+        && !equals(ctx, lhs.getType(), rhs.getType())) {
+      std::cout << lhs.getType()->getMangledName(ctx) << " "
+                << rhs.getType()->getMangledName(ctx) << std::endl;
+      // Left and right side types must be compatible
+      throw CodegenError{
+        ctx.formatError(ctx.positions.position_of(node),
+                        "binary operations must be type compatible")};
+    }
 
     switch (node.kind()) {
     case ast::BinOp::Kind::add:
@@ -916,6 +924,22 @@ private:
     return std::nullopt;
   }
 
+  [[nodiscard]] bool isPointerArithmetic(const Value& lhs,
+                                         const Value& rhs) const
+  {
+    return lhs.getType()->isPointerTy(ctx) && rhs.getType()->isIntegerTy(ctx);
+  }
+
+  [[nodiscard]] std::pair<Value, Value> implicitConv(const Value& lhs,
+                                                     const Value& rhs) const
+  {
+    // Pointer arithmetics are exceptions
+    if (isPointerArithmetic(lhs, rhs))
+      return std::make_pair(lhs, rhs);
+
+    return unifySign(unifyBitWidth(lhs, rhs));
+  }
+
   // For Integer
   [[nodiscard]] std::pair<Value, Value> toLargerBitWidth(const Value& lhs,
                                                          const Value& rhs) const
@@ -980,17 +1004,53 @@ private:
     return std::make_pair(lhs, rhs);
   }
 
-  // Cast to larger bit(mantissa) width.
-  [[nodiscard]] std::pair<Value, Value> castToLarger(const Value& lhs,
-                                                     const Value& rhs) const
+  // Cast to larger bit(mantissa) width
+  [[nodiscard]] std::pair<Value, Value> unifyBitWidth(const Value& lhs,
+                                                      const Value& rhs) const
   {
-    if (lhs.getValue()->getType()->isIntegerTy())
+    if (lhs.getValue()->getType()->isIntegerTy()
+        && rhs.getValue()->getType()->isIntegerTy()) {
       return toLargerBitWidth(lhs, rhs);
+    }
 
-    if (lhs.getValue()->getType()->isFloatingPointTy())
+    if (lhs.getValue()->getType()->isFloatingPointTy()
+        && rhs.getValue()->getType()->isFloatingPointTy()) {
       return toLargerMantissaWidth(lhs, rhs);
+    }
 
     return std::make_pair(lhs, rhs);
+  }
+
+  // If one is signed, convert both to signed
+  [[nodiscard]] std::pair<Value, Value> unifySign(const Value& lhs,
+                                                  const Value& rhs) const
+  {
+    if (lhs.isSigned(ctx) && rhs.getType()->isUnsigned(ctx)) {
+      // Convert rhs to signed
+      return std::make_pair(
+        lhs,
+        Value{
+          ctx.builder.CreateIntCast(rhs.getValue(), lhs.getLLVMType(), true),
+          lhs.getType()});
+    }
+
+    if (lhs.getType()->isUnsigned(ctx) && rhs.isSigned(ctx)) {
+      // Convert lhs to signed
+      return std::make_pair(
+        Value{
+          ctx.builder.CreateIntCast(lhs.getValue(), rhs.getLLVMType(), true),
+          rhs.getType()},
+        rhs);
+    }
+
+    return std::make_pair(lhs, rhs);
+  }
+
+  // If one is signed, convert both to signed
+  [[nodiscard]] std::pair<Value, Value>
+  unifySign(const std::pair<Value, Value>& values) const
+  {
+    return unifySign(values.first, values.second);
   }
 
   [[nodiscard]] Value createPointerToArray(const Value& array) const

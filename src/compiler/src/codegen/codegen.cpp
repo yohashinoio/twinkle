@@ -352,7 +352,7 @@ CodeGenerator::emitFiles(const llvm::CodeGenFileType cgft,
 
 void CodeGenerator::initTargetTripleAndMachine()
 {
-  // Set target triple and data layout to module.
+  // Set target triple and data layout to module
   target_triple = llvm::sys::getDefaultTargetTriple();
 
   std::string target_triple_error;

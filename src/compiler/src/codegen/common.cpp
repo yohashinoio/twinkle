@@ -80,9 +80,9 @@ logicalOrSign(CGContext& ctx, const Value& lhs, const Value& rhs)
                                                 : SignKind::unsigned_;
 }
 
-// If either of them is signed, the signed type is returned. Otherwise,
-// unsigned.
-// Assume that the two types (not considering the sign) are the same.
+// If either of them is signed, the signed type is returned
+// Otherwise unsigned
+// Assume that the two types (not considering the sign) are the same
 [[nodiscard]] std::shared_ptr<Type>
 resultIntegerTypeOf(CGContext&                   ctx,
                     const std::shared_ptr<Type>& lhs_t,

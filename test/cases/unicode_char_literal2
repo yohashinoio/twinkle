@@ -3,15 +3,15 @@ func main() -> i32
   let mut unicode : char;
 
   unicode = '0';
-  if (unicode != 48)
+  if (unicode != 48 as char)
     return 48;
 
   unicode = '\n';
-  if (unicode != 10)
+  if (unicode != 10 as char)
     return 4;
 
   unicode = '🌸';
-  if (unicode != 127800)
+  if (unicode != 127800 as char)
     return 10;
 
   return 41;
