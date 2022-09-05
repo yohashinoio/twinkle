@@ -27,18 +27,20 @@ constexpr unsigned int DEFAULT_OPT_LEVEL = 2;
 #define EMIT_LLVMIR_ARG "llvm"
 
 struct Context {
-  Context(std::vector<std::string>&& input_files,
-          const bool                 jit,
-          std::string&&              emit_target,
-          const unsigned int         opt_level,
-          std::string&&              relocation_model,
-          std::vector<std::string>&& linked_libs) noexcept
+  Context(std::vector<std::string>&&   input_files,
+          const bool                   jit,
+          std::string&&                emit_target,
+          const unsigned int           opt_level,
+          std::string&&                relocation_model,
+          std::vector<std::string>&&   linked_libs,
+          std::optional<std::string>&& target_triple) noexcept
     : input_files{std::move(input_files)}
     , jit{jit}
     , emit_target{std::move(emit_target)}
     , opt_level{opt_level}
     , relocation_model{std::move(relocation_model)}
     , linked_libs{std::move(linked_libs)}
+    , target_triple{std::move(target_triple)}
   {
   }
 
@@ -53,6 +55,8 @@ struct Context {
   const std::string relocation_model;
 
   const std::vector<std::string> linked_libs;
+
+  const std::optional<std::string> target_triple;
 };
 
 } // namespace twinkle

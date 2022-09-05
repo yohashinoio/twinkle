@@ -290,7 +290,8 @@ struct CodeGenerator : private boost::noncopyable {
   CodeGenerator(const std::string_view               program_name,
                 std::vector<parse::Parser::Result>&& parse_results,
                 const unsigned int                   opt_level,
-                const llvm::Reloc::Model             relocation_model);
+                const llvm::Reloc::Model             relocation_model,
+                const std::optional<std::string>&    target_triple_arg);
 
   // Returns the created file paths
   [[nodiscard]] FilePaths emitLlvmIRFiles();
@@ -319,7 +320,8 @@ private:
   [[nodiscard]] FilePaths emitFiles(const llvm::CodeGenFileType cgft,
                                     const bool create_as_tmpfile = false);
 
-  void initTargetTripleAndMachine();
+  void initTargetTripleAndMachine(
+    const std::optional<std::string>& target_triple_arg);
 
   const std::string_view argv_front;
 

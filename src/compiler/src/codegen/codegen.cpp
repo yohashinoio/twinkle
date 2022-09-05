@@ -148,10 +148,12 @@ CGContext::formatError(const PositionRange&   pos,
   unreachable();
 }
 
-CodeGenerator::CodeGenerator(const std::string_view               argv_front,
-                             std::vector<parse::Parser::Result>&& parse_results,
-                             const unsigned int                   opt_level,
-                             const llvm::Reloc::Model relocation_model)
+CodeGenerator::CodeGenerator(
+  const std::string_view               argv_front,
+  std::vector<parse::Parser::Result>&& parse_results,
+  const unsigned int                   opt_level,
+  const llvm::Reloc::Model             relocation_model,
+  const std::optional<std::string>&    target_triple_arg)
   : argv_front{argv_front}
   , context{std::make_unique<llvm::LLVMContext>()}
   , relocation_model{relocation_model}
@@ -165,7 +167,7 @@ CodeGenerator::CodeGenerator(const std::string_view               argv_front,
   llvm::InitializeAllAsmParsers();
   llvm::InitializeAllAsmPrinters();
 
-  initTargetTripleAndMachine();
+  initTargetTripleAndMachine(target_triple_arg);
 
   for (auto it = parse_results.begin(), last = parse_results.end(); it != last;
        ++it) {
@@ -350,10 +352,12 @@ CodeGenerator::emitFiles(const llvm::CodeGenFileType cgft,
   return created_files;
 }
 
-void CodeGenerator::initTargetTripleAndMachine()
+void CodeGenerator::initTargetTripleAndMachine(
+  const std::optional<std::string>& target_triple_arg)
 {
   // Set target triple and data layout to module
-  target_triple = llvm::sys::getDefaultTargetTriple();
+  target_triple = target_triple_arg ? *target_triple_arg
+                                    : llvm::sys::getDefaultTargetTriple();
 
   std::string target_triple_error;
   auto const  target

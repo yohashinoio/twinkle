@@ -43,6 +43,8 @@ namespace
      program_options::value<std::string>()->default_value("pic"),
      "Set the relocation model. Possible values are 'static' or 'pic'.\n"
      "If llvm is specified for the emit option, this option is disabled.")
+    ("target", program_options::value<std::string>(),
+     "Specify the name of the target processor.")
     ("input-file", program_options::value<std::vector<std::string>>(),
      "Input file. Non-optional arguments are equivalent to this.")
     ;
@@ -134,7 +136,10 @@ try {
           stringToLower(v_map["emit"].as<std::string>()),
           v_map["Opt"].as<unsigned int>(),
           stringToLower(v_map["relocation-model"].as<std::string>()),
-          getLinkedLibs(v_map)};
+          getLinkedLibs(v_map),
+          v_map.contains("target")
+            ? std::make_optional(v_map["target"].as<std::string>())
+            : std::nullopt};
 }
 catch (const program_options::error& err) {
   std::cerr << formatError(*argv, err.what())

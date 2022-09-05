@@ -41,7 +41,8 @@ namespace test
                                           "", // JIT compile, so it's empty
                                           twinkle::DEFAULT_OPT_LEVEL,
                                           "pic",
-                                          {}},
+                                          {},
+                                          std::nullopt},
                          "test");
 
 #if SUPPRESS_COMPILE_ERROR_OUTPUT
@@ -60,7 +61,8 @@ namespace test
                        "", // JIT compile, so it's empty
                        twinkle::DEFAULT_OPT_LEVEL,
                        "pic",
-                       {}},
+                       {},
+                       std::nullopt},
       "test");
 
 #if SUPPRESS_COMPILE_ERROR_OUTPUT
