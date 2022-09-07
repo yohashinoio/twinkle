@@ -1,0 +1,26 @@
+class s1<T> {
+  class s2 {
+    let mut n: T;
+    let mut p: ^T;
+  }
+
+  let s: s2;
+}
+
+func f(p: ^i32) -> i32
+{
+  return p^;
+}
+
+func main() -> i32
+{
+  let s: s1<i32>;
+
+  let n = 10;
+
+  s.s.n = 48;
+
+  s.s.p = &n;
+
+  return s.s.n + f(s.s.p);
+}

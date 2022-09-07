@@ -848,12 +848,15 @@ struct Destructor : x3::position_tagged {
   Stmt         body;
 };
 
+struct ClassDef;
+
 using StructMember = boost::variant<boost::blank,
                                     VariableDefWithoutInit,
                                     FunctionDef,
                                     Constructor,
                                     Destructor,
-                                    Accessibility>;
+                                    Accessibility,
+                                    boost::recursive_wrapper<ClassDef>>;
 
 using ClassMemberList = std::vector<StructMember>;
 

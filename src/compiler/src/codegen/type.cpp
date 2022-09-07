@@ -403,23 +403,16 @@ private:
                                               ast.template_params,
                                               pos};
 
-    const auto methods = createClassNoMethodDeclDef(ctx, ast);
+    // Save the current insert block because a function template is created
+    // from within a function
+    const auto return_bb = ctx.builder.GetInsertBlock();
 
-    const auto class_name = ast.name.utf8();
+    createClass(ctx, ast, MethodGeneration::define_and_declare);
 
-    {
-      // Save the current insert block because a function template is created
-      // from within a function
-      const auto return_bb = ctx.builder.GetInsertBlock();
-
-      declareMethods(ctx, methods, class_name);
-      defineMethods(ctx, methods, class_name);
-
-      // Return insert point to previous location
-      // If null, it means it was called from outside functions, so do nothing
-      if (return_bb)
-        ctx.builder.SetInsertPoint(return_bb);
-    }
+    // Return insert point to previous location
+    // If null, it means it was called from outside functions, so do nothing
+    if (return_bb)
+      ctx.builder.SetInsertPoint(return_bb);
 
     return createType(ctx, ast::UserDefinedType{ast.name}, pos);
   }

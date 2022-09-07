@@ -1044,7 +1044,7 @@ const auto destructor_def = lit(U"~") >> function_proto > stmt;
 
 const auto class_member_list_def
   = *((variable_def_without_init > lit(U";")) | (access_specifier > lit(U":"))
-      | function_def | destructor | constructor);
+      | class_def | function_def | destructor | constructor);
 
 const auto class_def_def = x3::matches[lit(U"pub")] >> class_key > identifier
                            > template_params > lit(U"{") > class_member_list

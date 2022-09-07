@@ -265,18 +265,64 @@ void verifyDestructor(CGContext&             ctx,
   }
 }
 
-// No method declarations or definitions
-// Definitions and declarations must be made by the caller with the return
-// value
-[[nodiscard]] std::vector<ast::FunctionDef>
-createClassNoMethodDeclDef(CGContext& ctx, const ast::ClassDef& node)
+void defineMethods(CGContext&          ctx,
+                   const ClassMethods& methods,
+                   const std::string&  class_name)
+{
+  ctx.ns_hierarchy.push({class_name, NamespaceKind::class_});
+
+  for (const auto& r : methods)
+    createTopLevel(ctx, ast::TopLevel{r});
+
+  ctx.ns_hierarchy.pop();
+}
+
+void declareMethods(CGContext&          ctx,
+                    const ClassMethods& methods,
+                    const std::string&  class_name)
+{
+  ctx.ns_hierarchy.push({class_name, NamespaceKind::class_});
+
+  for (const auto& r : methods)
+    createTopLevel(ctx, ast::TopLevel{r.decl});
+
+  ctx.ns_hierarchy.pop();
+}
+
+// Depending on the argument, it can be either declaration only, definition
+// only, or declaration and definition
+void createMethod(CGContext&             ctx,
+                  const ClassMethods&    methods,
+                  const std::string&     class_name,
+                  const MethodGeneration conv)
+{
+  switch (conv) {
+  case MethodGeneration::define_and_declare:
+    // By declaring first, the order of definitions can be ignored
+    declareMethods(ctx, methods, class_name);
+    defineMethods(ctx, methods, class_name);
+    return;
+  case MethodGeneration::declare:
+    declareMethods(ctx, methods, class_name);
+    return;
+  case MethodGeneration::define:
+    defineMethods(ctx, methods, class_name);
+    return;
+  }
+
+  unreachable();
+}
+
+void createClass(CGContext&             ctx,
+                 const ast::ClassDef&   node,
+                 const MethodGeneration method_conv)
 {
   const auto class_name = node.name.utf8();
 
   auto accessibility = CLASS_DEFAULT_ACCESSIBILITY;
 
   std::vector<ClassType::MemberVariable> member_variables;
-  std::vector<ast::FunctionDef>          method_def_asts;
+  ClassMethods                           method_def_asts;
 
   const auto push_this_ptr = [&](ast::FunctionDecl& decl) {
     decl.params->push_front({ast::Identifier{std::u32string{U"this"}},
@@ -284,6 +330,9 @@ createClassNoMethodDeclDef(CGContext& ctx, const ast::ClassDef& node)
                              ast::PointerType{ast::UserDefinedType{node.name}},
                              false});
   };
+
+  // At the end of this function, the classes in this array are deleted
+  std::vector<std::string> lazy_delete_classes;
 
   for (const auto& member : node.members) {
     if (const auto variable
@@ -359,6 +408,14 @@ createClassNoMethodDeclDef(CGContext& ctx, const ast::ClassDef& node)
                                                  std::move(clone.decl),
                                                  std::move(clone.body)});
     }
+    else if (const auto class_ = boost::get<ast::ClassDef>(&member)) {
+      if (class_->isTemplate()) {
+        // TODO
+        unreachable();
+      }
+
+      createClass(ctx, *class_, MethodGeneration::define_and_declare);
+    }
     else
       unreachable();
   }
@@ -383,31 +440,10 @@ createClassNoMethodDeclDef(CGContext& ctx, const ast::ClassDef& node)
                                   class_name));
   }
 
-  return method_def_asts;
-}
+  createMethod(ctx, method_def_asts, class_name, method_conv);
 
-void defineMethods(CGContext&                           ctx,
-                   const std::vector<ast::FunctionDef>& methods,
-                   const std::string&                   class_name)
-{
-  ctx.ns_hierarchy.push({class_name, NamespaceKind::class_});
-
-  for (const auto& r : methods)
-    createTopLevel(ctx, ast::TopLevel{r});
-
-  ctx.ns_hierarchy.pop();
-}
-
-void declareMethods(CGContext&                           ctx,
-                    const std::vector<ast::FunctionDef>& methods,
-                    const std::string&                   class_name)
-{
-  ctx.ns_hierarchy.push({class_name, NamespaceKind::class_});
-
-  for (const auto& r : methods)
-    createTopLevel(ctx, ast::TopLevel{r.decl});
-
-  ctx.ns_hierarchy.pop();
+  for (const auto& r : lazy_delete_classes)
+    ctx.class_table.erase(r);
 }
 
 //===----------------------------------------------------------------------===//
@@ -523,14 +559,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
       return nullptr;
     }
 
-    const auto method_def_asts = createClassNoMethodDeclDef(ctx, node);
-
-    const auto name = node.name.utf8();
-
-    // By declaring first, the order of definitions can be ignored
-    declareMethods(ctx, method_def_asts, name);
-
-    defineMethods(ctx, method_def_asts, name);
+    createClass(ctx, node, MethodGeneration::define_and_declare);
 
     return nullptr;
   }
@@ -600,11 +629,7 @@ private:
 
   void importClass(const ast::ClassDef& node) const
   {
-    declareMethods(ctx,
-                   createClassNoMethodDeclDef(ctx, node),
-                   node.name.utf8());
-
-    // No method definition
+    createClass(ctx, node, MethodGeneration::declare /* Only declaration */);
   }
 
   [[nodiscard]] std::string loadFile(const std::filesystem::path& path,

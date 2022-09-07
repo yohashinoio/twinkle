@@ -35,16 +35,26 @@ declareFunction(CGContext&                   ctx,
                 const std::string_view       mangled_name,
                 const std::shared_ptr<Type>& return_type);
 
-[[nodiscard]] std::vector<twinkle::ast::FunctionDef>
-createClassNoMethodDeclDef(CGContext& ctx, const ast::ClassDef& node);
+// Indicates whether methods will be declared, defined, or both
+enum class MethodGeneration {
+  define_and_declare,
+  declare,
+  define,
+};
 
-void defineMethods(CGContext&                           ctx,
-                   const std::vector<ast::FunctionDef>& methods,
-                   const std::string&                   class_name);
+void createClass(CGContext&             ctx,
+                 const ast::ClassDef&   node,
+                 const MethodGeneration method_conv);
 
-void declareMethods(CGContext&                           ctx,
-                    const std::vector<ast::FunctionDef>& methods,
-                    const std::string&                   class_name);
+using ClassMethods = std::vector<ast::FunctionDef>;
+
+void defineMethods(CGContext&          ctx,
+                   const ClassMethods& methods,
+                   const std::string&  class_name);
+
+void declareMethods(CGContext&          ctx,
+                    const ClassMethods& methods,
+                    const std::string&  class_name);
 
 llvm::Function* createTopLevel(CGContext& ctx, const ast::TopLevel& node);
 

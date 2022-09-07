@@ -118,10 +118,10 @@ namespace test
     {                             "class_type2",  14},
     {                          "recursive_cast",  58},
     {                      "expr_lhs_subscript",  58},
-    {                          "class_in_class",  14},
+    {         "class_with_class_type_variables",  14},
     {                           "member_access",  58},
     {                        "assign_to_member",  58},
-    {            "class_in_class_member_access",  58},
+    {  "class_with_class_type_variables_access",  58},
     {                    "function_overloading",  58},
     {      "dereference_to_pointer_to_unsigned",  14},
     {                 "access_to_signed_member",  14},
@@ -192,6 +192,7 @@ namespace test
     {                     "class_template_type", 116},
     {            "multiple_class_template_type", 116},
     {                    "class_template_type2",  58},
+    {                      "class_within_class",  58},
   };
 
   const auto it = expects.find(test_name);
