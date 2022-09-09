@@ -1,39 +1,37 @@
 [[nomangle]]
 declare func printf(format: ^i8, ...) -> i32;
 
-declare class numnode;
+class list<T> {
+  class node {
+    let mut n: T;
+    let mut next: ^node;
+  }
 
-class numnode {
-  let mut n: i32;
-  let mut next: ^numnode;
-}
-
-class numlist {
-  numlist()
+  list()
   {
-    head = new numnode;
-    head^.next = 0 as ^numnode;
+    head = new node;
+    head^.next = 0 as ^node;
 
     size = 0;
   }
 
-  ~numlist()
+  ~list()
   {
-    while (head^.next != 0 as ^numnode) {
+    while (head^.next != 0 as ^node) {
       let tmp = head;
       head = head^.next;
       delete tmp;
     }
   }
 
-  func push_back(val: i32)
+  func push_back(val: T)
   {
     let mut tail = search_tail();
 
-    let newnode = new numnode;
+    let newnode = new node;
 
     newnode^.n = val;
-    newnode^.next = 0 as ^numnode;
+    newnode^.next = 0 as ^node;
 
     tail^.next = newnode;
 
@@ -52,13 +50,13 @@ class numlist {
       p = p^.next;
     }
 
-    tmp^.next = 0 as ^numnode;
+    tmp^.next = 0 as ^node;
     delete p;
 
     --size;
   }
 
-  func at(idx: i32) -> i32
+  func at(idx: T) -> T
   {
     let mut p = head^.next;
 
@@ -68,32 +66,32 @@ class numlist {
     return p^.n;
   }
 
-  func size() -> i32
+  func size() -> T
   {
     return size;
   }
 
 private:
-  func search_tail() -> ^numnode
+  func search_tail() -> ^node
   {
     let mut p = head;
 
-    while (p^.next != 0 as ^numnode)
+    while (p^.next != 0 as ^node)
       p = p^.next;
 
     return p;
   }
 
-  let mut head: ^numnode;
+  let mut head: ^node;
 
-  let mut size: i32;
+  let mut size: T;
 }
 
 func main() -> i32
 {
   let elems = [48, 10, 4, 8, 1, 0, 58];
 
-  let linked_list = numlist{};
+  let linked_list = list<i32>{};
 
   for (let mut i = 0; i < sizeof elems / sizeof elems[0]; ++i)
     linked_list.push_back(elems[i]);
