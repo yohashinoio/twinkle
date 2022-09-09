@@ -295,6 +295,14 @@ ClassType::offsetByName(const std::string_view member_name) const
          + element_type->getMangledName(ctx);
 }
 
+void verifyType(CGContext&                   ctx,
+                const std::shared_ptr<Type>& type,
+                const PositionRange&         pos)
+{
+  if (!type || !type->getLLVMType(ctx))
+    throw CodegenError{ctx.formatError(pos, "unknown type name specified")};
+}
+
 // Type AST to std::shared_ptr<Type>
 struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
   TypeVisitor(CGContext& ctx) noexcept
@@ -316,9 +324,11 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
   [[nodiscard]] std::shared_ptr<Type>
   operator()(const ast::ArrayType& node) const
   {
-    return std::make_shared<ArrayType>(
-      boost::apply_visitor(*this, node.element_type),
-      node.size);
+    const auto type = boost::apply_visitor(*this, node.element_type);
+
+    verifyType(ctx, type, ctx.positions.position_of(node));
+
+    return std::make_shared<ArrayType>(type, node.size);
   }
 
   [[nodiscard]] std::shared_ptr<Type>
@@ -327,6 +337,8 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
     assert(0 < node.n_ops.size());
 
     auto type = boost::apply_visitor(*this, node.pointee_type);
+
+    verifyType(ctx, type, ctx.positions.position_of(node));
 
     for (std::size_t i = 0; i < node.n_ops.size(); ++i)
       type = std::make_shared<PointerType>(type);
@@ -419,14 +431,6 @@ private:
 
   CGContext& ctx;
 };
-
-void verifyType(CGContext&                   ctx,
-                const std::shared_ptr<Type>& type,
-                const PositionRange&         pos)
-{
-  if (!type || !type->getLLVMType(ctx))
-    throw CodegenError{ctx.formatError(pos, "unknown type name specified")};
-}
 
 [[nodiscard]] std::shared_ptr<Type>
 createType(CGContext& ctx, const ast::Type& ast, const PositionRange& pos)

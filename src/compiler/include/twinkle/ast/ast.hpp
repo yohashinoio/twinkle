@@ -23,17 +23,23 @@
 namespace twinkle
 {
 
+namespace x3 = boost::spirit::x3;
+
 namespace codegen
 {
 
 enum class BuiltinTypeKind;
 
+inline void assignPosition(x3::position_tagged&       assignee,
+                           const x3::position_tagged& copied)
+{
+  assignee = copied;
 }
+
+} // namespace codegen
 
 namespace ast
 {
-
-namespace x3 = boost::spirit::x3;
 
 //===----------------------------------------------------------------------===//
 // Common AST

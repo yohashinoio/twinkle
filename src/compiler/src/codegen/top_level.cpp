@@ -325,10 +325,14 @@ void createClass(CGContext&             ctx,
   ClassMethods                           method_def_asts;
 
   const auto push_this_ptr = [&](ast::FunctionDecl& decl) {
-    decl.params->push_front({ast::Identifier{std::u32string{U"this"}},
-                             {VariableQual::mutable_},
-                             ast::PointerType{ast::UserDefinedType{node.name}},
-                             false});
+    auto type = ast::PointerType{ast::UserDefinedType{node.name}};
+    assignPosition(type, decl);
+
+    auto ident = ast::Identifier{std::u32string{U"this"}};
+    assignPosition(ident, decl);
+
+    decl.params->push_front(
+      {std::move(ident), {VariableQual::mutable_}, std::move(type), false});
   };
 
   // At the end of this function, the classes in this array are deleted
