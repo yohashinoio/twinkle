@@ -424,9 +424,7 @@ void verifyType(CGContext&                   ctx,
                 const std::shared_ptr<Type>& type,
                 const PositionRange&         pos)
 {
-  assert(type);
-
-  if (!type->getLLVMType(ctx))
+  if (!type || !type->getLLVMType(ctx))
     throw CodegenError{ctx.formatError(pos, "unknown type name specified")};
 }
 
