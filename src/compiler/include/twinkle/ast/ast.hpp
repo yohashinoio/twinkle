@@ -820,7 +820,7 @@ struct FunctionDecl : x3::position_tagged {
 };
 
 struct FunctionDef : x3::position_tagged {
-  FunctionDef(const bool is_public, FunctionDecl&& decl, Stmt&& body)
+  FunctionDef(const bool is_public, FunctionDecl&& decl, Stmt&& body) noexcept
     : is_public{is_public}
     , decl{std::move(decl)}
     , body(std::move(body))
@@ -835,6 +835,18 @@ struct FunctionDef : x3::position_tagged {
 };
 
 struct ClassDecl : x3::position_tagged {
+  explicit ClassDecl(const Identifier& name)
+    : name{name}
+  {
+  }
+
+  explicit ClassDecl(Identifier&& name) noexcept
+    : name{std::move(name)}
+  {
+  }
+
+  ClassDecl() = default;
+
   Identifier name;
 };
 

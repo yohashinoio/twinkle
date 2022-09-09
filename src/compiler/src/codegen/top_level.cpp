@@ -319,6 +319,14 @@ void createClass(CGContext&             ctx,
 {
   const auto class_name = node.name.utf8();
 
+  {
+    // Declare first
+    // Because of the possibility of using this class recursively
+    auto decl = ast::ClassDecl{node.name};
+    assignPosition(decl, node);
+    createTopLevel(ctx, decl);
+  }
+
   auto accessibility = CLASS_DEFAULT_ACCESSIBILITY;
 
   std::vector<ClassType::MemberVariable> member_variables;
