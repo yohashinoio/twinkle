@@ -305,8 +305,9 @@ void verifyType(CGContext&                   ctx,
 
 // Type AST to std::shared_ptr<Type>
 struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
-  TypeVisitor(CGContext& ctx) noexcept
+  TypeVisitor(CGContext& ctx, const PositionRange& pos) noexcept
     : ctx{ctx}
+    , pos{pos}
   {
   }
 
@@ -324,7 +325,7 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
   [[nodiscard]] std::shared_ptr<Type>
   operator()(const ast::ArrayType& node) const
   {
-    const auto type = boost::apply_visitor(*this, node.element_type);
+    const auto type = createType(ctx, node.element_type, pos);
 
     verifyType(ctx, type, ctx.positions.position_of(node));
 
@@ -336,7 +337,7 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
   {
     assert(0 < node.n_ops.size());
 
-    auto type = boost::apply_visitor(*this, node.pointee_type);
+    auto type = createType(ctx, node.pointee_type, pos);
 
     verifyType(ctx, type, ctx.positions.position_of(node));
 
@@ -400,7 +401,7 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
   operator()(const ast::ReferenceType& node) const
   {
     return std::make_shared<ReferenceType>(
-      boost::apply_visitor(*this, node.refee_type));
+      createType(ctx, node.refee_type, pos));
   }
 
 private:
@@ -430,12 +431,14 @@ private:
   }
 
   CGContext& ctx;
+
+  const PositionRange& pos;
 };
 
 [[nodiscard]] std::shared_ptr<Type>
 createType(CGContext& ctx, const ast::Type& ast, const PositionRange& pos)
 {
-  const auto type = boost::apply_visitor(TypeVisitor{ctx}, ast);
+  const auto type = boost::apply_visitor(TypeVisitor{ctx, pos}, ast);
 
   verifyType(ctx, type, pos);
 
