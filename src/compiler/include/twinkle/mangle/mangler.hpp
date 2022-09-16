@@ -21,7 +21,7 @@ namespace twinkle
 namespace codegen
 {
 
-struct NsHierarchy;
+struct NamespaceStack;
 struct CGContext;
 struct Value;
 struct Type;
@@ -39,7 +39,7 @@ struct Mangler : private boost::noncopyable {
 
   [[nodiscard]] std::string
   mangleFunctionTemplate(CGContext&                    ctx,
-                         const NsHierarchy&            space,
+                         const NamespaceStack&         space,
                          const ast::FunctionDecl&      decl,
                          const ast::TemplateArguments& template_args) const;
 
@@ -78,7 +78,7 @@ private:
 
   // Return results stored in order of priority
   [[nodiscard]] std::vector<std::string>
-  mangleNamespaceHierarchy(const NsHierarchy& namespaces) const;
+  mangleNamespaceHierarchy(const NamespaceStack& namespaces) const;
 
   [[nodiscard]] std::string
   mangleThisPointer(CGContext& ctx, const std::string& class_name) const;

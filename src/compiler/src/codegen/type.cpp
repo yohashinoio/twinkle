@@ -405,11 +405,11 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
   }
 
 private:
-  [[nodiscard]] std::shared_ptr<Type>
-  createClassFromTemplate(const ClassTemplateTableValue& ast,
-                          const ast::TemplateArguments&  template_args,
-                          const NsHierarchy& space, // FIXME: Use this argument
-                          const PositionRange& pos) const
+  [[nodiscard]] std::shared_ptr<Type> createClassFromTemplate(
+    const ClassTemplateTableValue& ast,
+    const ast::TemplateArguments&  template_args,
+    const NamespaceStack&          space, // FIXME: Use this argument
+    const PositionRange&           pos) const
   {
     const TemplateArgumentsDefiner ta_definer{ctx,
                                               template_args,

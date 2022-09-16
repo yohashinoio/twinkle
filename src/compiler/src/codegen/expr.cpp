@@ -597,7 +597,7 @@ private:
   }
 
   [[nodiscard]] std::optional<
-    std::pair<FunctionTemplateTableValue, NsHierarchy>>
+    std::pair<FunctionTemplateTableValue, NamespaceStack>>
   findFunctionTemplate(const std::string_view        name,
                        const ast::TemplateArguments& args) const
   {
@@ -623,7 +623,7 @@ private:
   [[nodiscard]] llvm::Function*
   createFunctionTemplate(const FunctionTemplateTableValue& ast,
                          const ast::TemplateArguments&     template_args,
-                         const NsHierarchy&                space) const
+                         const NamespaceStack&             space) const
   {
     assert(ast.decl.isTemplate());
 
@@ -635,7 +635,7 @@ private:
   [[nodiscard]] llvm::Function*
   declareFunctionTemplate(const ast::FunctionDecl&      decl,
                           const ast::TemplateArguments& template_args,
-                          const NsHierarchy&            space) const
+                          const NamespaceStack&         space) const
   {
     const auto return_type
       = createType(ctx, decl.return_type, ctx.positions.position_of(decl));
@@ -652,7 +652,7 @@ private:
   [[nodiscard]] llvm::Function*
   defineFunctionTemplate(const FunctionTemplateTableValue& ast,
                          const ast::TemplateArguments&     template_args,
-                         const NsHierarchy&                space) const
+                         const NamespaceStack&             space) const
   {
     const auto pos = ctx.positions.position_of(ast.decl);
 

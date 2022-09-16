@@ -32,7 +32,7 @@ void TemplateArgumentsDefiner::insertToAliasTable(
   ctx.template_argument_tables.emplace(std::move(template_argument_table));
 }
 
-[[nodiscard]] std::optional<std::pair<ClassTemplateTableValue, NsHierarchy>>
+[[nodiscard]] std::optional<std::pair<ClassTemplateTableValue, NamespaceStack>>
 findClassTemplate(CGContext&                    ctx,
                   const std::string_view        name,
                   const ast::TemplateArguments& args)

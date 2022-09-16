@@ -41,7 +41,7 @@ Mangler::mangleFunction(CGContext& ctx, const ast::FunctionDecl& decl) const
 
 [[nodiscard]] std::string Mangler::mangleFunctionTemplate(
   CGContext&                    ctx,
-  const NsHierarchy&            space,
+  const NamespaceStack&         space,
   const ast::FunctionDecl&      decl,
   const ast::TemplateArguments& template_args) const
 {
@@ -248,7 +248,7 @@ Mangler::mangleFunctionName(const std::string& name) const
 }
 
 [[nodiscard]] std::vector<std::string>
-Mangler::mangleNamespaceHierarchy(const NsHierarchy& namespaces) const
+Mangler::mangleNamespaceHierarchy(const NamespaceStack& namespaces) const
 {
   std::vector<std::string> candidates;
 

@@ -143,8 +143,7 @@ struct Namespace {
   const NamespaceKind kind;
 };
 
-// Namespace hierarchy
-struct NsHierarchy {
+struct NamespaceStack {
   [[nodiscard]] bool empty() const noexcept
   {
     return namespaces.empty();
@@ -179,7 +178,7 @@ struct NsHierarchy {
   }
 
   // Implemented to be a key in std::map
-  [[nodiscard]] bool operator<(const NsHierarchy& other) const
+  [[nodiscard]] bool operator<(const NamespaceStack& other) const
   {
     return std::lexicographical_compare(namespaces.begin(),
                                         namespaces.end(),
@@ -193,7 +192,7 @@ private:
 
 using TemplateTableKey = std::tuple<std::string, // Name
                                     std::size_t, // Template parameter length
-                                    NsHierarchy>;
+                                    NamespaceStack>;
 
 using FunctionTemplateTableValue = ast::FunctionDef;
 
@@ -213,7 +212,7 @@ using ClassTemplateTable
 
 using CreatedClassTemplateTableKey = std::tuple<std::string, // Name
                                                 ast::TemplateArguments,
-                                                NsHierarchy>;
+                                                NamespaceStack>;
 
 using CreatedClassTemplateTableElem
   = std::pair<CreatedClassTemplateTableKey, std::shared_ptr<Type>>;
@@ -270,7 +269,7 @@ struct CGContext : private boost::noncopyable {
   std::stack<TemplateArgumentTable> template_argument_tables;
 
   // Namespace
-  NsHierarchy ns_hierarchy;
+  NamespaceStack ns_hierarchy;
 
   // Mangle
   mangle::Mangler mangler;

@@ -156,7 +156,7 @@ private:
 
 // Returns a AST of a class template and a namespace information where it is
 // located
-[[nodiscard]] std::optional<std::pair<ClassTemplateTableValue, NsHierarchy>>
+[[nodiscard]] std::optional<std::pair<ClassTemplateTableValue, NamespaceStack>>
 findClassTemplate(CGContext&                    ctx,
                   const std::string_view        name,
                   const ast::TemplateArguments& args);
