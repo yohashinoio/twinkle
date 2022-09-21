@@ -116,15 +116,14 @@ int main(const int argc, const char* const* const argv)
         continue;
       }
     }
-    else {
-      std::cerr << " => ";
-      fmt::print(stderr,
-                 fg(fmt::terminal_color::bright_red),
-                 "{} Fails! ",
-                 *result);
-      fmt::print(stderr, "{} expected\n", *expect);
-      ++fail_c;
-    }
+
+    std::cerr << " => ";
+    fmt::print(stderr,
+               fg(fmt::terminal_color::bright_red),
+               "{} Fails! ",
+               *result);
+    fmt::print(stderr, "{} expected\n", *expect);
+    ++fail_c;
   }
 
   std::cerr << "--------------------\n";
