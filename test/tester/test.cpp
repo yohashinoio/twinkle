@@ -110,7 +110,7 @@ int main(const int argc, const char* const* const argv)
         std::cerr << " => ";
         fmt::print(stderr,
                    fg(fmt::terminal_color::bright_green),
-                   "{} OK!\n",
+                   "{} Passed!\n",
                    *result);
         ++ok_c;
         continue;
@@ -120,17 +120,17 @@ int main(const int argc, const char* const* const argv)
     std::cerr << " => ";
     fmt::print(stderr,
                fg(fmt::terminal_color::bright_red),
-               "{} Fails! ",
+               "{} Failed! ",
                *result);
     fmt::print(stderr, "{} expected\n", *expect);
     ++fail_c;
   }
 
   std::cerr << "--------------------\n";
-  std::cerr << "| " + fmt::format(fg(fmt::terminal_color::bright_red), "Fail")
+  std::cerr << "| " + fmt::format(fg(fmt::terminal_color::bright_red), "Failed")
                  + ": "
             << std::setw(10) << fail_c << " |\n";
-  std::cerr << "|   " + fmt::format(fg(fmt::terminal_color::bright_green), "OK")
+  std::cerr << "| " + fmt::format(fg(fmt::terminal_color::bright_green), "Passed")
                  + ": "
             << std::setw(10) << ok_c << " |\n";
   std::cerr << "--------------------\n";
