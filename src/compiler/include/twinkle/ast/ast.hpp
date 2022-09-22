@@ -681,6 +681,16 @@ struct Assignment : x3::position_tagged {
   }
 };
 
+// This class is never created by the parser
+struct ClassMemberInit : x3::position_tagged {
+  explicit ClassMemberInit(Assignment&& assign_ast)
+    : assign_ast{std::move(assign_ast)}
+  {
+  }
+
+  Assignment assign_ast;
+};
+
 struct PrefixIncrementDecrement : x3::position_tagged {
   std::u32string op;
   Expr           operand; // Only assignable.
@@ -741,7 +751,11 @@ using StmtT2
 using StmtT3
   = boost::mpl::push_back<StmtT2, boost::recursive_wrapper<For>>::type;
 
-using StmtTypes = StmtT3;
+using StmtT4
+  = boost::mpl::push_back<StmtT3,
+                          boost::recursive_wrapper<ClassMemberInit>>::type;
+
+using StmtTypes = StmtT4;
 
 using Stmt = boost::make_recursive_variant_over<StmtTypes>::type;
 

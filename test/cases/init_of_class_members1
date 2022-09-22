@@ -1,14 +1,16 @@
 class Sample {
   Sample(n_: i32)
-    : n{n_}
+    : n1{n_}
+    , n2{10}
   {
   }
 
-  let mut n: i32;
+  let mut n1: i32;
+  let mut n2: i32;
 }
 
 func main() -> i32
 {
   let s = Sample{48};
-  return s.n + 10;
+  return s.n1 + s.n2;
 }

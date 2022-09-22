@@ -193,7 +193,8 @@ namespace test
     {            "multiple_class_template_type", 116},
     {                    "class_template_type2",  58},
     {                      "class_within_class",  58},
-    {                   "init_of_class_members",  58},
+    {                  "init_of_class_members1",  58},
+    {                  "init_of_class_members2",  58},
   };
 
   const auto it = expects.find(test_name);

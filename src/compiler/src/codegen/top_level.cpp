@@ -383,9 +383,10 @@ createMemberInitStmt(const ast::MemberInitializerList& initializer_list)
   ast::CompoundStatement member_init_stmt;
 
   for (const auto& initializer : initializer_list.initializers) {
-    ast::Assignment init{initializer.member_name,
-                         U"=",
-                         initializer.initializer};
+    ast::ClassMemberInit init{
+      ast::Assignment{initializer.member_name, U"=", initializer.initializer}
+    };
+    assignPosition(init.assign_ast, initializer);
     assignPosition(init, initializer);
     member_init_stmt.push_back(std::move(init));
   }

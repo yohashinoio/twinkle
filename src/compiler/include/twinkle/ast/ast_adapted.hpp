@@ -202,6 +202,11 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
+  twinkle::ast::ClassMemberInit,
+  (twinkle::ast::Assignment, assign_ast)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
   twinkle::ast::PrefixIncrementDecrement,
   (std::u32string, op)
   (twinkle::ast::Expr, operand)

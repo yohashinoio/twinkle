@@ -121,53 +121,12 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
   void operator()(const ast::Assignment& node) const
   {
-    const auto lhs
-      = createAssignableValue(node.lhs, ctx.positions.position_of(node));
+    return createAssignment(node);
+  }
 
-    const auto rhs = createExpr(ctx, getAllSymbols(), stmt_ctx, node.rhs);
-
-    verifyVariableType(ctx.positions.position_of(node), rhs.getType());
-
-    auto const lhs_value
-      = Value{ctx.builder.CreateLoad(lhs.getLLVMType()->getPointerElementType(),
-                                     lhs.getValue()),
-              lhs.getType()->getPointeeType(ctx)};
-
-    switch (node.kind()) {
-    case ast::Assignment::Kind::unknown:
-      throw CodegenError{ctx.formatError(
-        ctx.positions.position_of(node),
-        fmt::format("unknown operator '{}' detected", node.opstr()))};
-
-    case ast::Assignment::Kind::direct:
-      ctx.builder.CreateStore(rhs.getValue(), lhs.getValue());
-      return;
-
-    case ast::Assignment::Kind::add:
-      ctx.builder.CreateStore(createAdd(ctx, lhs_value, rhs).getValue(),
-                              lhs.getValue());
-      return;
-
-    case ast::Assignment::Kind::sub:
-      ctx.builder.CreateStore(createSub(ctx, lhs_value, rhs).getValue(),
-                              lhs.getValue());
-      return;
-
-    case ast::Assignment::Kind::mul:
-      ctx.builder.CreateStore(createMul(ctx, lhs_value, rhs).getValue(),
-                              lhs.getValue());
-      return;
-
-    case ast::Assignment::Kind::div:
-      ctx.builder.CreateStore(createDiv(ctx, lhs_value, rhs).getValue(),
-                              lhs.getValue());
-      return;
-
-    case ast::Assignment::Kind::mod:
-      ctx.builder.CreateStore(createMod(ctx, lhs_value, rhs).getValue(),
-                              lhs.getValue());
-      return;
-    }
+  void operator()(const ast::ClassMemberInit& node) const
+  {
+    return createAssignment(node.assign_ast, false);
   }
 
   void operator()(const ast::PrefixIncrementDecrement& node) const
@@ -401,12 +360,66 @@ private:
     return mergeSymbolTables(parent_scope, scope);
   }
 
+  void createAssignment(const ast::Assignment& node,
+                        const bool             const_check = true) const
+  {
+    const auto lhs = createAssignableValue(node.lhs,
+                                           ctx.positions.position_of(node),
+                                           const_check);
+
+    const auto rhs = createExpr(ctx, getAllSymbols(), stmt_ctx, node.rhs);
+
+    verifyVariableType(ctx.positions.position_of(node), rhs.getType());
+
+    auto const lhs_value
+      = Value{ctx.builder.CreateLoad(lhs.getLLVMType()->getPointerElementType(),
+                                     lhs.getValue()),
+              lhs.getType()->getPointeeType(ctx)};
+
+    switch (node.kind()) {
+    case ast::Assignment::Kind::unknown:
+      throw CodegenError{ctx.formatError(
+        ctx.positions.position_of(node),
+        fmt::format("unknown operator '{}' detected", node.opstr()))};
+
+    case ast::Assignment::Kind::direct:
+      ctx.builder.CreateStore(rhs.getValue(), lhs.getValue());
+      return;
+
+    case ast::Assignment::Kind::add:
+      ctx.builder.CreateStore(createAdd(ctx, lhs_value, rhs).getValue(),
+                              lhs.getValue());
+      return;
+
+    case ast::Assignment::Kind::sub:
+      ctx.builder.CreateStore(createSub(ctx, lhs_value, rhs).getValue(),
+                              lhs.getValue());
+      return;
+
+    case ast::Assignment::Kind::mul:
+      ctx.builder.CreateStore(createMul(ctx, lhs_value, rhs).getValue(),
+                              lhs.getValue());
+      return;
+
+    case ast::Assignment::Kind::div:
+      ctx.builder.CreateStore(createDiv(ctx, lhs_value, rhs).getValue(),
+                              lhs.getValue());
+      return;
+
+    case ast::Assignment::Kind::mod:
+      ctx.builder.CreateStore(createMod(ctx, lhs_value, rhs).getValue(),
+                              lhs.getValue());
+      return;
+    }
+  }
+
   [[nodiscard]] Value createAssignableValue(const ast::Expr&    node,
-                                            const PositionRange pos) const
+                                            const PositionRange pos,
+                                            const bool const_check = true) const
   {
     const auto value = createExpr(ctx, getAllSymbols(), stmt_ctx, node);
 
-    if (!value.isMutable()) {
+    if (const_check && !value.isMutable()) {
       throw CodegenError{
         ctx.formatError(pos, "assignment of read-only variable")};
     }
