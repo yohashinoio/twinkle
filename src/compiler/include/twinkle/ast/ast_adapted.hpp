@@ -258,8 +258,20 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
+  twinkle::ast::MemberInitializer,
+  (twinkle::ast::Identifier, member_name)
+  (twinkle::ast::Expr, initializer)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+  twinkle::ast::MemberInitializerList,
+  (std::vector<twinkle::ast::MemberInitializer>, initializers)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
   twinkle::ast::Constructor,
 	(twinkle::ast::FunctionDecl, decl)
+  (twinkle::ast::MemberInitializerList, member_initializers)
   (twinkle::ast::Stmt, body)
 )
 

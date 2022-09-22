@@ -6,6 +6,7 @@
  */
 
 #include <twinkle/codegen/top_level.hpp>
+#include <twinkle/codegen/expr.hpp>
 #include <twinkle/codegen/stmt.hpp>
 #include <twinkle/codegen/exception.hpp>
 
@@ -313,6 +314,96 @@ void createMethod(CGContext&             ctx,
   unreachable();
 }
 
+// This function changes the argument
+void pushThisPointer(const ast::Identifier& class_name, ast::FunctionDecl& decl)
+{
+  auto type = ast::PointerType{ast::UserDefinedType{class_name}};
+  assignPosition(type, decl);
+
+  auto ident = ast::Identifier{std::u32string{U"this"}};
+  assignPosition(ident, decl);
+
+  decl.params->push_front(
+    {std::move(ident), {VariableQual::mutable_}, std::move(type), false});
+}
+
+[[nodiscard]] ast::FunctionDef
+createConstructorAST(CGContext&              ctx,
+                     const Accessibility&    accessibility,
+                     const bool              is_public,
+                     const ast::Identifier&  class_name,
+                     const ast::Constructor& constructor)
+{
+  if (accessibility != Accessibility::public_) {
+    throw CodegenError{ctx.formatError(ctx.positions.position_of(constructor),
+                                       "constructor must be public")};
+  }
+
+  verifyConstructor(ctx, class_name.utf8(), constructor);
+
+  auto clone = constructor;
+
+  clone.decl.is_constructor = true;
+
+  pushThisPointer(class_name, clone.decl);
+
+  return ast::FunctionDef{is_public,
+                          std::move(clone.decl),
+                          std::move(clone.body)};
+}
+
+[[nodiscard]] ast::FunctionDef
+createDestructorAST(CGContext&             ctx,
+                    const Accessibility&   accessibility,
+                    const bool             is_public,
+                    const ast::Identifier& class_name,
+                    const ast::Destructor& destructor)
+{
+  if (accessibility != Accessibility::public_) {
+    throw CodegenError{ctx.formatError(ctx.positions.position_of(destructor),
+                                       "destructor must be public")};
+  }
+
+  verifyDestructor(ctx, class_name.utf8(), destructor);
+
+  auto clone = destructor;
+
+  clone.decl.is_destructor = true;
+
+  pushThisPointer(class_name, clone.decl);
+
+  return ast::FunctionDef{is_public,
+                          std::move(clone.decl),
+                          std::move(clone.body)};
+}
+
+[[nodiscard]] ast::CompoundStatement
+createMemberInitStmt(const ast::MemberInitializerList& initializer_list)
+{
+  ast::CompoundStatement init_stmt;
+
+  for (const auto& initializer : initializer_list.initializers) {
+    ast::Assignment init{initializer.member_name,
+                         U"=",
+                         initializer.initializer};
+    assignPosition(init, initializer);
+    init_stmt.push_back(std::move(init));
+  }
+
+  return init_stmt;
+}
+
+[[nodiscard]] ast::FunctionDef
+injectMemberInitStmt(ast::FunctionDef&&                func,
+                     const ast::MemberInitializerList& initializer_list)
+{
+  // New body statement containing initialization of member variables
+  ast::CompoundStatement new_body{func.body};
+  new_body.push_front(createMemberInitStmt(initializer_list));
+  func.body = std::move(new_body);
+  return func;
+}
+
 void createClass(CGContext&             ctx,
                  const ast::ClassDef&   node,
                  const MethodGeneration method_conv)
@@ -383,42 +474,20 @@ void createClass(CGContext&             ctx,
       }
     }
     else if (const auto constructor = boost::get<ast::Constructor>(&member)) {
-      if (accessibility != Accessibility::public_) {
-        throw CodegenError{
-          ctx.formatError(ctx.positions.position_of(*constructor),
-                          "constructor must be public")};
-      }
-
-      verifyConstructor(ctx, class_name, *constructor);
-
-      auto clone = *constructor;
-
-      clone.decl.is_constructor = true;
-
-      push_this_ptr(clone.decl);
-
-      method_def_asts.push_back(ast::FunctionDef{node.is_public,
-                                                 std::move(clone.decl),
-                                                 std::move(clone.body)});
+      method_def_asts.push_back(
+        injectMemberInitStmt(createConstructorAST(ctx,
+                                                  accessibility,
+                                                  node.is_public,
+                                                  node.name,
+                                                  *constructor),
+                             constructor->member_initializers));
     }
     else if (const auto destructor = boost::get<ast::Destructor>(&member)) {
-      if (accessibility != Accessibility::public_) {
-        throw CodegenError{
-          ctx.formatError(ctx.positions.position_of(*destructor),
-                          "destructor must be public")};
-      }
-
-      verifyDestructor(ctx, class_name, *destructor);
-
-      auto clone = *destructor;
-
-      clone.decl.is_destructor = true;
-
-      push_this_ptr(clone.decl);
-
-      method_def_asts.push_back(ast::FunctionDef{node.is_public,
-                                                 std::move(clone.decl),
-                                                 std::move(clone.body)});
+      method_def_asts.push_back(createDestructorAST(ctx,
+                                                    accessibility,
+                                                    node.is_public,
+                                                    node.name,
+                                                    *destructor));
     }
     else if (const auto class_ = boost::get<ast::ClassDef>(&member)) {
       if (class_->isTemplate()) {

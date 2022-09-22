@@ -1,0 +1,14 @@
+class Sample {
+  Sample(n_: i32)
+    : n{n_}
+  {
+  }
+
+  let mut n: i32;
+}
+
+func main() -> i32
+{
+  let s = Sample{48};
+  return s.n + 10;
+}

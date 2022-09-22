@@ -384,6 +384,13 @@ struct BinOp : x3::position_tagged {
   {
   }
 
+  BinOp(const Expr& lhs, const std::u32string& op, const Expr& rhs)
+    : lhs{lhs}
+    , op{op}
+    , rhs{rhs}
+  {
+  }
+
   [[nodiscard]] std::string opstr() const
   {
     return unicode::utf32toUtf8(op);
@@ -620,9 +627,25 @@ struct VariableDef : x3::position_tagged {
 };
 
 struct Assignment : x3::position_tagged {
-  Expr           lhs; // Only assignable.
+  Expr           lhs; // Only assignable
   std::u32string op;
   Expr           rhs;
+
+  Assignment(Expr&& lhs, std::u32string&& op, Expr&& rhs) noexcept
+    : lhs{std::move(lhs)}
+    , op{std::move(op)}
+    , rhs{std::move(rhs)}
+  {
+  }
+
+  Assignment(const Expr& lhs, const std::u32string& op, const Expr& rhs)
+    : lhs{lhs}
+    , op{op}
+    , rhs{rhs}
+  {
+  }
+
+  Assignment() = default;
 
   std::string opstr() const
   {
@@ -699,7 +722,7 @@ struct For;
 
 using StmtT0 = boost::mpl::vector<boost::blank,
                                   // Compound statement
-                                  std::vector<boost::recursive_variant_>,
+                                  std::deque<boost::recursive_variant_>,
                                   Expr,
                                   Return,
                                   VariableDef,
@@ -722,11 +745,11 @@ using StmtTypes = StmtT3;
 
 using Stmt = boost::make_recursive_variant_over<StmtTypes>::type;
 
+using CompoundStatement = std::deque<Stmt>;
+
 //===----------------------------------------------------------------------===//
 // Statement AST
 //===----------------------------------------------------------------------===//
-
-using CompoundStmt = std::vector<Stmt>;
 
 struct If : x3::position_tagged {
   Expr                condition;
@@ -856,9 +879,19 @@ struct VariableDefWithoutInit : x3::position_tagged {
   Type                        type;
 };
 
+struct MemberInitializer : x3::position_tagged {
+  Identifier member_name;
+  Expr       initializer;
+};
+
+struct MemberInitializerList : x3::position_tagged {
+  std::vector<MemberInitializer> initializers;
+};
+
 struct Constructor : x3::position_tagged {
-  FunctionDecl decl;
-  Stmt         body;
+  FunctionDecl          decl;
+  MemberInitializerList member_initializers;
+  Stmt                  body;
 };
 
 struct Destructor : x3::position_tagged {

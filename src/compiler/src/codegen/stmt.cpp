@@ -46,7 +46,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
   {
   }
 
-  void operator()(const ast::CompoundStmt& node) const
+  void operator()(const ast::CompoundStatement& node) const
   {
     createStatement(ctx, getAllSymbols(), stmt_ctx, node);
   }
@@ -561,8 +561,8 @@ void createStatement(CGContext&         ctx,
   auto new_stmt_ctx        = stmt_ctx_arg;
   new_stmt_ctx.destruct_bb = llvm::BasicBlock::Create(ctx.context, "destruct");
 
-  if (statement.type() == typeid(ast::CompoundStmt)) {
-    auto& statements = boost::get<ast::CompoundStmt>(statement);
+  if (statement.type() == typeid(ast::CompoundStatement)) {
+    auto& statements = boost::get<ast::CompoundStatement>(statement);
 
     for (const auto& r : statements) {
       boost::apply_visitor(StmtVisitor{ctx, scope_arg, new_scope, new_stmt_ctx},
