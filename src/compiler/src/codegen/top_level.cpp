@@ -380,17 +380,17 @@ createDestructorAST(CGContext&             ctx,
 [[nodiscard]] ast::CompoundStatement
 createMemberInitStmt(const ast::MemberInitializerList& initializer_list)
 {
-  ast::CompoundStatement init_stmt;
+  ast::CompoundStatement member_init_stmt;
 
   for (const auto& initializer : initializer_list.initializers) {
     ast::Assignment init{initializer.member_name,
                          U"=",
                          initializer.initializer};
     assignPosition(init, initializer);
-    init_stmt.push_back(std::move(init));
+    member_init_stmt.push_back(std::move(init));
   }
 
-  return init_stmt;
+  return member_init_stmt;
 }
 
 [[nodiscard]] ast::FunctionDef
