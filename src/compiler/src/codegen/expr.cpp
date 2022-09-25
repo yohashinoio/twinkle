@@ -230,8 +230,12 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::BinOp& node) const
   {
-    const auto [lhs, rhs] = implicitConv(boost::apply_visitor(*this, node.lhs),
-                                         boost::apply_visitor(*this, node.rhs));
+    // Function calls have no guaranteed order of argument evaluation
+    // The {} call to the constructor is guaranteed to be evaluated from left to
+    // right, so use it
+    const auto [lhs, rhs]
+      = implicitConv(std::pair{boost::apply_visitor(*this, node.lhs),
+                               boost::apply_visitor(*this, node.rhs)});
 
     if (!isPointerArithmetic(lhs, rhs)
         && !equals(ctx, lhs.getType(), rhs.getType())) {
@@ -938,6 +942,12 @@ private:
       return std::make_pair(lhs, rhs);
 
     return unifySign(unifyBitWidth(lhs, rhs));
+  }
+
+  [[nodiscard]] std::pair<Value, Value>
+  implicitConv(const std::pair<Value, Value>& operands) const
+  {
+    return implicitConv(operands.first, operands.second);
   }
 
   // For Integer

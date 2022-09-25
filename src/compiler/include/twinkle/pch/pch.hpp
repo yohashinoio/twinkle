@@ -99,6 +99,8 @@
 #include <algorithm>
 #include <sstream>
 #include <stack>
+#include <tuple>
+#include <utility>
 
 //===----------------------------------------------------------------------===//
 // C standard
