@@ -126,7 +126,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
   void operator()(const ast::ClassMemberInit& node) const
   {
-    return createAssignment(node.assign_ast, false);
+    return createAssignment(node, false);
   }
 
   void operator()(const ast::PrefixIncrementDecrement& node) const

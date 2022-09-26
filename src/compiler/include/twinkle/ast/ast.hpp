@@ -682,13 +682,8 @@ struct Assignment : x3::position_tagged {
 };
 
 // This class is never created by the parser
-struct ClassMemberInit : x3::position_tagged {
-  explicit ClassMemberInit(Assignment&& assign_ast)
-    : assign_ast{std::move(assign_ast)}
-  {
-  }
-
-  Assignment assign_ast;
+struct ClassMemberInit : Assignment {
+  using Assignment::Assignment;
 };
 
 struct PrefixIncrementDecrement : x3::position_tagged {
