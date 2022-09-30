@@ -139,24 +139,24 @@ namespace twinkle::codegen
 [[nodiscard]] std::shared_ptr<Type>
 UserDefinedType::getRealType(CGContext& ctx) const
 {
-  {
-    if (const auto type = ctx.class_table[ident])
-      return *type;
+  const auto clone_and_update_mutable = [&](const auto& type) {
+    auto cloned_type = type.value()->clone();
+    cloned_type->setMutable(ctx, isMutable());
+    return cloned_type;
+  };
+
+  if (const auto type = ctx.class_table[ident])
+    return clone_and_update_mutable(type);
+
+  if (const auto type = ctx.alias_table[ident])
+    return clone_and_update_mutable(type);
+
+  if (!ctx.template_argument_tables.empty()) {
+    if (const auto type = ctx.template_argument_tables.top()[ident])
+      return clone_and_update_mutable(type);
   }
 
-  {
-    if (const auto type = ctx.alias_table[ident])
-      return *type;
-  }
-
-  {
-    if (!ctx.template_argument_tables.empty()) {
-      if (const auto type = ctx.template_argument_tables.top()[ident])
-        return *type;
-    }
-  }
-
-  return {}; // Could not find the type
+  return {}; // Could not find a type
 }
 
 [[nodiscard]] llvm::Type* UserDefinedType::getLLVMType(CGContext& ctx) const
@@ -187,8 +187,10 @@ ClassType::createStructType(CGContext&                 ctx,
 
 ClassType::ClassType(CGContext&                    ctx,
                      std::vector<MemberVariable>&& members_arg,
-                     const std::u32string&         u32_name)
-  : is_opaque{false}
+                     const std::u32string&         u32_name,
+                     const bool                    is_mutable)
+  : Type{is_mutable}
+  , is_opaque{false}
   , members{std::move(members_arg)}
   , name{unicode::utf32toUtf8(u32_name)}
   , type{createStructType(ctx, extractTypes(ctx, members), name)}
@@ -197,8 +199,10 @@ ClassType::ClassType(CGContext&                    ctx,
 
 ClassType::ClassType(CGContext&                    ctx,
                      std::vector<MemberVariable>&& members_arg,
-                     const std::string&            name)
-  : is_opaque{false}
+                     const std::string&            name,
+                     const bool                    is_mutable)
+  : Type{is_mutable}
+  , is_opaque{false}
   , members{std::move(members_arg)}
   , name{name}
   , type{createStructType(ctx, extractTypes(ctx, members), this->name)}
@@ -208,8 +212,10 @@ ClassType::ClassType(CGContext&                    ctx,
 ClassType::ClassType(CGContext&                    ctx,
                      std::vector<MemberVariable>&& members,
                      const std::string&            ident,
-                     llvm::StructType* const       type)
-  : is_opaque{true}
+                     llvm::StructType* const       type,
+                     const bool                    is_mutable)
+  : Type{is_mutable}
+  , is_opaque{true}
   , members{std::move(members)}
   , name{ident}
   , type{type}
@@ -223,7 +229,8 @@ ClassType::createOpaqueClass(CGContext& ctx, const std::string& ident)
     ctx,
     std::vector<MemberVariable>{},
     ident,
-    llvm::StructType::create(ctx.context, ident));
+    llvm::StructType::create(ctx.context, ident),
+    false);
 }
 
 std::vector<llvm::Type*>
@@ -256,32 +263,6 @@ ClassType::offsetByName(const std::string_view member_name) const
   }
 
   return std::nullopt;
-}
-
-[[nodiscard]] llvm::Type* FunctionType::getLLVMType(CGContext& ctx) const
-{
-  if (param_types.empty())
-    return llvm::FunctionType::get(return_type->getLLVMType(ctx), false);
-
-  std::vector<llvm::Type*> params;
-  params.reserve(param_types.size());
-
-  for (const auto& r : param_types)
-    params.push_back(r->getLLVMType(ctx));
-
-  return llvm::FunctionType::get(return_type->getLLVMType(ctx), params, false);
-}
-
-[[nodiscard]] std::string FunctionType::getMangledName(CGContext& ctx) const
-{
-  std::ostringstream mangled;
-
-  mangled << "F" << return_type->getMangledName(ctx);
-
-  for (const auto& r : param_types)
-    mangled << r->getMangledName(ctx);
-
-  return mangled.str();
 }
 
 [[nodiscard]] std::string PointerType::getMangledName(CGContext& ctx) const
@@ -319,7 +300,7 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
   [[nodiscard]] std::shared_ptr<Type>
   operator()(const ast::BuiltinType& node) const
   {
-    return std::make_shared<BuiltinType>(node.kind);
+    return std::make_shared<BuiltinType>(node.kind, false);
   }
 
   [[nodiscard]] std::shared_ptr<Type>
@@ -329,7 +310,7 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
 
     verifyType(ctx, type, ctx.positions.position_of(node));
 
-    return std::make_shared<ArrayType>(type, node.size);
+    return std::make_shared<ArrayType>(type, node.size, false);
   }
 
   [[nodiscard]] std::shared_ptr<Type>
@@ -342,7 +323,7 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
     verifyType(ctx, type, ctx.positions.position_of(node));
 
     for (std::size_t i = 0; i < node.n_ops.size(); ++i)
-      type = std::make_shared<PointerType>(type);
+      type = std::make_shared<PointerType>(type, false);
 
     return type;
   }
@@ -352,7 +333,7 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
   {
     // If it was a template argument, it will be erased later, so return a real
     // type
-    return std::make_shared<UserDefinedType>(node.name.utf32())
+    return std::make_shared<UserDefinedType>(node.name.utf32(), true)
       ->getRealType(ctx);
   }
 
@@ -362,7 +343,8 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
     const auto pos = ctx.positions.position_of(node);
 
     const auto template_type
-      = std::make_shared<UserDefinedType>(node.template_type.name.utf32());
+      = std::make_shared<UserDefinedType>(node.template_type.name.utf32(),
+                                          false);
 
     const auto class_name
       = template_type->getLLVMType(ctx) ? template_type->getClassName(
@@ -401,7 +383,8 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
   operator()(const ast::ReferenceType& node) const
   {
     return std::make_shared<ReferenceType>(
-      createType(ctx, node.refee_type, pos));
+      createType(ctx, node.refee_type, pos),
+      false);
   }
 
 private:

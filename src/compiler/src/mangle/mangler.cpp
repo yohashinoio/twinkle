@@ -272,7 +272,7 @@ Mangler::mangleNamespaceHierarchy(const NamespaceStack& namespaces) const
 [[nodiscard]] std::string
 Mangler::mangleThisPointer(CGContext& ctx, const std::string& class_name) const
 {
-  return PointerType{std::make_shared<UserDefinedType>(class_name)}
+  return PointerType{std::make_shared<UserDefinedType>(class_name, false), false}
     .getMangledName(ctx);
 }
 

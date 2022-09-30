@@ -214,13 +214,13 @@ createEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
     return {ctx.builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_UEQ,
                                    lhs.getValue(),
                                    rhs.getValue()),
-            std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+            std::make_shared<BuiltinType>(BuiltinTypeKind::bool_, false)};
   }
 
   return {ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
                                  lhs.getValue(),
                                  rhs.getValue()),
-          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_, false)};
 }
 
 [[nodiscard]] Value
@@ -230,13 +230,13 @@ createNotEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
     return {ctx.builder.CreateFCmp(llvm::CmpInst::Predicate::FCMP_UNE,
                                    lhs.getValue(),
                                    rhs.getValue()),
-            std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+            std::make_shared<BuiltinType>(BuiltinTypeKind::bool_, false)};
   }
 
   return {ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_NE,
                                  lhs.getValue(),
                                  rhs.getValue()),
-          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_, false)};
 }
 
 [[nodiscard]] Value
@@ -246,7 +246,7 @@ createLessThan(CGContext& ctx, const Value& lhs, const Value& rhs)
     return {ctx.builder.CreateFCmp(llvm::ICmpInst::FCMP_ULT,
                                    lhs.getValue(),
                                    rhs.getValue()),
-            std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+            std::make_shared<BuiltinType>(BuiltinTypeKind::bool_, false)};
   }
 
   return {ctx.builder.CreateICmp(isSigned(logicalOrSign(ctx, lhs, rhs))
@@ -254,7 +254,7 @@ createLessThan(CGContext& ctx, const Value& lhs, const Value& rhs)
                                    : llvm::ICmpInst::ICMP_ULT,
                                  lhs.getValue(),
                                  rhs.getValue()),
-          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_, false)};
 }
 
 [[nodiscard]] Value
@@ -264,7 +264,7 @@ createGreaterThan(CGContext& ctx, const Value& lhs, const Value& rhs)
     return {ctx.builder.CreateFCmp(llvm::ICmpInst::FCMP_UGT,
                                    lhs.getValue(),
                                    rhs.getValue()),
-            std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+            std::make_shared<BuiltinType>(BuiltinTypeKind::bool_, false)};
   }
 
   return {ctx.builder.CreateICmp(isSigned(logicalOrSign(ctx, lhs, rhs))
@@ -272,7 +272,7 @@ createGreaterThan(CGContext& ctx, const Value& lhs, const Value& rhs)
                                    : llvm::ICmpInst::ICMP_UGT,
                                  lhs.getValue(),
                                  rhs.getValue()),
-          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_, false)};
 }
 
 [[nodiscard]] Value
@@ -282,7 +282,7 @@ createLessOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
     return {ctx.builder.CreateFCmp(llvm::ICmpInst::FCMP_ULE,
                                    lhs.getValue(),
                                    rhs.getValue()),
-            std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+            std::make_shared<BuiltinType>(BuiltinTypeKind::bool_, false)};
   }
 
   return {ctx.builder.CreateICmp(isSigned(logicalOrSign(ctx, lhs, rhs))
@@ -290,7 +290,7 @@ createLessOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
                                    : llvm::ICmpInst::ICMP_ULE,
                                  lhs.getValue(),
                                  rhs.getValue()),
-          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_, false)};
 }
 
 [[nodiscard]] Value
@@ -300,7 +300,7 @@ createGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
     return {ctx.builder.CreateFCmp(llvm::ICmpInst::FCMP_UGE,
                                    lhs.getValue(),
                                    rhs.getValue()),
-            std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+            std::make_shared<BuiltinType>(BuiltinTypeKind::bool_, false)};
   }
 
   return {ctx.builder.CreateICmp(isSigned(logicalOrSign(ctx, lhs, rhs))
@@ -308,21 +308,21 @@ createGreaterOrEqual(CGContext& ctx, const Value& lhs, const Value& rhs)
                                    : llvm::ICmpInst::ICMP_UGE,
                                  lhs.getValue(),
                                  rhs.getValue()),
-          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_, false)};
 }
 
 [[nodiscard]] Value
 createLogicalAnd(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateLogicalAnd(lhs.getValue(), rhs.getValue()),
-          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_, false)};
 }
 
 [[nodiscard]] Value
 createLogicalOr(CGContext& ctx, const Value& lhs, const Value& rhs)
 {
   return {ctx.builder.CreateLogicalOr(lhs.getValue(), rhs.getValue()),
-          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+          std::make_shared<BuiltinType>(BuiltinTypeKind::bool_, false)};
 }
 
 [[nodiscard]] Value
@@ -356,8 +356,7 @@ createDereference(CGContext& ctx, const PositionRange& pos, const Value& val)
   if (val.getType()->isRefTy(ctx)) {
     return {ctx.builder.CreateLoad(val.getLLVMType()->getPointerElementType(),
                                    val.getValue()),
-            val.getType()->getRefeeType(ctx),
-            val.isMutable()};
+            val.getType()->getRefeeType(ctx)};
   }
 
   if (!val.getValue()->getType()->isPointerTy()
@@ -368,8 +367,7 @@ createDereference(CGContext& ctx, const PositionRange& pos, const Value& val)
 
   return {ctx.builder.CreateLoad(val.getLLVMType()->getPointerElementType(),
                                  val.getValue()),
-          val.getType()->getPointeeType(ctx),
-          val.isMutable()};
+          val.getType()->getPointeeType(ctx)};
 }
 
 [[nodiscard]] Value createDereference(CGContext&                       ctx,

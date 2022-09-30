@@ -53,12 +53,9 @@ struct StmtContext {
 
 // Class that wraps llvm::Value
 struct Value {
-  Value(llvm::Value*                 value,
-        const std::shared_ptr<Type>& type,
-        const bool                   is_mutable = false)
+  Value(llvm::Value* value, const std::shared_ptr<Type>& type)
     : value{value}
     , type{type}
-    , is_mutable{is_mutable}
   {
   }
 
@@ -81,7 +78,7 @@ struct Value {
 
   [[nodiscard]] bool isMutable() const noexcept
   {
-    return is_mutable;
+    return type->isMutable();
   }
 
   [[nodiscard]] bool isSigned(CGContext& ctx) const
@@ -93,8 +90,6 @@ private:
   llvm::Value* value;
 
   std::shared_ptr<Type> type;
-
-  bool is_mutable;
 };
 
 // Various variable classes inherit this class
@@ -107,15 +102,19 @@ struct Variable {
 
   [[nodiscard]] virtual bool isSigned(CGContext& ctx) const = 0;
 
-  [[nodiscard]] virtual bool isMutable() const noexcept = 0;
+  [[nodiscard]] virtual bool isMutable() const = 0;
 };
 
 struct AllocaVariable : public Variable {
-  AllocaVariable(const Value& alloca, const bool is_mutable) noexcept
+  AllocaVariable(CGContext&   ctx,
+                 const Value& alloca,
+                 const bool   is_mutable) noexcept
     : alloca{alloca}
     , is_mutable{is_mutable}
   {
     assert(llvm::dyn_cast<llvm::AllocaInst>(alloca.getValue()));
+
+    this->alloca.getType()->setMutable(ctx, is_mutable);
   }
 
   AllocaVariable() = delete;
@@ -124,8 +123,7 @@ struct AllocaVariable : public Variable {
   {
     return {ctx.builder.CreateLoad(getAllocaInst()->getAllocatedType(),
                                    getAllocaInst()),
-            getType(),
-            is_mutable};
+            getType()};
   }
 
   [[nodiscard]] llvm::AllocaInst* getAllocaInst() const noexcept override
@@ -143,7 +141,7 @@ struct AllocaVariable : public Variable {
     return alloca.isSigned(ctx);
   }
 
-  [[nodiscard]] bool isMutable() const noexcept override
+  [[nodiscard]] bool isMutable() const override
   {
     return is_mutable;
   }
@@ -151,7 +149,7 @@ struct AllocaVariable : public Variable {
 private:
   Value alloca;
 
-  bool is_mutable;
+  const bool is_mutable;
 };
 
 // Returns a AST of a class template and a namespace information where it is

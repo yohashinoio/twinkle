@@ -195,6 +195,7 @@ namespace test
     {                      "class_within_class",  58},
     {                  "init_of_class_members1",  58},
     {                  "init_of_class_members2",  58},
+    {                             "assignment2",  58},
   };
 
   const auto it = expects.find(test_name);

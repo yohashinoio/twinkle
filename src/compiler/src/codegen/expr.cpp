@@ -60,15 +60,16 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   // Floating point literals
   [[nodiscard]] Value operator()(const double node) const
   {
-    return createAllocaFP(std::make_shared<BuiltinType>(BuiltinTypeKind::f64),
-                          node);
+    return createAllocaFP(
+      std::make_shared<BuiltinType>(BuiltinTypeKind::f64, false),
+      node);
   }
 
   // 32bit unsigned integer literals
   [[nodiscard]] Value operator()(const std::uint32_t node) const
   {
     return createAllocaUnsignedInt(
-      std::make_shared<BuiltinType>(BuiltinTypeKind::u32),
+      std::make_shared<BuiltinType>(BuiltinTypeKind::u32, false),
       node);
   }
 
@@ -76,7 +77,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   [[nodiscard]] Value operator()(const std::int32_t node) const
   {
     return createAllocaSignedInt(
-      std::make_shared<BuiltinType>(BuiltinTypeKind::i32),
+      std::make_shared<BuiltinType>(BuiltinTypeKind::i32, false),
       node);
   }
 
@@ -84,7 +85,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   [[nodiscard]] Value operator()(const std::uint64_t node) const
   {
     return createAllocaUnsignedInt(
-      std::make_shared<BuiltinType>(BuiltinTypeKind::u64),
+      std::make_shared<BuiltinType>(BuiltinTypeKind::u64, false),
       node);
   }
 
@@ -92,7 +93,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   [[nodiscard]] Value operator()(const std::int64_t node) const
   {
     return createAllocaSignedInt(
-      std::make_shared<BuiltinType>(BuiltinTypeKind::i64),
+      std::make_shared<BuiltinType>(BuiltinTypeKind::i64, false),
       node);
   }
 
@@ -122,7 +123,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     const auto type
       = std::make_shared<ArrayType>(initializer_list.front().getType(),
-                                    initializer_list.size());
+                                    initializer_list.size(),
+                                    false);
 
     auto const alloca
       = createEntryAlloca(ctx.builder.GetInsertBlock()->getParent(),
@@ -150,11 +152,11 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     case BuiltinMacroKind::infinity_:
       return createAllocaInfinityFP(
-        std::make_shared<BuiltinType>(BuiltinTypeKind::f32));
+        std::make_shared<BuiltinType>(BuiltinTypeKind::f32, false));
 
     case BuiltinMacroKind::huge_val:
       return createAllocaInfinityFP(
-        std::make_shared<BuiltinType>(BuiltinTypeKind::f64));
+        std::make_shared<BuiltinType>(BuiltinTypeKind::f64, false));
 
     case BuiltinMacroKind::unknown:
       unreachable();
@@ -224,8 +226,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     return {ctx.builder.CreateLoad(value.getLLVMType()->getPointerElementType(),
                                    value.getValue()),
-            value.getType(),
-            value.isMutable()};
+            value.getType()};
   }
 
   [[nodiscard]] Value operator()(const ast::BinOp& node) const
@@ -239,8 +240,6 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     if (!isPointerArithmetic(lhs, rhs)
         && !equals(ctx, lhs.getType(), rhs.getType())) {
-      std::cout << lhs.getType()->getMangledName(ctx) << " "
-                << rhs.getType()->getMangledName(ctx) << std::endl;
       // Left and right side types must be compatible
       throw CodegenError{
         ctx.formatError(ctx.positions.position_of(node),
@@ -374,7 +373,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     // If not inserted (builder.Insert), malloc will be badref
     ctx.builder.Insert(malloc_inst);
 
-    const auto malloc_return_type = std::make_shared<PointerType>(type);
+    const auto malloc_return_type = std::make_shared<PointerType>(type, false);
 
     if (is_class_ty && node.with_init) {
       auto args
@@ -412,7 +411,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       llvm::CallInst::CreateFree(operand_val.getValue(),
                                  ctx.builder.GetInsertBlock()));
 
-    return {nullptr, std::make_shared<BuiltinType>(BuiltinTypeKind::void_)};
+    return {nullptr,
+            std::make_shared<BuiltinType>(BuiltinTypeKind::void_, false)};
   }
 
   [[nodiscard]] Value operator()(const ast::Dereference& node) const
@@ -570,7 +570,8 @@ private:
                           class_type->getLLVMType(ctx));
 
     const auto this_pointer_type = std::make_shared<PointerType>(
-      std::make_shared<UserDefinedType>(real_class_name));
+      std::make_shared<UserDefinedType>(real_class_name, false),
+      false);
 
     auto args = createArgVals(initializer_list, pos);
 
@@ -761,7 +762,8 @@ private:
 
   [[nodiscard]] Value createAllocaBool(const bool value) const
   {
-    const auto type = std::make_shared<BuiltinType>(BuiltinTypeKind::bool_);
+    const auto type
+      = std::make_shared<BuiltinType>(BuiltinTypeKind::bool_, false);
     auto const llvm_type = type->getLLVMType(ctx);
 
     auto const alloca
@@ -778,7 +780,8 @@ private:
   [[nodiscard]] Value createAllocaString(const std::string_view str) const
   {
     const auto type = std::make_shared<PointerType>(
-      std::make_shared<BuiltinType>(BuiltinTypeKind::i8));
+      std::make_shared<BuiltinType>(BuiltinTypeKind::i8, false),
+      false);
     auto const llvm_type = type->getLLVMType(ctx);
 
     auto const alloca
@@ -794,7 +797,8 @@ private:
 
   [[nodiscard]] Value createAllocaChar(const unicode::Codepoint ch) const
   {
-    const auto type = std::make_shared<BuiltinType>(BuiltinTypeKind::char_);
+    const auto type
+      = std::make_shared<BuiltinType>(BuiltinTypeKind::char_, false);
     auto const llvm_type = type->getLLVMType(ctx);
 
     auto const alloca
@@ -909,6 +913,7 @@ private:
   }
 
   // Find a member of '*this'
+  // If not found, std::nullopt is returned
   [[nodiscard]] std::optional<Value>
   findMemberOfThis(const ast::Identifier& node) const
   {
@@ -1065,9 +1070,9 @@ private:
 
   [[nodiscard]] Value createPointerToArray(const Value& array) const
   {
-    return {llvm::getPointerOperand(array.getValue()),
-            std::make_shared<PointerType>(array.getType()),
-            array.isMutable()};
+    return {
+      llvm::getPointerOperand(array.getValue()),
+      std::make_shared<PointerType>(array.getType(), array.isMutable())};
   }
 
   [[nodiscard]] Value createArraySubscript(const Value& array,
@@ -1075,27 +1080,27 @@ private:
   {
     const auto p_to_array = createPointerToArray(array);
 
-    // Calculate the address of the index-th element.
+    // Calculate the address of the index-th element
     auto const gep = ctx.builder.CreateInBoundsGEP(
       p_to_array.getLLVMType()->getPointerElementType(),
       p_to_array.getValue(),
       {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 0), index.getValue()});
 
-    return {gep,
-            p_to_array.getType()->getPointeeType(ctx)->getArrayElementType(ctx),
-            p_to_array.isMutable()};
+    return {
+      gep,
+      p_to_array.getType()->getPointeeType(ctx)->getArrayElementType(ctx)};
   }
 
   [[nodiscard]] Value createPointerSubscript(const Value& ptr,
                                              const Value& index) const
   {
-    // Calculate the address of the index-th element.
+    // Calculate the address of the index-th element
     auto const gep = ctx.builder.CreateInBoundsGEP(
       ptr.getLLVMType()->getPointerElementType(),
       ptr.getValue(),
       index.getValue());
 
-    return {gep, ptr.getType()->getPointeeType(ctx), ptr.isMutable()};
+    return {gep, ptr.getType()->getPointeeType(ctx)};
   }
 
   // Normally a subscript operation calls createLoad at the end, but this
@@ -1131,20 +1136,20 @@ private:
         ctx.builder.CreateFCmp(llvm::ICmpInst::FCMP_OEQ,
                                value.getValue(),
                                llvm::ConstantFP::get(value.getLLVMType(), 0)),
-        std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+        std::make_shared<BuiltinType>(BuiltinTypeKind::bool_, false)};
     }
 
     return {
       ctx.builder.CreateICmp(llvm::ICmpInst::ICMP_EQ,
                              value.getValue(),
                              llvm::ConstantInt::get(value.getLLVMType(), 0)),
-      std::make_shared<BuiltinType>(BuiltinTypeKind::bool_)};
+      std::make_shared<BuiltinType>(BuiltinTypeKind::bool_, false)};
   }
 
   [[nodiscard]] Value createSizeOf(llvm::Type* const type) const
   {
     const auto usize_type
-      = std::make_shared<BuiltinType>(BuiltinTypeKind::usize);
+      = std::make_shared<BuiltinType>(BuiltinTypeKind::usize, false);
 
     return {llvm::ConstantInt::get(
               usize_type->getLLVMType(ctx),
@@ -1161,7 +1166,7 @@ private:
                                       const PositionRange& pos) const
   {
     return {createAddressOf(val, pos).getValue(),
-            std::make_shared<ReferenceType>(val.getType())};
+            std::make_shared<ReferenceType>(val.getType(), false)};
   }
 
   // Do not use for constants!
@@ -1173,7 +1178,7 @@ private:
     if (!ptr)
       throw CodegenError{ctx.formatError(pos, "operand has no address")};
 
-    return {ptr, std::make_shared<PointerType>(val.getType())};
+    return {ptr, std::make_shared<PointerType>(val.getType(), false)};
   }
 
   void verifyArguments(const std::deque<Value>& args,
@@ -1312,10 +1317,11 @@ private:
     return func;
   }
 
-  [[nodiscard]] Value
-  memberVariableAccess(const Value&           class_val,
-                       const ast::Identifier& member_name_ast,
-                       const bool             external_access = true) const
+  [[nodiscard]] Value memberVariableAccess(
+    const Value&           class_val,
+    const ast::Identifier& member_name_ast,
+    const bool access_from_outside /* true if accessing from outside classes */
+    = true) const
   {
     const auto member_name = member_name_ast.utf8();
 
@@ -1344,7 +1350,8 @@ private:
 
     const auto& member_info = class_type.value()->getMemberVar(*offset);
 
-    if (external_access && !isExternallyAccessible(member_info.accessibility)) {
+    if (access_from_outside
+        && !isExternallyAccessible(member_info.accessibility)) {
       throw CodegenError{ctx.formatError(
         ctx.positions.position_of(member_name_ast),
         fmt::format("member '{}' is not accessible", member_name))};
@@ -1361,8 +1368,7 @@ private:
     return {ctx.builder.CreateLoad(
               class_val.getLLVMType()->getStructElementType(*offset),
               gep),
-            member_info.type,
-            member_info.is_mutable};
+            member_info.type};
   }
 
   [[nodiscard]] Value

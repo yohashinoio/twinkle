@@ -47,7 +47,14 @@ enum class BuiltinTypeKind {
 struct CGContext;
 
 struct Type {
+  explicit Type(const bool is_mutable) noexcept
+    : is_mutable{is_mutable}
+  {
+  }
+
   virtual ~Type() = default;
+
+  [[nodiscard]] virtual std::shared_ptr<Type> clone() const = 0;
 
   [[nodiscard]] virtual SignKind getSignKind(CGContext&) const = 0;
 
@@ -140,12 +147,32 @@ struct Type {
   {
     return getSignKind(ctx) == SignKind::unsigned_;
   }
+
+  [[nodiscard]] virtual bool isMutable() const
+  {
+    return is_mutable;
+  }
+
+  virtual void setMutable(CGContext&, const bool is_mutable)
+  {
+    this->is_mutable = is_mutable;
+  }
+
+protected:
+  bool is_mutable;
 };
 
 struct BuiltinType : public Type {
-  explicit BuiltinType(const BuiltinTypeKind kind) noexcept
-    : kind{kind}
+  explicit BuiltinType(const BuiltinTypeKind kind,
+                       const bool            is_mutable) noexcept
+    : Type{is_mutable}
+    , kind{kind}
   {
+  }
+
+  [[nodiscard]] std::shared_ptr<Type> clone() const override
+  {
+    return std::make_shared<BuiltinType>(*this);
   }
 
   [[nodiscard]] SignKind getSignKind(CGContext&) const override;
@@ -171,14 +198,21 @@ private:
 };
 
 struct UserDefinedType : public Type {
-  explicit UserDefinedType(const std::u32string& ident)
-    : ident{unicode::utf32toUtf8(ident)}
+  explicit UserDefinedType(const std::u32string& ident, const bool is_mutable)
+    : Type{is_mutable}
+    , ident{unicode::utf32toUtf8(ident)}
   {
   }
 
-  explicit UserDefinedType(const std::string& ident)
-    : ident{ident}
+  explicit UserDefinedType(const std::string& ident, const bool is_mutable)
+    : Type{is_mutable}
+    , ident{ident}
   {
+  }
+
+  [[nodiscard]] std::shared_ptr<Type> clone() const override
+  {
+    return std::make_shared<UserDefinedType>(*this);
   }
 
   [[nodiscard]] SignKind getSignKind(CGContext& ctx) const override
@@ -273,6 +307,11 @@ struct UserDefinedType : public Type {
 
   [[nodiscard]] std::string getMangledName(CGContext& ctx) const override;
 
+  void setMutable(CGContext& ctx, const bool is_mutable) override
+  {
+    getRealType(ctx)->setMutable(ctx, is_mutable);
+  }
+
 private:
   const std::string ident;
 };
@@ -281,22 +320,29 @@ struct ClassType : public Type {
   struct MemberVariable {
     std::string           name;
     std::shared_ptr<Type> type;
-    bool                  is_mutable;
     Accessibility         accessibility;
   };
 
   ClassType(CGContext&                    ctx,
             std::vector<MemberVariable>&& members,
-            const std::u32string&         name);
-
-  ClassType(CGContext&                    ctx,
-            std::vector<MemberVariable>&& members,
-            const std::string&            name);
+            const std::u32string&         name,
+            const bool                    is_mutable);
 
   ClassType(CGContext&                    ctx,
             std::vector<MemberVariable>&& members,
             const std::string&            name,
-            llvm::StructType* const       type);
+            const bool                    is_mutable);
+
+  ClassType(CGContext&                    ctx,
+            std::vector<MemberVariable>&& members,
+            const std::string&            name,
+            llvm::StructType* const       type,
+            const bool                    is_mutable);
+
+  [[nodiscard]] std::shared_ptr<Type> clone() const override
+  {
+    return std::make_shared<ClassType>(*this);
+  }
 
   static std::shared_ptr<ClassType> createOpaqueClass(CGContext&         ctx,
                                                       const std::string& ident);
@@ -373,39 +419,17 @@ private:
   llvm::StructType* type;
 };
 
-struct FunctionType : public Type {
-  FunctionType(const std::shared_ptr<Type>&              return_type,
-               const std::vector<std::shared_ptr<Type>>& param_types)
-    : return_type{return_type}
-    , param_types{param_types}
-  {
-  }
-
-  FunctionType(const std::shared_ptr<Type>&         return_type,
-               std::vector<std::shared_ptr<Type>>&& param_types) noexcept
-    : return_type{return_type}
-    , param_types{std::move(param_types)}
-  {
-  }
-
-  [[nodiscard]] SignKind getSignKind(CGContext&) const noexcept override
-  {
-    return SignKind::no_sign;
-  }
-
-  [[nodiscard]] llvm::Type* getLLVMType(CGContext& ctx) const override;
-
-  [[nodiscard]] std::string getMangledName(CGContext& ctx) const override;
-
-private:
-  const std::shared_ptr<Type>              return_type;
-  const std::vector<std::shared_ptr<Type>> param_types;
-};
-
 struct PointerType : public Type {
-  explicit PointerType(const std::shared_ptr<Type>& pointee_type)
-    : pointee_type{pointee_type}
+  explicit PointerType(const std::shared_ptr<Type>& pointee_type,
+                       const bool                   is_mutable)
+    : Type{is_mutable}
+    , pointee_type{pointee_type}
   {
+  }
+
+  [[nodiscard]] std::shared_ptr<Type> clone() const override
+  {
+    return std::make_shared<PointerType>(*this);
   }
 
   [[nodiscard]] bool isPointerTy(CGContext&) const override
@@ -431,16 +455,29 @@ struct PointerType : public Type {
     return SignKind::unsigned_;
   }
 
+  void setMutable(CGContext& ctx, const bool is_mutable) override
+  {
+    this->is_mutable = is_mutable;
+    pointee_type->setMutable(ctx, is_mutable);
+  }
+
 private:
   const std::shared_ptr<Type> pointee_type;
 };
 
 struct ArrayType : public Type {
   ArrayType(const std::shared_ptr<Type>& element_type,
-            const std::uint64_t          array_size)
-    : element_type{element_type}
+            const std::uint64_t          array_size,
+            const bool                   is_mutable)
+    : Type{is_mutable}
+    , element_type{element_type}
     , array_size{array_size}
   {
+  }
+
+  [[nodiscard]] std::shared_ptr<Type> clone() const override
+  {
+    return std::make_shared<ArrayType>(*this);
   }
 
   [[nodiscard]] std::string getMangledName(CGContext& ctx) const override;
@@ -471,6 +508,12 @@ struct ArrayType : public Type {
     return SignKind::no_sign;
   }
 
+  void setMutable(CGContext& ctx, const bool is_mutable) override
+  {
+    this->is_mutable = is_mutable;
+    element_type->setMutable(ctx, is_mutable);
+  }
+
 private:
   const std::shared_ptr<Type> element_type;
   const std::uint64_t         array_size;
@@ -479,9 +522,16 @@ private:
 // Hold pointer type
 // However, implement so that dereferences are not required when referencing
 struct ReferenceType : public Type {
-  explicit ReferenceType(const std::shared_ptr<Type>& refee_type)
-    : refee_type{refee_type}
+  explicit ReferenceType(const std::shared_ptr<Type>& refee_type,
+                         const bool                   is_mutable)
+    : Type{is_mutable}
+    , refee_type{refee_type}
   {
+  }
+
+  [[nodiscard]] std::shared_ptr<Type> clone() const override
+  {
+    return std::make_shared<ReferenceType>(*this);
   }
 
   [[nodiscard]] bool isRefTy(CGContext&) const override
@@ -507,6 +557,12 @@ struct ReferenceType : public Type {
   [[nodiscard]] SignKind getSignKind(CGContext& ctx) const override
   {
     return refee_type->getSignKind(ctx);
+  }
+
+  void setMutable(CGContext& ctx, const bool is_mutable) override
+  {
+    this->is_mutable = is_mutable;
+    refee_type->setMutable(ctx, is_mutable);
   }
 
 private:

@@ -138,8 +138,9 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
     const auto derefed_operand = createDereference(ctx, pos, operand);
 
-    const auto one = Value{llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 1),
-                           std::make_shared<BuiltinType>(BuiltinTypeKind::i32)};
+    const auto one
+      = Value{llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 1),
+              std::make_shared<BuiltinType>(BuiltinTypeKind::i32, false)};
 
     switch (node.kind()) {
     case ast::PrefixIncrementDecrement::Kind::unknown:
@@ -255,7 +256,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
       llvm::ICmpInst::ICMP_NE,
       createExpr(ctx, getAllSymbols(), stmt_ctx, node.cond_expr).getValue(),
       llvm::ConstantInt::get(
-        BuiltinType{BuiltinTypeKind::bool_}.getLLVMType(ctx),
+        BuiltinType{BuiltinTypeKind::bool_, false}.getLLVMType(ctx),
         0));
 
     ctx.builder.CreateCondBr(cond, body_bb, loop_end_bb);
@@ -308,7 +309,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
         createExpr(ctx, getAllSymbols(), new_stmt_ctx, *node.cond_expr)
           .getValue(),
         llvm::ConstantInt::get(
-          BuiltinType{BuiltinTypeKind::bool_}.getLLVMType(ctx),
+          BuiltinType{BuiltinTypeKind::bool_, false}.getLLVMType(ctx),
           0));
 
       ctx.builder.CreateCondBr(cond, body_bb, loop_end_bb);
@@ -413,8 +414,8 @@ private:
     }
   }
 
-  [[nodiscard]] Value createAssignableValue(const ast::Expr&    node,
-                                            const PositionRange pos,
+  [[nodiscard]] Value createAssignableValue(const ast::Expr&     node,
+                                            const PositionRange& pos,
                                             const bool const_check = true) const
   {
     const auto value = createExpr(ctx, getAllSymbols(), stmt_ctx, node);
@@ -430,8 +431,7 @@ private:
     }
 
     return {llvm::getPointerOperand(value.getValue()),
-            std::make_shared<PointerType>(value.getType()),
-            value.isMutable()};
+            std::make_shared<PointerType>(value.getType(), value.isMutable())};
   }
 
   void verifyVariableType(const PositionRange&         pos,
@@ -457,7 +457,8 @@ private:
 
     if (!initializer) {
       return {
-        {alloca, type},
+        ctx,
+        {alloca, type->clone()},
         is_mutable
       };
     }
@@ -471,7 +472,8 @@ private:
     ctx.builder.CreateStore(init_value.getValue(), alloca);
 
     return {
-      {alloca, type},
+      ctx,
+      {alloca, type->clone()},
       is_mutable
     };
   }
@@ -493,7 +495,8 @@ private:
     ctx.builder.CreateStore(init_value.getValue(), alloca);
 
     return {
-      {alloca, init_value.getType()},
+      ctx,
+      {alloca, init_value.getType()->clone()},
       is_mutable
     };
   }

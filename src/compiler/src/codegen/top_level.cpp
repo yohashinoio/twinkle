@@ -121,6 +121,7 @@ createArgumentTable(CGContext&                ctx,
     argument_table.insertOrAssign(
       arg.getName().str(),
       std::make_shared<AllocaVariable>(
+        ctx,
         Value{alloca, param_type},
         param_node.qualifier.contains(VariableQual::mutable_)));
   }
@@ -447,8 +448,9 @@ void createClass(CGContext&             ctx,
       const auto type
         = createType(ctx, variable->type, ctx.positions.position_of(*variable));
 
-      member_variables.push_back(
-        {variable->name.utf8(), type, is_mutable, accessibility});
+      type->setMutable(ctx, is_mutable);
+
+      member_variables.push_back({variable->name.utf8(), type, accessibility});
     }
     else if (const auto function = boost::get<ast::FunctionDef>(&member)) {
       auto function_clone = *function;
@@ -518,7 +520,8 @@ void createClass(CGContext&             ctx,
       class_name,
       std::make_shared<ClassType>(ctx,
                                   std::move(member_variables),
-                                  class_name));
+                                  class_name,
+                                  false));
   }
 
   createMethod(ctx, method_def_asts, class_name, method_conv);
