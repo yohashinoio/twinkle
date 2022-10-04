@@ -932,6 +932,18 @@ struct ClassDef : x3::position_tagged {
   }
 };
 
+struct VariantTag : x3::position_tagged {
+  Identifier tag_name;
+  Type       type;
+};
+
+using VariantTagList = std::vector<VariantTag>;
+
+struct VariantDef : x3::position_tagged {
+  Identifier     name;
+  VariantTagList type_list;
+};
+
 struct Typedef : x3::position_tagged {
   Identifier alias;
   Type       type;
@@ -946,6 +958,7 @@ using TopLevel = boost::variant<boost::blank,
                                 FunctionDef,
                                 ClassDecl,
                                 ClassDef,
+                                VariantDef,
                                 Typedef,
                                 Import>;
 

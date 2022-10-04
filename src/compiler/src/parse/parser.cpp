@@ -353,6 +353,12 @@ const x3::rule<struct DestructorTag, ast::Destructor> destructor{"destructor"};
 const x3::rule<struct ClassMemberListTag, ast::ClassMemberList>
   class_member_list{"class member list"};
 const x3::rule<struct ClassDefTag, ast::ClassDef> class_def{"class definition"};
+const x3::rule<struct VariantTagTag, ast::VariantTag> variant_tag{
+  "variant tag"};
+const x3::rule<struct VariantTagListTag, ast::VariantTagList> variant_tag_list{
+  "variant tag list"};
+const x3::rule<struct VariantDefTag, ast::VariantDef> variant_def{
+  "variant definition"};
 const x3::rule<struct ParameterTag, ast::Parameter> parameter{"parameter"};
 const x3::rule<struct ParameterListTag, ast::ParameterList> parameter_list{
   "parameter list"};
@@ -1036,6 +1042,9 @@ const auto template_params
 const auto class_key = x3::rule<struct ClassKeyTag>{"class key"}
 = lit(U"class");
 
+const auto variant_key = x3::rule<struct VariantKeyTag>{"variant key"}
+= lit(U"variant");
+
 const auto class_decl_def
   = lit(U"declare") >> class_key > identifier > lit(U";");
 
@@ -1058,6 +1067,13 @@ const auto class_member_list_def
 const auto class_def_def = x3::matches[lit(U"pub")] >> class_key > identifier
                            > template_params > lit(U"{") > class_member_list
                            > lit(U"}");
+
+const auto variant_tag_def = identifier > lit(U"(") > type_name > lit(U")");
+
+const auto variant_tag_list_def = (variant_tag % lit(U",")) > -lit(U",");
+
+const auto variant_def_def
+  = variant_key > identifier > lit(U"{") > variant_tag_list > lit(U"}");
 
 const auto parameter_def
   = (identifier > lit(U":") > *variable_qualifier > type_name > x3::attr(false))
@@ -1082,8 +1098,8 @@ const auto type_def_def
 const auto import__def
   = lit(U"import") > lit(U"\"") > path > lit(U"\"") > lit(U";");
 
-const auto top_level_def
-  = function_decl | function_def | class_decl | class_def | type_def | import_;
+const auto top_level_def = function_decl | function_def | class_decl | class_def
+                           | variant_def | type_def | import_;
 
 const auto top_level_with_attr_def = -attribute >> top_level_def;
 
@@ -1095,6 +1111,9 @@ BOOST_SPIRIT_DEFINE(destructor)
 BOOST_SPIRIT_DEFINE(class_member_list)
 BOOST_SPIRIT_DEFINE(class_def)
 BOOST_SPIRIT_DEFINE(class_decl)
+BOOST_SPIRIT_DEFINE(variant_tag)
+BOOST_SPIRIT_DEFINE(variant_tag_list)
+BOOST_SPIRIT_DEFINE(variant_def)
 BOOST_SPIRIT_DEFINE(parameter)
 BOOST_SPIRIT_DEFINE(parameter_list)
 BOOST_SPIRIT_DEFINE(function_proto)
@@ -1106,6 +1125,10 @@ BOOST_SPIRIT_DEFINE(top_level)
 BOOST_SPIRIT_DEFINE(top_level_with_attr)
 
 struct ClassKeyTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct VariantKeyTag
   : ErrorHandle
   , AnnotatePosition {};
 
@@ -1134,6 +1157,18 @@ struct ClassMemberListTag
   , AnnotatePosition {};
 
 struct ClassDefTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct VariantTagTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct VariantTagListTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct VariantDefTag
   : ErrorHandle
   , AnnotatePosition {};
 

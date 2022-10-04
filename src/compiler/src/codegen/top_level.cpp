@@ -648,6 +648,12 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     return nullptr;
   }
 
+  llvm::Function* operator()(const ast::VariantDef& node) const
+  {
+    // TODO
+    return nullptr;
+  }
+
   llvm::Function* operator()(const ast::Typedef& node) const
   {
     // TODO: If there is already an alias of the same type, make an error

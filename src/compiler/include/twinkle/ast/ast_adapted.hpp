@@ -295,6 +295,18 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
+  twinkle::ast::VariantTag,
+  (twinkle::ast::Identifier, tag_name)
+  (twinkle::ast::Type, type)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+  twinkle::ast::VariantDef,
+  (twinkle::ast::Identifier, name)
+  (twinkle::ast::VariantTagList, type_list)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
   twinkle::ast::Parameter,
   (twinkle::ast::Identifier, name)
   (std::unordered_set<twinkle::VariableQual>, qualifier)

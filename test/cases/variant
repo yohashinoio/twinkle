@@ -1,0 +1,9 @@
+variant A {
+  Yoha(i32),
+  Io(u32),
+}
+
+func main() -> i32
+{
+  return 58;
+}
