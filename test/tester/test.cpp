@@ -89,7 +89,7 @@ int main(const int argc, const char* const* const argv)
     std::exit(EXIT_FAILURE);
   }
 
-  std::size_t ok_c{};
+  std::size_t pass_c{};
   std::size_t fail_c{};
 
   for (const auto& path : fs::directory_iterator(argv[1])) {
@@ -112,7 +112,7 @@ int main(const int argc, const char* const* const argv)
                    fg(fmt::terminal_color::bright_green),
                    "{} Passed!\n",
                    *result);
-        ++ok_c;
+        ++pass_c;
         continue;
       }
     }
@@ -130,9 +130,10 @@ int main(const int argc, const char* const* const argv)
   std::cerr << "| " + fmt::format(fg(fmt::terminal_color::bright_red), "Failed")
                  + ": "
             << std::setw(10) << fail_c << " |\n";
-  std::cerr << "| " + fmt::format(fg(fmt::terminal_color::bright_green), "Passed")
+  std::cerr << "| "
+                 + fmt::format(fg(fmt::terminal_color::bright_green), "Passed")
                  + ": "
-            << std::setw(10) << ok_c << " |\n";
+            << std::setw(10) << pass_c << " |\n";
   std::cerr << "--------------------\n";
 
   if (fail_c)
