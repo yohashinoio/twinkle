@@ -151,6 +151,9 @@ UserDefinedType::getRealType(CGContext& ctx) const
   if (const auto type = ctx.alias_table[ident])
     return clone_and_update_mutable(type);
 
+  if (const auto type = ctx.union_table[ident])
+    return clone_and_update_mutable(type);
+
   if (!ctx.template_argument_tables.empty()) {
     if (const auto type = ctx.template_argument_tables.top()[ident])
       return clone_and_update_mutable(type);
