@@ -118,6 +118,11 @@ struct Type {
     return false;
   }
 
+  [[nodiscard]] virtual bool isUnionTy(CGContext&) const
+  {
+    return false;
+  }
+
   [[nodiscard]] virtual bool isOpaque(CGContext&) const
   {
     return false;
@@ -347,10 +352,6 @@ struct ClassType : public Type {
   static std::shared_ptr<ClassType> createOpaqueClass(CGContext&         ctx,
                                                       const std::string& ident);
 
-  static llvm::StructType* createStructType(CGContext&                 ctx,
-                                            std::vector<llvm::Type*>&& members,
-                                            const std::string&         name);
-
   static std::vector<llvm::Type*>
   extractTypes(CGContext& ctx, const std::vector<MemberVariable>& members);
 
@@ -415,8 +416,93 @@ private:
   const std::string           name;
 
   // If struct is created multiple times, the name will be duplicated, so create
-  // it only once and store it in this variable.
+  // it only once and store it in this variable
   llvm::StructType* type;
+};
+
+struct UnionType : public Type {
+  struct TagWithType {
+    TagWithType(std::string&& tag, const std::shared_ptr<Type>& type)
+      : tag{std::move(tag)}
+      , type{type}
+    {
+    }
+
+    TagWithType(const std::string& tag, const std::shared_ptr<Type>& type)
+      : tag{tag}
+      , type{type}
+    {
+    }
+
+    std::string           tag;
+    std::shared_ptr<Type> type;
+  };
+
+  using Tags = std::vector<TagWithType>;
+
+  using Variants = std::vector<llvm::StructType*>;
+
+  struct Actual {
+    Actual(llvm::StructType* const basic_type, Variants&& variants)
+      : basic_type{basic_type}
+      , variants{std::move(variants)}
+    {
+    }
+
+    // If struct is created multiple times, the name will be duplicated, so
+    // create it only once and store it in this variables
+    llvm::StructType* basic_type;
+    Variants          variants;
+  };
+
+  UnionType(CGContext&         ctx,
+            const std::string& name,
+            Tags&&             members,
+            const bool         is_mutable);
+
+  [[nodiscard]] static llvm::StructType*
+  createBasicType(CGContext& ctx, const Tags& members, const std::string& name);
+
+  [[nodiscard]] static Variants
+  createVariants(CGContext& ctx, const Tags& members, const std::string& name);
+
+  [[nodiscard]] static Actual
+  createActual(CGContext& ctx, const Tags& members, const std::string& name);
+
+  [[nodiscard]] std::shared_ptr<Type> clone() const override
+  {
+    return std::make_shared<UnionType>(*this);
+  }
+
+  [[nodiscard]] SignKind getSignKind(CGContext&) const override
+  {
+    return SignKind::no_sign;
+  }
+
+  [[nodiscard]] llvm::Type* getLLVMType(CGContext&) const override
+  {
+    return actual.basic_type;
+  }
+
+  [[nodiscard]] bool isUnionTy(CGContext&) const override
+  {
+    return true;
+  }
+
+  [[nodiscard]] std::string getMangledName(CGContext&) const override
+  {
+    return boost::lexical_cast<std::string>(name.length()) + name;
+  }
+
+  [[nodiscard]] std::string getUserDefinedTyName(CGContext&) const override
+  {
+    return name;
+  }
+
+private:
+  const std::string name;
+
+  Actual actual;
 };
 
 struct PointerType : public Type {

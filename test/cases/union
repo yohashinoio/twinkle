@@ -1,4 +1,4 @@
-variant A {
+union A {
   Yoha(i32),
   Io(u32),
 }

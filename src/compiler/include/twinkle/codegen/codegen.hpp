@@ -115,6 +115,8 @@ using ClassTable = Table<std::string, std::shared_ptr<ClassType>>;
 struct Variable;
 using SymbolTable = Table<std::string, std::shared_ptr<Variable>>;
 
+using UnionTable = Table<std::string, std::shared_ptr<UnionType>>;
+
 enum class NamespaceKind {
   unknown,
   namespace_,
@@ -264,6 +266,7 @@ struct CGContext : private boost::noncopyable {
   FunctionTemplateTable             func_template_table;
   ClassTemplateTable                class_template_table;
   CreatedClassTemplateTable         created_class_template_table;
+  UnionTable                        union_table;
   // If you want to find template arguments, look for them in the symbol table
   // of top
   std::stack<TemplateArgumentTable> template_argument_tables;

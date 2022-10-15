@@ -883,6 +883,26 @@ struct ClassDecl : x3::position_tagged {
 };
 
 struct VariableDefWithoutInit : x3::position_tagged {
+  VariableDefWithoutInit(std::optional<VariableQual>&& qualifier,
+                         Identifier&&                  name,
+                         Type&&                        type) noexcept
+    : qualifier{std::move(qualifier)}
+    , name{std::move(name)}
+    , type{std::move(type)}
+  {
+  }
+
+  VariableDefWithoutInit(const std::optional<VariableQual>& qualifier,
+                         const Identifier&                  name,
+                         const Type&                        type)
+    : qualifier{qualifier}
+    , name{name}
+    , type{type}
+  {
+  }
+
+  VariableDefWithoutInit() = default;
+
   std::optional<VariableQual> qualifier;
   Identifier                  name;
   Type                        type;
@@ -910,17 +930,41 @@ struct Destructor : x3::position_tagged {
 
 struct ClassDef;
 
-using StructMember = boost::variant<boost::blank,
-                                    VariableDefWithoutInit,
-                                    FunctionDef,
-                                    Constructor,
-                                    Destructor,
-                                    Accessibility,
-                                    boost::recursive_wrapper<ClassDef>>;
+using ClassMember = boost::variant<boost::blank,
+                                   VariableDefWithoutInit,
+                                   FunctionDef,
+                                   Constructor,
+                                   Destructor,
+                                   Accessibility,
+                                   boost::recursive_wrapper<ClassDef>>;
 
-using ClassMemberList = std::vector<StructMember>;
+using ClassMemberList = std::vector<ClassMember>;
 
 struct ClassDef : x3::position_tagged {
+  ClassDef(const bool           is_public,
+           Identifier&&         name,
+           TemplateParameters&& template_params,
+           ClassMemberList&&    members) noexcept
+    : is_public{is_public}
+    , name{std::move(name)}
+    , template_params{std::move(template_params)}
+    , members{std::move(members)}
+  {
+  }
+
+  ClassDef(const bool                is_public,
+           const Identifier&         name,
+           const TemplateParameters& template_params,
+           const ClassMemberList&    members)
+    : is_public{is_public}
+    , name{name}
+    , template_params{template_params}
+    , members{members}
+  {
+  }
+
+  ClassDef() = default;
+
   bool               is_public;
   Identifier         name;
   TemplateParameters template_params;
@@ -932,16 +976,17 @@ struct ClassDef : x3::position_tagged {
   }
 };
 
-struct VariantTag : x3::position_tagged {
+struct UnionTag : x3::position_tagged {
   Identifier tag_name;
   Type       type;
 };
 
-using VariantTagList = std::vector<VariantTag>;
+using UnionTagList = std::vector<UnionTag>;
 
-struct VariantDef : x3::position_tagged {
-  Identifier     name;
-  VariantTagList type_list;
+struct UnionDef : x3::position_tagged {
+  bool         is_public;
+  Identifier   name;
+  UnionTagList type_list;
 };
 
 struct Typedef : x3::position_tagged {
@@ -958,7 +1003,7 @@ using TopLevel = boost::variant<boost::blank,
                                 FunctionDef,
                                 ClassDecl,
                                 ClassDef,
-                                VariantDef,
+                                UnionDef,
                                 Typedef,
                                 Import>;
 

@@ -295,15 +295,16 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  twinkle::ast::VariantTag,
+  twinkle::ast::UnionTag,
   (twinkle::ast::Identifier, tag_name)
   (twinkle::ast::Type, type)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
-  twinkle::ast::VariantDef,
+  twinkle::ast::UnionDef,
+  (bool, is_public)
   (twinkle::ast::Identifier, name)
-  (twinkle::ast::VariantTagList, type_list)
+  (twinkle::ast::UnionTagList, type_list)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

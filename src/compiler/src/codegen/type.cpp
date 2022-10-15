@@ -174,10 +174,10 @@ UserDefinedType::getRealType(CGContext& ctx) const
   return getRealType(ctx)->getMangledName(ctx);
 }
 
-llvm::StructType*
-ClassType::createStructType(CGContext&                 ctx,
-                            std::vector<llvm::Type*>&& members,
-                            const std::string&         name)
+[[nodiscard]] llvm::StructType*
+createStructType(CGContext&                 ctx,
+                 std::vector<llvm::Type*>&& members,
+                 const std::string&         name)
 {
   if (const auto type = llvm::StructType::getTypeByName(ctx.context, name))
     return type;
@@ -263,6 +263,71 @@ ClassType::offsetByName(const std::string_view member_name) const
   }
 
   return std::nullopt;
+}
+
+[[nodiscard]] llvm::StructType*
+UnionType::createBasicType(CGContext&         ctx,
+                           const Tags&        members,
+                           const std::string& name)
+{
+  const auto max_member_type_size = [&]() {
+    std::size_t max{};
+
+    for (const auto& type : members) {
+      const std::size_t size = ctx.module->getDataLayout().getTypeAllocSize(
+        type.type->getLLVMType(ctx));
+
+      if (max < size)
+        max = size;
+    }
+
+    return max;
+  }();
+
+  return createStructType(
+    ctx,
+    std::vector<llvm::Type*>{
+      ctx.builder.getInt8Ty(),
+      llvm::ArrayType::get(ctx.builder.getInt8Ty(), max_member_type_size)},
+    name);
+}
+
+[[nodiscard]] UnionType::Variants
+UnionType::createVariants(CGContext&         ctx,
+                          const Tags&        members,
+                          const std::string& name)
+{
+  Variants variants;
+
+  for (const auto& r : members) {
+    const auto variant_name = name + "_" + r.tag;
+
+    variants.push_back(
+      createStructType(ctx,
+                       std::vector<llvm::Type*>{ctx.builder.getInt8Ty(),
+                                                r.type->getLLVMType(ctx)},
+                       variant_name));
+  }
+
+  return variants;
+}
+
+[[nodiscard]] UnionType::Actual UnionType::createActual(CGContext&  ctx,
+                                                        const Tags& members,
+                                                        const std::string& name)
+{
+  return Actual{createBasicType(ctx, members, name),
+                createVariants(ctx, members, name)};
+}
+
+UnionType::UnionType(CGContext&         ctx,
+                     const std::string& name,
+                     Tags&&             members,
+                     const bool         is_mutable)
+  : Type{is_mutable}
+  , name{name}
+  , actual{createActual(ctx, members, this->name)}
+{
 }
 
 [[nodiscard]] std::string PointerType::getMangledName(CGContext& ctx) const

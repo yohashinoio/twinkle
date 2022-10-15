@@ -530,6 +530,29 @@ void createClass(CGContext&             ctx,
     ctx.class_table.erase(r);
 }
 
+void createUnion(CGContext& ctx, const ast::UnionDef& node)
+{
+  const auto union_name = node.name.utf8();
+
+  const auto pos = ctx.positions.position_of(node);
+
+  if (ctx.union_table.exists(union_name)) {
+    throw CodegenError{
+      ctx.formatError(pos, fmt::format("redefinition of '{}'", union_name))};
+  }
+
+  UnionType::Tags tags{};
+
+  for (const auto& r : node.type_list) {
+    tags.push_back(
+      UnionType::TagWithType{r.tag_name.utf8(), createType(ctx, r.type, pos)});
+  }
+
+  ctx.union_table.insert(
+    union_name,
+    std::make_shared<UnionType>(ctx, union_name, std::move(tags), false));
+}
+
 //===----------------------------------------------------------------------===//
 // Top level statement visitor
 //===----------------------------------------------------------------------===//
@@ -648,9 +671,10 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     return nullptr;
   }
 
-  llvm::Function* operator()(const ast::VariantDef& node) const
+  llvm::Function* operator()(const ast::UnionDef& node) const
   {
-    // TODO
+    createUnion(ctx, node);
+
     return nullptr;
   }
 
