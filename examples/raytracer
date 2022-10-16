@@ -15,6 +15,9 @@ declare func printf(format: ^i8, ...) -> i32;
 declare func fprintf(stream: ^FILE, format: ^i8, ...) -> i32;
 
 [[nomangle]]
+declare func fflush(stream: ^FILE) -> i32;
+
+[[nomangle]]
 declare func fdopen(fd: i32, mode: ^i8) -> ^FILE;
 
 [[nomangle]]
@@ -588,14 +591,15 @@ func main() -> i32
 
   let cy = normalize(ref cross(ref cx, ref camera.dir)).mul(0.5135);
 
-  let stderr = File{2, "w"};
+  let stdout = File{1, "w"};
 
   for (let mut y = 0; y < height; ++y) {
     fprintf
-    ( stderr.stream()
+    ( stdout.stream()
     , "Rendering %.4f%%"
     , 100.0 * y as f64 / (height - 1) as f64
     );
+    fflush(stdout.stream());
 
     for (let mut x = 0; x < width; ++x) {
       let image_idx = y * width + x;
@@ -617,10 +621,10 @@ func main() -> i32
       }
     }
 
-    fprintf(stderr.stream(), "\r");
+    fprintf(stdout.stream(), "\r");
   }
 
-  fprintf(stderr.stream(), "\n");
+  fprintf(stdout.stream(), "\n");
 
   save_as_hdr("image.hdr", image, width, height);
 }
