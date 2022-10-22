@@ -156,6 +156,7 @@ struct NamespaceStack {
     namespaces.push_back(n);
   }
 
+
   Namespace pop()
   {
     const auto tmp = top();
@@ -177,6 +178,16 @@ struct NamespaceStack {
   [[nodiscard]] decltype(auto) end() const noexcept
   {
     return namespaces.end();
+  }
+
+  [[nodiscard]] bool contains(const std::string_view x) const
+  {
+    for (const auto& r : *this) {
+      if (r.name == x)
+        return true;
+    }
+
+    return false;
   }
 
   // Implemented to be a key in std::map

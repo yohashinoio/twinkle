@@ -195,8 +195,18 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::MemberAccess& node) const
   {
-    if (const auto* rhs = boost::get<ast::Identifier>(&node.rhs))
-      return memberVariableAccess(node.lhs, *rhs);
+    if (const auto* rhs = boost::get<ast::Identifier>(&node.rhs)) {
+      const auto lhs_val = createExpr(ctx, scope, stmt_ctx, node.lhs);
+
+      // It is true when a method of a class receives an argument of the class
+      // type
+      if (lhs_val.getType()->isClassTy(ctx)
+          && ctx.ns_hierarchy.contains(lhs_val.getType()->getClassName(ctx))) {
+        return memberVariableAccess(lhs_val, *rhs, false);
+      }
+
+      return memberVariableAccess(lhs_val, *rhs);
+    }
 
     if (const auto* rhs = boost::get<ast::FunctionCall>(&node.rhs)) {
       try {
@@ -1070,9 +1080,8 @@ private:
 
   [[nodiscard]] Value createPointerToArray(const Value& array) const
   {
-    return {
-      llvm::getPointerOperand(array.getValue()),
-      std::make_shared<PointerType>(array.getType(), array.isMutable())};
+    return {llvm::getPointerOperand(array.getValue()),
+            std::make_shared<PointerType>(array.getType(), array.isMutable())};
   }
 
   [[nodiscard]] Value createArraySubscript(const Value& array,
@@ -1369,16 +1378,6 @@ private:
               class_val.getLLVMType()->getStructElementType(*offset),
               gep),
             member_info.type};
-  }
-
-  [[nodiscard]] Value
-  memberVariableAccess(const ast::Expr&       class_,
-                       const ast::Identifier& member_name_ast,
-                       const bool             external_access = true) const
-  {
-    return memberVariableAccess(createExpr(ctx, scope, stmt_ctx, class_),
-                                member_name_ast,
-                                external_access);
   }
 
   [[nodiscard]] Value methodAccess(const ast::Expr&         lhs,

@@ -435,9 +435,6 @@ void createClass(CGContext&             ctx,
       {std::move(ident), {VariableQual::mutable_}, std::move(type), false});
   };
 
-  // At the end of this function, the classes in this array are deleted
-  std::vector<std::string> lazy_delete_classes;
-
   for (const auto& member : node.members) {
     if (const auto variable
         = boost::get<ast::VariableDefWithoutInit>(&member)) {
@@ -506,14 +503,16 @@ void createClass(CGContext&             ctx,
   if (const auto opaque_class_ty = ctx.class_table[class_name]) {
     const auto type = opaque_class_ty.value();
 
-    if (!type->isOpaque(ctx)) {
-      throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(node),
-                        fmt::format("redefinition of '{}'", class_name))};
+    if (type->isOpaque(ctx)) {
+      type->setBody(ctx, std::move(member_variables));
+      type->setIsOpaque(false);
     }
-
-    type->setBody(ctx, std::move(member_variables));
-    type->setIsOpaque(false);
+    else {
+      // TODO: We want to make a redefinition error
+      // However, when using own template class in a template class with the
+      // same template parameter, an error occurs
+      return;
+    }
   }
   else {
     ctx.class_table.insert(
@@ -525,9 +524,6 @@ void createClass(CGContext&             ctx,
   }
 
   createMethod(ctx, method_def_asts, class_name, method_conv);
-
-  for (const auto& r : lazy_delete_classes)
-    ctx.class_table.erase(r);
 }
 
 void createUnion(CGContext& ctx, const ast::UnionDef& node)
