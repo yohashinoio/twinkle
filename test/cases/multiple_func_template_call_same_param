@@ -1,0 +1,11 @@
+func twice<T>(n: T) -> T
+{
+  return n * 2;
+}
+
+func main() -> i32
+{
+  let x = twice<i32>(48);
+  let y = twice<i32>(10);
+  return x + y;
+}

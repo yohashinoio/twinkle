@@ -197,6 +197,7 @@ namespace test
     {                  "init_of_class_members2",  58},
     {                             "assignment2",  58},
     {                                   "union",  58},
+    {  "multiple_func_template_call_same_param", 116},
   };
 
   const auto it = expects.find(test_name);

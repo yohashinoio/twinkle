@@ -67,9 +67,10 @@ Mangler::mangleFunction(CGContext& ctx, const ast::FunctionDecl& decl) const
 }
 
 [[nodiscard]] std::vector<std::string>
-Mangler::mangleFunctionTemplateCall(CGContext&               ctx,
-                                    const std::string_view   callee,
-                                    const std::deque<Value>& args) const
+Mangler::mangleFunctionTemplateCall(CGContext&                    ctx,
+                                    const std::string_view        callee,
+                                    const ast::TemplateArguments& template_args,
+                                    const std::deque<Value>&      args) const
 {
   std::vector<std::string> candidates;
 
@@ -88,6 +89,8 @@ Mangler::mangleFunctionTemplateCall(CGContext&               ctx,
     std::ostringstream mangled;
 
     mangled << mangleFunctionName(std::string{callee});
+
+    mangled << mangleTemplateArguments(ctx, template_args);
 
     mangled << 'E' << 'T' << mangleArgs(ctx, args);
 
@@ -272,7 +275,8 @@ Mangler::mangleNamespaceHierarchy(const NamespaceStack& namespaces) const
 [[nodiscard]] std::string
 Mangler::mangleThisPointer(CGContext& ctx, const std::string& class_name) const
 {
-  return PointerType{std::make_shared<UserDefinedType>(class_name, false), false}
+  return PointerType{std::make_shared<UserDefinedType>(class_name, false),
+                     false}
     .getMangledName(ctx);
 }
 

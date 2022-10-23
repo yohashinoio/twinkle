@@ -459,7 +459,10 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     // Trying to call
     const auto mangled_names
-      = ctx.mangler.mangleFunctionTemplateCall(ctx, callee_name, args);
+      = ctx.mangler.mangleFunctionTemplateCall(ctx,
+                                               callee_name,
+                                               node.template_args,
+                                               args);
 
     for (const auto& name : mangled_names) {
       if (const auto func = ctx.module->getFunction(name))

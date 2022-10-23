@@ -49,9 +49,10 @@ struct Mangler : private boost::noncopyable {
                      const std::deque<Value>& args) const;
 
   [[nodiscard]] std::vector<std::string>
-  mangleFunctionTemplateCall(CGContext&               ctx,
-                             const std::string_view   callee,
-                             const std::deque<Value>& args) const;
+  mangleFunctionTemplateCall(CGContext&                    ctx,
+                             const std::string_view        callee,
+                             const ast::TemplateArguments& template_args,
+                             const std::deque<Value>&      args) const;
 
   // The mangled this pointer type is inserted automatically
   [[nodiscard]] std::vector<std::string>
