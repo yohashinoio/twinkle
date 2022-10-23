@@ -198,6 +198,7 @@ namespace test
     {                             "assignment2",  58},
     {                                   "union",  58},
     {  "multiple_func_template_call_same_param", 116},
+    {                           "smart_pointer",  58},
   };
 
   const auto it = expects.find(test_name);

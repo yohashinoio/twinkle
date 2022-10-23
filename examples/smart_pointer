@@ -1,0 +1,76 @@
+class Rc<T> {
+  Rc(p_: ^T)
+    : p{p_}
+    , count{new i32}
+  {
+    count^ = 1;
+  }
+
+  Rc(other: &Rc<T>)
+    : p{other.p}
+    , count{other.count}
+  {
+    increment_count();
+  }
+
+  ~Rc()
+  {
+    release();
+  }
+
+  func use_count() -> i32
+  {
+    return count^;
+  }
+
+  func release()
+  {
+    decrement_count();
+
+    if (count^ == 0) {
+      delete p;
+      delete count;
+    }
+  }
+
+  func value() -> T
+  {
+    return p^;
+  }
+
+  func set(value: T)
+  {
+    p^ = value;
+  }
+
+  func get() -> ^T
+  {
+    return p;
+  }
+
+private:
+  func decrement_count()
+  {
+    --count^;
+  }
+
+  func increment_count()
+  {
+    ++count^;
+  }
+
+  let mut p: ^T;
+  let mut count: ^i32;
+}
+
+func main() -> i32
+{
+  let sp1 = Rc<i32>{new i32};
+
+  {
+    let sp2 = Rc<i32>{ref sp1};
+    sp2.set(58);
+  }
+
+  return sp1.value();
+}
