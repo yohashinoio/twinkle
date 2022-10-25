@@ -42,9 +42,13 @@ enum class MethodGeneration {
   define,
 };
 
-void createClass(CGContext&             ctx,
-                 const ast::ClassDef&   node,
-                 const MethodGeneration method_conv);
+void createClass(CGContext&                        ctx,
+                 const ast::ClassDef&              node,
+                 const MethodGeneration            method_conv,
+                 // Use this when you want to include the type in the class
+                 // name, for example, in a template class
+                 const std::optional<std::string>& custom_class_name
+                 = std::nullopt);
 
 using ClassMethods = std::vector<ast::FunctionDef>;
 

@@ -513,7 +513,7 @@ private:
   ctx.ns_hierarchy.push({class_name, NamespaceKind::class_});
 
   const auto destructor
-    = findFunction(ctx, ctx.mangler.mangleDestructorCall(ctx, class_name));
+    = findFunction(ctx, ctx.mangler.mangleDestructorCall(class_name));
 
   ctx.ns_hierarchy.pop();
 

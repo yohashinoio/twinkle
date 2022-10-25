@@ -23,6 +23,8 @@ using Codepoint = char32_t;
 
 [[nodiscard]] std::string utf32toUtf8(const std::u32string_view utf32_str);
 
+[[nodiscard]] std::u32string utf8toUtf32(const std::string_view utf8_str);
+
 } // namespace twinkle::unicode
 
 #endif

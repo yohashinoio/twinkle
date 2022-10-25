@@ -1,0 +1,12 @@
+class A<T> {
+  A(value: T)
+  {
+  }
+}
+
+func main() -> i32
+{
+  let a1 = A<i32>{48};
+  let a2 = A<^i8>{"io"};
+  return 58;
+}

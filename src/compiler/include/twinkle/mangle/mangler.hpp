@@ -34,46 +34,49 @@ constexpr const char* ellipsis = "z";
 constexpr const char* prefix = "_Z";
 
 struct Mangler : private boost::noncopyable {
-  [[nodiscard]] std::string mangleFunction(CGContext&               ctx,
-                                           const ast::FunctionDecl& decl) const;
+  explicit Mangler(CGContext& ctx) noexcept
+    : ctx{ctx}
+  {
+  }
+
+  [[nodiscard]] std::string mangleFunction(const ast::FunctionDecl& decl) const;
 
   [[nodiscard]] std::string
-  mangleFunctionTemplate(CGContext&                    ctx,
-                         const NamespaceStack&         space,
+  mangleFunctionTemplate(const NamespaceStack&         space,
                          const ast::FunctionDecl&      decl,
                          const ast::TemplateArguments& template_args) const;
 
   [[nodiscard]] std::vector<std::string>
-  mangleFunctionCall(CGContext&               ctx,
-                     const std::string_view   callee,
+  mangleFunctionCall(const std::string_view   callee,
                      const std::deque<Value>& args) const;
 
   [[nodiscard]] std::vector<std::string>
-  mangleFunctionTemplateCall(CGContext&                    ctx,
-                             const std::string_view        callee,
+  mangleFunctionTemplateCall(const std::string_view        callee,
                              const ast::TemplateArguments& template_args,
                              const std::deque<Value>&      args) const;
 
   // The mangled this pointer type is inserted automatically
   [[nodiscard]] std::vector<std::string>
-  mangleMethodCall(CGContext&               ctx,
-                   const std::string_view   callee,
+  mangleMethodCall(const std::string_view   callee,
                    const std::string&       class_name,
                    const std::deque<Value>& args,
                    const Accessibility      accessibility) const;
 
   // Return results stored in order of priority
   [[nodiscard]] std::vector<std::string>
-  mangleConstructorCall(CGContext& ctx, const std::deque<Value>& args) const;
+  mangleConstructorCall(const std::deque<Value>& args) const;
 
   // The mangled this pointer type is inserted automatically
   [[nodiscard]] std::vector<std::string>
-  mangleDestructorCall(CGContext& ctx, const std::string& class_name) const;
+  mangleDestructorCall(const std::string& class_name) const;
+
+  [[nodiscard]] std::string
+  mangleClassTemplateName(const std::string&            class_name,
+                          const ast::TemplateArguments& template_args) const;
 
 private:
   [[nodiscard]] std::string
-  mangleTemplateArguments(CGContext&                    ctx,
-                          const ast::TemplateArguments& args) const;
+  mangleTemplateArguments(const ast::TemplateArguments& args) const;
 
   [[nodiscard]] std::string mangleFunctionName(const std::string& name) const;
 
@@ -82,13 +85,18 @@ private:
   mangleNamespaceHierarchy(const NamespaceStack& namespaces) const;
 
   [[nodiscard]] std::string
-  mangleThisPointer(CGContext& ctx, const std::string& class_name) const;
+  mangleThisPointer(const std::string& class_name) const;
 
-  [[nodiscard]] std::string mangleArgs(CGContext&               ctx,
-                                       const std::deque<Value>& args) const;
+  [[nodiscard]] std::string mangleArgs(const std::deque<Value>& args) const;
 
   [[nodiscard]] std::string
-  mangleParams(CGContext& ctx, const ast::ParameterList& params) const;
+  mangleParams(const ast::ParameterList& params) const;
+
+  // <A, B> to ".A.B"
+  [[nodiscard]] std::string
+  concatTemplateArgs(const ast::TemplateArguments& template_args) const;
+
+  CGContext& ctx;
 };
 
 } // namespace mangle

@@ -240,11 +240,26 @@ declareFunction(CGContext&                   ctx,
   return func;
 }
 
+// Note the lifetime of the return value
+[[nodiscard]] std::string_view
+extractPlainClassName(const std::string_view mangled_class_name)
+{
+  const auto pos = mangled_class_name.find_first_of('.');
+
+  // It wasn't mangled
+  if (pos == std::string_view::npos)
+    return mangled_class_name;
+
+  // It was mangled
+  return std::string_view(mangled_class_name.begin(),
+                          mangled_class_name.begin() + pos);
+}
+
 void verifyConstructor(CGContext&              ctx,
                        const std::string_view  class_name,
                        const ast::Constructor& constructor)
 {
-  if (class_name != constructor.decl.name.utf8()) {
+  if (extractPlainClassName(class_name) != constructor.decl.name.utf8()) {
     throw CodegenError{
       ctx.formatError(ctx.positionOf(constructor),
                       "constructor name must be the same as the class name")};
@@ -255,7 +270,7 @@ void verifyDestructor(CGContext&             ctx,
                       const std::string_view class_name,
                       const ast::Destructor& destructor)
 {
-  if (class_name != destructor.decl.name.utf8()) {
+  if (extractPlainClassName(class_name) != destructor.decl.name.utf8()) {
     throw CodegenError{
       ctx.formatError(ctx.positionOf(destructor),
                       "destructor name must be the same as the class name")};
@@ -406,16 +421,22 @@ injectMemberInitStmt(ast::FunctionDef&&                func,
 }
 
 // Setting template parameters is the caller's responsibility
-void createClass(CGContext&             ctx,
-                 const ast::ClassDef&   node,
-                 const MethodGeneration method_conv)
+void createClass(CGContext&                        ctx,
+                 const ast::ClassDef&              node,
+                 const MethodGeneration            method_conv,
+                 // Use this when you want to include the type in the class
+                 // name, for example, in a template class
+                 const std::optional<std::string>& custom_class_name)
 {
-  const auto class_name = node.name.utf8();
+  const auto class_name
+    = custom_class_name ? *custom_class_name : node.name.utf8();
+
+  const auto class_name_ast = ast::Identifier{class_name};
 
   {
     // Declare first
     // Because of the possibility of using this class recursively
-    auto decl = ast::ClassDecl{node.name};
+    auto decl = ast::ClassDecl{ast::Identifier{class_name}};
     assignPosition(decl, node);
     createTopLevel(ctx, decl);
   }
@@ -426,14 +447,7 @@ void createClass(CGContext&             ctx,
   ClassMethods                           method_def_asts;
 
   const auto push_this_ptr = [&](ast::FunctionDecl& decl) {
-    auto type = ast::PointerType{ast::UserDefinedType{node.name}};
-    assignPosition(type, decl);
-
-    auto ident = ast::Identifier{std::u32string{U"this"}};
-    assignPosition(ident, decl);
-
-    decl.params->push_front(
-      {std::move(ident), {VariableQual::mutable_}, std::move(type), false});
+    pushThisPointer(class_name_ast, decl);
   };
 
   for (const auto& member : node.members) {
@@ -478,7 +492,7 @@ void createClass(CGContext&             ctx,
         injectMemberInitStmt(createConstructorAST(ctx,
                                                   accessibility,
                                                   node.is_public,
-                                                  node.name,
+                                                  class_name_ast,
                                                   *constructor),
                              constructor->member_initializers));
     }
@@ -486,7 +500,7 @@ void createClass(CGContext&             ctx,
       method_def_asts.push_back(createDestructorAST(ctx,
                                                     accessibility,
                                                     node.is_public,
-                                                    node.name,
+                                                    class_name_ast,
                                                     *destructor));
     }
     else if (const auto class_ = boost::get<ast::ClassDef>(&member)) {
@@ -508,11 +522,14 @@ void createClass(CGContext&             ctx,
       type->setBody(ctx, std::move(member_variables));
       type->setIsOpaque(false);
     }
-    else {
-      // TODO: We want to make a redefinition error
-      // However, when using own template class in a template class with the
-      // same template parameter, an error occurs
+    // For templates, consider the case where a class is instantiated with the
+    // same template argument
+    else if (node.isTemplate())
       return;
+    else {
+      throw CodegenError{
+        ctx.formatError(ctx.positionOf(node),
+                        fmt::format("redefinition of '{}'", class_name))};
     }
   }
   else {
@@ -778,7 +795,7 @@ private:
     if (name == "main" || attr_kinds.contains(AttrKind::nomangle))
       return name;
 
-    return ctx.mangler.mangleFunction(ctx, node);
+    return ctx.mangler.mangleFunction(node);
   }
 
   CGContext& ctx;

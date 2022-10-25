@@ -53,6 +53,11 @@ struct Identifier : x3::position_tagged {
   {
   }
 
+  explicit Identifier(const std::string_view name)
+    : name{unicode::utf8toUtf32(name)}
+  {
+  }
+
   Identifier() = default;
 
   [[nodiscard]] std::string utf8() const

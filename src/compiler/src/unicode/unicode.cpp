@@ -26,4 +26,11 @@ namespace twinkle::unicode
   return std::string(first, last);
 }
 
+[[nodiscard]] std::u32string utf8toUtf32(const std::string_view utf8_str)
+{
+  boost::u8_to_u32_iterator first{cbegin(utf8_str)}, last{cend(utf8_str)};
+
+  return std::u32string(first, last);
+}
+
 } // namespace twinkle::unicode

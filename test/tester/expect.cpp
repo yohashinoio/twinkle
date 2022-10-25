@@ -199,6 +199,8 @@ namespace test
     {                                   "union",  58},
     {  "multiple_func_template_call_same_param", 116},
     {                           "smart_pointer",  58},
+    {                 "import_template_classes",  58},
+    {      "same_class_template_with_diff_args",  58},
   };
 
   const auto it = expects.find(test_name);

@@ -410,14 +410,13 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
   {
     const auto pos = ctx.positionOf(node);
 
-    const auto template_type
-      = std::make_shared<UserDefinedType>(node.template_type.name.utf32(),
-                                          false);
+    const auto class_name = node.template_type.name.utf8();
 
-    const auto class_name
-      = template_type->getLLVMType(ctx) ? template_type->getClassName(
-          ctx) /* Already defined template type or aliased type */
-                                        : node.template_type.name.utf8();
+    const auto mangled_class_name
+      = ctx.mangler.mangleClassTemplateName(class_name, node.template_args);
+
+    const auto template_type
+      = std::make_shared<UserDefinedType>(mangled_class_name, false);
 
     const auto class_template
       = findClassTemplate(ctx, class_name, node.template_args);
@@ -432,12 +431,11 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
                                                   node.template_args,
                                                   class_template->second};
 
-    {
-      if (const auto type = ctx.created_class_template_table[table_key])
-        return *type;
-    }
+    if (const auto type = ctx.created_class_template_table[table_key])
+      return *type;
 
-    const auto type = createClassFromTemplate(class_template->first,
+    const auto type = createClassFromTemplate(mangled_class_name,
+                                              class_template->first,
                                               node.template_args,
                                               class_template->second,
                                               pos);
@@ -457,6 +455,7 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
 
 private:
   [[nodiscard]] std::shared_ptr<Type> createClassFromTemplate(
+    const std::string&             mangled_class_name,
     const ClassTemplateTableValue& ast,
     const ast::TemplateArguments&  template_args,
     const NamespaceStack&          space, // FIXME: Use this argument
@@ -471,14 +470,19 @@ private:
     // from within a function
     const auto return_bb = ctx.builder.GetInsertBlock();
 
-    createClass(ctx, ast, MethodGeneration::define_and_declare);
+    createClass(ctx,
+                ast,
+                MethodGeneration::define_and_declare,
+                mangled_class_name);
 
     // Return insert point to previous location
     // If null, it means it was called from outside functions, so do nothing
     if (return_bb)
       ctx.builder.SetInsertPoint(return_bb);
 
-    return createType(ctx, ast::UserDefinedType{ast.name}, pos);
+    return createType(ctx,
+                      ast::UserDefinedType{ast::Identifier{mangled_class_name}},
+                      pos);
   }
 
   CGContext& ctx;

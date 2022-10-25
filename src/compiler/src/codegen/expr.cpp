@@ -455,8 +455,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     // Trying to call
     const auto mangled_names
-      = ctx.mangler.mangleFunctionTemplateCall(ctx,
-                                               callee_name,
+      = ctx.mangler.mangleFunctionTemplateCall(callee_name,
                                                node.template_args,
                                                args);
 
@@ -655,7 +654,7 @@ private:
       = createType(ctx, decl.return_type, ctx.positionOf(decl));
 
     const auto mangled_name
-      = ctx.mangler.mangleFunctionTemplate(ctx, space, decl, template_args);
+      = ctx.mangler.mangleFunctionTemplate(space, decl, template_args);
 
     assert(!ctx.module->getFunction(mangled_name));
 
@@ -844,7 +843,7 @@ private:
   {
     ctx.ns_hierarchy.push({class_name, NamespaceKind::class_});
 
-    const auto mangleds = ctx.mangler.mangleConstructorCall(ctx, args);
+    const auto mangleds = ctx.mangler.mangleConstructorCall(args);
 
     ctx.ns_hierarchy.pop();
 
@@ -1270,8 +1269,7 @@ private:
 
     const auto f = [&](const Accessibility accessibility) {
       const auto mangled_names
-        = ctx.mangler.mangleMethodCall(ctx,
-                                       unmangled_name,
+        = ctx.mangler.mangleMethodCall(unmangled_name,
                                        ctx.ns_hierarchy.top().name,
                                        args,
                                        accessibility);
@@ -1308,7 +1306,7 @@ private:
     }
 
     const auto mangled_names
-      = ctx.mangler.mangleFunctionCall(ctx, unmangled_name, args);
+      = ctx.mangler.mangleFunctionCall(unmangled_name, args);
 
     auto const func = findFunction(ctx, mangled_names);
 

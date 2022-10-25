@@ -1,0 +1,8 @@
+import "./sample";
+
+func main() -> i32
+{
+  let s = sample<usize>{48 as usize};
+  let s2 = sample<i32>{10};
+  return (s.f(10 as usize) as i32 + s2.f(48)) / 2;
+}

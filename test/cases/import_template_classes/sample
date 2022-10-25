@@ -1,0 +1,14 @@
+pub class sample<T> {
+  sample(value: T)
+    : n{value}
+  {
+  }
+
+  func f(value: T) -> T
+  {
+    return value + n;
+  }
+
+private:
+  let n: T;
+}

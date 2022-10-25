@@ -105,6 +105,7 @@ CGContext::CGContext(llvm::LLVMContext&      context,
   , builder{context}
   , current_file{std::move(current_file)}
   , created_class_template_table{*this}
+  , mangler{*this}
   , fpm{module.get()}
 {
   // Setup pass manager

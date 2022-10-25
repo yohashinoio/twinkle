@@ -13,7 +13,7 @@ namespace twinkle::codegen::mangle
 {
 
 [[nodiscard]] std::string
-Mangler::mangleFunction(CGContext& ctx, const ast::FunctionDecl& decl) const
+Mangler::mangleFunction(const ast::FunctionDecl& decl) const
 {
   assert(!decl.isTemplate());
 
@@ -34,13 +34,12 @@ Mangler::mangleFunction(CGContext& ctx, const ast::FunctionDecl& decl) const
   else
     mangled << mangleFunctionName(decl.name.utf8());
 
-  mangled << 'E' << mangleParams(ctx, decl.params);
+  mangled << 'E' << mangleParams(decl.params);
 
   return mangled.str();
 }
 
 [[nodiscard]] std::string Mangler::mangleFunctionTemplate(
-  CGContext&                    ctx,
   const NamespaceStack&         space,
   const ast::FunctionDecl&      decl,
   const ast::TemplateArguments& template_args) const
@@ -59,16 +58,15 @@ Mangler::mangleFunction(CGContext& ctx, const ast::FunctionDecl& decl) const
 
   mangled << mangleFunctionName(decl.name.utf8());
 
-  mangled << mangleTemplateArguments(ctx, template_args);
+  mangled << mangleTemplateArguments(template_args);
 
-  mangled << 'E' << 'T' << mangleParams(ctx, decl.params);
+  mangled << 'E' << 'T' << mangleParams(decl.params);
 
   return mangled.str();
 }
 
 [[nodiscard]] std::vector<std::string>
-Mangler::mangleFunctionTemplateCall(CGContext&                    ctx,
-                                    const std::string_view        callee,
+Mangler::mangleFunctionTemplateCall(const std::string_view        callee,
                                     const ast::TemplateArguments& template_args,
                                     const std::deque<Value>&      args) const
 {
@@ -90,9 +88,9 @@ Mangler::mangleFunctionTemplateCall(CGContext&                    ctx,
 
     mangled << mangleFunctionName(std::string{callee});
 
-    mangled << mangleTemplateArguments(ctx, template_args);
+    mangled << mangleTemplateArguments(template_args);
 
-    mangled << 'E' << 'T' << mangleArgs(ctx, args);
+    mangled << 'E' << 'T' << mangleArgs(args);
 
     for (auto& r : candidates)
       r += mangled.str();
@@ -102,8 +100,7 @@ Mangler::mangleFunctionTemplateCall(CGContext&                    ctx,
 }
 
 [[nodiscard]] std::vector<std::string>
-Mangler::mangleFunctionCall(CGContext&               ctx,
-                            const std::string_view   callee,
+Mangler::mangleFunctionCall(const std::string_view   callee,
                             const std::deque<Value>& args) const
 {
   std::vector<std::string> candidates;
@@ -124,7 +121,7 @@ Mangler::mangleFunctionCall(CGContext&               ctx,
 
     mangled << mangleFunctionName(std::string{callee}) << "E";
 
-    mangled << mangleArgs(ctx, args);
+    mangled << mangleArgs(args);
 
     for (auto& r : candidates)
       r += mangled.str();
@@ -134,8 +131,7 @@ Mangler::mangleFunctionCall(CGContext&               ctx,
 }
 
 [[nodiscard]] std::vector<std::string>
-Mangler::mangleMethodCall(CGContext&               ctx,
-                          const std::string_view   callee,
+Mangler::mangleMethodCall(const std::string_view   callee,
                           const std::string&       class_name,
                           const std::deque<Value>& args,
                           const Accessibility      accessibility) const
@@ -159,9 +155,9 @@ Mangler::mangleMethodCall(CGContext&               ctx,
 
     mangled << mangleFunctionName(std::string{callee}) << "E";
 
-    mangled << mangleThisPointer(ctx, class_name);
+    mangled << mangleThisPointer(class_name);
 
-    mangled << mangleArgs(ctx, args);
+    mangled << mangleArgs(args);
 
     for (auto& r : candidates)
       r += mangled.str();
@@ -171,8 +167,7 @@ Mangler::mangleMethodCall(CGContext&               ctx,
 }
 
 [[nodiscard]] std::vector<std::string>
-Mangler::mangleConstructorCall(CGContext&               ctx,
-                               const std::deque<Value>& args) const
+Mangler::mangleConstructorCall(const std::deque<Value>& args) const
 {
   std::vector<std::string> candidates;
 
@@ -190,7 +185,7 @@ Mangler::mangleConstructorCall(CGContext&               ctx,
   {
     std::ostringstream mangled;
 
-    mangled << 'C' << 'E' << mangleArgs(ctx, args);
+    mangled << 'C' << 'E' << mangleArgs(args);
 
     for (auto& r : candidates)
       r += mangled.str();
@@ -200,8 +195,7 @@ Mangler::mangleConstructorCall(CGContext&               ctx,
 }
 
 [[nodiscard]] std::vector<std::string>
-Mangler::mangleDestructorCall(CGContext&         ctx,
-                              const std::string& class_name) const
+Mangler::mangleDestructorCall(const std::string& class_name) const
 {
   std::vector<std::string> candidates;
 
@@ -219,18 +213,24 @@ Mangler::mangleDestructorCall(CGContext&         ctx,
   {
     std::ostringstream mangled;
 
-    mangled << 'D' << 'E' << mangleThisPointer(ctx, class_name);
+    mangled << 'D' << 'E' << mangleThisPointer(class_name);
 
     for (auto& r : candidates)
       r += mangled.str();
   }
 
   return candidates;
+}
+
+[[nodiscard]] std::string Mangler::mangleClassTemplateName(
+  const std::string&            class_name,
+  const ast::TemplateArguments& template_args) const
+{
+  return class_name + concatTemplateArgs(template_args);
 }
 
 [[nodiscard]] std::string
-Mangler::mangleTemplateArguments(CGContext&                    ctx,
-                                 const ast::TemplateArguments& args) const
+Mangler::mangleTemplateArguments(const ast::TemplateArguments& args) const
 {
   std::ostringstream mangled;
 
@@ -272,7 +272,7 @@ Mangler::mangleNamespaceHierarchy(const NamespaceStack& namespaces) const
 }
 
 [[nodiscard]] std::string
-Mangler::mangleThisPointer(CGContext& ctx, const std::string& class_name) const
+Mangler::mangleThisPointer(const std::string& class_name) const
 {
   return PointerType{std::make_shared<UserDefinedType>(class_name, false),
                      false}
@@ -280,7 +280,7 @@ Mangler::mangleThisPointer(CGContext& ctx, const std::string& class_name) const
 }
 
 [[nodiscard]] std::string
-Mangler::mangleArgs(CGContext& ctx, const std::deque<Value>& args) const
+Mangler::mangleArgs(const std::deque<Value>& args) const
 {
   std::ostringstream mangled;
 
@@ -291,7 +291,7 @@ Mangler::mangleArgs(CGContext& ctx, const std::deque<Value>& args) const
 }
 
 [[nodiscard]] std::string
-Mangler::mangleParams(CGContext& ctx, const ast::ParameterList& params) const
+Mangler::mangleParams(const ast::ParameterList& params) const
 {
   std::ostringstream mangled;
 
@@ -305,6 +305,22 @@ Mangler::mangleParams(CGContext& ctx, const ast::ParameterList& params) const
   }
 
   return mangled.str();
+}
+
+[[nodiscard]] std::string
+Mangler::concatTemplateArgs(const ast::TemplateArguments& template_args) const
+{
+  assert(0 < template_args.types.size());
+
+  std::stringstream ss;
+
+  for (const auto& r : template_args.types) {
+    ss
+      << '.'
+      << createType(ctx, r, ctx.positionOf(template_args))->getMangledName(ctx);
+  }
+
+  return ss.str();
 }
 
 } // namespace twinkle::codegen::mangle

@@ -1,0 +1,65 @@
+pub class rc<T> {
+  rc(value: &T)
+    : p{new T}
+    , count{new i32}
+  {
+    p^ = value;
+    count^ = 1;
+  }
+
+  rc(other: &rc<T>)
+    : p{other.p}
+    , count{other.count}
+  {
+    increment_count();
+  }
+
+  ~rc()
+  {
+    release();
+  }
+
+  func use_count() -> i32
+  {
+    return count^;
+  }
+
+  func release()
+  {
+    decrement_count();
+
+    if (count^ == 0) {
+      delete p;
+      delete count;
+    }
+  }
+
+  func value() -> T
+  {
+    return p^;
+  }
+
+  func set(value: T)
+  {
+    p^ = value;
+  }
+
+  func get() -> ^T
+  {
+    return p;
+  }
+
+private:
+  func decrement_count()
+  {
+    --count^;
+  }
+
+  func increment_count()
+  {
+    ++count^;
+  }
+
+  let mut p: ^T;
+  let mut count: ^i32;
+}
