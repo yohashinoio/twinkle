@@ -42,14 +42,15 @@ template <typename Key,
           typename R    = T>
 struct Table {
   template <typename T1>
-  [[nodiscard]] std::optional<R> operator[](T1&& key) const noexcept
+  [[nodiscard]] std::optional<const std::reference_wrapper<const R>>
+  operator[](T1&& key) const noexcept
   {
     const auto iter = table.find(std::forward<T1>(key));
 
     if (iter == end())
       return std::nullopt;
     else
-      return iter->second;
+      return std::ref(iter->second);
 
     unreachable();
   }
@@ -117,6 +118,13 @@ using SymbolTable = Table<std::string, std::shared_ptr<Variable>>;
 
 using UnionTable = Table<std::string, std::shared_ptr<UnionType>>;
 
+using PositionCacheTable = Table<std::string /* file name */, PositionCache>;
+
+// Stores source code line by line as elements
+using SourceCode = std::vector<std::string>;
+
+using SourceCodeTable = Table<std::string /* file name */, SourceCode>;
+
 enum class NamespaceKind {
   unknown,
   namespace_,
@@ -155,7 +163,6 @@ struct NamespaceStack {
   {
     namespaces.push_back(n);
   }
-
 
   Namespace pop()
   {
@@ -248,10 +255,14 @@ private:
   std::set<CreatedClassTemplateTableElem> table;
 };
 
+template <typename T>
+concept PositionTaggedClass
+  = std::is_convertible_v<T, boost::spirit::x3::position_tagged>;
+
 // Codegen context
 struct CGContext : private boost::noncopyable {
   CGContext(llvm::LLVMContext&      context,
-            PositionCache&&         positions,
+            PositionCache&&         current_file_poscache,
             std::filesystem::path&& file,
             const std::string&      source_code,
             const unsigned int      opt_level) noexcept;
@@ -265,9 +276,55 @@ struct CGContext : private boost::noncopyable {
   std::unique_ptr<llvm::Module> module;
   llvm::IRBuilder<>             builder;
 
-  std::filesystem::path file;
+  std::filesystem::path current_file;
 
-  PositionCache positions;
+  template <PositionTaggedClass T>
+  [[nodiscard]] PositionRange positionOf(T&& ast) const
+  {
+    const auto search_in_current_file = [&]() {
+      const auto current_file_pos_cache
+        = position_cache_table[current_file.string()];
+      assert(current_file_pos_cache);
+      return current_file_pos_cache->get().position_of(ast);
+    };
+
+    const auto search_in_imported_files
+      = [&]() -> std::optional<PositionRange> {
+      const auto current_file_name = current_file.string();
+
+      for (const auto& r : position_cache_table) {
+        if (r.first == current_file_name)
+          continue;
+
+        try {
+          return r.second.position_of(ast);
+        }
+        catch (const std::out_of_range&) {
+          continue;
+        }
+      }
+
+      return std::nullopt;
+    };
+
+    try {
+      return search_in_current_file();
+    }
+    catch (const std::out_of_range&) {
+      const auto pos = search_in_imported_files();
+      if (pos)
+        return *pos;
+      else
+        unreachable();
+    }
+  }
+
+  [[nodiscard]] const PositionCache& getCurrentPosCache() const
+  {
+    const auto current_pos_cache = position_cache_table[current_file.string()];
+    assert(current_pos_cache);
+    return *current_pos_cache;
+  }
 
   // Table
   ClassTable                        class_table;
@@ -278,6 +335,7 @@ struct CGContext : private boost::noncopyable {
   ClassTemplateTable                class_template_table;
   CreatedClassTemplateTable         created_class_template_table;
   UnionTable                        union_table;
+  PositionCacheTable                position_cache_table;
   // If you want to find template arguments, look for them in the symbol table
   // of top
   std::stack<TemplateArgumentTable> template_argument_tables;
@@ -292,8 +350,7 @@ struct CGContext : private boost::noncopyable {
   llvm::legacy::FunctionPassManager fpm;
 
 private:
-  // Stores source code line by line as elements
-  const std::vector<std::string> source_code;
+  SourceCodeTable source_code_table;
 
   [[nodiscard]] std::size_t
   calcRows(const boost::iterator_range<InputIterator>& pos) const;

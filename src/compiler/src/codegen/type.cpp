@@ -140,7 +140,7 @@ namespace twinkle::codegen
 UserDefinedType::getRealType(CGContext& ctx) const
 {
   const auto clone_and_update_mutable = [&](const auto& type) {
-    auto cloned_type = type.value()->clone();
+    auto cloned_type = type->get()->clone();
     cloned_type->setMutable(ctx, isMutable());
     return cloned_type;
   };
@@ -376,7 +376,7 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
   {
     const auto type = createType(ctx, node.element_type, pos);
 
-    verifyType(ctx, type, ctx.positions.position_of(node));
+    verifyType(ctx, type, ctx.positionOf(node));
 
     return std::make_shared<ArrayType>(type, node.size, false);
   }
@@ -388,7 +388,7 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
 
     auto type = createType(ctx, node.pointee_type, pos);
 
-    verifyType(ctx, type, ctx.positions.position_of(node));
+    verifyType(ctx, type, ctx.positionOf(node));
 
     for (std::size_t i = 0; i < node.n_ops.size(); ++i)
       type = std::make_shared<PointerType>(type, false);
@@ -408,7 +408,7 @@ struct TypeVisitor : public boost::static_visitor<std::shared_ptr<Type>> {
   [[nodiscard]] std::shared_ptr<Type>
   operator()(const ast::UserDefinedTemplateType& node) const
   {
-    const auto pos = ctx.positions.position_of(node);
+    const auto pos = ctx.positionOf(node);
 
     const auto template_type
       = std::make_shared<UserDefinedType>(node.template_type.name.utf32(),

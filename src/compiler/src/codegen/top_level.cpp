@@ -72,7 +72,7 @@ createParamTypes(CGContext&                ctx,
 {
   std::vector<std::shared_ptr<Type>> types(named_params_len);
 
-  const auto pos = ctx.positions.position_of(params);
+  const auto pos = ctx.positionOf(params);
 
   for (std::size_t i = 0; i != named_params_len; ++i) {
     const auto& param_type = params->at(i).type;
@@ -101,13 +101,13 @@ createArgumentTable(CGContext&                ctx,
 {
   SymbolTable argument_table;
 
-  const auto pos = ctx.positions.position_of(param_list);
+  const auto pos = ctx.positionOf(param_list);
 
   for (auto& arg : args) {
     const auto& param_node = param_list->at(arg.getArgNo());
 
     const auto& param_type
-      = createType(ctx, param_node.type, ctx.positions.position_of(param_list));
+      = createType(ctx, param_node.type, ctx.positionOf(param_list));
 
     // Create an alloca for this variable
     auto const alloca = createEntryAlloca(func,
@@ -203,14 +203,14 @@ declareFunction(CGContext&                   ctx,
 {
   if (node.params->size() && node.params->at(0).is_vararg) {
     throw CodegenError{
-      ctx.formatError(ctx.positions.position_of(node),
+      ctx.formatError(ctx.positionOf(node),
                       "requires a named argument before '...'")};
   }
 
   const auto is_vararg = isVariadicArgs(node.params);
   if (!is_vararg) {
     throw CodegenError{
-      ctx.formatError(ctx.positions.position_of(node),
+      ctx.formatError(ctx.positionOf(node),
                       "cannot have multiple variable arguments")};
   }
 
@@ -246,7 +246,7 @@ void verifyConstructor(CGContext&              ctx,
 {
   if (class_name != constructor.decl.name.utf8()) {
     throw CodegenError{
-      ctx.formatError(ctx.positions.position_of(constructor),
+      ctx.formatError(ctx.positionOf(constructor),
                       "constructor name must be the same as the class name")};
   }
 }
@@ -257,12 +257,12 @@ void verifyDestructor(CGContext&             ctx,
 {
   if (class_name != destructor.decl.name.utf8()) {
     throw CodegenError{
-      ctx.formatError(ctx.positions.position_of(destructor),
+      ctx.formatError(ctx.positionOf(destructor),
                       "destructor name must be the same as the class name")};
   }
 
   if (!destructor.decl.params->empty()) {
-    throw CodegenError{ctx.formatError(ctx.positions.position_of(destructor),
+    throw CodegenError{ctx.formatError(ctx.positionOf(destructor),
                                        "destructor does not accept arguments")};
   }
 }
@@ -336,7 +336,7 @@ createConstructorAST(CGContext&              ctx,
                      const ast::Constructor& constructor)
 {
   if (accessibility != Accessibility::public_) {
-    throw CodegenError{ctx.formatError(ctx.positions.position_of(constructor),
+    throw CodegenError{ctx.formatError(ctx.positionOf(constructor),
                                        "constructor must be public")};
   }
 
@@ -361,8 +361,8 @@ createDestructorAST(CGContext&             ctx,
                     const ast::Destructor& destructor)
 {
   if (accessibility != Accessibility::public_) {
-    throw CodegenError{ctx.formatError(ctx.positions.position_of(destructor),
-                                       "destructor must be public")};
+    throw CodegenError{
+      ctx.formatError(ctx.positionOf(destructor), "destructor must be public")};
   }
 
   verifyDestructor(ctx, class_name.utf8(), destructor);
@@ -405,6 +405,7 @@ injectMemberInitStmt(ast::FunctionDef&&                func,
   return func;
 }
 
+// Setting template parameters is the caller's responsibility
 void createClass(CGContext&             ctx,
                  const ast::ClassDef&   node,
                  const MethodGeneration method_conv)
@@ -443,7 +444,7 @@ void createClass(CGContext&             ctx,
           && (*variable->qualifier == VariableQual::mutable_);
 
       const auto type
-        = createType(ctx, variable->type, ctx.positions.position_of(*variable));
+        = createType(ctx, variable->type, ctx.positionOf(*variable));
 
       type->setMutable(ctx, is_mutable);
 
@@ -501,7 +502,7 @@ void createClass(CGContext&             ctx,
   }
 
   if (const auto opaque_class_ty = ctx.class_table[class_name]) {
-    const auto type = opaque_class_ty.value();
+    const auto type = opaque_class_ty->get();
 
     if (type->isOpaque(ctx)) {
       type->setBody(ctx, std::move(member_variables));
@@ -530,7 +531,7 @@ void createUnion(CGContext& ctx, const ast::UnionDef& node)
 {
   const auto union_name = node.name.utf8();
 
-  const auto pos = ctx.positions.position_of(node);
+  const auto pos = ctx.positionOf(node);
 
   if (ctx.union_table.exists(union_name)) {
     throw CodegenError{
@@ -571,7 +572,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
       ctx,
       node,
       mangleFunction(node),
-      createType(ctx, node.return_type, ctx.positions.position_of(node)));
+      createType(ctx, node.return_type, ctx.positionOf(node)));
   }
 
   llvm::Function* operator()(const ast::FunctionDef& node) const
@@ -587,7 +588,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
       if (ctx.func_template_table.exists(key)) {
         throw CodegenError{
-          ctx.formatError(ctx.positions.position_of(node.decl),
+          ctx.formatError(ctx.positionOf(node.decl),
                           fmt::format("redefinition of '{}'", name))};
       }
 
@@ -602,7 +603,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
     if (func && !func->isDeclaration()) {
       throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(node.decl),
+        ctx.formatError(ctx.positionOf(node.decl),
                         fmt::format("redefinition of '{}'", name))};
     }
 
@@ -614,14 +615,13 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     if (!node.is_public && name != "main")
       func->setLinkage(llvm::Function::LinkageTypes::InternalLinkage);
 
-    createFunctionBody(ctx,
-                       func,
-                       name,
-                       node.decl.params,
-                       createType(ctx,
-                                  node.decl.return_type,
-                                  ctx.positions.position_of(node.decl)),
-                       node.body);
+    createFunctionBody(
+      ctx,
+      func,
+      name,
+      node.decl.params,
+      createType(ctx, node.decl.return_type, ctx.positionOf(node.decl)),
+      node.body);
 
     ctx.fpm.run(*func);
 
@@ -642,27 +642,10 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
   llvm::Function* operator()(const ast::ClassDef& node) const
   {
-    if (node.isTemplate()) {
-      verifyTemplateParameter(node.template_params);
-
-      const auto name = node.name.utf8();
-
-      const auto key = TemplateTableKey{name,
-                                        node.template_params->size(),
-                                        ctx.ns_hierarchy};
-
-      if (ctx.class_template_table.exists(key)) {
-        throw CodegenError{
-          ctx.formatError(ctx.positions.position_of(node),
-                          fmt::format("redefinition of '{}'", name))};
-      }
-
-      ctx.class_template_table.insert(key, node);
-
-      return nullptr;
-    }
-
-    createClass(ctx, node, MethodGeneration::define_and_declare);
+    if (node.isTemplate())
+      insertTemplateClassToTable(node);
+    else
+      createClass(ctx, node, MethodGeneration::define_and_declare);
 
     return nullptr;
   }
@@ -680,7 +663,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
     ctx.alias_table.insertOrAssign(
       node.alias.utf8(),
-      createType(ctx, node.type, ctx.positions.position_of(node)));
+      createType(ctx, node.type, ctx.positionOf(node)));
 
     return nullptr;
   }
@@ -689,14 +672,14 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
   {
     namespace fs = std::filesystem;
 
-    auto path = ctx.file.parent_path() / fs::path{node.path.utf32()};
+    auto path = ctx.current_file.parent_path() / fs::path{node.path.utf32()};
 
     const auto result
-      = parse::Parser{loadFile(path, ctx.positions.position_of(node)), path}
-          .getResult();
+      = parse::Parser{loadFile(path, ctx.positionOf(node)), path}.getResult();
 
-    const auto pos_backup = ctx.positions;
-    ctx.positions         = result.positions;
+    ctx.position_cache_table.insert(path.string(), std::move(result.positions));
+    const auto file_backup = std::move(ctx.current_file);
+    ctx.current_file       = std::move(result.file);
 
     for (const auto& node_with_attr : result.ast) {
       const auto node = node_with_attr.top_level;
@@ -709,17 +692,41 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
       if (const auto class_def = boost::get<ast::ClassDef>(&node);
           class_def && class_def->is_public) {
-        importClass(*class_def);
+        if (class_def->isTemplate())
+          insertTemplateClassToTable(*class_def);
+        else
+          importClass(*class_def);
+
         continue;
       }
     }
 
-    ctx.positions = pos_backup;
+    ctx.current_file = std::move(file_backup);
 
     return nullptr;
   }
 
 private:
+  void insertTemplateClassToTable(const ast::ClassDef& node) const
+  {
+    assert(node.isTemplate());
+
+    verifyTemplateParameter(node.template_params);
+
+    const auto name = node.name.utf8();
+
+    const auto key
+      = TemplateTableKey{name, node.template_params->size(), ctx.ns_hierarchy};
+
+    if (ctx.class_template_table.exists(key)) {
+      throw CodegenError{
+        ctx.formatError(ctx.positionOf(node),
+                        fmt::format("redefinition of '{}'", name))};
+    }
+
+    ctx.class_template_table.insert(key, node);
+  }
+
   void verifyTemplateParameter(const ast::TemplateParameters& params) const
   {
     const auto& param_names = params.type_names;
@@ -730,7 +737,7 @@ private:
       for (auto it_c = it + 1; it_c != last; ++it_c) {
         if (*it == *it_c) {
           throw CodegenError{
-            ctx.formatError(ctx.positions.position_of(params),
+            ctx.formatError(ctx.positionOf(params),
                             fmt::format("redeclaration of '{}'", it->utf8()))};
         }
       }

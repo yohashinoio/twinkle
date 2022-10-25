@@ -176,7 +176,7 @@ struct UserDefinedType : x3::position_tagged {
   }
 };
 
-struct TemplateArguments {
+struct TemplateArguments : x3::position_tagged {
   using Types = std::vector<Type>;
 
   Types types;

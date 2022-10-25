@@ -237,8 +237,7 @@ Mangler::mangleTemplateArguments(CGContext&                    ctx,
   mangled << 'I';
 
   for (const auto& r : args.types) {
-    mangled << createType(ctx, r, ctx.positions.position_of(args))
-                 ->getMangledName(ctx);
+    mangled << createType(ctx, r, ctx.positionOf(args))->getMangledName(ctx);
   }
 
   return mangled.str();
@@ -300,8 +299,7 @@ Mangler::mangleParams(CGContext& ctx, const ast::ParameterList& params) const
     if (param.is_vararg)
       mangled << "z";
     else {
-      const auto type
-        = createType(ctx, param.type, ctx.positions.position_of(params));
+      const auto type = createType(ctx, param.type, ctx.positionOf(params));
       mangled << type->getMangledName(ctx);
     }
   }

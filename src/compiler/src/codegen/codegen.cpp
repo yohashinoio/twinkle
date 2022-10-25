@@ -44,8 +44,7 @@ CreatedClassTemplateTable::operator[](
     if (std::get<0>(key) == name) {
       for (std::size_t idx = 0;
            const auto& type : template_arg_types_of_keyarg.types) {
-        const auto pos
-          = ctx.positions.position_of(template_arg_types_of_keyarg);
+        const auto pos = ctx.positionOf(template_arg_types_of_keyarg);
 
         const auto t1 = createType(ctx, args.types.at(idx), pos);
         const auto t2 = createType(ctx, type, pos);
@@ -96,17 +95,16 @@ template <typename R = std::vector<std::string>>
 //===----------------------------------------------------------------------===//
 
 CGContext::CGContext(llvm::LLVMContext&      context,
-                     PositionCache&&         positions,
-                     std::filesystem::path&& file,
+                     PositionCache&&         current_file_poscache,
+                     std::filesystem::path&& current_file,
                      const std::string&      source_code,
                      const unsigned int      opt_level) noexcept
   : context{context}
-  , module{std::make_unique<llvm::Module>(file.filename().string(), context)}
+  , module{std::make_unique<llvm::Module>(current_file.filename().string(),
+                                          context)}
   , builder{context}
-  , file{std::move(file)}
+  , current_file{std::move(current_file)}
   , created_class_template_table{*this}
-  , positions{std::move(positions)}
-  , source_code{splitByLine(source_code)}
   , fpm{module.get()}
 {
   // Setup pass manager
@@ -119,6 +117,13 @@ CGContext::CGContext(llvm::LLVMContext&      context,
 
     fpm.doInitialization();
   }
+
+  const auto current_filename = this->current_file.string();
+
+  source_code_table.insert(current_filename, splitByLine(source_code));
+
+  position_cache_table.insert(current_filename,
+                              std::move(current_file_poscache));
 }
 
 [[nodiscard]] std::string
@@ -127,10 +132,13 @@ CGContext::formatError(const PositionRange&   pos,
 {
   const auto rows = calcRows(pos);
 
-  return fmt::format("In file {}, line {}:\n", file.string(), rows)
+  const auto source_code = source_code_table[current_file];
+  assert(source_code);
+
+  return fmt::format("In file {}, line {}:\n", current_file.string(), rows)
          + fmt::format(fg(fmt::terminal_color::bright_red), "error: ")
          + fmt::format(fg(fmt::terminal_color::bright_white), "{}\n", message)
-         + boost::algorithm::trim_copy(source_code.at(rows - 1));
+         + boost::algorithm::trim_copy(source_code->get().at(rows - 1));
 }
 
 [[nodiscard]] std::size_t CGContext::calcRows(const PositionRange& pos) const
@@ -141,7 +149,7 @@ CGContext::formatError(const PositionRange&   pos,
     if (*iter == U'\n')
       ++rows;
 
-    if (iter == positions.first())
+    if (iter == getCurrentPosCache().first())
       return ++rows;
   }
 
@@ -184,7 +192,7 @@ CodeGenerator::CodeGenerator(
 
     codegen(it->ast, ctx);
 
-    results.emplace_back(std::move(ctx.module), std::move(ctx.file));
+    results.emplace_back(std::move(ctx.module), std::move(ctx.current_file));
   }
 }
 

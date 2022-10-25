@@ -176,7 +176,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
         return *member;
       else {
         throw CodegenError{ctx.formatError(
-          ctx.positions.position_of(node),
+          ctx.positionOf(node),
           fmt::format("unknown variable '{}' referenced", node.utf8()))};
       }
     }
@@ -185,9 +185,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     if (variable->getType()->isRefTy(ctx)) {
       // Since reference types wrap pointer types
-      return createDereference(ctx,
-                               ctx.positions.position_of(node),
-                               variable_value);
+      return createDereference(ctx, ctx.positionOf(node), variable_value);
     }
 
     return variable_value;
@@ -226,8 +224,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       }
     }
 
-    throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
-                                       "cannot generate right-hand side")};
+    throw CodegenError{
+      ctx.formatError(ctx.positionOf(node), "cannot generate right-hand side")};
   }
 
   [[nodiscard]] Value operator()(const ast::Subscript& node) const
@@ -252,7 +250,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
         && !equals(ctx, lhs.getType(), rhs.getType())) {
       // Left and right side types must be compatible
       throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(node),
+        ctx.formatError(ctx.positionOf(node),
                         "binary operations must be type compatible")};
     }
 
@@ -310,7 +308,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     case ast::BinOp::Kind::unknown:
       throw CodegenError{ctx.formatError(
-        ctx.positions.position_of(node),
+        ctx.positionOf(node),
         fmt::format("unknown operator '{}' detected", node.opstr()))};
     }
 
@@ -322,7 +320,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     auto const operand_val = boost::apply_visitor(*this, node.operand);
 
     if (!operand_val.getValue()) {
-      throw CodegenError{ctx.formatError(ctx.positions.position_of(node),
+      throw CodegenError{ctx.formatError(ctx.positionOf(node),
                                          "failed to generate right-hand side")};
     }
 
@@ -337,14 +335,14 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       return createLogicalNot(operand_val);
 
     case ast::UnaryOp::Kind::address_of:
-      return createAddressOf(operand_val, ctx.positions.position_of(node));
+      return createAddressOf(operand_val, ctx.positionOf(node));
 
     case ast::UnaryOp::Kind::size_of:
       return createSizeOf(operand_val);
 
     case ast::UnaryOp::Kind::unknown:
       throw CodegenError{ctx.formatError(
-        ctx.positions.position_of(node),
+        ctx.positionOf(node),
         fmt::format("unknown operator '{}' detected", node.opstr()))};
     }
 
@@ -354,19 +352,18 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   [[nodiscard]] Value operator()(const ast::Reference& node) const
   {
     return createReference(boost::apply_visitor(*this, node.operand),
-                           ctx.positions.position_of(node));
+                           ctx.positionOf(node));
   }
 
   [[nodiscard]] Value operator()(const ast::New& node) const
   {
-    const auto type
-      = createType(ctx, node.type, ctx.positions.position_of(node));
+    const auto type = createType(ctx, node.type, ctx.positionOf(node));
 
     const auto is_class_ty = type->isClassTy(ctx);
 
     if (!is_class_ty && node.with_init) {
       throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(node),
+        ctx.formatError(ctx.positionOf(node),
                         "cannot initialize non-class with new operator")};
     }
 
@@ -386,13 +383,12 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     const auto malloc_return_type = std::make_shared<PointerType>(type, false);
 
     if (is_class_ty && node.with_init) {
-      auto args
-        = createArgVals(node.initializer, ctx.positions.position_of(node));
+      auto args = createArgVals(node.initializer, ctx.positionOf(node));
 
       // Push 'this' pointer
       args.push_front({malloc_inst, malloc_return_type});
 
-      createConstructorCall(ctx.positions.position_of(node),
+      createConstructorCall(ctx.positionOf(node),
                             type->getClassName(ctx),
                             args);
     }
@@ -406,12 +402,12 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     if (!operand_val.getValue()->getType()->isPointerTy()) {
       throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(node),
+        ctx.formatError(ctx.positionOf(node),
                         "cannot delete expression of the type")};
     }
 
     auto const derefed_operand_val
-      = createDereference(ctx, ctx.positions.position_of(node), operand_val);
+      = createDereference(ctx, ctx.positionOf(node), operand_val);
 
     if (derefed_operand_val.getType()->isClassTy(ctx))
       invokeDestructor(ctx, derefed_operand_val);
@@ -429,12 +425,12 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   {
     const auto value = boost::apply_visitor(*this, node.operand);
 
-    return createDereference(ctx, ctx.positions.position_of(node), value);
+    return createDereference(ctx, ctx.positionOf(node), value);
   }
 
   [[nodiscard]] Value operator()(const ast::FunctionCall& node) const
   {
-    const auto pos = ctx.positions.position_of(node);
+    const auto pos = ctx.positionOf(node);
 
     if (node.callee.type() != typeid(ast::Identifier)) {
       throw CodegenError{
@@ -451,7 +447,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::FunctionTemplateCall& node) const
   {
-    const auto pos = ctx.positions.position_of(node);
+    const auto pos = ctx.positionOf(node);
 
     const auto callee_name = boost::get<ast::Identifier>(node.callee).utf8();
 
@@ -492,7 +488,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   {
     auto const lhs = boost::apply_visitor(*this, node.lhs);
 
-    const auto as = createType(ctx, node.as, ctx.positions.position_of(node));
+    const auto as = createType(ctx, node.as, ctx.positionOf(node));
 
     if (as->isPointerTy(ctx)) {
       // Pointer to pointer
@@ -537,14 +533,14 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     }
 
     throw CodegenError{
-      ctx.formatError(ctx.positions.position_of(node), "non-convertible type")};
+      ctx.formatError(ctx.positionOf(node), "non-convertible type")};
   }
 
   [[nodiscard]] Value operator()(const ast::Pipeline& node) const
   {
     if (node.rhs.type() != typeid(ast::FunctionCall)) {
       throw CodegenError{ctx.formatError(
-        ctx.positions.position_of(node),
+        ctx.positionOf(node),
         "the right side of the pipeline requires a function call")};
     }
 
@@ -557,7 +553,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::ClassLiteral& node) const
   {
-    const auto pos = ctx.positions.position_of(node);
+    const auto pos = ctx.positionOf(node);
 
     const auto type = createType(ctx, node.type, pos);
 
@@ -566,7 +562,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     return createClassLiteral(type,
                               node.initializer_list,
-                              ctx.positions.position_of(node));
+                              ctx.positionOf(node));
   }
 
 private:
@@ -656,7 +652,7 @@ private:
                           const NamespaceStack&         space) const
   {
     const auto return_type
-      = createType(ctx, decl.return_type, ctx.positions.position_of(decl));
+      = createType(ctx, decl.return_type, ctx.positionOf(decl));
 
     const auto mangled_name
       = ctx.mangler.mangleFunctionTemplate(ctx, space, decl, template_args);
@@ -672,7 +668,7 @@ private:
                          const ast::TemplateArguments&     template_args,
                          const NamespaceStack&             space) const
   {
-    const auto pos = ctx.positions.position_of(ast.decl);
+    const auto pos = ctx.positionOf(ast.decl);
 
     const TemplateArgumentsDefiner ta_definer{ctx,
                                               template_args,
@@ -899,11 +895,11 @@ private:
     auto const return_value
       = ctx.builder.CreateCall(callee_func, toLLVMVals(args));
 
-    if (!return_type.value()->isVoidTy(ctx)) {
+    if (!return_type->get()->isVoidTy(ctx)) {
       auto const alloca
         = createEntryAlloca(ctx.builder.GetInsertBlock()->getParent(),
                             "",
-                            return_type.value()->getLLVMType(ctx));
+                            return_type->get()->getLLVMType(ctx));
 
       ctx.builder.CreateStore(return_value, alloca);
 
@@ -938,7 +934,7 @@ private:
         return std::nullopt;
 
       const auto this_value
-        = createDereference(ctx, ctx.positions.position_of(node), this_p);
+        = createDereference(ctx, ctx.positionOf(node), this_p);
 
       return memberVariableAccess(this_value, node, false);
     }
@@ -1125,7 +1121,7 @@ private:
 
     if (!is_array && !lhs.getType()->isPointerTy(ctx)) {
       throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(node),
+        ctx.formatError(ctx.positionOf(node),
                         "the type incompatible with the subscript operator")};
     }
 
@@ -1133,7 +1129,7 @@ private:
 
     if (!index.getValue()->getType()->isIntegerTy()) {
       throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(node),
+        ctx.formatError(ctx.positionOf(node),
                         "subscripts need to be evaluated to numbers")};
     }
 
@@ -1201,7 +1197,7 @@ private:
 
     assert(param_types);
 
-    for (std::size_t idx = 0; const auto& param_type : *param_types) {
+    for (std::size_t idx = 0; const auto& param_type : param_types->get()) {
       if (!equals(ctx, args[idx++].getType(), param_type)) {
         throw CodegenError{ctx.formatError(
           pos,
@@ -1339,33 +1335,33 @@ private:
 
     if (!class_val.getLLVMType()->isStructTy()) {
       throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(member_name_ast),
+        ctx.formatError(ctx.positionOf(member_name_ast),
                         "member access cannot be used for non-class")};
     }
 
     const auto class_type
       = ctx.class_table[class_val.getLLVMType()->getStructName().str()];
 
-    if (!class_type || class_type.value()->isOpaque(ctx)) {
+    if (!class_type || class_type->get()->isOpaque(ctx)) {
       throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(member_name_ast),
+        ctx.formatError(ctx.positionOf(member_name_ast),
                         "member access to undefined class is not allowed")};
     }
 
-    const auto offset = class_type.value()->offsetByName(member_name);
+    const auto offset = class_type->get()->offsetByName(member_name);
 
     if (!offset) {
       throw CodegenError{ctx.formatError(
-        ctx.positions.position_of(member_name_ast),
+        ctx.positionOf(member_name_ast),
         fmt::format("undefined member '{}' selected", member_name))};
     }
 
-    const auto& member_info = class_type.value()->getMemberVar(*offset);
+    const auto& member_info = class_type->get()->getMemberVar(*offset);
 
     if (access_from_outside
         && !isExternallyAccessible(member_info.accessibility)) {
       throw CodegenError{ctx.formatError(
-        ctx.positions.position_of(member_name_ast),
+        ctx.positionOf(member_name_ast),
         fmt::format("member '{}' is not accessible", member_name))};
     }
 
@@ -1386,7 +1382,7 @@ private:
   [[nodiscard]] Value methodAccess(const ast::Expr&         lhs,
                                    const ast::FunctionCall& rhs) const
   {
-    const auto pos = ctx.positions.position_of(rhs);
+    const auto pos = ctx.positionOf(rhs);
 
     if (rhs.callee.type() != typeid(ast::Identifier)) {
       throw CodegenError{

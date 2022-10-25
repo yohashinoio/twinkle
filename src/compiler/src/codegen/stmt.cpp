@@ -68,7 +68,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
       if (!equals(ctx, *return_type, retval.getType())) {
         throw CodegenError{
-          ctx.formatError(ctx.positions.position_of(node),
+          ctx.formatError(ctx.positionOf(node),
                           "incompatible type for result type")};
       }
 
@@ -82,7 +82,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
   {
     if (!node.type && !node.initializer) {
       throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(node),
+        ctx.formatError(ctx.positionOf(node),
                         "type inference requires an initializer")};
     }
 
@@ -94,24 +94,22 @@ struct StmtVisitor : public boost::static_visitor<void> {
       = node.qualifier && (*node.qualifier == VariableQual::mutable_);
 
     if (node.type) {
-      const auto type
-        = createType(ctx, *node.type, ctx.positions.position_of(node));
+      const auto type = createType(ctx, *node.type, ctx.positionOf(node));
 
-      scope.insertOrAssign(
-        name,
-        std::make_shared<AllocaVariable>(
-          createAllocaVariable(ctx.positions.position_of(node),
-                               func,
-                               name,
-                               type,
-                               node.initializer,
-                               is_mutable)));
+      scope.insertOrAssign(name,
+                           std::make_shared<AllocaVariable>(
+                             createAllocaVariable(ctx.positionOf(node),
+                                                  func,
+                                                  name,
+                                                  type,
+                                                  node.initializer,
+                                                  is_mutable)));
     }
     else {
       scope.insertOrAssign(
         name,
         std::make_shared<AllocaVariable>(
-          createAllocaVariableTyInference(ctx.positions.position_of(node),
+          createAllocaVariableTyInference(ctx.positionOf(node),
                                           func,
                                           name,
                                           node.initializer,
@@ -131,10 +129,10 @@ struct StmtVisitor : public boost::static_visitor<void> {
 
   void operator()(const ast::PrefixIncrementDecrement& node) const
   {
-    const auto pos = ctx.positions.position_of(node);
+    const auto pos = ctx.positionOf(node);
 
     const auto operand
-      = createAssignableValue(node.operand, ctx.positions.position_of(node));
+      = createAssignableValue(node.operand, ctx.positionOf(node));
 
     const auto derefed_operand = createDereference(ctx, pos, operand);
 
@@ -177,7 +175,7 @@ struct StmtVisitor : public boost::static_visitor<void> {
     if (!cond_value.getLLVMType()->isIntegerTy()
         && !cond_value.getLLVMType()->isPointerTy()) {
       throw CodegenError{
-        ctx.formatError(ctx.positions.position_of(node),
+        ctx.formatError(ctx.positionOf(node),
                         "condition type is incompatible with bool")};
     }
 
@@ -364,13 +362,12 @@ private:
   void createAssignment(const ast::Assignment& node,
                         const bool             const_check = true) const
   {
-    const auto lhs = createAssignableValue(node.lhs,
-                                           ctx.positions.position_of(node),
-                                           const_check);
+    const auto lhs
+      = createAssignableValue(node.lhs, ctx.positionOf(node), const_check);
 
     const auto rhs = createExpr(ctx, getAllSymbols(), stmt_ctx, node.rhs);
 
-    verifyVariableType(ctx.positions.position_of(node), rhs.getType());
+    verifyVariableType(ctx.positionOf(node), rhs.getType());
 
     auto const lhs_value
       = Value{ctx.builder.CreateLoad(lhs.getLLVMType()->getPointerElementType(),
@@ -380,7 +377,7 @@ private:
     switch (node.kind()) {
     case ast::Assignment::Kind::unknown:
       throw CodegenError{ctx.formatError(
-        ctx.positions.position_of(node),
+        ctx.positionOf(node),
         fmt::format("unknown operator '{}' detected", node.opstr()))};
 
     case ast::Assignment::Kind::direct:
