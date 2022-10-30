@@ -241,18 +241,18 @@ declareFunction(CGContext&                   ctx,
 }
 
 // Note the lifetime of the return value
-[[nodiscard]] std::string_view
+[[nodiscard]] std::string
 extractPlainClassName(const std::string_view mangled_class_name)
 {
   const auto pos = mangled_class_name.find_first_of('.');
 
   // It wasn't mangled
   if (pos == std::string_view::npos)
-    return mangled_class_name;
+    return std::string(mangled_class_name);
 
   // It was mangled
-  return std::string_view(mangled_class_name.begin(),
-                          mangled_class_name.begin() + pos);
+  return std::string(mangled_class_name.begin(),
+                     mangled_class_name.begin() + pos);
 }
 
 void verifyConstructor(CGContext&              ctx,
