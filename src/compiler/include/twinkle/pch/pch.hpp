@@ -101,6 +101,7 @@
 #include <stack>
 #include <tuple>
 #include <utility>
+#include <limits>
 
 //===----------------------------------------------------------------------===//
 // C standard

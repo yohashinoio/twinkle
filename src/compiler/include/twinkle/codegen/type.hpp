@@ -440,7 +440,31 @@ struct UnionType : public Type {
 
   using Tags = std::vector<TagWithType>;
 
-  using Variants = std::vector<llvm::StructType*>;
+  struct Variant {
+    Variant(std::string&&           tag,
+            const std::uint8_t      offset,
+            llvm::StructType* const type)
+      : tag{std::move(tag)}
+      , offset{offset}
+      , type{type}
+    {
+    }
+
+    Variant(const std::string&      tag,
+            const std::uint8_t      offset,
+            llvm::StructType* const type)
+      : tag{tag}
+      , offset{offset}
+      , type{type}
+    {
+    }
+
+    const std::string       tag;
+    const std::uint8_t      offset;
+    llvm::StructType* const type;
+  };
+
+  using Variants = std::vector<Variant>;
 
   struct Actual {
     Actual(llvm::StructType* const basic_type, Variants&& variants)
@@ -459,15 +483,6 @@ struct UnionType : public Type {
             const std::string& name,
             Tags&&             members,
             const bool         is_mutable);
-
-  [[nodiscard]] static llvm::StructType*
-  createBasicType(CGContext& ctx, const Tags& members, const std::string& name);
-
-  [[nodiscard]] static Variants
-  createVariants(CGContext& ctx, const Tags& members, const std::string& name);
-
-  [[nodiscard]] static Actual
-  createActual(CGContext& ctx, const Tags& members, const std::string& name);
 
   [[nodiscard]] std::shared_ptr<Type> clone() const override
   {
@@ -499,7 +514,19 @@ struct UnionType : public Type {
     return name;
   }
 
+  [[nodiscard]] std::optional<const std::reference_wrapper<const Variant>>
+  getUnionVariantType(const std::string& tag) const;
+
 private:
+  [[nodiscard]] static llvm::StructType*
+  createBasicType(CGContext& ctx, const Tags& members, const std::string& name);
+
+  [[nodiscard]] static Variants
+  createVariants(CGContext& ctx, const Tags& members, const std::string& name);
+
+  [[nodiscard]] static Actual
+  createActual(CGContext& ctx, const Tags& members, const std::string& name);
+
   const std::string name;
 
   Actual actual;

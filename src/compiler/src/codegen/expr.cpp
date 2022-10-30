@@ -38,6 +38,27 @@ toLLVMVals(const std::deque<Value>& v)
   return ret;
 }
 
+struct NamespaceDefiner : boost::noncopyable {
+  NamespaceDefiner(CGContext& ctx, const std::vector<std::string>& names)
+    : ctx{ctx}
+  {
+    for (const auto& r : names) {
+      ctx.ns_hierarchy.push({r, NamespaceKind::namespace_});
+      ++push_count;
+    }
+  }
+
+  ~NamespaceDefiner()
+  {
+    for (std::size_t i = 0; i < push_count; ++i)
+      ctx.ns_hierarchy.pop();
+  }
+
+private:
+  CGContext&  ctx;
+  std::size_t push_count;
+};
+
 //===----------------------------------------------------------------------===//
 // Expression visitor
 //===----------------------------------------------------------------------===//
@@ -214,6 +235,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
         if (ctx.ns_hierarchy.empty())
           throw;
 
+        // If a method of Class A is accessed within a method definition of
+        // Class B that has member variables of Class A
         if (ctx.ns_hierarchy.top().kind == NamespaceKind::class_) {
           // Assuming access to methods of member variables
           const auto top = ctx.ns_hierarchy.pop();
@@ -221,6 +244,8 @@ struct ExprVisitor : public boost::static_visitor<Value> {
           ctx.ns_hierarchy.push(top);
           return tmp;
         }
+        else
+          throw;
       }
     }
 
@@ -564,7 +589,136 @@ struct ExprVisitor : public boost::static_visitor<Value> {
                               ctx.positionOf(node));
   }
 
+  [[nodiscard]] Value operator()(const ast::ScopeResolution& node) const
+  {
+    const auto result = createScopeResolutionResult(node);
+
+    // We use std::optional in a role similar to that of a pointer
+    std::optional<Value> return_value;
+
+    if (const auto expr = boost::get<ast::FunctionCall>(&result.expr);
+        expr && ctx.union_table[result.ns_names.back()]) {
+      // Union literals
+      if (expr->args.size() != 1) {
+        throw CodegenError{
+          ctx.formatError(ctx.positionOf(node),
+                          "union literal requires only one argument")};
+      }
+
+      const auto tag_name = boost::get<ast::Identifier>(&expr->callee);
+      assert(tag_name);
+
+      return_value = createUnionLiteral(result.ns_names.back(),
+                                        tag_name->utf8(),
+                                        expr->args.front(),
+                                        ctx.positionOf(node));
+    }
+    else {
+      // Others
+      const NamespaceDefiner definer{ctx, result.ns_names};
+
+      return_value = createExpr(ctx, scope, stmt_ctx, result.expr);
+    }
+
+    assert(return_value);
+    return *return_value;
+  }
+
 private:
+  [[nodiscard]] Value createUnionLiteral(const std::string&   union_name,
+                                         const std::string&   tag,
+                                         const ast::Expr&     initializer,
+                                         const PositionRange& pos) const
+  {
+    const auto get_by_offset = [&](llvm::Value* const value,
+                                   llvm::Type* const  type,
+                                   const std::uint8_t offset) {
+      return ctx.builder.CreateInBoundsGEP(
+        type,
+        value,
+        {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 0),
+         llvm::ConstantInt::get(ctx.builder.getInt32Ty(), offset)});
+    };
+
+    if (const auto union_type = ctx.union_table[union_name]) {
+      auto const alloca
+        = createEntryAlloca(ctx.builder.GetInsertBlock()->getParent(),
+                            "",
+                            union_type->get()->getLLVMType(ctx));
+
+      if (const auto variant = union_type->get()->getUnionVariantType(tag)) {
+        // Store tag(offset)
+        ctx.builder.CreateStore(
+          ctx.builder.getInt8(variant->get().offset /* Variant offset */),
+          get_by_offset(alloca, alloca->getAllocatedType(), 0 /* i8 */));
+
+        // Store initializer
+        auto const bit_casted = ctx.builder.CreateBitCast(
+          alloca,
+          llvm::PointerType::getUnqual(variant->get().type));
+
+        ctx.builder.CreateStore(
+          createExpr(ctx, scope, stmt_ctx, initializer).getValue(),
+          get_by_offset(bit_casted,
+                        bit_casted->getType()->getPointerElementType(),
+                        1));
+      }
+
+      return Value{ctx.builder.CreateLoad(alloca->getAllocatedType(), alloca),
+                   union_type->get()};
+    }
+
+    unreachable();
+  }
+
+  struct ScopeResolutionResult {
+    ScopeResolutionResult(std::vector<std::string>&& ns_names,
+                          const ast::Expr&           expr)
+      : ns_names{std::move(ns_names)}
+      , expr{expr}
+    {
+    }
+
+    std::vector<std::string> ns_names;
+    const ast::Expr&         expr;
+  };
+
+  [[nodiscard]] ScopeResolutionResult
+  createScopeResolutionResult(const ast::ScopeResolution& node) const
+  {
+    const auto lhs_must_be_ident_err = [&]() {
+      throw CodegenError{ctx.formatError(
+        ctx.positionOf(node),
+        "the left side of the scope resolution must be an identifier")};
+    };
+
+    std::vector<std::string> ns_names;
+
+    if (auto const x = boost::get<ast::Identifier>(&node.lhs))
+      ns_names.push_back(x->utf8());
+    else
+      lhs_must_be_ident_err();
+
+    for (const auto* target = &node.rhs;;) {
+      if (auto const x = boost::get<ast::ScopeResolution>(target)) {
+        auto const ident = boost::get<ast::Identifier>(&x->lhs);
+
+        if (ident)
+          ns_names.push_back(ident->utf8());
+        else
+          lhs_must_be_ident_err();
+
+        target = &x->rhs;
+        continue;
+      }
+
+      assert(!ns_names.empty());
+      return ScopeResolutionResult{std::move(ns_names), *target};
+    }
+
+    unreachable();
+  }
+
   [[nodiscard]] Value
   createClassLiteral(const std::shared_ptr<Type>&  class_type,
                      const std::vector<ast::Expr>& initializer_list,

@@ -201,6 +201,7 @@ namespace test
     {                           "smart_pointer",  58},
     {                 "import_template_classes",  58},
     {      "same_class_template_with_diff_args",  58},
+    {                           "union_literal",  58},
   };
 
   const auto it = expects.find(test_name);

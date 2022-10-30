@@ -1,0 +1,25 @@
+class Sample {
+  Sample()
+    : a{[4, 8, 1, 0]}
+  {
+  }
+
+  let a: i32[4];
+}
+
+union A {
+  Yoha(i32),
+  Io(Sample)
+}
+
+union B {
+  Shino(char),
+}
+
+func main() -> i32
+{
+  let a = A::Yoha(10);
+  let b = A::Io(Sample{});
+  let c = B::Shino('🌸');
+  return 58;
+}

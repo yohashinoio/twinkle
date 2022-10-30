@@ -177,6 +177,12 @@ BOOST_FUSION_ADAPT_STRUCT(
   (twinkle::codegen::BuiltinMacroKind, kind)
 )
 
+BOOST_FUSION_ADAPT_STRUCT(
+  twinkle::ast::ScopeResolution,
+  (twinkle::ast::Expr, lhs)
+  (twinkle::ast::Expr, rhs)
+)
+
 //===----------------------------------------------------------------------===//
 // Statement AST adapt
 //===----------------------------------------------------------------------===//

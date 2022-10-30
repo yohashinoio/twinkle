@@ -306,6 +306,7 @@ struct Pipeline;
 struct MemberAccess;
 struct ArrayLiteral;
 struct ClassLiteral;
+struct ScopeResolution;
 
 //===----------------------------------------------------------------------===//
 // Expression Variant
@@ -369,7 +370,11 @@ using ExprT15
   = boost::mpl::push_back<ExprT14,
                           boost::recursive_wrapper<FunctionTemplateCall>>::type;
 
-using ExprTypes = ExprT15;
+using ExprT16
+  = boost::mpl::push_back<ExprT15,
+                          boost::recursive_wrapper<ScopeResolution>>::type;
+
+using ExprTypes = ExprT16;
 
 using Expr = boost::make_variant_over<ExprTypes>::type;
 
@@ -614,6 +619,17 @@ struct ArrayLiteral : x3::position_tagged {
 struct ClassLiteral : x3::position_tagged {
   Type              type;
   std::vector<Expr> initializer_list;
+};
+
+struct ScopeResolution : x3::position_tagged {
+  ScopeResolution(Expr&& lhs, Expr&& rhs)
+    : lhs{std::move(lhs)}
+    , rhs{std::move(rhs)}
+  {
+  }
+
+  Expr lhs;
+  Expr rhs;
 };
 
 //===----------------------------------------------------------------------===//

@@ -298,18 +298,24 @@ UnionType::createBasicType(CGContext&         ctx,
 [[nodiscard]] UnionType::Variants
 UnionType::createVariants(CGContext&         ctx,
                           const Tags&        members,
-                          const std::string& name)
+                          const std::string& union_name)
 {
   Variants variants;
 
-  for (const auto& r : members) {
-    const auto variant_name = name + "_" + r.tag;
+  for (std::uint8_t offset = 0; const auto& r : members) {
+    assert(offset != std::numeric_limits<std::uint8_t>::max());
+
+    const auto variant_name = union_name + "_" + r.tag;
 
     variants.push_back(
-      createStructType(ctx,
-                       std::vector<llvm::Type*>{ctx.builder.getInt8Ty(),
-                                                r.type->getLLVMType(ctx)},
-                       variant_name));
+      {r.tag,
+       offset,
+       createStructType(ctx,
+                        std::vector<llvm::Type*>{ctx.builder.getInt8Ty(),
+                                                 r.type->getLLVMType(ctx)},
+                        variant_name)});
+
+    ++offset;
   }
 
   return variants;
@@ -331,6 +337,18 @@ UnionType::UnionType(CGContext&         ctx,
   , name{name}
   , actual{createActual(ctx, members, this->name)}
 {
+}
+
+[[nodiscard]] std::optional<
+  const std::reference_wrapper<const UnionType::Variant>>
+UnionType::getUnionVariantType(const std::string& tag) const
+{
+  for (const auto& variant : actual.variants) {
+    if (variant.tag == tag)
+      return variant;
+  }
+
+  return std::nullopt;
 }
 
 [[nodiscard]] std::string PointerType::getMangledName(CGContext& ctx) const

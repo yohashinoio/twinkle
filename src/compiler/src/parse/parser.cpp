@@ -94,6 +94,7 @@ struct assignToValAs {
       || std::is_same_v<Ast, ast::Subscript>
       || std::is_same_v<Ast, ast::FunctionCall>
       || std::is_same_v<Ast, ast::MemberAccess>
+      || std::is_same_v<Ast, ast::ScopeResolution>
     >
   // clang-format on
   {
@@ -314,6 +315,8 @@ const x3::rule<struct FunctionCallTag, ast::Expr> function_call{
   "function call"};
 const x3::rule<struct FunctionTemplateCallTag, ast::Expr>
   function_template_call{"function template call"};
+const x3::rule<struct ScopeResolutionTag, ast::Expr> scope_resolution{
+  "scope resolution"};
 const x3::rule<struct PrimaryTag, ast::Expr> primary{"primary"};
 
 //===----------------------------------------------------------------------===//
@@ -784,9 +787,13 @@ const auto function_call_def
          > lit(U")"))[action::assignToValAs<ast::FunctionCall>{}];
 
 const auto function_template_call_def
-  = primary[action::assignAttrToVal]
+  = scope_resolution[action::assignAttrToVal]
     >> *(template_args > string(U"(") > arg_list
          > lit(U")"))[action::assignToValAs<ast::FunctionTemplateCall>{}];
+
+const auto scope_resolution_def
+  = primary[action::assignAttrToVal]
+    >> *(string(U"::") > expr)[action::assignToValAs<ast::ScopeResolution>{}];
 
 const auto primary_def
   = builtin_macro | class_literal | identifier | float_64bit | binary_literal
@@ -819,6 +826,7 @@ BOOST_SPIRIT_DEFINE(arg_list)
 BOOST_SPIRIT_DEFINE(function_call)
 BOOST_SPIRIT_DEFINE(function_template_call)
 BOOST_SPIRIT_DEFINE(unary_internal)
+BOOST_SPIRIT_DEFINE(scope_resolution)
 BOOST_SPIRIT_DEFINE(primary)
 
 struct ExprTag
@@ -918,6 +926,10 @@ struct FunctionCallTag
   , AnnotatePosition {};
 
 struct FunctionTemplateCallTag
+  : ErrorHandle
+  , AnnotatePosition {};
+
+struct ScopeResolutionTag
   : ErrorHandle
   , AnnotatePosition {};
 
