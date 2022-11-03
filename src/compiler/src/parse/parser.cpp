@@ -258,230 +258,253 @@ struct BuiltinMacroSymbols : UnicodeSymbols<codegen::BuiltinMacroKind> {
 } builtin_macro_symbols;
 
 //===----------------------------------------------------------------------===//
-// Common rules declaration
+// Macro for rule declarations
 //===----------------------------------------------------------------------===//
 
-const x3::rule<struct ArrayLiteralTag, ast::ArrayLiteral> array_literal{
-  "array literal"};
-const x3::rule<struct ClassLiteralTag, ast::ClassLiteral> class_literal{
-  "class literal"};
-const x3::rule<struct TemplateArgsTag, ast::TemplateArguments> template_args{
-  "template arguments"};
+#define DECLARE_X3_RULE(name, ast_type, alt)             \
+  const x3::rule<struct name##_tag, ast_type> name{alt}; \
+  struct name##_tag                                      \
+    : ErrorHandle                                        \
+    , AnnotatePosition {};
+
+#define DECLARE_X3_RULE_NO_ATTR(name, alt)     \
+  const x3::rule<struct name##_tag> name{alt}; \
+  struct name##_tag;
 
 //===----------------------------------------------------------------------===//
 // Type rules declaration
 //===----------------------------------------------------------------------===//
 
-const x3::rule<struct TypeTag, ast::Type> type_name{"type name"};
+DECLARE_X3_RULE(builtin_type, ast::BuiltinType, "builtin type name")
+DECLARE_X3_RULE(reference_type_internal, ast::ReferenceType, "reference type")
+DECLARE_X3_RULE(reference_type, ast::Type, "reference type")
+DECLARE_X3_RULE(array_type, ast::Type, "array type")
+DECLARE_X3_RULE(pointer_type_internal, ast::PointerType, "pointer type")
+DECLARE_X3_RULE(pointer_type, ast::Type, "pointer type")
+DECLARE_X3_RULE(user_defined_type, ast::UserDefinedType, "user defined type")
+DECLARE_X3_RULE(user_defined_template_type,
+                ast::UserDefinedTemplateType,
+                "user defined template type")
+DECLARE_X3_RULE(type_primary, ast::Type, "type primary")
+
+//===----------------------------------------------------------------------===//
+// Common rules declaration
+//===----------------------------------------------------------------------===//
+
+DECLARE_X3_RULE_NO_ATTR(punct, "punctuation character")
+DECLARE_X3_RULE(identifier_internal, std::u32string, "identifier")
+DECLARE_X3_RULE(identifier, ast::Identifier, "identifier")
+DECLARE_X3_RULE(path_internal, std::u32string, "path")
+DECLARE_X3_RULE(path, ast::Path, "path")
+DECLARE_X3_RULE(variable_qualifier, VariableQual, "variable qualifier")
+DECLARE_X3_RULE(access_specifier, Accessibility, "access specifier")
+DECLARE_X3_RULE(binary_literal, std::uint32_t, "binary literal")
+DECLARE_X3_RULE(octal_literal, std::uint32_t, "octal literal")
+DECLARE_X3_RULE(hex_literal, std::uint32_t, "hexadecimal literal")
+DECLARE_X3_RULE(uint_32bit, std::uint32_t, "integral number")
+DECLARE_X3_RULE(int_32bit, std::int32_t, "integral number")
+DECLARE_X3_RULE(uint_64bit, std::uint64_t, "integral number (64bit)")
+DECLARE_X3_RULE(int_64bit, std::int64_t, "integral number (64bit)")
+DECLARE_X3_RULE(float_64bit, double, "double precision floating point number")
+DECLARE_X3_RULE(boolean_literal, bool, "boolean literal")
+DECLARE_X3_RULE(escape_char, unsigned char, "escape character")
+DECLARE_X3_RULE(string_literal, ast::StringLiteral, "string literal")
+DECLARE_X3_RULE(char_literal, ast::CharLiteral, "character literal")
+DECLARE_X3_RULE(attribute, ast::Attrs, "attribute")
+DECLARE_X3_RULE(builtin_macro, ast::BuiltinMacro, "builtin macro")
+DECLARE_X3_RULE_NO_ATTR(space, "space")
+DECLARE_X3_RULE(array_literal, ast::ArrayLiteral, "array literal")
+DECLARE_X3_RULE(class_literal, ast::ClassLiteral, "class literal")
+DECLARE_X3_RULE(template_args, ast::TemplateArguments, "template arguments")
+
+//===----------------------------------------------------------------------===//
+// Type rules declaration
+//===----------------------------------------------------------------------===//
+
+DECLARE_X3_RULE(type_name, ast::Type, "type name")
 
 //===----------------------------------------------------------------------===//
 // Expression rules declaration
 //===----------------------------------------------------------------------===//
 
-const x3::rule<struct ExprTag, ast::Expr>          expr{"expression"};
-const x3::rule<struct BinaryLogicalTag, ast::Expr> binary_logical{
-  "binary logical operation"};
-const x3::rule<struct EqualTag, ast::Expr>    equal{"equality operation"};
-const x3::rule<struct RelationTag, ast::Expr> relation{"relational operation"};
-const x3::rule<struct BitwiseAndTag, ast::Expr> bitwise_and{
-  "bitwise and operation"};
-const x3::rule<struct BitwiseOrTag, ast::Expr> bitwise_or{
-  "bitwise or operation"};
-const x3::rule<struct PipelineTag, ast::Expr> pipeline{"pipeline operation"};
-const x3::rule<struct BitwiseShiftTag, ast::Expr> bitwise_shift{
-  "bitwise shift operation"};
-const x3::rule<struct AddTag, ast::Expr>  add{"addition operation"};
-const x3::rule<struct MulTag, ast::Expr>  mul{"multiplication operation"};
-const x3::rule<struct CastTag, ast::Expr> cast{"conversion"};
-const x3::rule<struct UnaryInternalTag, ast::UnaryOp> unary_internal{
-  "unary operation"};
-const x3::rule<struct UnaryTag, ast::Expr> unary{"unary operation"};
-const x3::rule<struct ReferenceInternalTag, ast::Reference> reference_internal{
-  "reference operation"};
-const x3::rule<struct ReferenceTag, ast::Expr> reference{"reference operation"};
-const x3::rule<struct NewInternalTag, ast::New> new_internal{"new operation"};
-const x3::rule<struct NewTag, ast::Expr>        new_{"new operation"};
-const x3::rule<struct DeleteInternalTag, ast::Delete> delete_internal{
-  "delete operation"};
-const x3::rule<struct DeleteTag, ast::Expr>      delete_{"delete operation"};
-const x3::rule<struct DereferenceTag, ast::Expr> dereference{
-  "dereference operation"};
-const x3::rule<struct MemberAccessTag, ast::Expr> member_access{
-  "member access operation"};
-const x3::rule<struct SubscriptTag, ast::Expr> subscript{"subscript operation"};
-const x3::rule<struct ArgListTag, std::deque<ast::Expr>> arg_list{
-  "argument list"};
-const x3::rule<struct FunctionCallTag, ast::Expr> function_call{
-  "function call"};
-const x3::rule<struct FunctionTemplateCallTag, ast::Expr>
-  function_template_call{"function template call"};
-const x3::rule<struct ScopeResolutionTag, ast::Expr> scope_resolution{
-  "scope resolution"};
-const x3::rule<struct PrimaryTag, ast::Expr> primary{"primary"};
+DECLARE_X3_RULE(expr, ast::Expr, "expression")
+DECLARE_X3_RULE(binary_logical, ast::Expr, "binary logical operation")
+DECLARE_X3_RULE(equal, ast::Expr, "equality operation")
+DECLARE_X3_RULE(relation, ast::Expr, "relational operation")
+DECLARE_X3_RULE(bitwise_and, ast::Expr, "bitwise and operation")
+DECLARE_X3_RULE(bitwise_or, ast::Expr, "bitwise or operation")
+DECLARE_X3_RULE(pipeline, ast::Expr, "pipeline operation")
+DECLARE_X3_RULE(bitwise_shift, ast::Expr, "bitwise shift operation")
+DECLARE_X3_RULE(add, ast::Expr, "addition operation")
+DECLARE_X3_RULE(mul, ast::Expr, "multiplication operation")
+DECLARE_X3_RULE(cast, ast::Expr, "cast opeartion")
+DECLARE_X3_RULE(unary_internal, ast::UnaryOp, "unary operation")
+DECLARE_X3_RULE(unary, ast::Expr, "unary operation")
+DECLARE_X3_RULE(reference_internal, ast::Reference, "reference operation")
+DECLARE_X3_RULE(reference, ast::Expr, "reference operation")
+DECLARE_X3_RULE(new_internal, ast::New, "new operation")
+DECLARE_X3_RULE(new_, ast::Expr, "new operation")
+DECLARE_X3_RULE(delete_internal, ast::Delete, "delete operation")
+DECLARE_X3_RULE(delete_, ast::Expr, "delete operation")
+DECLARE_X3_RULE(dereference, ast::Expr, "dereference operation")
+DECLARE_X3_RULE(member_access, ast::Expr, "member access operation")
+DECLARE_X3_RULE(subscript, ast::Expr, "subscript operation")
+DECLARE_X3_RULE(arg_list, std::deque<ast::Expr>, "argument list")
+DECLARE_X3_RULE(function_call, ast::Expr, "function call")
+DECLARE_X3_RULE(function_template_call, ast::Expr, "function template call")
+DECLARE_X3_RULE(scope_resolution, ast::Expr, "scope resolution")
+DECLARE_X3_RULE(primary, ast::Expr, "primary")
 
 //===----------------------------------------------------------------------===//
 // Statement rules declaration
 //===----------------------------------------------------------------------===//
 
-const x3::rule<struct ExprStmtTag, ast::Expr> expr_stmt{"expression statement"};
-const x3::rule<struct VariableDefTag, ast::VariableDef> variable_def{
-  "variable definition"};
-const x3::rule<struct AssignTag, ast::Assignment> assignment{
-  "assignment statement"};
-const x3::rule<struct PrefixIncrementDecrementTag,
-               ast::PrefixIncrementDecrement>
-  prefix_increment_decrement{"prefix increment/decrement"};
-const x3::rule<struct ReturnTag, ast::Return> _return{"return statement"};
-const x3::rule<struct IfTag, ast::If>         _if{"if else statement"};
-const x3::rule<struct LoopTag, ast::Loop>     _loop{"loop statement"};
-const x3::rule<struct WhileTag, ast::While>   _while{"while statement"};
-const x3::rule<struct ForTag, ast::For>       _for{"for statement"};
-const x3::rule<struct StmtTag, ast::Stmt>     stmt{"statement"};
+DECLARE_X3_RULE(expr_stmt, ast::Expr, "expression statement")
+DECLARE_X3_RULE(variable_def, ast::VariableDef, "variable definition")
+DECLARE_X3_RULE(assignment, ast::Assignment, "assignment statement")
+DECLARE_X3_RULE(prefix_increment_decrement,
+                ast::PrefixIncrementDecrement,
+                "prefix increment/decrement")
+DECLARE_X3_RULE(_return, ast::Return, "return statement")
+DECLARE_X3_RULE(_if, ast::If, "if else statement")
+DECLARE_X3_RULE(_loop, ast::Loop, "loop statement")
+DECLARE_X3_RULE(_while, ast::While, "while statement")
+DECLARE_X3_RULE(_for, ast::For, "for statement")
+DECLARE_X3_RULE(_break, ast::Break, "break statement")
+DECLARE_X3_RULE(_continue, ast::Continue, "continue statement")
+DECLARE_X3_RULE(stmt, ast::Stmt, "statement")
 
 //===----------------------------------------------------------------------===//
 // Top level rules declaration
 //===----------------------------------------------------------------------===//
 
-const x3::rule<struct ClassDeclTag, ast::ClassDecl> class_decl{
-  "class declaration"};
-const x3::rule<struct VariableDefWithoutInitTag, ast::VariableDefWithoutInit>
-  variable_def_without_init{"variable definition without initializer"};
-const x3::rule<struct MemberInitializerTag, ast::MemberInitializer>
-  member_initializer{"member initializer"};
-const x3::rule<struct MemberInitializerListTag, ast::MemberInitializerList>
-  member_initializer_list{"member initializer list"};
-const x3::rule<struct ConstructorTag, ast::Constructor> constructor{
-  "constructor"};
-const x3::rule<struct DestructorTag, ast::Destructor> destructor{"destructor"};
-const x3::rule<struct ClassMemberListTag, ast::ClassMemberList>
-  class_member_list{"class member list"};
-const x3::rule<struct ClassDefTag, ast::ClassDef> class_def{"class definition"};
-const x3::rule<struct UnionTagTag, ast::UnionTag> union_tag{"variant tag"};
-const x3::rule<struct UnionTagListTag, ast::UnionTagList> union_tag_list{
-  "variant tag list"};
-const x3::rule<struct UnionDefTag, ast::UnionDef> union_def{
-  "variant definition"};
-const x3::rule<struct ParameterTag, ast::Parameter> parameter{"parameter"};
-const x3::rule<struct ParameterListTag, ast::ParameterList> parameter_list{
-  "parameter list"};
-const x3::rule<struct FunctionProtoTag, ast::FunctionDecl> function_proto{
-  "function prototype"};
-const x3::rule<struct FunctionDeclTag, ast::FunctionDecl> function_decl{
-  "function declaration"};
-const x3::rule<struct FunctionDefTag, ast::FunctionDef> function_def{
-  "function definition"};
-const x3::rule<struct TypedefTag, ast::Typedef>   type_def{"typedef"};
-const x3::rule<struct ImportTag, ast::Import>     import_{"import"};
-const x3::rule<struct TopLevelTag, ast::TopLevel> top_level{"top level"};
-const x3::rule<struct TopLevelWithAttrTag, ast::TopLevelWithAttr>
-  top_level_with_attr{"top level"};
+DECLARE_X3_RULE(is_public, bool, "public")
+DECLARE_X3_RULE(template_params, ast::TemplateParameters, "template parameters")
+DECLARE_X3_RULE_NO_ATTR(class_key, "class key")
+DECLARE_X3_RULE_NO_ATTR(union_key, "union key")
+DECLARE_X3_RULE(class_decl, ast::ClassDecl, "class declaration")
+DECLARE_X3_RULE(variable_def_without_init,
+                ast::VariableDefWithoutInit,
+                "variable definition without initializer")
+DECLARE_X3_RULE(member_initializer,
+                ast::MemberInitializer,
+                "member initializer")
+DECLARE_X3_RULE(member_initializer_list,
+                ast::MemberInitializerList,
+                "member initializer list")
+DECLARE_X3_RULE(constructor, ast::Constructor, "constructor")
+DECLARE_X3_RULE(destructor, ast::Destructor, "destructor")
+DECLARE_X3_RULE(class_member_list, ast::ClassMemberList, "class member list")
+DECLARE_X3_RULE(class_def, ast::ClassDef, "class definition")
+DECLARE_X3_RULE(union_tag, ast::UnionTag, "union tag")
+DECLARE_X3_RULE(union_tag_list, ast::UnionTagList, "union tag list")
+DECLARE_X3_RULE(union_def, ast::UnionDef, "union definition")
+DECLARE_X3_RULE(parameter, ast::Parameter, "parameter")
+DECLARE_X3_RULE(parameter_list, ast::ParameterList, "parameter list")
+DECLARE_X3_RULE(function_proto, ast::FunctionDecl, "function prototype")
+DECLARE_X3_RULE(function_decl, ast::FunctionDecl, "function declaration")
+DECLARE_X3_RULE(function_def, ast::FunctionDef, "function definition")
+DECLARE_X3_RULE(type_def, ast::Typedef, "typedef")
+DECLARE_X3_RULE(import_, ast::Import, "import")
+DECLARE_X3_RULE(top_level, ast::TopLevel, "top level")
+DECLARE_X3_RULE(top_level_with_attr, ast::TopLevelWithAttr, "top level")
 
 //===----------------------------------------------------------------------===//
 // Comment rules declaration
 //===----------------------------------------------------------------------===//
 
-const x3::rule<struct BlockCommentTag> block_comment{"block comment"};
+DECLARE_X3_RULE_NO_ATTR(single_line_comment, "single line comment")
+DECLARE_X3_RULE_NO_ATTR(block_comment, "block comment")
+DECLARE_X3_RULE_NO_ATTR(comment, "comment")
+
+//===----------------------------------------------------------------------===//
+// Skipper rule declaration
+//===----------------------------------------------------------------------===//
+
+DECLARE_X3_RULE_NO_ATTR(skipper, "skipper")
 
 //===----------------------------------------------------------------------===//
 // Translation unit rule declaration
 //===----------------------------------------------------------------------===//
 
-const x3::rule<struct TranslationUnitTag, ast::TranslationUnit>
-  translation_unit{"translation unit"};
+DECLARE_X3_RULE(translation_unit, ast::TranslationUnit, "translation unit")
+
+//===----------------------------------------------------------------------===//
+// Undef macros
+//===----------------------------------------------------------------------===//
+
+#undef DECLARE_X3_RULE
+#undef DECLARE_X3_RULE_NO_ATTR
 
 //===----------------------------------------------------------------------===//
 // Common rules and tags definition
 //===----------------------------------------------------------------------===//
 
-const auto punct = x3::rule<struct PunctTag>{"punctuation character"}
-= x3::unicode::punct | lit(U"^") | lit(U"\"") | lit(U"<") | lit(U">");
+const auto punct_def
+  = x3::unicode::punct | lit(U"^") | lit(U"\"") | lit(U"<") | lit(U">");
 
-const auto identifier_internal
-  = x3::rule<struct IdentifierInternalTag, std::u32string>{"identifier"}
-= x3::raw[x3::lexeme[(x3::unicode::graph - (x3::unicode::digit | punct)
-                      | lit(U"_"))
-                     >> *(x3::unicode::graph - punct | lit(U"_"))]];
+const auto identifier_internal_def
+  = x3::raw[x3::lexeme[(x3::unicode::graph - (x3::unicode::digit | punct)
+                        | lit(U"_"))
+                       >> *(x3::unicode::graph - punct | lit(U"_"))]];
 
-const auto identifier
-  = x3::rule<struct IdentifierTag, ast::Identifier>{"identifier"}
-= identifier_internal - (lit(U"true") | lit(U"false"));
+const auto identifier_def
+  = identifier_internal - (lit(U"true") | lit(U"false"));
 
-const auto path_internal
-  = x3::rule<struct PathInternalTag, std::u32string>{"path"}
-= x3::raw[x3::lexeme[(x3::unicode::graph - (x3::unicode::digit | punct)
-                      | lit(U"_") | lit(U".") | lit(U"/"))
-                     >> *(x3::unicode::graph - punct | lit(U"_") | lit(U".")
-                          | lit(U"/"))]];
+const auto path_internal_def
+  = x3::raw[x3::lexeme[(x3::unicode::graph - (x3::unicode::digit | punct)
+                        | lit(U"_") | lit(U".") | lit(U"/"))
+                       >> *(x3::unicode::graph - punct | lit(U"_") | lit(U".")
+                            | lit(U"/"))]];
 
-const auto path = x3::rule<struct PathTag, ast::Path>{"path"} = path_internal;
+const auto path_def = path_internal;
 
-const auto variable_qualifier
-  = x3::rule<struct VariableQualifierTag, VariableQual>{"variable qualifier"}
-= variable_qualifier_symbols;
+const auto variable_qualifier_def = variable_qualifier_symbols;
 
-const auto access_specifier
-  = x3::rule<struct AccessSpecifierTag, Accessibility>{"access specifier"}
-= access_specifier_symbols;
+const auto access_specifier_def = access_specifier_symbols;
 
-const auto binary_literal
-  = x3::rule<struct BinaryLiteralTag, std::uint32_t>{"binary literal"}
-= x3::lexeme[lit(U"0b") >> x3::uint_parser<std::uint32_t, 2>{}];
+const auto binary_literal_def
+  = x3::lexeme[lit(U"0b") >> x3::uint_parser<std::uint32_t, 2>{}];
 
-const auto octal_literal
-  = x3::rule<struct OctalLiteralTag, std::uint32_t>{"octal literal"}
-= x3::lexeme[lit(U"0") >> x3::uint_parser<std::uint32_t, 8>{}];
+const auto octal_literal_def
+  = x3::lexeme[lit(U"0") >> x3::uint_parser<std::uint32_t, 8>{}];
 
-const auto hex_literal
-  = x3::rule<struct HexLiteralTag, std::uint32_t>{"hexadecimal literal"}
-= x3::lexeme[lit(U"0x") >> x3::uint_parser<std::uint32_t, 16>{}];
+const auto hex_literal_def
+  = x3::lexeme[lit(U"0x") >> x3::uint_parser<std::uint32_t, 16>{}];
 
-const auto uint_32bit
-  = x3::rule<struct UnsignedInteger32Tag, std::uint32_t>{"integral number"}
-= x3::uint32;
+const auto uint_32bit_def = x3::uint32;
 
-const auto int_32bit
-  = x3::rule<struct SignedInteger32Tag, std::int32_t>{"integral number"}
-= x3::int32;
+const auto int_32bit_def = x3::int32;
 
-const auto uint_64bit = x3::rule<struct UnsignedInteger64Tag,
-                                 std::uint64_t>{"integral number (64bit)"}
-= x3::uint64;
+const auto uint_64bit_def = x3::uint64;
 
-const auto int_64bit
-  = x3::rule<struct SignedInteger64Tag, std::int64_t>{"integral number (64bit)"}
-= x3::int64;
+const auto int_64bit_def = x3::int64;
 
-const auto float_64bit
-  = x3::rule<struct Float64Tag,
-             double>{"double precision floating point number"}
-= boost::spirit::x3::
+const auto float_64bit_def = boost::spirit::x3::
   real_parser<double, boost::spirit::x3::strict_real_policies<double>>{};
 
-const auto boolean_literal
-  = x3::rule<struct BooleanLiteralTag, bool>{"boolean literal"}
-= lit(U"true") >> x3::attr(true) | lit(U"false") >> x3::attr(false);
+const auto boolean_literal_def
+  = lit(U"true") >> x3::attr(true) | lit(U"false") >> x3::attr(false);
 
-const auto escape_char
-  = x3::rule<struct EscapeCharTag, unsigned char>{"escape character"}
-= lit(U"\\") >> x3::int_parser<char, 8, 1, 3>{}     // Octal
-  | lit(U"\\x") >> x3::int_parser<char, 16, 2, 2>{} // Hexadecimal
-  | escape_char_symbols;
+const auto escape_char_def
+  = lit(U"\\") >> x3::int_parser<char, 8, 1, 3>{}     // Octal
+    | lit(U"\\x") >> x3::int_parser<char, 16, 2, 2>{} // Hexadecimal
+    | escape_char_symbols;
 
-const auto string_literal
-  = x3::rule<struct StringLiteralTag, ast::StringLiteral>{"string literal"}
-= x3::lexeme[lit(U"\"")
-             >> *(char_ - (lit(U"\"") | x3::eol | lit(U"\\")) | escape_char)
-             > lit(U"\"")];
+const auto string_literal_def
+  = x3::lexeme[lit(U"\"")
+               >> *(char_ - (lit(U"\"") | x3::eol | lit(U"\\")) | escape_char)
+               > lit(U"\"")];
 
-const auto char_literal
-  = x3::rule<struct CharLiteralTag, ast::CharLiteral>{"character literal"}
-= lit(U"'") >> (char_ - (lit(U"'") | x3::eol | lit(U"\\")) | escape_char)
-  > lit(U"'");
+const auto char_literal_def
+  = lit(U"'") >> (char_ - (lit(U"'") | x3::eol | lit(U"\\")) | escape_char)
+    > lit(U"'");
 
-const auto attribute = x3::rule<struct AttrTag, ast::Attrs>{"attribute"}
-= lit(U"[[") >> (identifier_internal % lit(U",")) > lit(U"]]");
+const auto attribute_def
+  = lit(U"[[") >> (identifier_internal % lit(U",")) > lit(U"]]");
 
-// Do not use the expectation operator because it may be a comparison operation
+// Do not use the expectation operator because it may be a comparison
+// operation
 // (< or >)
 const auto template_args_def
   = lit(U"<") >> (type_name % lit(U",")) >> lit(U">");
@@ -491,88 +514,41 @@ const auto array_literal_def = lit(U"[") > (expr % lit(U",")) > lit(U"]");
 const auto class_literal_def
   = type_name >> lit(U"{") > -(expr % lit(U",")) > lit(U"}");
 
-const auto builtin_macro
-  = x3::rule<struct BuiltinMacroTag, ast::BuiltinMacro>{"builtin macro"}
-= builtin_macro_symbols;
+const auto builtin_macro_def = builtin_macro_symbols;
 
-const auto space = x3::rule<struct SpaceTag>{"space"} = x3::unicode::space;
+const auto space_def = x3::unicode::space;
 
+BOOST_SPIRIT_DEFINE(punct)
+BOOST_SPIRIT_DEFINE(identifier_internal)
+BOOST_SPIRIT_DEFINE(identifier)
+BOOST_SPIRIT_DEFINE(path_internal)
+BOOST_SPIRIT_DEFINE(path)
+BOOST_SPIRIT_DEFINE(variable_qualifier)
+BOOST_SPIRIT_DEFINE(access_specifier)
+BOOST_SPIRIT_DEFINE(binary_literal)
+BOOST_SPIRIT_DEFINE(octal_literal)
+BOOST_SPIRIT_DEFINE(hex_literal)
+BOOST_SPIRIT_DEFINE(uint_32bit)
+BOOST_SPIRIT_DEFINE(int_32bit)
+BOOST_SPIRIT_DEFINE(uint_64bit)
+BOOST_SPIRIT_DEFINE(int_64bit)
+BOOST_SPIRIT_DEFINE(float_64bit)
+BOOST_SPIRIT_DEFINE(boolean_literal)
+BOOST_SPIRIT_DEFINE(escape_char)
+BOOST_SPIRIT_DEFINE(string_literal)
+BOOST_SPIRIT_DEFINE(char_literal)
+BOOST_SPIRIT_DEFINE(attribute)
+BOOST_SPIRIT_DEFINE(builtin_macro)
+BOOST_SPIRIT_DEFINE(space)
 BOOST_SPIRIT_DEFINE(array_literal)
 BOOST_SPIRIT_DEFINE(class_literal)
 BOOST_SPIRIT_DEFINE(template_args)
-
-struct VariableIdentTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct IdentifierTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct PathTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct StringLiteralTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct CharLiteralTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct AttrTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct TemplateArgsTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct ArrayLiteralTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct ClassLiteralTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct BuiltinMacroTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct SpaceTag
-  : ErrorHandle
-  , AnnotatePosition {};
 
 //===----------------------------------------------------------------------===//
 // Type name rules and tags definition
 //===----------------------------------------------------------------------===//
 
-const x3::rule<struct ReferenceTypeInternalTag, ast::ReferenceType>
-  reference_type_internal{"reference type"};
-
-const x3::rule<struct ReferenceTypeTag, ast::Type> reference_type{
-  "reference type"};
-
-const x3::rule<struct ArrayTypeTag, ast::Type> array_type{"array type"};
-
-const x3::rule<struct PointerTypeInternalTag, ast::PointerType>
-  pointer_type_internal{"pointer type"};
-
-const x3::rule<struct PointerTypeTag, ast::Type> pointer_type{"pointer type"};
-
-const x3::rule<struct UserDefinedTypeTag, ast::UserDefinedType>
-  user_defined_type{"user defined type"};
-
-const x3::rule<struct UserDefinedTemplateTypeTag, ast::UserDefinedTemplateType>
-  user_defined_template_type{"user defined template type"};
-
-const auto builtin_type
-  = x3::rule<struct BuiltinTypeTag, ast::BuiltinType>{"builtin type name"}
-= builtin_type_symbols;
-
-const x3::rule<struct TypePrimaryTag, ast::Type> type_primary{"type primary"};
+const auto builtin_type_def = builtin_type_symbols;
 
 const auto type_name_def = reference_type;
 
@@ -598,6 +574,7 @@ const auto type_primary_def = builtin_type | user_defined_template_type
                               | user_defined_type
                               | (lit(U"(") >> type_name >> lit(U")"));
 
+BOOST_SPIRIT_DEFINE(builtin_type)
 BOOST_SPIRIT_DEFINE(type_name)
 BOOST_SPIRIT_DEFINE(array_type)
 BOOST_SPIRIT_DEFINE(reference_type_internal)
@@ -607,46 +584,6 @@ BOOST_SPIRIT_DEFINE(pointer_type)
 BOOST_SPIRIT_DEFINE(user_defined_type)
 BOOST_SPIRIT_DEFINE(user_defined_template_type)
 BOOST_SPIRIT_DEFINE(type_primary)
-
-struct BuiltinTypeTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct TypePrimaryTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct TypeTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct PointerTypeInternalTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct PointerTypeTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct ArrayTypeTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct ReferenceTypeInternalTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct ReferenceTypeTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct UserDefinedTypeTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct UserDefinedTemplateTypeTag
-  : ErrorHandle
-  , AnnotatePosition {};
 
 //===----------------------------------------------------------------------===//
 // Operator rules definition
@@ -829,114 +766,6 @@ BOOST_SPIRIT_DEFINE(unary_internal)
 BOOST_SPIRIT_DEFINE(scope_resolution)
 BOOST_SPIRIT_DEFINE(primary)
 
-struct ExprTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct BinaryLogicalTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct EqualTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct RelationTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct BitwiseAndTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct BitwiseOrTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct PipelineTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct BitwiseShiftTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct AddTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct MulTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct CastTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct UnaryInternalTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct UnaryTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct ReferenceInternalTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct ReferenceTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct NewInternalTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct NewTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct DeleteInternalTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct DeleteTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct DereferenceTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct MemberAccessTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct SubscriptTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct ArgListTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct FunctionCallTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct FunctionTemplateCallTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct ScopeResolutionTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct PrimaryTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
 //===----------------------------------------------------------------------===//
 // Statement rules and tags definition
 //===----------------------------------------------------------------------===//
@@ -967,12 +796,9 @@ const auto _for_def
     > lit(U";") > -(prefix_increment_decrement | assignment) /* Loop */
     > lit(U")") > stmt;
 
-const auto _break = x3::rule<struct BreakTag, ast::Break>{"break statement"}
-= lit(U"break") >> x3::attr(ast::Break{});
+const auto _break_def = lit(U"break") >> x3::attr(ast::Break{});
 
-const auto _continue
-  = x3::rule<struct ContinueTag, ast::Continue>{"continue statement"}
-= lit(U"continue") >> x3::attr(ast::Continue{});
+const auto _continue_def = lit(U"continue") >> x3::attr(ast::Continue{});
 
 const auto stmt_def = lit(U";")                       /* Null statement */
                       | lit(U"{") > *stmt > lit(U"}") /* Compound statement */
@@ -991,73 +817,22 @@ BOOST_SPIRIT_DEFINE(_if)
 BOOST_SPIRIT_DEFINE(_loop)
 BOOST_SPIRIT_DEFINE(_while)
 BOOST_SPIRIT_DEFINE(_for)
+BOOST_SPIRIT_DEFINE(_break)
+BOOST_SPIRIT_DEFINE(_continue)
 BOOST_SPIRIT_DEFINE(stmt)
-
-struct StmtTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct ExprStmtTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct VariableDefTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct AssignTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct PrefixIncrementDecrementTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct ReturnTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct IfTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct LoopTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct WhileTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct ForTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct BreakTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct ContinueTag
-  : ErrorHandle
-  , AnnotatePosition {};
 
 //===----------------------------------------------------------------------===//
 // Top level rules and tags definition
 //===----------------------------------------------------------------------===//
 
-const auto is_public = x3::rule<struct IsPublicTag, bool>{"public"}
-= x3::matches[lit(U"pub")];
+const auto is_public_def = x3::matches[lit(U"pub")];
 
-const auto template_params
-  = x3::rule<struct TemplateParameterTag,
-             ast::TemplateParameters>{"template parameters"}
-= -(lit(U"<") > (identifier % lit(U",")) > lit(U">"));
+const auto template_params_def
+  = -(lit(U"<") > (identifier % lit(U",")) > lit(U">"));
 
-const auto class_key = x3::rule<struct ClassKeyTag>{"class key"}
-= lit(U"class");
+const auto class_key_def = lit(U"class");
 
-const auto union_key = x3::rule<struct UnionKeyTag>{"union key"}
-= lit(U"union");
+const auto union_key_def = lit(U"union");
 
 const auto class_decl_def
   = lit(U"declare") >> class_key > identifier > lit(U";");
@@ -1115,6 +890,10 @@ const auto top_level_def = function_decl | function_def | class_decl | class_def
 
 const auto top_level_with_attr_def = -attribute >> top_level_def;
 
+BOOST_SPIRIT_DEFINE(is_public)
+BOOST_SPIRIT_DEFINE(template_params)
+BOOST_SPIRIT_DEFINE(class_key)
+BOOST_SPIRIT_DEFINE(union_key)
 BOOST_SPIRIT_DEFINE(variable_def_without_init)
 BOOST_SPIRIT_DEFINE(member_initializer)
 BOOST_SPIRIT_DEFINE(member_initializer_list)
@@ -1136,124 +915,29 @@ BOOST_SPIRIT_DEFINE(import_)
 BOOST_SPIRIT_DEFINE(top_level)
 BOOST_SPIRIT_DEFINE(top_level_with_attr)
 
-struct IsPublicTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct ClassKeyTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct UnionKeyTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct VariableDefWithoutInitTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct MemberInitializerTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct MemberInitializerListTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct ConstructorTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct DestructorTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct ClassMemberListTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct ClassDefTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct UnionTagTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct UnionTagListTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct UnionDefTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct ClassDeclTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct ParameterTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct ParameterListTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct FunctionProtoTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct FunctionDeclTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct TemplateParameterTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct FunctionDefTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct ImportTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct TopLevelTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct TypedefTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
-struct TopLevelWithAttrTag
-  : ErrorHandle
-  , AnnotatePosition {};
-
 //===----------------------------------------------------------------------===//
 // Comment rules definition
 //===----------------------------------------------------------------------===//
 
-const auto single_line_comment
-  = x3::rule<struct SingleLineCommenTag>{"single line comment"}
-= lit(U"//") >> *(char_ - x3::eol) >> (x3::eol | x3::eoi);
+const auto single_line_comment_def
+  = lit(U"//") >> *(char_ - x3::eol) >> (x3::eol | x3::eoi);
 
 const auto block_comment_def
   = lit(U"/*") >> *(block_comment | (char_ - lit(U"*/"))) >> lit(U"*/");
 
-const auto comment = x3::rule<struct CommentTag>{"comment"}
-= single_line_comment | block_comment;
+const auto comment_def = single_line_comment | block_comment;
 
+BOOST_SPIRIT_DEFINE(single_line_comment)
+BOOST_SPIRIT_DEFINE(comment)
 BOOST_SPIRIT_DEFINE(block_comment)
 
 //===----------------------------------------------------------------------===//
 // Skipper rules definition
 //===----------------------------------------------------------------------===//
 
-const auto skipper = x3::rule<struct SkipperTag>{"skipper"}
-= x3::space | comment;
+const auto skipper_def = x3::space | comment;
+
+BOOST_SPIRIT_DEFINE(skipper)
 
 //===----------------------------------------------------------------------===//
 // Translation unit rule and tag definition
@@ -1262,10 +946,6 @@ const auto skipper = x3::rule<struct SkipperTag>{"skipper"}
 const auto translation_unit_def = *top_level_with_attr > x3::eoi;
 
 BOOST_SPIRIT_DEFINE(translation_unit)
-
-struct TranslationUnitTag
-  : ErrorHandle
-  , AnnotatePosition {};
 
 #pragma clang diagnostic pop
 
