@@ -372,6 +372,8 @@ DECLARE_X3_RULE(_while, ast::While, "while statement")
 DECLARE_X3_RULE(_for, ast::For, "for statement")
 DECLARE_X3_RULE(_break, ast::Break, "break statement")
 DECLARE_X3_RULE(_continue, ast::Continue, "continue statement")
+DECLARE_X3_RULE(match_case, ast::MatchCase, "match statement case")
+DECLARE_X3_RULE(match, ast::Match, "match statement")
 DECLARE_X3_RULE(stmt, ast::Stmt, "statement")
 
 //===----------------------------------------------------------------------===//
@@ -437,7 +439,7 @@ DECLARE_X3_RULE(translation_unit, ast::TranslationUnit, "translation unit")
 #undef DECLARE_X3_RULE_NO_ATTR
 
 //===----------------------------------------------------------------------===//
-// Common rules and tags definition
+// Common rules definition
 //===----------------------------------------------------------------------===//
 
 const auto punct_def
@@ -446,7 +448,7 @@ const auto punct_def
 const auto identifier_internal_def
   = x3::raw[x3::lexeme[(x3::unicode::graph - (x3::unicode::digit | punct)
                         | lit(U"_"))
-                       >> *(x3::unicode::graph - punct | lit(U"_"))]];
+                       >> *((x3::unicode::graph - punct) | lit(U"_"))]];
 
 const auto identifier_def
   = identifier_internal - (lit(U"true") | lit(U"false"));
@@ -545,7 +547,7 @@ BOOST_SPIRIT_DEFINE(class_literal)
 BOOST_SPIRIT_DEFINE(template_args)
 
 //===----------------------------------------------------------------------===//
-// Type name rules and tags definition
+// Type name rules definition
 //===----------------------------------------------------------------------===//
 
 const auto builtin_type_def = builtin_type_symbols;
@@ -642,7 +644,7 @@ const auto bitwise_and_operator
 = string(U"&") - lit(U"&&");
 
 //===----------------------------------------------------------------------===//
-// Expression rules and tags definition
+// Expression rules definition
 //===----------------------------------------------------------------------===//
 
 const auto expr_def = binary_logical;
@@ -767,7 +769,7 @@ BOOST_SPIRIT_DEFINE(scope_resolution)
 BOOST_SPIRIT_DEFINE(primary)
 
 //===----------------------------------------------------------------------===//
-// Statement rules and tags definition
+// Statement rules definition
 //===----------------------------------------------------------------------===//
 
 const auto expr_stmt_def = expr;
@@ -800,13 +802,18 @@ const auto _break_def = lit(U"break") >> x3::attr(ast::Break{});
 
 const auto _continue_def = lit(U"continue") >> x3::attr(ast::Continue{});
 
-const auto stmt_def = lit(U";")                       /* Null statement */
-                      | lit(U"{") > *stmt > lit(U"}") /* Compound statement */
-                      | _loop | _while | _for | _if | _break >> lit(U";")
-                      | _continue >> lit(U";") | _return >> lit(U";")
-                      | prefix_increment_decrement >> lit(U";")
-                      | assignment >> lit(U";") | variable_def >> lit(U";")
-                      | expr_stmt >> lit(U";");
+const auto match_case_def = expr > lit(U"=>") > stmt;
+
+const auto match_def
+  = expr >> lit(U"match") > lit(U"{") > *match_case > lit(U"}");
+
+const auto stmt_def
+  = lit(U";")                       /* Null statement */
+    | lit(U"{") > *stmt > lit(U"}") /* Compound statement */
+    | _loop | _while | _for | _if | match | _break >> lit(U";")
+    | _continue >> lit(U";") | _return >> lit(U";")
+    | prefix_increment_decrement >> lit(U";") | assignment >> lit(U";")
+    | variable_def >> lit(U";") | expr_stmt >> lit(U";");
 
 BOOST_SPIRIT_DEFINE(expr_stmt)
 BOOST_SPIRIT_DEFINE(variable_def)
@@ -819,10 +826,12 @@ BOOST_SPIRIT_DEFINE(_while)
 BOOST_SPIRIT_DEFINE(_for)
 BOOST_SPIRIT_DEFINE(_break)
 BOOST_SPIRIT_DEFINE(_continue)
+BOOST_SPIRIT_DEFINE(match_case)
+BOOST_SPIRIT_DEFINE(match)
 BOOST_SPIRIT_DEFINE(stmt)
 
 //===----------------------------------------------------------------------===//
-// Top level rules and tags definition
+// Top level rules definition
 //===----------------------------------------------------------------------===//
 
 const auto is_public_def = x3::matches[lit(U"pub")];

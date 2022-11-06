@@ -1,0 +1,30 @@
+union A {
+  Yoha(i32),
+  Io(char)
+}
+
+func f(u: ^A) -> i32
+{
+  u^ match {
+    A::Yoha => {
+      return 48;
+    }
+    A::Io => return 10;
+  }
+}
+
+func main() -> i32
+{
+  let mut ret = 0;
+
+  let mut u = A::Yoha(4810);
+  u = A::Io('s');
+
+  ret += f(&u);
+
+  let u = A::Yoha(4810);
+
+  ret += f(&u);
+
+  return ret;
+}

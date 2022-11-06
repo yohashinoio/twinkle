@@ -59,6 +59,69 @@ private:
   std::size_t push_count;
 };
 
+[[nodiscard]] llvm::Value* memberAccessByOffset(CGContext&          ctx,
+                                                llvm::Value* const  value,
+                                                llvm::Type* const   type,
+                                                const std::uint32_t offset)
+{
+  return ctx.builder.CreateInBoundsGEP(
+    type,
+    value,
+    {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 0),
+     llvm::ConstantInt::get(ctx.builder.getInt32Ty(), offset)});
+}
+
+[[nodiscard]] auto getUnionVariantByTagName(CGContext&         ctx,
+                                            const std::string& union_name,
+                                            const std::string& tag_name)
+{
+  const auto union_type = ctx.union_table[union_name];
+  assert(union_type);
+
+  if (auto variant = union_type->get()->getUnionVariantType(tag_name))
+    return variant;
+  else {
+    return decltype(union_type->get()->getUnionVariantType(tag_name)){
+      std::nullopt};
+  }
+}
+
+[[nodiscard]] ScopeResolutionResult
+createScopeResolutionResult(CGContext& ctx, const ast::ScopeResolution& node)
+{
+  const auto lhs_must_be_ident_err = [&]() {
+    throw CodegenError{ctx.formatError(
+      ctx.positionOf(node),
+      "the left side of the scope resolution must be an identifier")};
+  };
+
+  std::vector<std::string> ns_names;
+
+  if (auto const x = boost::get<ast::Identifier>(&node.lhs))
+    ns_names.push_back(x->utf8());
+  else
+    lhs_must_be_ident_err();
+
+  for (const auto* target = &node.rhs;;) {
+    if (auto const x = boost::get<ast::ScopeResolution>(target)) {
+      auto const ident = boost::get<ast::Identifier>(&x->lhs);
+
+      if (ident)
+        ns_names.push_back(ident->utf8());
+      else
+        lhs_must_be_ident_err();
+
+      target = &x->rhs;
+      continue;
+    }
+
+    assert(!ns_names.empty());
+    return ScopeResolutionResult{std::move(ns_names), *target};
+  }
+
+  unreachable();
+}
+
 //===----------------------------------------------------------------------===//
 // Expression visitor
 //===----------------------------------------------------------------------===//
@@ -76,6 +139,18 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   [[nodiscard]] Value operator()(boost::blank) const
   {
     unreachable();
+  }
+
+  [[nodiscard]] Value operator()(const ast::Value& value) const
+  {
+    return *(value.value);
+  }
+
+  [[nodiscard]] Value operator()(const std::uint8_t node) const
+  {
+    return createAllocaUnsignedInt(
+      std::make_shared<BuiltinType>(BuiltinTypeKind::u8, false),
+      node);
   }
 
   // Floating point literals
@@ -591,7 +666,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::ScopeResolution& node) const
   {
-    const auto result = createScopeResolutionResult(node);
+    const auto result = createScopeResolutionResult(ctx, node);
 
     // We use std::optional in a role similar to that of a pointer
     std::optional<Value> return_value;
@@ -630,16 +705,6 @@ private:
                                          const ast::Expr&     initializer,
                                          const PositionRange& pos) const
   {
-    const auto get_by_offset = [&](llvm::Value* const value,
-                                   llvm::Type* const  type,
-                                   const std::uint8_t offset) {
-      return ctx.builder.CreateInBoundsGEP(
-        type,
-        value,
-        {llvm::ConstantInt::get(ctx.builder.getInt32Ty(), 0),
-         llvm::ConstantInt::get(ctx.builder.getInt32Ty(), offset)});
-    };
-
     if (const auto union_type = ctx.union_table[union_name]) {
       auto const alloca
         = createEntryAlloca(ctx.builder.GetInsertBlock()->getParent(),
@@ -650,7 +715,10 @@ private:
         // Store tag(offset)
         ctx.builder.CreateStore(
           ctx.builder.getInt8(variant->get().offset /* Variant offset */),
-          get_by_offset(alloca, alloca->getAllocatedType(), 0 /* i8 */));
+          memberAccessByOffset(ctx,
+                               alloca,
+                               alloca->getAllocatedType(),
+                               0 /* i8 */));
 
         // Store initializer
         auto const bit_casted = ctx.builder.CreateBitCast(
@@ -659,61 +727,14 @@ private:
 
         ctx.builder.CreateStore(
           createExpr(ctx, scope, stmt_ctx, initializer).getValue(),
-          get_by_offset(bit_casted,
-                        bit_casted->getType()->getPointerElementType(),
-                        1));
+          memberAccessByOffset(ctx,
+                               bit_casted,
+                               bit_casted->getType()->getPointerElementType(),
+                               1));
       }
 
       return Value{ctx.builder.CreateLoad(alloca->getAllocatedType(), alloca),
                    union_type->get()};
-    }
-
-    unreachable();
-  }
-
-  struct ScopeResolutionResult {
-    ScopeResolutionResult(std::vector<std::string>&& ns_names,
-                          const ast::Expr&           expr)
-      : ns_names{std::move(ns_names)}
-      , expr{expr}
-    {
-    }
-
-    std::vector<std::string> ns_names;
-    const ast::Expr&         expr;
-  };
-
-  [[nodiscard]] ScopeResolutionResult
-  createScopeResolutionResult(const ast::ScopeResolution& node) const
-  {
-    const auto lhs_must_be_ident_err = [&]() {
-      throw CodegenError{ctx.formatError(
-        ctx.positionOf(node),
-        "the left side of the scope resolution must be an identifier")};
-    };
-
-    std::vector<std::string> ns_names;
-
-    if (auto const x = boost::get<ast::Identifier>(&node.lhs))
-      ns_names.push_back(x->utf8());
-    else
-      lhs_must_be_ident_err();
-
-    for (const auto* target = &node.rhs;;) {
-      if (auto const x = boost::get<ast::ScopeResolution>(target)) {
-        auto const ident = boost::get<ast::Identifier>(&x->lhs);
-
-        if (ident)
-          ns_names.push_back(ident->utf8());
-        else
-          lhs_must_be_ident_err();
-
-        target = &x->rhs;
-        continue;
-      }
-
-      assert(!ns_names.empty());
-      return ScopeResolutionResult{std::move(ns_names), *target};
     }
 
     unreachable();

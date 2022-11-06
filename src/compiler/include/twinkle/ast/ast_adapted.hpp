@@ -79,6 +79,11 @@ BOOST_FUSION_ADAPT_STRUCT(
 //===----------------------------------------------------------------------===//
 
 BOOST_FUSION_ADAPT_STRUCT(
+  twinkle::ast::Value,
+  (const twinkle::codegen::Value*, value)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
   twinkle::ast::StringLiteral,
   (std::u32string, str)
 )
@@ -250,6 +255,18 @@ BOOST_FUSION_ADAPT_STRUCT(
   (std::optional<twinkle::ast::Expr>, cond_expr)
   (std::optional<twinkle::ast::ForLoopVariant>, loop_stmt)
   (twinkle::ast::Stmt, body)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+  twinkle::ast::MatchCase,
+  (twinkle::ast::Expr, match_case)
+  (twinkle::ast::Stmt, statement)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
+  twinkle::ast::Match,
+  (twinkle::ast::Expr, target)
+  (twinkle::ast::MatchCaseList, cases)
 )
 
 //===----------------------------------------------------------------------===//

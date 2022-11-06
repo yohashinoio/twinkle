@@ -295,12 +295,12 @@ UnionType::createBasicType(CGContext&         ctx,
     name);
 }
 
-[[nodiscard]] UnionType::Variants
+[[nodiscard]] UnionVariants
 UnionType::createVariants(CGContext&         ctx,
                           const Tags&        members,
                           const std::string& union_name)
 {
-  Variants variants;
+  UnionVariants variants;
 
   for (std::uint8_t offset = 0; const auto& r : members) {
     assert(offset != std::numeric_limits<std::uint8_t>::max());
@@ -339,8 +339,7 @@ UnionType::UnionType(CGContext&         ctx,
 {
 }
 
-[[nodiscard]] std::optional<
-  const std::reference_wrapper<const UnionType::Variant>>
+[[nodiscard]] std::optional<const std::reference_wrapper<const UnionVariant>>
 UnionType::getUnionVariantType(const std::string& tag) const
 {
   for (const auto& variant : actual.variants) {

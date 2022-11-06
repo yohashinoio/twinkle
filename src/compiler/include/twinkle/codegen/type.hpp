@@ -46,6 +46,32 @@ enum class BuiltinTypeKind {
 // Forward declaration
 struct CGContext;
 
+struct UnionVariant {
+  UnionVariant(std::string&&           tag,
+               const std::uint8_t      offset,
+               llvm::StructType* const type)
+    : tag{std::move(tag)}
+    , offset{offset}
+    , type{type}
+  {
+  }
+
+  UnionVariant(const std::string&      tag,
+               const std::uint8_t      offset,
+               llvm::StructType* const type)
+    : tag{tag}
+    , offset{offset}
+    , type{type}
+  {
+  }
+
+  const std::string       tag;
+  const std::uint8_t      offset;
+  llvm::StructType* const type;
+};
+
+using UnionVariants = std::vector<UnionVariant>;
+
 struct Type {
   explicit Type(const bool is_mutable) noexcept
     : is_mutable{is_mutable}
@@ -141,6 +167,11 @@ struct Type {
   [[nodiscard]] virtual bool isUserDefinedType() const
   {
     return false;
+  }
+
+  [[nodiscard]] virtual const UnionVariants& getUnionVariants(CGContext&) const
+  {
+    unreachable();
   }
 
   [[nodiscard]] bool isSigned(CGContext& ctx) const
@@ -270,6 +301,11 @@ struct UserDefinedType : public Type {
     return getRealType(ctx)->isOpaque(ctx);
   }
 
+  [[nodiscard]] bool isUnionTy(CGContext& ctx) const override
+  {
+    return getRealType(ctx)->isUnionTy(ctx);
+  }
+
   [[nodiscard]] bool isClassTy(CGContext& ctx) const override
   {
     return getRealType(ctx)->isClassTy(ctx);
@@ -288,6 +324,12 @@ struct UserDefinedType : public Type {
   [[nodiscard]] bool isRefTy(CGContext& ctx) const override
   {
     return getRealType(ctx)->isRefTy(ctx);
+  }
+
+  [[nodiscard]] const UnionVariants&
+  getUnionVariants(CGContext& ctx) const override
+  {
+    return getRealType(ctx)->getUnionVariants(ctx);
   }
 
   [[nodiscard]] bool isUserDefinedType() const override
@@ -440,34 +482,8 @@ struct UnionType : public Type {
 
   using Tags = std::vector<TagWithType>;
 
-  struct Variant {
-    Variant(std::string&&           tag,
-            const std::uint8_t      offset,
-            llvm::StructType* const type)
-      : tag{std::move(tag)}
-      , offset{offset}
-      , type{type}
-    {
-    }
-
-    Variant(const std::string&      tag,
-            const std::uint8_t      offset,
-            llvm::StructType* const type)
-      : tag{tag}
-      , offset{offset}
-      , type{type}
-    {
-    }
-
-    const std::string       tag;
-    const std::uint8_t      offset;
-    llvm::StructType* const type;
-  };
-
-  using Variants = std::vector<Variant>;
-
   struct Actual {
-    Actual(llvm::StructType* const basic_type, Variants&& variants)
+    Actual(llvm::StructType* const basic_type, UnionVariants&& variants)
       : basic_type{basic_type}
       , variants{std::move(variants)}
     {
@@ -476,7 +492,7 @@ struct UnionType : public Type {
     // If struct is created multiple times, the name will be duplicated, so
     // create it only once and store it in this variables
     llvm::StructType* basic_type;
-    Variants          variants;
+    UnionVariants     variants;
   };
 
   UnionType(CGContext&         ctx,
@@ -514,14 +530,19 @@ struct UnionType : public Type {
     return name;
   }
 
-  [[nodiscard]] std::optional<const std::reference_wrapper<const Variant>>
+  [[nodiscard]] const UnionVariants& getUnionVariants(CGContext&) const override
+  {
+    return actual.variants;
+  }
+
+  [[nodiscard]] std::optional<const std::reference_wrapper<const UnionVariant>>
   getUnionVariantType(const std::string& tag) const;
 
 private:
   [[nodiscard]] static llvm::StructType*
   createBasicType(CGContext& ctx, const Tags& members, const std::string& name);
 
-  [[nodiscard]] static Variants
+  [[nodiscard]] static UnionVariants
   createVariants(CGContext& ctx, const Tags& members, const std::string& name);
 
   [[nodiscard]] static Actual

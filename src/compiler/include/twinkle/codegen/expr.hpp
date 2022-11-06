@@ -19,10 +19,35 @@
 namespace twinkle::codegen
 {
 
+[[nodiscard]] llvm::Value* memberAccessByOffset(CGContext&          ctx,
+                                                llvm::Value* const  value,
+                                                llvm::Type* const   type,
+                                                const std::uint32_t offset);
+
 [[nodiscard]] llvm::Function*
 findFunction(CGContext& ctx,
              const std::vector<std::string>&
                mangled_names /* Assuming they are in order of priority */);
+
+struct ScopeResolutionResult {
+  ScopeResolutionResult(std::vector<std::string>&& ns_names,
+                        const ast::Expr&           expr)
+    : ns_names{std::move(ns_names)}
+    , expr{expr}
+  {
+  }
+
+  // A::B::C()
+  // ^~~~
+  std::vector<std::string> ns_names;
+
+  // A::B::C()
+  //       ^~~
+  const ast::Expr& expr;
+};
+
+[[nodiscard]] ScopeResolutionResult
+createScopeResolutionResult(CGContext& ctx, const ast::ScopeResolution& node);
 
 [[nodiscard]] Value createExpr(CGContext&         ctx,
                                const SymbolTable& scope,

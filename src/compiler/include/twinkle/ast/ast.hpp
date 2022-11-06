@@ -28,6 +28,8 @@ namespace x3 = boost::spirit::x3;
 namespace codegen
 {
 
+struct Value;
+
 enum class BuiltinTypeKind;
 
 inline void assignPosition(x3::position_tagged&       assignee,
@@ -277,6 +279,17 @@ struct ReferenceType : x3::position_tagged {
 // Expression AST
 //===----------------------------------------------------------------------===//
 
+// Never created from parsing
+// Use when you want to convert Value to AST during code generation
+struct Value {
+  explicit Value(const codegen::Value* value) noexcept
+    : value{value}
+  {
+  }
+
+  const codegen::Value* value;
+};
+
 struct StringLiteral : x3::position_tagged {
   using value_type = std::u32string::value_type;
 
@@ -374,7 +387,11 @@ using ExprT16
   = boost::mpl::push_back<ExprT15,
                           boost::recursive_wrapper<ScopeResolution>>::type;
 
-using ExprTypes = ExprT16;
+using ExprT17 = boost::mpl::push_back<ExprT16, Value>::type;
+
+using ExprT18 = boost::mpl::push_back<ExprT17, std::uint8_t>::type;
+
+using ExprTypes = ExprT18;
 
 using Expr = boost::make_variant_over<ExprTypes>::type;
 
@@ -741,6 +758,7 @@ struct If;
 struct Loop;
 struct While;
 struct For;
+struct Match;
 
 //===----------------------------------------------------------------------===//
 // Statement Variant
@@ -771,7 +789,10 @@ using StmtT4
   = boost::mpl::push_back<StmtT3,
                           boost::recursive_wrapper<ClassMemberInit>>::type;
 
-using StmtTypes = StmtT4;
+using StmtT5
+  = boost::mpl::push_back<StmtT4, boost::recursive_wrapper<Match>>::type;
+
+using StmtTypes = StmtT5;
 
 using Stmt = boost::make_recursive_variant_over<StmtTypes>::type;
 
@@ -782,6 +803,26 @@ using CompoundStatement = std::deque<Stmt>;
 //===----------------------------------------------------------------------===//
 
 struct If : x3::position_tagged {
+  If(Expr&&                condition,
+     Stmt&&                then_statement,
+     std::optional<Stmt>&& else_statement) noexcept
+    : condition{std::move(condition)}
+    , then_statement{std::move(then_statement)}
+    , else_statement{std::move(else_statement)}
+  {
+  }
+
+  If(Expr&&                condition,
+     const Stmt&           then_statement,
+     std::optional<Stmt>&& else_statement)
+    : condition{std::move(condition)}
+    , then_statement{then_statement}
+    , else_statement{std::move(else_statement)}
+  {
+  }
+
+  If() = default;
+
   Expr                condition;
   Stmt                then_statement;
   std::optional<Stmt> else_statement;
@@ -805,6 +846,18 @@ struct For : x3::position_tagged {
   std::optional<Expr>           cond_expr;
   std::optional<ForLoopVariant> loop_stmt;
   Stmt                          body;
+};
+
+struct MatchCase : x3::position_tagged {
+  Expr match_case;
+  Stmt statement;
+};
+
+using MatchCaseList = std::vector<MatchCase>;
+
+struct Match : x3::position_tagged {
+  Expr          target;
+  MatchCaseList cases;
 };
 
 //===----------------------------------------------------------------------===//

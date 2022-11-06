@@ -353,7 +353,116 @@ struct StmtVisitor : public boost::static_visitor<void> {
       ctx.builder.CreateBr(stmt_ctx.continue_bb);
   }
 
+  void operator()(const ast::Match& node) const
+  {
+    const auto target_val
+      = createExpr(ctx, getAllSymbols(), stmt_ctx, node.target);
+
+    const auto target_type = target_val.getType();
+
+    if (target_type->isUnionTy(ctx)) {
+      createUnionMatch(target_val, node.cases, ctx.positionOf(node));
+      return;
+    }
+    else {
+      throw CodegenError{
+        ctx.formatError(ctx.positionOf(node),
+                        "a target that does not support match is specified")};
+    }
+
+    unreachable();
+  }
+
 private:
+  // Create a match statement targeting union
+  void createUnionMatch(const Value&                       target,
+                        const std::vector<ast::MatchCase>& cases,
+                        const PositionRange&               pos) const
+  {
+    const auto target_ty = target.getType();
+    assert(target_ty->isUnionTy(ctx));
+
+    const auto tag_offset = getUnionTagOffset(target);
+
+    std::vector<ast::If> case_asts;
+
+    for (const auto& cs /* case */ : cases) {
+      if (auto const union_tag
+          = boost::get<ast::ScopeResolution>(&cs.match_case)) {
+        const auto offset
+          = getUnionTagOffset(target_ty->getUnionVariants(ctx), *union_tag);
+
+        if (!offset.first) {
+          throw CodegenError{ctx.formatError(
+            ctx.positionOf(*union_tag),
+            fmt::format("undeclared union tag name {}", offset.second))};
+        }
+
+        {
+          ast::BinOp eq{ast::Value{&tag_offset}, U"==", *offset.first};
+          assignPosition(eq, cs);
+          case_asts.push_back({std::move(eq), cs.statement, std::nullopt});
+        }
+
+        // Assign position to case
+        assignPosition(case_asts.back(), cs);
+      }
+      else {
+        throw CodegenError{ctx.formatError(
+          pos,
+          "case of match targeting a union must be a union tag")};
+      }
+    }
+
+    // Generate cases
+    for (auto& r : case_asts)
+      (*this)(r);
+  }
+
+  [[nodiscard]] std::pair<std::optional<std::uint8_t> /* offset */,
+                          std::string /* union tag name */>
+  getUnionTagOffset(const UnionVariants&        variants,
+                    const ast::ScopeResolution& node) const
+  {
+    const auto result = createScopeResolutionResult(ctx, node);
+
+    if (auto const tag_name = boost::get<ast::Identifier>(&result.expr)) {
+      const auto tag_name_str = tag_name->utf8();
+
+      for (const auto& variant : variants) {
+        if (variant.tag == tag_name_str)
+          return {variant.offset, std::move(tag_name_str)};
+      }
+
+      return {std::nullopt, std::move(tag_name_str)};
+    }
+    else {
+      throw CodegenError{
+        ctx.formatError(ctx.positionOf(node),
+                        "rightmost side must be an identifier")};
+    }
+
+    unreachable();
+  }
+
+  // Returns the first element of a union (tag offset)
+  [[nodiscard]] Value getUnionTagOffset(const Value& union_) const
+  {
+    const auto ty = union_.getType();
+
+    assert(ty->isUnionTy(ctx));
+
+    const auto value
+      = memberAccessByOffset(ctx,
+                             llvm::getPointerOperand(union_.getValue()),
+                             union_.getLLVMType(),
+                             0);
+
+    return {
+      ctx.builder.CreateLoad(value->getType()->getPointerElementType(), value),
+      std::make_shared<BuiltinType>(BuiltinTypeKind::u8, false)};
+  }
+
   [[nodiscard]] SymbolTable getAllSymbols() const
   {
     return mergeSymbolTables(parent_scope, scope);
