@@ -452,11 +452,10 @@ private:
 
     assert(ty->isUnionTy(ctx));
 
-    const auto value
-      = memberAccessByOffset(ctx,
-                             llvm::getPointerOperand(union_.getValue()),
-                             union_.getLLVMType(),
-                             0);
+    const auto value = gepByOffset(ctx,
+                                   llvm::getPointerOperand(union_.getValue()),
+                                   union_.getLLVMType(),
+                                   0);
 
     return {
       ctx.builder.CreateLoad(value->getType()->getPointerElementType(), value),

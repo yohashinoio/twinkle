@@ -59,10 +59,10 @@ private:
   std::size_t push_count;
 };
 
-[[nodiscard]] llvm::Value* memberAccessByOffset(CGContext&          ctx,
-                                                llvm::Value* const  value,
-                                                llvm::Type* const   type,
-                                                const std::uint32_t offset)
+[[nodiscard]] llvm::Value* gepByOffset(CGContext&          ctx,
+                                       llvm::Value* const  value,
+                                       llvm::Type* const   type,
+                                       const std::uint32_t offset)
 {
   return ctx.builder.CreateInBoundsGEP(
     type,
@@ -715,10 +715,7 @@ private:
         // Store tag(offset)
         ctx.builder.CreateStore(
           ctx.builder.getInt8(variant->get().offset /* Variant offset */),
-          memberAccessByOffset(ctx,
-                               alloca,
-                               alloca->getAllocatedType(),
-                               0 /* i8 */));
+          gepByOffset(ctx, alloca, alloca->getAllocatedType(), 0 /* i8 */));
 
         // Store initializer
         auto const bit_casted = ctx.builder.CreateBitCast(
@@ -727,10 +724,10 @@ private:
 
         ctx.builder.CreateStore(
           createExpr(ctx, scope, stmt_ctx, initializer).getValue(),
-          memberAccessByOffset(ctx,
-                               bit_casted,
-                               bit_casted->getType()->getPointerElementType(),
-                               1));
+          gepByOffset(ctx,
+                      bit_casted,
+                      bit_casted->getType()->getPointerElementType(),
+                      1));
       }
 
       return Value{ctx.builder.CreateLoad(alloca->getAllocatedType(), alloca),

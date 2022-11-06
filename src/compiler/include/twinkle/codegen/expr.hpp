@@ -19,10 +19,10 @@
 namespace twinkle::codegen
 {
 
-[[nodiscard]] llvm::Value* memberAccessByOffset(CGContext&          ctx,
-                                                llvm::Value* const  value,
-                                                llvm::Type* const   type,
-                                                const std::uint32_t offset);
+[[nodiscard]] llvm::Value* gepByOffset(CGContext&          ctx,
+                                       llvm::Value* const  value,
+                                       llvm::Type* const   type,
+                                       const std::uint32_t offset);
 
 [[nodiscard]] llvm::Function*
 findFunction(CGContext& ctx,
