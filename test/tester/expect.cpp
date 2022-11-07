@@ -203,6 +203,7 @@ namespace test
     {      "same_class_template_with_diff_args",  58},
     {                           "union_literal",  58},
     {                             "match_union",  58},
+    {                    "match_union_wildcard", 116},
   };
 
   const auto it = expects.find(test_name);

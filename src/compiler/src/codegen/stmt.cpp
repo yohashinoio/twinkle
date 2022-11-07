@@ -384,9 +384,18 @@ private:
 
     const auto tag_offset = getUnionTagOffset(target);
 
-    std::vector<ast::If> case_asts;
+    ast::Stmt                cases_ast;
+    ast::Stmt*               before = nullptr;
+    std::optional<ast::Stmt> wildcard_statement;
 
     for (const auto& cs /* case */ : cases) {
+      // Wildcard
+      if (isWildcard(cs.match_case)) {
+        wildcard_statement = cs.statement;
+        continue;
+      }
+
+      // Union tag
       if (auto const union_tag
           = boost::get<ast::ScopeResolution>(&cs.match_case)) {
         const auto offset
@@ -398,25 +407,51 @@ private:
             fmt::format("undeclared union tag name {}", offset.second))};
         }
 
-        {
-          ast::BinOp eq{ast::Value{&tag_offset}, U"==", *offset.first};
-          assignPosition(eq, cs);
-          case_asts.push_back({std::move(eq), cs.statement, std::nullopt});
+        ast::BinOp eq{ast::Value{&tag_offset}, U"==", *offset.first};
+        assignPosition(eq, cs);
+        ast::If ast{std::move(eq), cs.statement, std::nullopt};
+        assignPosition(ast, cs);
+
+        if (before) {
+          auto const tmp      = boost::get<ast::If>(before);
+          tmp->else_statement = std::move(ast);
+          before              = &*tmp->else_statement;
+        }
+        else {
+          // first time
+          cases_ast = std::move(ast);
+          before    = &cases_ast;
         }
 
-        // Assign position to case
-        assignPosition(case_asts.back(), cs);
+        continue;
       }
       else {
         throw CodegenError{ctx.formatError(
           pos,
           "case of match targeting a union must be a union tag")};
       }
+
+      unreachable();
+    }
+
+    // Insert wildcard
+    if (wildcard_statement) {
+      auto const tmp      = boost::get<ast::If>(before);
+      tmp->else_statement = std::move(*wildcard_statement);
     }
 
     // Generate cases
-    for (auto& r : case_asts)
-      (*this)(r);
+    (*this)(boost::get<ast::If>(cases_ast));
+  }
+
+  [[nodiscard]] bool isWildcard(const ast::Expr& node) const
+  {
+    if (auto const ident = boost::get<ast::Identifier>(&node)) {
+      if (ident->utf32() == U"_")
+        return true;
+    }
+
+    return false;
   }
 
   [[nodiscard]] std::pair<std::optional<std::uint8_t> /* offset */,
