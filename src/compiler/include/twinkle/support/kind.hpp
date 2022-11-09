@@ -29,7 +29,6 @@ enum class SignKind {
 enum class VariableQual {
   no_qualifier,
   mutable_,
-  reference,
 };
 
 enum class Linkage {
