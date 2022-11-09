@@ -382,7 +382,7 @@ private:
     const auto target_ty = target.getType();
     assert(target_ty->isUnionTy(ctx));
 
-    const auto tag_offset = getUnionTagOffset(target);
+    const auto tag_offset = getUnionTagOffsetFromValue(target);
 
     ast::Stmt                cases_ast;
     ast::Stmt*               before = nullptr;
@@ -481,7 +481,7 @@ private:
   }
 
   // Returns the first element of a union (tag offset)
-  [[nodiscard]] Value getUnionTagOffset(const Value& union_) const
+  [[nodiscard]] Value getUnionTagOffsetFromValue(const Value& union_) const
   {
     const auto ty = union_.getType();
 
