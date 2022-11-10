@@ -45,29 +45,35 @@ enum class BuiltinTypeKind {
 
 // Forward declaration
 struct CGContext;
+struct Type;
 
 struct UnionVariant {
-  UnionVariant(std::string&&           tag,
-               const std::uint8_t      offset,
-               llvm::StructType* const type)
+  UnionVariant(std::string&&                tag,
+               const std::uint8_t           offset,
+               llvm::StructType* const      type,
+               const std::shared_ptr<Type>& element_type)
     : tag{std::move(tag)}
     , offset{offset}
     , type{type}
+    , element_type{element_type}
   {
   }
 
-  UnionVariant(const std::string&      tag,
-               const std::uint8_t      offset,
-               llvm::StructType* const type)
+  UnionVariant(const std::string&           tag,
+               const std::uint8_t           offset,
+               llvm::StructType* const      type,
+               const std::shared_ptr<Type>& element_type)
     : tag{tag}
     , offset{offset}
     , type{type}
+    , element_type{element_type}
   {
   }
 
-  const std::string       tag;
-  const std::uint8_t      offset;
-  llvm::StructType* const type;
+  const std::string           tag;
+  const std::uint8_t          offset;
+  llvm::StructType* const     type;
+  const std::shared_ptr<Type> element_type;
 };
 
 using UnionVariants = std::vector<UnionVariant>;

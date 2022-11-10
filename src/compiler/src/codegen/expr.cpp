@@ -143,7 +143,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::Value& value) const
   {
-    return *(value.value);
+    return *value.value;
   }
 
   [[nodiscard]] Value operator()(const std::uint8_t node) const

@@ -204,6 +204,7 @@ namespace test
     {                           "union_literal",  58},
     {                             "match_union",  58},
     {                    "match_union_wildcard", 116},
+    {              "match_reading_union_values", 174},
   };
 
   const auto it = expects.find(test_name);

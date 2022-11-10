@@ -374,6 +374,8 @@ struct StmtVisitor : public boost::static_visitor<void> {
   }
 
 private:
+  using TagNameReadingValue = ast::FunctionCall;
+
   // Create a match statement targeting union
   void createUnionMatch(const Value&                       target,
                         const std::vector<ast::MatchCase>& cases,
@@ -382,7 +384,8 @@ private:
     const auto target_ty = target.getType();
     assert(target_ty->isUnionTy(ctx));
 
-    const auto tag_offset = getUnionTagOffsetFromValue(target);
+    const auto tag_offset
+      = std::make_shared<Value>(getUnionTagOffsetFromValue(target));
 
     ast::Stmt                cases_ast;
     ast::Stmt*               before = nullptr;
@@ -407,9 +410,30 @@ private:
             fmt::format("undeclared union tag name {}", offset.second))};
         }
 
-        ast::BinOp eq{ast::Value{&tag_offset}, U"==", *offset.first};
+        ast::CompoundStatement case_statement;
+
+        if (const auto node
+            = boost::get<TagNameReadingValue>(&union_tag->rhs)) {
+          assert(node->args.size() == 1
+                 && boost::get<ast::Identifier>(&node->args.at(0)));
+          const auto value
+            = std::make_shared<Value>(readUnionValue(target, *offset.first));
+
+          {
+            auto tmp
+              = ast::VariableDef{VariableQual::no_qualifier,
+                                 boost::get<ast::Identifier>(node->args.at(0)),
+                                 std::nullopt,
+                                 ast::Value{value}};
+            assignPosition(tmp, cs);
+            case_statement.push_back(std::move(tmp));
+          }
+        }
+
+        ast::BinOp eq{ast::Value{tag_offset}, U"==", *offset.first};
         assignPosition(eq, cs);
-        ast::If ast{std::move(eq), cs.statement, std::nullopt};
+        case_statement.push_back(cs.statement);
+        ast::If ast{std::move(eq), case_statement, std::nullopt};
         assignPosition(ast, cs);
 
         if (before) {
@@ -418,7 +442,7 @@ private:
           before              = &*tmp->else_statement;
         }
         else {
-          // first time
+          // First time
           cases_ast = std::move(ast);
           before    = &cases_ast;
         }
@@ -454,22 +478,55 @@ private:
     return false;
   }
 
+  [[nodiscard]] Value readUnionValue(const Value&       union_,
+                                     const std::uint8_t offset) const
+  {
+    const auto& variant = union_.getType()->getUnionVariants(ctx).at(offset);
+
+    const auto p_to_union = llvm::getPointerOperand(union_.getValue());
+
+    const auto bitcasted_value
+      = ctx.builder.CreateBitCast(p_to_union,
+                                  llvm::PointerType::getUnqual(variant.type));
+
+    const auto gep
+      = gepByOffset(ctx,
+                    bitcasted_value,
+                    bitcasted_value->getType()->getPointerElementType(),
+                    1);
+
+    return {
+      ctx.builder.CreateLoad(gep->getType()->getPointerElementType(), gep),
+      variant.element_type};
+  }
+
   [[nodiscard]] std::pair<std::optional<std::uint8_t> /* offset */,
                           std::string /* union tag name */>
   getUnionTagOffset(const UnionVariants&        variants,
                     const ast::ScopeResolution& node) const
   {
+    const auto get_offset
+      = [&](const std::string_view tag_name) -> std::optional<std::uint8_t> {
+      for (const auto& variant : variants) {
+        if (variant.tag == tag_name)
+          return variant.offset;
+      }
+      return std::nullopt;
+    };
+
     const auto result = createScopeResolutionResult(ctx, node);
 
     if (auto const tag_name = boost::get<ast::Identifier>(&result.expr)) {
       const auto tag_name_str = tag_name->utf8();
 
-      for (const auto& variant : variants) {
-        if (variant.tag == tag_name_str)
-          return {variant.offset, std::move(tag_name_str)};
-      }
+      return {get_offset(tag_name_str), std::move(tag_name_str)};
+    }
+    else if (auto const tag_name
+             = boost::get<TagNameReadingValue>(&result.expr)) {
+      const auto tag_name_str
+        = boost::get<ast::Identifier>(tag_name->callee).utf8();
 
-      return {std::nullopt, std::move(tag_name_str)};
+      return {get_offset(tag_name_str), std::move(tag_name_str)};
     }
     else {
       throw CodegenError{

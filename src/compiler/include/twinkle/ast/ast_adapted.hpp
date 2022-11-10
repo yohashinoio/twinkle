@@ -80,7 +80,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
   twinkle::ast::Value,
-  (const twinkle::codegen::Value*, value)
+  (std::shared_ptr<twinkle::codegen::Value>, value)
 )
 
 BOOST_FUSION_ADAPT_STRUCT(

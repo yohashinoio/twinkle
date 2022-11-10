@@ -313,7 +313,8 @@ UnionType::createVariants(CGContext&         ctx,
        createStructType(ctx,
                         std::vector<llvm::Type*>{ctx.builder.getInt8Ty(),
                                                  r.type->getLLVMType(ctx)},
-                        variant_name)});
+                        variant_name),
+       r.type});
 
     ++offset;
   }

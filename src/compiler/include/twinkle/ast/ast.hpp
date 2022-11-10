@@ -282,12 +282,12 @@ struct ReferenceType : x3::position_tagged {
 // Never created from parsing
 // Use when you want to convert Value to AST during code generation
 struct Value {
-  explicit Value(const codegen::Value* value) noexcept
+  explicit Value(const std::shared_ptr<codegen::Value>& value) noexcept
     : value{value}
   {
   }
 
-  const codegen::Value* value;
+  std::shared_ptr<codegen::Value> value;
 };
 
 struct StringLiteral : x3::position_tagged {
@@ -657,7 +657,21 @@ struct Return : x3::position_tagged {
   std::optional<Expr> rhs;
 };
 
+// If type is std::nullopt, type inference is used
 struct VariableDef : x3::position_tagged {
+  VariableDef(std::optional<VariableQual>&& qualifier,
+              const Identifier&             name,
+              std::optional<Type>&&         type,
+              std::optional<Expr>&&         initializer)
+    : qualifier{std::move(qualifier)}
+    , name{name}
+    , type{std::move(type)}
+    , initializer{std::move(initializer)}
+  {
+  }
+
+  VariableDef() = default;
+
   std::optional<VariableQual> qualifier;
   Identifier                  name;
   std::optional<Type>         type;
