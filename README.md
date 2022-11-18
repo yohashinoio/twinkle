@@ -6,13 +6,6 @@
   [Examples](examples)
 </div>
 
-## Key Features of Twinkle
-- Syntax is like c++, swift and rust combined.
-- Language specification is similar to c++.
-- LLVM backend.
-- Support for both AOT and JIT compilation.
-- Variables are immutable by default.
-
 ## Installing
 ### Dependency List
 - LLVM (Confirmed to work with 13 and 14)
@@ -31,7 +24,8 @@ Install GCC, Make, CMake and Boost.
 ```bash
 $ sudo apt install -y build-essential cmake libboost-all-dev
 ```
-Install LLVM. (https://apt.llvm.org/)
+Install LLVM. (https://apt.llvm.org/)<br/>
+Versions other than 13 and 14 may not work.
 ```bash
 $ sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
 ```
@@ -39,7 +33,7 @@ $ sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
 ### Installation
 Clone this repository.
 ```bash
-$ git clone https://github.com/yohashinoio/twinkle.git
+$ git clone https://github.com/yohashinoio/Twinkle.git
 $ cd twinkle
 ```
 Create build directory.
@@ -48,19 +42,19 @@ $ mkdir build && cd $_
 ```
 Build and install.
 ```bash
-$ cmake ..
+$ cmake .. -DCMAKE_BUILD_TYPE=Release
 $ cmake --build . -j
 $ sudo cmake --install .
 ```
 If you want to specify where to install.
 ```bash
-$ cmake .. -DCMAKE_INSTALL_PREFIX="path/to/install"
+$ cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="path/to/install"
 $ cmake --build . -j
 $ cmake --install .
 ```
 If you want to specify the path to llvm-config.
 ```bash
-$ cmake .. -DLLVM_CONFIG_PATH="path/to/llvm-config"
+$ cmake .. -DCMAKE_BUILD_TYPE=Release -DLLVM_CONFIG_PATH="path/to/llvm-config"
 $ cmake --build . -j
 $ sudo cmake --install .
 ```
@@ -68,7 +62,7 @@ $ sudo cmake --install .
 ### Testing
 Passing -DENABLE_TEST=1 to cmake and building will create an executable file for testing.
 ```bash
-$ cmake .. -DENABLE_TEST=1
+$ cmake .. -DCMAKE_BUILD_TYPE=Debug -DENABLE_TEST=1
 $ cmake --build . -j
 ```
 Run the test with CTest.
