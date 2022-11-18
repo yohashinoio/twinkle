@@ -738,7 +738,7 @@ const auto primary_def
   = builtin_macro | class_literal | identifier | float_64bit | binary_literal
     | octal_literal | hex_literal | int_32bit | uint_32bit | int_64bit
     | uint_64bit | boolean_literal | string_literal | char_literal
-    | array_literal | (lit(U"(") > expr > lit(U")"));
+    | array_literal | template_args | (lit(U"(") > expr > lit(U")"));
 
 BOOST_SPIRIT_DEFINE(expr)
 BOOST_SPIRIT_DEFINE(binary_logical)
@@ -869,8 +869,8 @@ const auto union_tag_def = identifier > lit(U"(") > type_name > lit(U")");
 
 const auto union_tag_list_def = (union_tag % lit(U",")) > -lit(U",");
 
-const auto union_def_def = is_public >> union_key > identifier > lit(U"{")
-                           > union_tag_list > lit(U"}");
+const auto union_def_def = is_public >> union_key > identifier > template_params
+                           > lit(U"{") > union_tag_list > lit(U"}");
 
 const auto parameter_def
   = (identifier > lit(U":") > *variable_qualifier > type_name > x3::attr(false))

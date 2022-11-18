@@ -89,27 +89,13 @@ private:
 [[nodiscard]] ScopeResolutionResult
 createScopeResolutionResult(CGContext& ctx, const ast::ScopeResolution& node)
 {
-  const auto lhs_must_be_ident_err = [&]() {
-    throw CodegenError{ctx.formatError(
-      ctx.positionOf(node),
-      "the left side of the scope resolution must be an identifier")};
-  };
+  std::vector<ast::Expr> ns_names;
 
-  std::vector<std::string> ns_names;
-
-  if (auto const x = boost::get<ast::Identifier>(&node.lhs))
-    ns_names.push_back(x->utf8());
-  else
-    lhs_must_be_ident_err();
+  ns_names.push_back(node.lhs);
 
   for (const auto* target = &node.rhs;;) {
     if (auto const x = boost::get<ast::ScopeResolution>(target)) {
-      auto const ident = boost::get<ast::Identifier>(&x->lhs);
-
-      if (ident)
-        ns_names.push_back(ident->utf8());
-      else
-        lhs_must_be_ident_err();
+      ns_names.push_back(x->lhs);
 
       target = &x->rhs;
       continue;
@@ -671,8 +657,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     // We use std::optional in a role similar to that of a pointer
     std::optional<Value> return_value;
 
-    if (const auto expr = boost::get<ast::FunctionCall>(&result.expr);
-        expr && ctx.union_table[result.ns_names.back()]) {
+    if (const auto expr = boost::get<ast::FunctionCall>(&result.expr)) {
       // Union literals
       if (expr->args.size() != 1) {
         throw CodegenError{
@@ -680,26 +665,87 @@ struct ExprVisitor : public boost::static_visitor<Value> {
                           "union literal requires only one argument")};
       }
 
+      std::optional<std::string> union_name;
+
+      if (const auto targs
+          = boost::get<ast::TemplateArguments>(&result.ns_names.back())) {
+        // Union template literals
+        const auto union_name_p
+          = boost::get<ast::Identifier>(&result.ns_names.at(
+            result.ns_names.size() - 2 /* Element before back */));
+        assert(union_name_p);
+        union_name = union_name_p->utf8();
+
+        createUnionFromTemplate(*union_name,
+                                *targs,
+                                ctx.positionOf(*union_name_p));
+      }
+      else
+        union_name = boost::get<ast::Identifier>(result.ns_names.back()).utf8();
+
       const auto tag_name = boost::get<ast::Identifier>(&expr->callee);
       assert(tag_name);
 
-      return_value = createUnionLiteral(result.ns_names.back(),
+      assert(union_name);
+      return_value = createUnionLiteral(*union_name,
                                         tag_name->utf8(),
                                         expr->args.front(),
                                         ctx.positionOf(node));
     }
     else {
       // Others
-      const NamespaceDefiner definer{ctx, result.ns_names};
-
-      return_value = createExpr(ctx, scope, stmt_ctx, result.expr);
+      unreachable();
     }
 
     assert(return_value);
     return *return_value;
   }
 
+  [[nodiscard]] Value operator()(const ast::TemplateArguments& node) const
+  {
+    throw CodegenError{
+      ctx.formatError(ctx.positionOf(node),
+                      "template arguments are not available here")};
+  }
+
 private:
+  void createUnionFromTemplate(const std::string&            union_name,
+                               const ast::TemplateArguments& template_args,
+                               const PositionRange&          pos) const
+  {
+    const auto union_template = findUnionTemplate(union_name, template_args);
+
+    if (!union_template) {
+      throw CodegenError{ctx.formatError(
+        pos,
+        fmt::format("unknown function template '{}' called", union_name))};
+    }
+
+    const auto& ast = union_template->first;
+
+    // Save the current insert block
+    // Because leave the current function at union creation time
+    const auto return_bb = ctx.builder.GetInsertBlock();
+
+    {
+      const TemplateArgumentsDefiner definer{
+        ctx,
+        template_args,
+        union_template->first.template_params,
+        pos};
+
+      ast::UnionDef tmp{ast.is_public,
+                        ast.name,
+                        ast::TemplateParameters{},
+                        ast.type_list};
+      assignPosition(tmp, template_args);
+      createTopLevel(ctx, tmp);
+    }
+
+    // Return insert point to previous location
+    ctx.builder.SetInsertPoint(return_bb);
+  }
+
   [[nodiscard]] Value createUnionLiteral(const std::string&   union_name,
                                          const std::string&   tag,
                                          const ast::Expr&     initializer,
@@ -805,6 +851,29 @@ private:
     unreachable();
   }
 
+  [[nodiscard]] std::optional<std::pair<ast::UnionDef, NamespaceStack>>
+  findUnionTemplate(const std::string_view        name,
+                    const ast::TemplateArguments& args) const
+  {
+    auto namespace_copy = ctx.ns_hierarchy;
+
+    for (;;) {
+      if (const auto value
+          = ctx.union_template_table[TemplateTableKey{name,
+                                                      args.types.size(),
+                                                      namespace_copy}]) {
+        return std::make_pair(*value, std::move(namespace_copy));
+      }
+
+      if (namespace_copy.empty())
+        return std::nullopt;
+
+      namespace_copy.pop();
+    }
+
+    unreachable();
+  }
+
   [[nodiscard]] llvm::Function*
   createFunctionTemplate(const FunctionTemplateTableValue& ast,
                          const ast::TemplateArguments&     template_args,
@@ -856,8 +925,8 @@ private:
       func->setLinkage(llvm::Function::LinkageTypes::InternalLinkage);
 
     {
-      // Save the current insert block because a function template is created
-      // from within a function
+      // Save the current insert block
+      // Because leave the current function at function creation time
       const auto return_bb = ctx.builder.GetInsertBlock();
 
       createFunctionBody(ctx,

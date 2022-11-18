@@ -391,7 +391,9 @@ using ExprT17 = boost::mpl::push_back<ExprT16, Value>::type;
 
 using ExprT18 = boost::mpl::push_back<ExprT17, std::uint8_t>::type;
 
-using ExprTypes = ExprT18;
+using ExprT19 = boost::mpl::push_back<ExprT18, TemplateArguments>::type;
+
+using ExprTypes = ExprT19;
 
 using Expr = boost::make_variant_over<ExprTypes>::type;
 
@@ -878,6 +880,12 @@ struct Match : x3::position_tagged {
 // Top level AST
 //===----------------------------------------------------------------------===//
 
+#define DEFINE_IS_TEMPLATE_FUNC(name)            \
+  [[nodiscard]] bool isTemplate() const noexcept \
+  {                                              \
+    return !name.empty();                        \
+  }
+
 struct Parameter : x3::position_tagged {
   Identifier                       name;
   std::unordered_set<VariableQual> qualifier;
@@ -933,10 +941,7 @@ struct FunctionDecl : x3::position_tagged {
   bool               is_constructor = false;
   bool               is_destructor  = false;
 
-  [[nodiscard]] bool isTemplate() const noexcept
-  {
-    return !template_params.empty();
-  }
+  DEFINE_IS_TEMPLATE_FUNC(template_params)
 };
 
 struct FunctionDef : x3::position_tagged {
@@ -1058,10 +1063,7 @@ struct ClassDef : x3::position_tagged {
   TemplateParameters template_params;
   ClassMemberList    members;
 
-  [[nodiscard]] bool isTemplate() const noexcept
-  {
-    return !template_params.empty();
-  }
+  DEFINE_IS_TEMPLATE_FUNC(template_params)
 };
 
 struct UnionTag : x3::position_tagged {
@@ -1072,9 +1074,36 @@ struct UnionTag : x3::position_tagged {
 using UnionTagList = std::vector<UnionTag>;
 
 struct UnionDef : x3::position_tagged {
-  bool         is_public;
-  Identifier   name;
-  UnionTagList type_list;
+  UnionDef(const bool           is_public,
+           Identifier&&         name,
+           TemplateParameters&& template_params,
+           UnionTagList&&       type_list) noexcept
+    : is_public{is_public}
+    , name{std::move(name)}
+    , template_params{std::move(template_params)}
+    , type_list{std::move(type_list)}
+  {
+  }
+
+  UnionDef(const bool           is_public,
+           const Identifier&    name,
+           const TemplateParameters& template_params,
+           const UnionTagList&       type_list)
+    : is_public{is_public}
+    , name{name}
+    , template_params{template_params}
+    , type_list{type_list}
+  {
+  }
+
+  UnionDef() = default;
+
+  bool               is_public;
+  Identifier         name;
+  TemplateParameters template_params;
+  UnionTagList       type_list;
+
+  DEFINE_IS_TEMPLATE_FUNC(template_params)
 };
 
 struct Typedef : x3::position_tagged {

@@ -237,6 +237,11 @@ using CreatedClassTemplateTableKey = std::tuple<std::string, // Name
 using CreatedClassTemplateTableElem
   = std::pair<CreatedClassTemplateTableKey, std::shared_ptr<Type>>;
 
+// std::unordered_map cannot use std::tuple as a key, so use std::map instead
+using UnionTemplateTable = Table<TemplateTableKey,
+                                 ast::UnionDef,
+                                 std::map<TemplateTableKey, ast::UnionDef>>;
+
 struct CreatedClassTemplateTable {
   CreatedClassTemplateTable(CGContext& ctx)
     : ctx{ctx}
@@ -330,11 +335,12 @@ struct CGContext : private boost::noncopyable {
   ClassTable                        class_table;
   FunctionReturnTypeTable           return_type_table;
   FunctionParameterTypesTable       param_types_table;
-  AliasTable                        alias_table;
   FunctionTemplateTable             func_template_table;
+  AliasTable                        alias_table;
   ClassTemplateTable                class_template_table;
   CreatedClassTemplateTable         created_class_template_table;
   UnionTable                        union_table;
+  UnionTemplateTable                union_template_table;
   PositionCacheTable                position_cache_table;
   // If you want to find template arguments, look for them in the symbol table
   // of top

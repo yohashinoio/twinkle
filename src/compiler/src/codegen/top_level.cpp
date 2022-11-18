@@ -546,6 +546,8 @@ void createClass(CGContext&                        ctx,
 
 void createUnion(CGContext& ctx, const ast::UnionDef& node)
 {
+  assert(!node.isTemplate());
+
   const auto union_name = node.name.utf8();
 
   const auto pos = ctx.positionOf(node);
@@ -609,7 +611,7 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
                           fmt::format("redefinition of '{}'", name))};
       }
 
-      ctx.func_template_table.insert(key, node);
+      ctx.func_template_table.insert(std::move(key), node);
 
       return nullptr;
     }
@@ -669,6 +671,26 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
 
   llvm::Function* operator()(const ast::UnionDef& node) const
   {
+    if (node.isTemplate()) {
+      verifyTemplateParameter(node.template_params);
+
+      const auto name = node.name.utf8();
+
+      const auto key = TemplateTableKey{name,
+                                        node.template_params->size(),
+                                        ctx.ns_hierarchy};
+
+      if (ctx.union_template_table.exists(key)) {
+        throw CodegenError{
+          ctx.formatError(ctx.positionOf(node),
+                          fmt::format("redefinition of '{}'", name))};
+      }
+
+      ctx.union_template_table.insert(std::move(key), node);
+
+      return nullptr;
+    }
+
     createUnion(ctx, node);
 
     return nullptr;
@@ -741,7 +763,7 @@ private:
                         fmt::format("redefinition of '{}'", name))};
     }
 
-    ctx.class_template_table.insert(key, node);
+    ctx.class_template_table.insert(std::move(key), node);
   }
 
   void verifyTemplateParameter(const ast::TemplateParameters& params) const

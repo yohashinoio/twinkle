@@ -1,0 +1,10 @@
+union Result<T, E> {
+  Ok(T),
+  Err(E),
+}
+
+func main() -> i32
+{
+  let n1 = Result::<f64, i32>::Ok(48.10);
+  return 58;
+}

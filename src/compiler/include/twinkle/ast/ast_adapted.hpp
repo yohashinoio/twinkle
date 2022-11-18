@@ -327,6 +327,7 @@ BOOST_FUSION_ADAPT_STRUCT(
   twinkle::ast::UnionDef,
   (bool, is_public)
   (twinkle::ast::Identifier, name)
+  (twinkle::ast::TemplateParameters, template_params)
   (twinkle::ast::UnionTagList, type_list)
 )
 
