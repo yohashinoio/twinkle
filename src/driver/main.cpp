@@ -19,7 +19,7 @@ callLinker(const std::vector<std::filesystem::path>& files,
   if (!system(nullptr))
     return std::nullopt;
 
-  std::string command = "cc";
+  std::string command = "gcc";
 
   for (const auto& r : files)
     command += (' ' + r.string());
