@@ -31,7 +31,7 @@ $ cd /tmp
 $ wget https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.tar.bz2
 $ tar jxvf boost_1_80_0.tar.bz2
 $ cd boost_1_80_0/
-$ ./bootstrap.sh --prefix=/usr/
+$ ./bootstrap.sh --prefix=/usr/local/
 $ sudo ./b2 install -j$(expr $(nproc) + 1)
 ```
 Install LLVM 14. (https://apt.llvm.org/)<br/>
