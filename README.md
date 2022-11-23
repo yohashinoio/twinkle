@@ -20,14 +20,27 @@ Here is how to install them in ubuntu.
 ```bash
 $ sudo apt update -y
 ```
-Install GCC, Make, CMake and Boost.
+Install GCC, Make and CMake.
 ```bash
-$ sudo apt install -y build-essential cmake libboost-all-dev
+$ sudo apt install -y build-essential cmake
 ```
-Install LLVM. (https://apt.llvm.org/)<br/>
+Install Boost 1.80.0.
+```bash
+$ sudo apt install -y g++ python-dev autotools-dev libicu-dev libbz2-dev
+$ cd /tmp
+$ wget https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.tar.bz2
+$ tar jxvf boost_1_80_0.tar.bz2
+$ cd boost_1_80_0/
+$ ./bootstrap.sh --prefix=/usr/
+$ sudo ./b2 install -j$(expr $(nproc) + 1)
+```
+Install LLVM 14. (https://apt.llvm.org/)<br/>
 Versions other than 13 and 14 may not work.
 ```bash
-$ sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
+$ cd /tmp
+$ wget https://apt.llvm.org/llvm.sh
+$ chmod +x llvm.sh
+$ sudo ./llvm.sh 14
 ```
 
 ### Installation
