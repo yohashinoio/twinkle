@@ -62,7 +62,7 @@ $ sudo cmake --install .
 ### Testing
 Passing -DENABLE_TEST=1 to cmake and building will create an executable file for testing.
 ```bash
-$ cmake .. -DCMAKE_BUILD_TYPE=Debug -DENABLE_TEST=1
+$ cmake .. -DENABLE_TEST=1
 $ cmake --build . -j
 ```
 Run the test with CTest.
