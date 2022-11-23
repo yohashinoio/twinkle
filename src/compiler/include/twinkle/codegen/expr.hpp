@@ -1,5 +1,5 @@
 /**
- * These codes are licensed under LICNSE_NAME License
+ * These codes are licensed under LGPL-2.1 License
  * See the LICENSE for details
  *
  * Copyright (c) 2022 Hiramoto Ittou
@@ -31,7 +31,7 @@ findFunction(CGContext& ctx,
 
 struct ScopeResolutionResult {
   ScopeResolutionResult(std::vector<ast::Expr>&& ns_names,
-                        const ast::Expr&           expr)
+                        const ast::Expr&         expr)
     : ns_names{std::move(ns_names)}
     , expr{expr}
   {

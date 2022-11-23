@@ -78,5 +78,5 @@ $ ctest --output-on-failure
 - [きつねさんでもわかるLLVM](https://tatsu-zine.com/books/llvm): あらゆる可能性を秘めたコンパイラ基盤として注目されているLLVM。本書はコンパイラを実際に作りながらLLVMのフロントエンドからバックエンドまでを幅広く解説した世界初(!?)のLLVM解説本です。
 
 ## License
-This project is available under the LICNSE_NAME license.<br/>
+This project is available under the LGPL-2.1 license.<br/>
 See LICENSE for the full content of the licenses.
