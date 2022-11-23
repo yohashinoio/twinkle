@@ -1,0 +1,24 @@
+class Sample {
+  let n: i32;
+  let f: f64;
+}
+
+func main() -> i32
+{
+  let i32_size = i32.sizeof;
+  let f64_size = f64.sizeof;
+
+  // Alignment test
+  let sample_size = Sample.sizeof;
+
+  if (i32_size != 4)
+    return 123;
+
+  if (f64_size != 8)
+    return 124;
+
+  if (sample_size != 16 /* Aligned size */)
+    return 125;
+
+  return 58;
+}

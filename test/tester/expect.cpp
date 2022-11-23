@@ -206,6 +206,7 @@ namespace test
     {                    "match_union_wildcard", 116},
     {              "match_reading_union_values", 174},
     {     "union_generics_single_instantiation",  58},
+    {                            "size_of_type",  58},
   };
 
   const auto it = expects.find(test_name);

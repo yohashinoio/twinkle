@@ -305,6 +305,10 @@ struct BuiltinMacro : x3::position_tagged {
   codegen::BuiltinMacroKind kind;
 };
 
+struct SizeOfType : x3::position_tagged {
+  Type type;
+};
+
 struct BinOp;
 struct UnaryOp;
 struct Reference;
@@ -393,7 +397,9 @@ using ExprT18 = boost::mpl::push_back<ExprT17, std::uint8_t>::type;
 
 using ExprT19 = boost::mpl::push_back<ExprT18, TemplateArguments>::type;
 
-using ExprTypes = ExprT19;
+using ExprT20 = boost::mpl::push_back<ExprT19, SizeOfType>::type;
+
+using ExprTypes = ExprT20;
 
 using Expr = boost::make_variant_over<ExprTypes>::type;
 
@@ -1085,8 +1091,8 @@ struct UnionDef : x3::position_tagged {
   {
   }
 
-  UnionDef(const bool           is_public,
-           const Identifier&    name,
+  UnionDef(const bool                is_public,
+           const Identifier&         name,
            const TemplateParameters& template_params,
            const UnionTagList&       type_list)
     : is_public{is_public}

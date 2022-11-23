@@ -708,6 +708,13 @@ struct ExprVisitor : public boost::static_visitor<Value> {
                       "template arguments are not available here")};
   }
 
+  [[nodiscard]] Value operator()(const ast::SizeOfType& node) const
+  {
+    const auto type = createType(ctx, node.type, ctx.positionOf(node));
+
+    return createSizeOf(type->getLLVMType(ctx));
+  }
+
 private:
   void createUnionFromTemplate(const std::string&            union_name,
                                const ast::TemplateArguments& template_args,

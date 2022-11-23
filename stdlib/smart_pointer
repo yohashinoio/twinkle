@@ -1,20 +1,26 @@
-pub class rc<T> {
-  rc(value: &T)
-    : p{new T}
-    , count{new i32}
+[[nomangle]]
+declare func malloc(size: usize) -> ^i8;
+
+[[nomangle]]
+declare func free(p: ^i8);
+
+pub class SharedP<T> {
+  SharedP(value: &T)
+    : p{malloc(sizeof value) as ^T}
+    , count{malloc(sizeof i32) as ^i32}
   {
     p^ = value;
     count^ = 1;
   }
 
-  rc(other: &rc<T>)
+  SharedP(other: &SharedP<T>)
     : p{other.p}
     , count{other.count}
   {
     increment_count();
   }
 
-  ~rc()
+  ~SharedP()
   {
     release();
   }
@@ -29,8 +35,8 @@ pub class rc<T> {
     decrement_count();
 
     if (count^ == 0) {
-      delete p;
-      delete count;
+      free(p);
+      free(count);
     }
   }
 

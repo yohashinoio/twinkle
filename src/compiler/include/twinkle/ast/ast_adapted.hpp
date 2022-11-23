@@ -84,6 +84,11 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
+  twinkle::ast::SizeOfType,
+  (twinkle::ast::Type, type)
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
   twinkle::ast::StringLiteral,
   (std::u32string, str)
 )

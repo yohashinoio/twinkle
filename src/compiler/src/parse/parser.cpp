@@ -327,6 +327,7 @@ DECLARE_X3_RULE(type_name, ast::Type, "type name")
 // Expression rules declaration
 //===----------------------------------------------------------------------===//
 
+DECLARE_X3_RULE(size_of_type, ast::SizeOfType, "size of type")
 DECLARE_X3_RULE(expr, ast::Expr, "expression")
 DECLARE_X3_RULE(binary_logical, ast::Expr, "binary logical operation")
 DECLARE_X3_RULE(equal, ast::Expr, "equality operation")
@@ -647,6 +648,8 @@ const auto bitwise_and_operator
 // Expression rules definition
 //===----------------------------------------------------------------------===//
 
+const auto size_of_type_def = type_name >> lit(U".") >> lit(U"sizeof");
+
 const auto expr_def = binary_logical;
 
 const auto binary_logical_def
@@ -735,11 +738,12 @@ const auto scope_resolution_def
     >> *(string(U"::") > expr)[action::assignToValAs<ast::ScopeResolution>{}];
 
 const auto primary_def
-  = builtin_macro | class_literal | identifier | float_64bit | binary_literal
-    | octal_literal | hex_literal | int_32bit | uint_32bit | int_64bit
-    | uint_64bit | boolean_literal | string_literal | char_literal
+  = builtin_macro | size_of_type | class_literal | identifier | float_64bit
+    | binary_literal | octal_literal | hex_literal | int_32bit | uint_32bit
+    | int_64bit | uint_64bit | boolean_literal | string_literal | char_literal
     | array_literal | template_args | (lit(U"(") > expr > lit(U")"));
 
+BOOST_SPIRIT_DEFINE(size_of_type)
 BOOST_SPIRIT_DEFINE(expr)
 BOOST_SPIRIT_DEFINE(binary_logical)
 BOOST_SPIRIT_DEFINE(equal)
