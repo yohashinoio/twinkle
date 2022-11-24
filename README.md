@@ -47,7 +47,7 @@ $ sudo ./llvm.sh 14
 Clone this repository.
 ```bash
 $ git clone https://github.com/yohashinoio/Twinkle.git
-$ cd twinkle
+$ cd Twinkle
 ```
 Create build directory.
 ```bash
