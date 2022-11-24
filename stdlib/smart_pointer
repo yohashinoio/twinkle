@@ -4,8 +4,8 @@ declare func malloc(size: usize) -> ^i8;
 [[nomangle]]
 declare func free(p: ^i8);
 
-class SharedP<T> {
-  SharedP(value: &T)
+class SharedPointer<T> {
+  SharedPointer(value: &T)
     : p{malloc(sizeof value) as ^T}
     , count{malloc(i32.sizeof) as ^i32}
   {
@@ -13,14 +13,14 @@ class SharedP<T> {
     count^ = 1;
   }
 
-  SharedP(other: &SharedP<T>)
+  SharedPointer(other: &SharedPointer<T>)
     : p{other.p}
     , count{other.count}
   {
     increment_count();
   }
 
-  ~SharedP()
+  ~SharedPointer()
   {
     release();
   }
