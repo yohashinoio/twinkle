@@ -409,8 +409,10 @@ DECLARE_X3_RULE(function_decl, ast::FunctionDecl, "function declaration")
 DECLARE_X3_RULE(function_def, ast::FunctionDef, "function definition")
 DECLARE_X3_RULE(type_def, ast::Typedef, "typedef")
 DECLARE_X3_RULE(import_, ast::Import, "import")
+DECLARE_X3_RULE(name_space, ast::Namespace, "namespace")
 DECLARE_X3_RULE(top_level, ast::TopLevel, "top level")
 DECLARE_X3_RULE(top_level_with_attr, ast::TopLevelWithAttr, "top level")
+DECLARE_X3_RULE(top_level_list, ast::TopLevelList, "top level list")
 
 //===----------------------------------------------------------------------===//
 // Comment rules declaration
@@ -718,8 +720,13 @@ const auto subscript_def
          > lit(U"]"))[action::assignToValAs<ast::Subscript>{}];
 
 const auto dereference_def
-  = function_call[action::assignAttrToVal]
+  = scope_resolution[action::assignAttrToVal]
     >> *lit(U"^")[action::assignToValAs<ast::Dereference>{}];
+
+const auto scope_resolution_def
+  = function_call[action::assignAttrToVal]
+    >> *(string(U"::")
+         > function_call)[action::assignToValAs<ast::ScopeResolution>{}];
 
 const auto arg_list_def = -(expr % lit(U","));
 
@@ -729,13 +736,9 @@ const auto function_call_def
          > lit(U")"))[action::assignToValAs<ast::FunctionCall>{}];
 
 const auto function_template_call_def
-  = scope_resolution[action::assignAttrToVal]
+  = primary[action::assignAttrToVal]
     >> *(template_args > string(U"(") > arg_list
          > lit(U")"))[action::assignToValAs<ast::FunctionTemplateCall>{}];
-
-const auto scope_resolution_def
-  = primary[action::assignAttrToVal]
-    >> *(string(U"::") > expr)[action::assignToValAs<ast::ScopeResolution>{}];
 
 const auto primary_def
   = builtin_macro | size_of_type | class_literal | identifier | float_64bit
@@ -898,11 +901,18 @@ const auto type_def_def
 const auto import__def
   = lit(U"import") > lit(U"\"") > path > lit(U"\"") > lit(U";");
 
-const auto top_level_def = function_decl | function_def | class_decl | class_def
-                           | union_def | type_def | import_;
+const auto name_space_def
+  = lit(U"namespace") > identifier > lit(U"{") > top_level_list > lit(U"}");
+
+const auto top_level_def = name_space | function_decl | function_def
+                           | class_decl | class_def | union_def | type_def
+                           | import_;
 
 const auto top_level_with_attr_def = -attribute >> top_level_def;
 
+const auto top_level_list_def = *top_level_with_attr;
+
+BOOST_SPIRIT_DEFINE(name_space)
 BOOST_SPIRIT_DEFINE(is_public)
 BOOST_SPIRIT_DEFINE(template_params)
 BOOST_SPIRIT_DEFINE(class_key)
@@ -927,6 +937,7 @@ BOOST_SPIRIT_DEFINE(type_def)
 BOOST_SPIRIT_DEFINE(import_)
 BOOST_SPIRIT_DEFINE(top_level)
 BOOST_SPIRIT_DEFINE(top_level_with_attr)
+BOOST_SPIRIT_DEFINE(top_level_list)
 
 //===----------------------------------------------------------------------===//
 // Comment rules definition
@@ -956,7 +967,7 @@ BOOST_SPIRIT_DEFINE(skipper)
 // Translation unit rule and tag definition
 //===----------------------------------------------------------------------===//
 
-const auto translation_unit_def = *top_level_with_attr > x3::eoi;
+const auto translation_unit_def = top_level_list > x3::eoi;
 
 BOOST_SPIRIT_DEFINE(translation_unit)
 

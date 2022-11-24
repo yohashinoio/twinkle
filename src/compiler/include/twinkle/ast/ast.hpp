@@ -647,7 +647,7 @@ struct ClassLiteral : x3::position_tagged {
 };
 
 struct ScopeResolution : x3::position_tagged {
-  ScopeResolution(Expr&& lhs, Expr&& rhs)
+  ScopeResolution(Expr&& lhs, Expr&& rhs) noexcept
     : lhs{std::move(lhs)}
     , rhs{std::move(rhs)}
   {
@@ -1121,6 +1121,14 @@ struct Import : x3::position_tagged {
   Path path;
 };
 
+struct TopLevelWithAttr;
+using TopLevelList = std::vector<TopLevelWithAttr>;
+
+struct Namespace : x3::position_tagged {
+  Identifier   name;
+  TopLevelList top_levels;
+};
+
 using TopLevel = boost::variant<boost::blank,
                                 FunctionDecl,
                                 FunctionDef,
@@ -1128,7 +1136,8 @@ using TopLevel = boost::variant<boost::blank,
                                 ClassDef,
                                 UnionDef,
                                 Typedef,
-                                Import>;
+                                Import,
+                                Namespace>;
 
 // Example: [[nodiscard, nomangle]]
 using Attrs = std::vector<std::u32string>;
@@ -1138,7 +1147,7 @@ struct TopLevelWithAttr : x3::position_tagged {
   TopLevel top_level;
 };
 
-using TranslationUnit = std::vector<TopLevelWithAttr>;
+using TranslationUnit = TopLevelList;
 
 } // namespace ast
 

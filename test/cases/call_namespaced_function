@@ -1,0 +1,29 @@
+namespace abc {
+  func f() -> i32
+  {
+    return 48;
+  }
+
+  func h() -> i32
+  {
+    return 48;
+  }
+
+  namespace def {
+    func f() -> i32
+    {
+      return 10;
+    }
+
+    func g() -> i32
+    {
+      if ((f() + h()) == 58)
+        return 58;
+    }
+  }
+}
+
+func main() -> i32
+{
+  return abc::f() + abc::def::f() + abc::def::g();
+}

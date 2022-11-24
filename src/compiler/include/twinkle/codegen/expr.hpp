@@ -30,8 +30,7 @@ findFunction(CGContext& ctx,
                mangled_names /* Assuming they are in order of priority */);
 
 struct ScopeResolutionResult {
-  ScopeResolutionResult(std::vector<ast::Expr>&& ns_names,
-                        const ast::Expr&         expr)
+  ScopeResolutionResult(std::deque<ast::Expr>&& ns_names, const ast::Expr& expr)
     : ns_names{std::move(ns_names)}
     , expr{expr}
   {
@@ -39,7 +38,7 @@ struct ScopeResolutionResult {
 
   // A::B::C()
   // ^~~~
-  std::vector<ast::Expr> ns_names;
+  std::deque<ast::Expr> ns_names;
 
   // A::B::C()
   //       ^~~

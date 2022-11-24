@@ -41,6 +41,7 @@ toLLVMVals(const std::deque<Value>& v)
 struct NamespaceDefiner : boost::noncopyable {
   NamespaceDefiner(CGContext& ctx, const std::vector<std::string>& names)
     : ctx{ctx}
+    , push_count{}
   {
     for (const auto& r : names) {
       ctx.ns_hierarchy.push({r, NamespaceKind::namespace_});
@@ -89,20 +90,24 @@ private:
 [[nodiscard]] ScopeResolutionResult
 createScopeResolutionResult(CGContext& ctx, const ast::ScopeResolution& node)
 {
-  std::vector<ast::Expr> ns_names;
+  std::deque<ast::Expr> ns_names;
 
-  ns_names.push_back(node.lhs);
-
-  for (const auto* target = &node.rhs;;) {
+  for (const auto* target = &node.lhs;;) {
     if (auto const x = boost::get<ast::ScopeResolution>(target)) {
-      ns_names.push_back(x->lhs);
-
-      target = &x->rhs;
+      ns_names.push_front(x->rhs);
+      target = &x->lhs;
       continue;
     }
 
-    assert(!ns_names.empty());
-    return ScopeResolutionResult{std::move(ns_names), *target};
+    if (ns_names.empty()) {
+      // abc::f()
+      // ^~~
+      ns_names.push_back(node.lhs);
+    }
+
+    ns_names.push_front(*target);
+
+    return ScopeResolutionResult{std::move(ns_names), node.rhs};
   }
 
   unreachable();
@@ -652,6 +657,7 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
   [[nodiscard]] Value operator()(const ast::ScopeResolution& node) const
   {
+    const auto pos    = ctx.positionOf(node);
     const auto result = createScopeResolutionResult(ctx, node);
 
     // We use std::optional in a role similar to that of a pointer
@@ -659,12 +665,6 @@ struct ExprVisitor : public boost::static_visitor<Value> {
 
     if (const auto expr = boost::get<ast::FunctionCall>(&result.expr)) {
       // Union literals
-      if (expr->args.size() != 1) {
-        throw CodegenError{
-          ctx.formatError(ctx.positionOf(node),
-                          "union literal requires only one argument")};
-      }
-
       std::optional<std::string> union_name;
 
       if (const auto targs
@@ -680,8 +680,11 @@ struct ExprVisitor : public boost::static_visitor<Value> {
                                 *targs,
                                 ctx.positionOf(*union_name_p));
       }
-      else
-        union_name = boost::get<ast::Identifier>(result.ns_names.back()).utf8();
+      else {
+        const auto x = boost::get<ast::Identifier>(&result.ns_names.back());
+        assert(x);
+        union_name = x->utf8();
+      }
 
       const auto tag_name = boost::get<ast::Identifier>(&expr->callee);
       assert(tag_name);
@@ -690,14 +693,20 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       return_value = createUnionLiteral(*union_name,
                                         tag_name->utf8(),
                                         expr->args.front(),
-                                        ctx.positionOf(node));
-    }
-    else {
-      // Others
-      unreachable();
+                                        pos);
     }
 
-    assert(return_value);
+    if (!return_value) {
+      // Others
+      const NamespaceDefiner definer{
+        ctx,
+        stringifyExprs(result.ns_names, [&]() {
+          throw CodegenError{ctx.formatError(pos, "not a namespace")};
+        })};
+
+      return_value = createExpr(ctx, scope, stmt_ctx, result.expr);
+    }
+
     return *return_value;
   }
 
@@ -716,6 +725,23 @@ struct ExprVisitor : public boost::static_visitor<Value> {
   }
 
 private:
+  [[nodiscard]] std::vector<std::string>
+  stringifyExprs(const std::deque<ast::Expr>& exprs,
+                 const std::function<void()>& on_error) const
+  {
+    std::vector<std::string> strings;
+
+    for (const auto& r : exprs) {
+      const auto ns = boost::get<ast::Identifier>(&r);
+      if (ns)
+        strings.push_back(ns->utf8());
+      else
+        on_error();
+    }
+
+    return strings;
+  }
+
   void createUnionFromTemplate(const std::string&            union_name,
                                const ast::TemplateArguments& template_args,
                                const PositionRange&          pos) const
@@ -753,10 +779,12 @@ private:
     ctx.builder.SetInsertPoint(return_bb);
   }
 
-  [[nodiscard]] Value createUnionLiteral(const std::string&   union_name,
-                                         const std::string&   tag,
-                                         const ast::Expr&     initializer,
-                                         const PositionRange& pos) const
+  // Returns std::nullopt if union not found
+  [[nodiscard]] std::optional<Value>
+  createUnionLiteral(const std::string&   union_name,
+                     const std::string&   tag,
+                     const ast::Expr&     initializer,
+                     const PositionRange& pos) const
   {
     if (const auto union_type = ctx.union_table[union_name]) {
       auto const alloca
@@ -787,7 +815,7 @@ private:
                    union_type->get()};
     }
 
-    unreachable();
+    return std::nullopt;
   }
 
   [[nodiscard]] Value

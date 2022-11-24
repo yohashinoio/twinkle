@@ -745,6 +745,18 @@ struct TopLevelVisitor : public boost::static_visitor<llvm::Function*> {
     return nullptr;
   }
 
+  llvm::Function* operator()(const ast::Namespace& node) const
+  {
+    ctx.ns_hierarchy.push({node.name.utf8(), NamespaceKind::namespace_});
+
+    for (const auto& r : node.top_levels)
+      createTopLevel(ctx, r);
+
+    ctx.ns_hierarchy.pop();
+
+    return nullptr;
+  }
+
 private:
   void insertTemplateClassToTable(const ast::ClassDef& node) const
   {

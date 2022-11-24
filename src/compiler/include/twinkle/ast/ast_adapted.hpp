@@ -381,6 +381,12 @@ BOOST_FUSION_ADAPT_STRUCT(
   (twinkle::ast::TopLevel, top_level)
 )
 
+BOOST_FUSION_ADAPT_STRUCT(
+  twinkle::ast::Namespace,
+  (twinkle::ast::Identifier, name)
+  (twinkle::ast::TopLevelList, top_levels)
+)
+
 // clang-format on
 
 #endif
