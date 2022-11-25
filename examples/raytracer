@@ -462,14 +462,14 @@ class HDRPixelList {
   HDRPixelList()
   {
     head = new HDRPixelNode;
-    head^.next = 0 as ^HDRPixelNode;
+    head^.next = nullptr as ^HDRPixelNode;
 
     size = 0;
   }
 
   ~HDRPixelList()
   {
-    while (head^.next != 0 as ^HDRPixelNode) {
+    while (head^.next != nullptr as ^HDRPixelNode) {
       let tmp = head;
       head = head^.next;
       delete tmp;
@@ -483,7 +483,7 @@ class HDRPixelList {
     let newnode = new HDRPixelNode;
 
     newnode^.pix = val;
-    newnode^.next = 0 as ^HDRPixelNode;
+    newnode^.next = nullptr as ^HDRPixelNode;
 
     tail^.next = newnode;
 
@@ -510,7 +510,7 @@ private:
   {
     let mut p = head;
 
-    while (p^.next != 0 as ^HDRPixelNode)
+    while (p^.next != nullptr as ^HDRPixelNode)
       p = p^.next;
 
     return p;
