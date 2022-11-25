@@ -327,7 +327,6 @@ DECLARE_X3_RULE(type_name, ast::Type, "type name")
 // Expression rules declaration
 //===----------------------------------------------------------------------===//
 
-DECLARE_X3_RULE(size_of_type, ast::SizeOfType, "size of type")
 DECLARE_X3_RULE(expr, ast::Expr, "expression")
 DECLARE_X3_RULE(binary_logical, ast::Expr, "binary logical operation")
 DECLARE_X3_RULE(equal, ast::Expr, "equality operation")
@@ -354,6 +353,8 @@ DECLARE_X3_RULE(arg_list, std::deque<ast::Expr>, "argument list")
 DECLARE_X3_RULE(function_call, ast::Expr, "function call")
 DECLARE_X3_RULE(function_template_call, ast::Expr, "function template call")
 DECLARE_X3_RULE(scope_resolution, ast::Expr, "scope resolution")
+DECLARE_X3_RULE(size_of_type, ast::SizeOfType, "size of type")
+DECLARE_X3_RULE(null_pointer, ast::NullPointer, "null pointer")
 DECLARE_X3_RULE(primary, ast::Expr, "primary")
 
 //===----------------------------------------------------------------------===//
@@ -454,7 +455,7 @@ const auto identifier_internal_def
                        >> *((x3::unicode::graph - punct) | lit(U"_"))]];
 
 const auto identifier_def
-  = identifier_internal - (lit(U"true") | lit(U"false"));
+  = identifier_internal - (lit(U"true") | lit(U"false") | lit(U"nullptr"));
 
 const auto path_internal_def
   = x3::raw[x3::lexeme[(x3::unicode::graph - (x3::unicode::digit | punct)
@@ -740,11 +741,14 @@ const auto function_template_call_def
     >> *(template_args > string(U"(") > arg_list
          > lit(U")"))[action::assignToValAs<ast::FunctionTemplateCall>{}];
 
+const auto null_pointer_def = lit(U"nullptr") >> x3::attr(ast::NullPointer{});
+
 const auto primary_def
-  = builtin_macro | size_of_type | class_literal | identifier | float_64bit
-    | binary_literal | octal_literal | hex_literal | int_32bit | uint_32bit
-    | int_64bit | uint_64bit | boolean_literal | string_literal | char_literal
-    | array_literal | template_args | (lit(U"(") > expr > lit(U")"));
+  = null_pointer | builtin_macro | size_of_type | class_literal | identifier
+    | float_64bit | binary_literal | octal_literal | hex_literal | int_32bit
+    | uint_32bit | int_64bit | uint_64bit | boolean_literal | string_literal
+    | char_literal | array_literal | template_args
+    | (lit(U"(") > expr > lit(U")"));
 
 BOOST_SPIRIT_DEFINE(size_of_type)
 BOOST_SPIRIT_DEFINE(expr)
@@ -773,6 +777,7 @@ BOOST_SPIRIT_DEFINE(function_call)
 BOOST_SPIRIT_DEFINE(function_template_call)
 BOOST_SPIRIT_DEFINE(unary_internal)
 BOOST_SPIRIT_DEFINE(scope_resolution)
+BOOST_SPIRIT_DEFINE(null_pointer)
 BOOST_SPIRIT_DEFINE(primary)
 
 //===----------------------------------------------------------------------===//

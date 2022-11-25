@@ -137,6 +137,14 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     return *value.value;
   }
 
+  [[nodiscard]] Value operator()(const ast::NullPointer&) const
+  {
+    return {llvm::ConstantPointerNull::get(ctx.builder.getInt8PtrTy()),
+            std::make_shared<PointerType>(
+              std::make_shared<BuiltinType>(BuiltinTypeKind::i8, false),
+              false)};
+  }
+
   [[nodiscard]] Value operator()(const std::uint8_t node) const
   {
     return createAllocaUnsignedInt(

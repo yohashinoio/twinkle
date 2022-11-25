@@ -84,6 +84,10 @@ BOOST_FUSION_ADAPT_STRUCT(
 )
 
 BOOST_FUSION_ADAPT_STRUCT(
+  twinkle::ast::NullPointer,
+)
+
+BOOST_FUSION_ADAPT_STRUCT(
   twinkle::ast::SizeOfType,
   (twinkle::ast::Type, type)
 )

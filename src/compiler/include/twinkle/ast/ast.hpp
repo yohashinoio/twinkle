@@ -290,6 +290,8 @@ struct Value {
   std::shared_ptr<codegen::Value> value;
 };
 
+struct NullPointer : x3::position_tagged {};
+
 struct StringLiteral : x3::position_tagged {
   using value_type = std::u32string::value_type;
 
@@ -399,7 +401,9 @@ using ExprT19 = boost::mpl::push_back<ExprT18, TemplateArguments>::type;
 
 using ExprT20 = boost::mpl::push_back<ExprT19, SizeOfType>::type;
 
-using ExprTypes = ExprT20;
+using ExprT21 = boost::mpl::push_back<ExprT20, NullPointer>::type;
+
+using ExprTypes = ExprT21;
 
 using Expr = boost::make_variant_over<ExprTypes>::type;
 
