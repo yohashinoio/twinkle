@@ -661,9 +661,10 @@ struct ExprVisitor : public boost::static_visitor<Value> {
     const auto result = createScopeResolutionResult(ctx, node);
 
     // We use std::optional in a role similar to that of a pointer
-    std::optional<Value> return_value;
+    std::optional<Value> return_value{};
 
-    if (const auto expr = boost::get<ast::FunctionCall>(&result.expr)) {
+    if (const auto expr = boost::get<ast::FunctionCall>(&result.expr);
+        expr && !expr->args.empty()) {
       // Union literals
       std::optional<std::string> union_name;
 
@@ -690,10 +691,11 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       assert(tag_name);
 
       assert(union_name);
-      return_value = createUnionLiteral(*union_name,
-                                        tag_name->utf8(),
-                                        expr->args.front(),
-                                        pos);
+      return_value =
+                     createUnionLiteral(*union_name,
+                                          tag_name->utf8(),
+                                          expr->args.front(),
+                                          pos);
     }
 
     if (!return_value) {
