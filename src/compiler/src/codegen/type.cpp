@@ -43,7 +43,11 @@ namespace twinkle::codegen
   case BuiltinTypeKind::usize:
     return llvm::Type::getIntNTy(
       ctx.context,
+#if 14 <= LLVM_VERSION_MAJOR
       ctx.module->getDataLayout().getMaxIndexSizeInBits());
+#else
+      ctx.module->getDataLayout().getMaxPointerSizeInBits());
+#endif
   }
 
   unreachable();
