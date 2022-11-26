@@ -94,4 +94,32 @@ JitCompiler::addModule(llvm::orc::ThreadSafeModule  thread_safe_module,
   return cod_layer.add(resource_tracker, std::move(thread_safe_module));
 }
 
+[[nodiscard]] llvm::Expected<llvm::orc::ThreadSafeModule>
+JitCompiler::optimizeModule(llvm::orc::ThreadSafeModule tsm,
+                            const llvm::orc::MaterializationResponsibility&)
+{
+  tsm.withModuleDo([](llvm::Module& m) {
+    // Create a function pass manager
+    auto fpm = std::make_unique<llvm::legacy::FunctionPassManager>(&m);
+
+    // Add some optimizations
+    {
+      llvm::PassManagerBuilder builder;
+
+      builder.OptLevel = 2;
+
+      builder.populateFunctionPassManager(*fpm);
+
+      fpm->doInitialization();
+    }
+
+    // Run the optimizations over all functions in the module being added to
+    // the JIT
+    for (auto& f : m)
+      fpm->run(f);
+  });
+
+  return std::move(tsm);
+}
+
 } // namespace twinkle::jit
