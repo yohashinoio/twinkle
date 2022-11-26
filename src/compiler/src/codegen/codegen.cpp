@@ -98,7 +98,8 @@ CGContext::CGContext(llvm::LLVMContext&      context,
                      PositionCache&&         current_file_poscache,
                      std::filesystem::path&& current_file,
                      const std::string&      source_code,
-                     const unsigned int      opt_level) noexcept
+                     const unsigned int      opt_level,
+                     const bool              jit) noexcept
   : context{context}
   , module{std::make_unique<llvm::Module>(current_file.filename().string(),
                                           context)}
@@ -107,17 +108,18 @@ CGContext::CGContext(llvm::LLVMContext&      context,
   , created_class_template_table{*this}
   , mangler{*this}
   , fpm{module.get()}
+  , jit{jit}
 {
-  // Setup pass manager
-  {
+  if (!jit) {
+    // Setup pass manager
     llvm::PassManagerBuilder builder;
 
     builder.OptLevel = opt_level;
 
     builder.populateFunctionPassManager(fpm);
-
-    fpm.doInitialization();
   }
+
+  fpm.doInitialization();
 
   const auto current_filename = this->current_file.string();
 
@@ -162,7 +164,8 @@ CodeGenerator::CodeGenerator(
   std::vector<parse::Parser::Result>&& parse_results,
   const unsigned int                   opt_level,
   const llvm::Reloc::Model             relocation_model,
-  const std::optional<std::string>&    target_triple_arg)
+  const std::optional<std::string>&    target_triple_arg,
+  const bool                           jit)
   : argv_front{argv_front}
   , context{std::make_unique<llvm::LLVMContext>()}
   , relocation_model{relocation_model}
@@ -186,7 +189,8 @@ CodeGenerator::CodeGenerator(
                   std::move(it->positions),
                   std::move(it->file),
                   it->input,
-                  opt_level};
+                  opt_level,
+                  jit};
 
     ctx.module->setTargetTriple(target_triple);
     ctx.module->setDataLayout(target_machine->createDataLayout());

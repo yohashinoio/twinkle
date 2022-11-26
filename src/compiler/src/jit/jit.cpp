@@ -12,10 +12,12 @@ namespace twinkle::jit
 {
 
 JitCompiler::JitCompiler(
-  std::unique_ptr<llvm::orc::ExecutionSession> exec_session,
-  llvm::orc::JITTargetMachineBuilder           jit_tmb,
-  llvm::DataLayout                             data_layout)
+  std::unique_ptr<llvm::orc::ExecutionSession>    exec_session,
+  std::unique_ptr<llvm::orc::EPCIndirectionUtils> epciu,
+  llvm::orc::JITTargetMachineBuilder              jit_tmb,
+  llvm::DataLayout                                data_layout)
   : exec_session{std::move(exec_session)}
+  , epciu{std::move(epciu)}
   , data_layout{std::move(data_layout)}
   , mangle{*this->exec_session, this->data_layout}
   , object_layer{*this->exec_session,
@@ -25,7 +27,14 @@ JitCompiler::JitCompiler(
   , compile_layer{*this->exec_session,
                   object_layer,
                   std::make_unique<llvm::orc::ConcurrentIRCompiler>(
-                    std::move(std::move(jit_tmb)))}
+                    std::move(jit_tmb))}
+  , optimize_layer(*this->exec_session, compile_layer, optimizeModule)
+  , cod_layer{*this->exec_session,
+              optimize_layer,
+              this->epciu->getLazyCallThroughManager(),
+              [this] {
+                return this->epciu->createIndirectStubsManager();
+              }}
   , main_jd{this->exec_session->createBareJITDylib("<main>")}
 {
   main_jd.addGenerator(llvm::cantFail(
@@ -35,40 +44,44 @@ JitCompiler::JitCompiler(
 
 JitCompiler::~JitCompiler()
 {
-  if (auto&& err = exec_session->endSession())
+  if (auto err = exec_session->endSession())
+    exec_session->reportError(std::move(err));
+  if (auto err = epciu->cleanup())
     exec_session->reportError(std::move(err));
 }
 
 [[nodiscard]] llvm::Expected<std::unique_ptr<JitCompiler>> JitCompiler::create()
 {
   auto epc = llvm::orc::SelfExecutorProcessControl::Create();
-
   if (!epc)
     return epc.takeError();
 
   auto exec_session
     = std::make_unique<llvm::orc::ExecutionSession>(std::move(*epc));
 
-  llvm::orc::JITTargetMachineBuilder jit_tmb(
+  auto epciu = llvm::orc::EPCIndirectionUtils::Create(
+    exec_session->getExecutorProcessControl());
+  if (!epciu)
+    return epciu.takeError();
+
+  (*epciu)->createLazyCallThroughManager(
+    *exec_session,
+    llvm::pointerToJITTargetAddress(&handleLazyCallThroughError));
+
+  if (auto err = setUpInProcessLCTMReentryViaEPCIU(**epciu))
+    return std::move(err);
+
+  llvm::orc::JITTargetMachineBuilder jtmb(
     exec_session->getExecutorProcessControl().getTargetTriple());
 
-  auto data_layout = jit_tmb.getDefaultDataLayoutForTarget();
-  if (!data_layout)
-    return data_layout.takeError();
+  auto dl = jtmb.getDefaultDataLayoutForTarget();
+  if (!dl)
+    return dl.takeError();
 
   return std::make_unique<JitCompiler>(std::move(exec_session),
-                                       std::move(jit_tmb),
-                                       std::move(*data_layout));
-}
-
-[[nodiscard]] const llvm::DataLayout& JitCompiler::getDataLayout() const
-{
-  return data_layout;
-}
-
-[[nodiscard]] llvm::orc::JITDylib& JitCompiler::getMainJitDylib()
-{
-  return main_jd;
+                                       std::move(*epciu),
+                                       std::move(jtmb),
+                                       std::move(*dl));
 }
 
 [[nodiscard]] llvm::Error
@@ -78,13 +91,7 @@ JitCompiler::addModule(llvm::orc::ThreadSafeModule  thread_safe_module,
   if (!resource_tracker)
     resource_tracker = main_jd.getDefaultResourceTracker();
 
-  return compile_layer.add(resource_tracker, std::move(thread_safe_module));
-}
-
-[[nodiscard]] llvm::Expected<llvm::JITEvaluatedSymbol>
-JitCompiler::lookup(const llvm::StringRef name)
-{
-  return exec_session->lookup({&main_jd}, mangle(name.str()));
+  return cod_layer.add(resource_tracker, std::move(thread_safe_module));
 }
 
 } // namespace twinkle::jit

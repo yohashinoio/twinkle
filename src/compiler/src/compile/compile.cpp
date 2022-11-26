@@ -67,7 +67,8 @@ try {
     std::move(parse_results),
     ctx.opt_level,
     getRelocationModel(ctx.relocation_model, argv_front),
-    ctx.target_triple};
+    ctx.target_triple,
+    ctx.jit};
 
   if (ctx.jit)
     return JITResult{code_generator.doJIT()};

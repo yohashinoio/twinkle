@@ -270,7 +270,8 @@ struct CGContext : private boost::noncopyable {
             PositionCache&&         current_file_poscache,
             std::filesystem::path&& file,
             const std::string&      source_code,
-            const unsigned int      opt_level) noexcept;
+            const unsigned int      opt_level,
+            const bool              jit) noexcept;
 
   [[nodiscard]] std::string
   formatError(const boost::iterator_range<InputIterator>& pos,
@@ -355,6 +356,9 @@ struct CGContext : private boost::noncopyable {
   // Pass manager
   llvm::legacy::FunctionPassManager fpm;
 
+  // If true, suppress optimization
+  const bool jit;
+
 private:
   SourceCodeTable source_code_table;
 
@@ -367,7 +371,8 @@ struct CodeGenerator : private boost::noncopyable {
                 std::vector<parse::Parser::Result>&& parse_results,
                 const unsigned int                   opt_level,
                 const llvm::Reloc::Model             relocation_model,
-                const std::optional<std::string>&    target_triple_arg);
+                const std::optional<std::string>&    target_triple_arg,
+                const bool                           jit);
 
   // Returns the created file paths
   [[nodiscard]] FilePaths emitLlvmIRFiles();
