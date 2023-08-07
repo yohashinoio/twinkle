@@ -1,5 +1,5 @@
 /**
- * These codes are licensed under LGPL-2.1 License
+ * These codes are licensed under MIT License
  * See the LICENSE for details
  *
  * Copyright (c) 2022 Hiramoto Ittou
@@ -699,11 +699,10 @@ struct ExprVisitor : public boost::static_visitor<Value> {
       assert(tag_name);
 
       assert(union_name);
-      return_value =
-                     createUnionLiteral(*union_name,
-                                          tag_name->utf8(),
-                                          expr->args.front(),
-                                          pos);
+      return_value = createUnionLiteral(*union_name,
+                                        tag_name->utf8(),
+                                        expr->args.front(),
+                                        pos);
     }
 
     if (!return_value) {
