@@ -27,7 +27,7 @@ directories.
 - C++20 compiler
 - GCC
 
-### Install dependencies (Ubuntu)
+### Install dependencies (Debian, Ubuntu)
 
 Here is how to install them in ubuntu.
 
