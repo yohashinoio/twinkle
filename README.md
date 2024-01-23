@@ -44,7 +44,7 @@ $ sudo apt install -y build-essential cmake
 Install Boost 1.80.0.
 
 ```bash
-$ sudo apt install -y g++ python-dev autotools-dev libicu-dev libbz2-dev wget
+$ sudo apt install -y g++ python-dev-is-python3 autotools-dev libicu-dev libbz2-dev wget
 $ cd /tmp
 $ wget https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.tar.bz2
 $ tar jxvf boost_1_80_0.tar.bz2
@@ -79,10 +79,10 @@ Create build directory.
 $ mkdir build && cd $_
 ```
 
-Build and install.
+Build and install. (If llvm-config command name is llvm-config-14)
 
 ```bash
-$ cmake .. -DCMAKE_BUILD_TYPE=Release
+$ cmake .. -DCMAKE_BUILD_TYPE=Release -DLLVM_CONFIG_PATH="llvm-config-14"
 $ cmake --build . -j
 $ sudo cmake --install .
 ```
@@ -115,7 +115,7 @@ $ cmake --build . -j
 Run the test with CTest.
 
 ```bash
-$ ctest --output-on-failure
+$ ctest -V
 ```
 
 ## References
