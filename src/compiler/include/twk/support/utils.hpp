@@ -14,7 +14,7 @@
 
 #include <string>
 
-namespace twinkle
+namespace twk
 {
 
 constexpr unsigned int VERSION = 000005;
@@ -34,8 +34,8 @@ constexpr unsigned int VERSION = 000005;
 
 [[noreturn]] void unreachableInternal(const std::size_t line, const char* file);
 
-#define unreachable() ::twinkle::unreachableInternal(__LINE__, __FILE__)
+#define unreachable() ::twk::unreachableInternal(__LINE__, __FILE__)
 
-} // namespace twinkle
+} // namespace twk
 
 #endif

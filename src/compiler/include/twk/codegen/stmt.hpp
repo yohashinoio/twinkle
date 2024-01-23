@@ -12,11 +12,11 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <twinkle/pch/pch.hpp>
-#include <twinkle/codegen/codegen.hpp>
-#include <twinkle/codegen/common.hpp>
+#include <twk/pch/pch.hpp>
+#include <twk/codegen/codegen.hpp>
+#include <twk/codegen/common.hpp>
 
-namespace twinkle::codegen
+namespace twk::codegen
 {
 
 void invokeDestructor(CGContext& ctx, const Value& this_);
@@ -26,6 +26,6 @@ void createStatement(CGContext&         ctx,
                      const StmtContext& stmt_ctx_arg,
                      const ast::Stmt&   statement);
 
-} // namespace twinkle::codegen
+} // namespace twk::codegen
 
 #endif

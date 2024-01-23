@@ -5,10 +5,10 @@
  * Copyright (c) 2022 Hiramoto Ittou
  */
 
-#include <twinkle/pch/pch.hpp>
-#include <twinkle/support/utils.hpp>
+#include <twk/pch/pch.hpp>
+#include <twk/support/utils.hpp>
 
-namespace twinkle
+namespace twk
 {
 
 [[nodiscard]] std::string getVersion()
@@ -75,4 +75,4 @@ namespace twinkle
 #endif
 }
 
-} // namespace twinkle
+} // namespace twk

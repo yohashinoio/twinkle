@@ -12,11 +12,11 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <twinkle/pch/pch.hpp>
-#include <twinkle/codegen/codegen.hpp>
-#include <twinkle/codegen/exception.hpp>
+#include <twk/pch/pch.hpp>
+#include <twk/codegen/codegen.hpp>
+#include <twk/codegen/exception.hpp>
 
-namespace twinkle::codegen
+namespace twk::codegen
 {
 
 struct StmtContext {
@@ -285,6 +285,6 @@ createDereference(CGContext& ctx, const PositionRange& pos, const Value& val);
                           const std::shared_ptr<Type>& left,
                           const std::shared_ptr<Type>& right);
 
-} // namespace twinkle::codegen
+} // namespace twk::codegen
 
 #endif

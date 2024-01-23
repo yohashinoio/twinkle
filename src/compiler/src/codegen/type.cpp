@@ -5,13 +5,13 @@
  * Copyright (c) 2022 Hiramoto Ittou
  */
 
-#include <twinkle/codegen/type.hpp>
-#include <twinkle/codegen/codegen.hpp>
-#include <twinkle/codegen/common.hpp>
-#include <twinkle/codegen/exception.hpp>
-#include <twinkle/codegen/top_level.hpp>
+#include <twk/codegen/type.hpp>
+#include <twk/codegen/codegen.hpp>
+#include <twk/codegen/common.hpp>
+#include <twk/codegen/exception.hpp>
+#include <twk/codegen/top_level.hpp>
 
-namespace twinkle::codegen
+namespace twk::codegen
 {
 
 [[nodiscard]] llvm::Type* BuiltinType::getLLVMType(CGContext& ctx) const
@@ -522,4 +522,4 @@ createType(CGContext& ctx, const ast::Type& ast, const PositionRange& pos)
   return type;
 }
 
-} // namespace twinkle::codegen
+} // namespace twk::codegen

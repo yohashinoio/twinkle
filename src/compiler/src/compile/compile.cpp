@@ -5,15 +5,15 @@
  * Copyright (c) 2022 Hiramoto Ittou
  */
 
-#include <twinkle/compile/compile.hpp>
-#include <twinkle/codegen/codegen.hpp>
-#include <twinkle/jit/jit.hpp>
-#include <twinkle/parse/parser.hpp>
-#include <twinkle/support/file.hpp>
-#include <twinkle/support/utils.hpp>
-#include <twinkle/support/exception.hpp>
+#include <twk/compile/compile.hpp>
+#include <twk/codegen/codegen.hpp>
+#include <twk/jit/jit.hpp>
+#include <twk/parse/parser.hpp>
+#include <twk/support/file.hpp>
+#include <twk/support/utils.hpp>
+#include <twk/support/exception.hpp>
 
-namespace twinkle
+namespace twk
 {
 
 // Emit object file without error even if target does not exist
@@ -84,4 +84,4 @@ catch (const ErrorBase& err) {
   return std::nullopt;
 }
 
-} // namespace twinkle
+} // namespace twk

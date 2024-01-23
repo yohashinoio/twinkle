@@ -12,10 +12,10 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <twinkle/pch/pch.hpp>
-#include <twinkle/support/exception.hpp>
+#include <twk/pch/pch.hpp>
+#include <twk/support/exception.hpp>
 
-namespace twinkle
+namespace twk
 {
 
 // Exception class for errors related to file operations.
@@ -30,6 +30,6 @@ struct FileError : public ErrorBase {
 [[nodiscard]] std::string loadFile(const std::string_view       argv_front,
                                    const std::filesystem::path& path);
 
-} // namespace twinkle
+} // namespace twk
 
 #endif

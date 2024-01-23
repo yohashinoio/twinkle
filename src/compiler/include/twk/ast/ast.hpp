@@ -12,15 +12,15 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <twinkle/pch/pch.hpp>
-#include <twinkle/unicode/unicode.hpp>
-#include <twinkle/codegen/kind.hpp>
-#include <twinkle/support/kind.hpp>
+#include <twk/pch/pch.hpp>
+#include <twk/unicode/unicode.hpp>
+#include <twk/codegen/kind.hpp>
+#include <twk/support/kind.hpp>
 
 // Note If the template argument of boost::variant exceeds 10, use
 // boost::make_variant_over
 
-namespace twinkle
+namespace twk
 {
 
 namespace x3 = boost::spirit::x3;
@@ -1155,6 +1155,6 @@ using TranslationUnit = TopLevelList;
 
 } // namespace ast
 
-} // namespace twinkle
+} // namespace twk
 
 #endif

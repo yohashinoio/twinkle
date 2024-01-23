@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>The Twinkle Programming Language</h1>
+  <h1>The Twk Programming Language</h1>
 
 [Getting Started](docs/GettingStarted.md) |
 [Language Reference](docs/LanguageReference.md) |
@@ -68,8 +68,8 @@ $ sudo ./llvm.sh 14
 Clone this repository.
 
 ```bash
-$ git clone https://github.com/yohashinoio/twinkle.git
-$ cd twinkle
+$ git clone https://github.com/yohashinoio/twk.git
+$ cd twk
 ```
 
 Create build directory.

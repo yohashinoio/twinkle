@@ -12,9 +12,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <twinkle/pch/pch.hpp>
+#include <twk/pch/pch.hpp>
 
-namespace twinkle::unicode
+namespace twk::unicode
 {
 
 using Codepoint = char32_t;
@@ -25,6 +25,6 @@ using Codepoint = char32_t;
 
 [[nodiscard]] std::u32string utf8toUtf32(const std::string_view utf8_str);
 
-} // namespace twinkle::unicode
+} // namespace twk::unicode
 
 #endif

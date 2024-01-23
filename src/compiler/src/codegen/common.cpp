@@ -5,9 +5,9 @@
  * Copyright (c) 2022 Hiramoto Ittou
  */
 
-#include <twinkle/codegen/common.hpp>
+#include <twk/codegen/common.hpp>
 
-namespace twinkle::codegen
+namespace twk::codegen
 {
 
 void TemplateArgumentsDefiner::insertToAliasTable(
@@ -384,4 +384,4 @@ createDereference(CGContext& ctx, const PositionRange& pos, const Value& val)
   return left->getMangledName(ctx) == right->getMangledName(ctx);
 }
 
-} // namespace twinkle::codegen
+} // namespace twk::codegen

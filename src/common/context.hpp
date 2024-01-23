@@ -16,7 +16,7 @@
 #include <vector>
 #include <optional>
 
-namespace twinkle
+namespace twk
 {
 
 constexpr unsigned int DEFAULT_OPT_LEVEL = 2;
@@ -59,6 +59,6 @@ struct Context {
   const std::optional<std::string> target_triple;
 };
 
-} // namespace twinkle
+} // namespace twk
 
 #endif

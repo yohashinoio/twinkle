@@ -12,11 +12,11 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <twinkle/ast/ast.hpp>
-#include <twinkle/support/utils.hpp>
-#include <twinkle/support/typedef.hpp>
+#include <twk/ast/ast.hpp>
+#include <twk/support/utils.hpp>
+#include <twk/support/typedef.hpp>
 
-namespace twinkle::parse
+namespace twk::parse
 {
 
 struct Parser : private boost::noncopyable {
@@ -60,6 +60,6 @@ private:
   std::filesystem::path file;
 };
 
-} // namespace twinkle::parse
+} // namespace twk::parse
 
 #endif

@@ -17,7 +17,7 @@
 #include <variant>
 #include <filesystem>
 
-namespace twinkle
+namespace twk
 {
 
 struct JITResult {
@@ -44,6 +44,6 @@ using CompileResult = std::variant<JITResult, AOTResult>;
 std::optional<CompileResult> compile(const Context&         ctx,
                                      const std::string_view argv_front);
 
-} // namespace twinkle
+} // namespace twk
 
 #endif

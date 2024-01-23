@@ -12,7 +12,7 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-namespace twinkle::codegen
+namespace twk::codegen
 {
 
 enum class BuiltinMacroKind {
@@ -22,6 +22,6 @@ enum class BuiltinMacroKind {
   huge_val,
 };
 
-} // namespace twinkle::codegen
+} // namespace twk::codegen
 
 #endif

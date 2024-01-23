@@ -1,4 +1,4 @@
-set(RUNTIME_NAME twinkle)
+set(RUNTIME_NAME twk)
 
 include(GNUInstallDirs)
 
@@ -20,7 +20,7 @@ add_executable(
 target_link_libraries(
   ${RUNTIME_NAME}
   PRIVATE
-  twinklec
+  twkc
   Threads::Threads
   ${Boost_LIBRARIES}
   fmt::fmt

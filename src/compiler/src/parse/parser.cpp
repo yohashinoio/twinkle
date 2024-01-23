@@ -5,17 +5,17 @@
  * Copyright (c) 2022 Hiramoto Ittou
  */
 
-#include <twinkle/pch/pch.hpp>
-#include <twinkle/ast/ast_adapted.hpp>
-#include <twinkle/parse/parser.hpp>
-#include <twinkle/codegen/type.hpp>
-#include <twinkle/codegen/kind.hpp>
-#include <twinkle/parse/exception.hpp>
+#include <twk/pch/pch.hpp>
+#include <twk/ast/ast_adapted.hpp>
+#include <twk/parse/parser.hpp>
+#include <twk/codegen/type.hpp>
+#include <twk/codegen/kind.hpp>
+#include <twk/parse/exception.hpp>
 
 namespace x3     = boost::spirit::x3;
 namespace fusion = boost::fusion;
 
-namespace twinkle::parse
+namespace twk::parse
 {
 
 //===----------------------------------------------------------------------===//
@@ -1008,4 +1008,4 @@ void Parser::parse()
   }
 }
 
-} // namespace twinkle::parse
+} // namespace twk::parse

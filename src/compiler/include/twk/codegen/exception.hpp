@@ -12,18 +12,18 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <twinkle/support/exception.hpp>
+#include <twk/support/exception.hpp>
 
-namespace twinkle::parse
+namespace twk::codegen
 {
 
-struct ParseError : public ErrorBase {
-  explicit ParseError(const std::string& what_arg)
+struct CodegenError : public ErrorBase {
+  explicit CodegenError(const std::string& what_arg)
     : ErrorBase{what_arg}
   {
   }
 };
 
-} // namespace twinkle::parse
+} // namespace twk::codegen
 
 #endif

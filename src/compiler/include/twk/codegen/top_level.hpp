@@ -12,11 +12,11 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <twinkle/pch/pch.hpp>
-#include <twinkle/codegen/codegen.hpp>
-#include <twinkle/codegen/common.hpp>
+#include <twk/pch/pch.hpp>
+#include <twk/codegen/codegen.hpp>
+#include <twk/codegen/common.hpp>
 
-namespace twinkle::codegen
+namespace twk::codegen
 {
 
 [[nodiscard]] std::optional<bool>
@@ -65,6 +65,6 @@ llvm::Function* createTopLevel(CGContext& ctx, const ast::TopLevel& node);
 llvm::Function* createTopLevel(CGContext&                   ctx,
                                const ast::TopLevelWithAttr& node);
 
-} // namespace twinkle::codegen
+} // namespace twk::codegen
 
 #endif

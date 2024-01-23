@@ -5,10 +5,10 @@
  * Copyright (c) 2022 Hiramoto Ittou
  */
 
-#include <twinkle/support/file.hpp>
-#include <twinkle/support/utils.hpp>
+#include <twk/support/file.hpp>
+#include <twk/support/utils.hpp>
 
-namespace twinkle
+namespace twk
 {
 
 // Load a file to std::string
@@ -32,4 +32,4 @@ namespace twinkle
                 fmt::format("{}: Could not open file", path.string()))};
 }
 
-} // namespace twinkle
+} // namespace twk

@@ -5,10 +5,10 @@
  * Copyright (c) 2022 Hiramoto Ittou
  */
 
-#include <twinkle/jit/jit.hpp>
-#include <twinkle/support/utils.hpp>
+#include <twk/jit/jit.hpp>
+#include <twk/support/utils.hpp>
 
-namespace twinkle::jit
+namespace twk::jit
 {
 
 JitCompiler::JitCompiler(
@@ -122,4 +122,4 @@ JitCompiler::optimizeModule(llvm::orc::ThreadSafeModule tsm,
   return std::move(tsm);
 }
 
-} // namespace twinkle::jit
+} // namespace twk::jit

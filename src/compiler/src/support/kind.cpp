@@ -5,10 +5,10 @@
  * Copyright (c) 2022 Hiramoto Ittou
  */
 
-#include <twinkle/support/kind.hpp>
-#include <twinkle/support/utils.hpp>
+#include <twk/support/kind.hpp>
+#include <twk/support/utils.hpp>
 
-namespace twinkle
+namespace twk
 {
 
 [[nodiscard]] bool isSigned(const SignKind sk) noexcept
@@ -53,4 +53,4 @@ getMangledAccessibility(const Accessibility accessibility)
   unreachable();
 }
 
-} // namespace twinkle
+} // namespace twk
