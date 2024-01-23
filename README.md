@@ -7,14 +7,17 @@
 
 </div>
 
-## Capabilities
+## Features
 
-As documentation is not yet available, please refer to the code in the
+- Object-oriented programming
+- Generics
+- Safe memory management with smart pointers (unstable)
+- Tagged/Discriminated union (Like Rust's enum)
+- Variable shadowing
+- Elixir-like pipeline operator
+- Pascal-like pointer syntax
 
-- examples
-- test/cases
-
-directories.
+See the `examples` and `test/cases` folders for actual program examples.
 
 ## Installation
 
@@ -27,7 +30,7 @@ directories.
 - C++20 compiler
 - GCC
 
-### Install dependencies (Debian, Ubuntu)
+### Install Dependencies (Debian, Ubuntu)
 
 Here is how to install them in ubuntu.
 
@@ -116,6 +119,27 @@ Run the test with CTest.
 
 ```bash
 $ ctest -V
+```
+
+## Compiler Usage
+
+If you want to compile and link `main.twk` and `sub.twk`.
+
+```bash
+$ twk main.twk sub.twk
+$ ./a.out
+```
+
+If you want to do JIT compilation.
+
+```bash
+$ twk --JIT main.twk sub.twk
+```
+
+See help for more detailed description.
+
+```bash
+$ twk --help
 ```
 
 ## References
