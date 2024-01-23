@@ -152,5 +152,5 @@ $ twk --help
 
 ## License
 
-This project is available under the dual Apache 2.0 and MIT license.<br/>
-See LICENSE-\* for the full content of the licenses.
+This project is available under the MIT license.<br/>
+See LICENSE for the full content of the license.
