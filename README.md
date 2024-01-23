@@ -16,7 +16,7 @@ As documentation is not yet available, please refer to the code in the
 
 directories.
 
-## Installing
+## Installation
 
 ### Dependency List
 
@@ -44,7 +44,7 @@ $ sudo apt install -y build-essential cmake
 Install Boost 1.80.0.
 
 ```bash
-$ sudo apt install -y g++ python-dev autotools-dev libicu-dev libbz2-dev
+$ sudo apt install -y g++ python-dev autotools-dev libicu-dev libbz2-dev wget
 $ cd /tmp
 $ wget https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.tar.bz2
 $ tar jxvf boost_1_80_0.tar.bz2
@@ -57,6 +57,7 @@ Install LLVM 14. (https://apt.llvm.org/)<br/>
 Versions other than 13 and 14 may not work.
 
 ```bash
+$ sudo apt install lsb-release software-properties-common gnupg
 $ cd /tmp
 $ wget https://apt.llvm.org/llvm.sh
 $ chmod +x llvm.sh
