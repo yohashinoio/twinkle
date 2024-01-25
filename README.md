@@ -13,6 +13,7 @@
 - Generics
 - Safe memory management with smart pointers (unstable)
 - Tagged/Discriminated union (Like Rust's enum)
+- LLVM is adopted for backend
 - Variable shadowing
 - Elixir-like pipeline operator
 - Pascal-like pointer syntax
