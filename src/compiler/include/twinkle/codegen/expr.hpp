@@ -12,11 +12,11 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <twk/pch/pch.hpp>
-#include <twk/codegen/codegen.hpp>
-#include <twk/codegen/common.hpp>
+#include <twinkle/pch/pch.hpp>
+#include <twinkle/codegen/codegen.hpp>
+#include <twinkle/codegen/common.hpp>
 
-namespace twk::codegen
+namespace twinkle::codegen
 {
 
 [[nodiscard]] llvm::Value* gepByOffset(CGContext&          ctx,
@@ -53,6 +53,6 @@ createScopeResolutionResult(CGContext& ctx, const ast::ScopeResolution& node);
                                const StmtContext& stmt_ctx,
                                const ast::Expr&   expr);
 
-} // namespace twk::codegen
+} // namespace twinkle::codegen
 
 #endif

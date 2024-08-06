@@ -5,9 +5,9 @@
  * Copyright (c) 2022 Hiramoto Ittou
  */
 
-#include <twk/unicode/unicode.hpp>
+#include <twinkle/unicode/unicode.hpp>
 
-namespace twk::unicode
+namespace twinkle::unicode
 {
 
 [[nodiscard]] std::string utf32toUtf8(const char32_t utf32)
@@ -33,4 +33,4 @@ namespace twk::unicode
   return std::u32string(first, last);
 }
 
-} // namespace twk::unicode
+} // namespace twinkle::unicode

@@ -7,7 +7,7 @@
 
 #include "cmd.hpp"
 #include <boost/program_options.hpp>
-#include <twk/support/utils.hpp>
+#include <twinkle/support/utils.hpp>
 #include <fmt/color.h>
 #include <fmt/core.h>
 #include <fmt/ostream.h>
@@ -33,7 +33,7 @@ namespace
      "', Assembly file is '" EMIT_ASM_ARG "', "
      "object file is '" EMIT_OBJ_ARG "', LLVM IR is '" EMIT_LLVMIR_ARG "'.\n"
      "If there are multiple input files, compile each to the target. Not linked.")
-    ("Opt,O", program_options::value<unsigned int>()->default_value(twk::DEFAULT_OPT_LEVEL),
+    ("Opt,O", program_options::value<unsigned int>()->default_value(twinkle::DEFAULT_OPT_LEVEL),
      "Specify the optimization level.\n"
      "Possible values are 0 1 2 3 and the meaning is the same as clang.")
     ("link,l", program_options::value<std::vector<std::string>>()->multitoken(),
@@ -101,7 +101,7 @@ getLinkedLibs(const program_options::variables_map& v_map)
 
 } // namespace
 
-namespace twk
+namespace twinkle
 {
 
 [[nodiscard]] Context parseCmdlineOption(const int                argc,
@@ -116,7 +116,7 @@ try {
     std::exit(EXIT_SUCCESS);
   }
   if (v_map.contains("version")) {
-    std::cout << "twk version " << getVersion() << std::endl;
+    std::cout << "twinkle version " << getVersion() << std::endl;
     std::exit(EXIT_SUCCESS);
   }
   else if (v_map.contains("help")) {
@@ -147,4 +147,4 @@ catch (const program_options::error& err) {
   std::exit(EXIT_FAILURE);
 }
 
-} // namespace twk
+} // namespace twinkle

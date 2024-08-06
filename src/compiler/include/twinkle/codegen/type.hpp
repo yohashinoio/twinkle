@@ -12,15 +12,15 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <twk/pch/pch.hpp>
-#include <twk/support/utils.hpp>
-#include <twk/support/kind.hpp>
-#include <twk/support/typedef.hpp>
-#include <twk/unicode/unicode.hpp>
+#include <twinkle/pch/pch.hpp>
+#include <twinkle/support/utils.hpp>
+#include <twinkle/support/kind.hpp>
+#include <twinkle/support/typedef.hpp>
+#include <twinkle/unicode/unicode.hpp>
 #include <boost/lexical_cast.hpp>
-#include <twk/ast/ast.hpp>
+#include <twinkle/ast/ast.hpp>
 
-namespace twk::codegen
+namespace twinkle::codegen
 {
 
 enum class BuiltinTypeKind {
@@ -712,6 +712,6 @@ private:
 [[nodiscard]] std::shared_ptr<Type>
 createType(CGContext& ctx, const ast::Type& ast, const PositionRange& pos);
 
-} // namespace twk::codegen
+} // namespace twinkle::codegen
 
 #endif

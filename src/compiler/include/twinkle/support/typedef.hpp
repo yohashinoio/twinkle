@@ -12,9 +12,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <twk/pch/pch.hpp>
+#include <twinkle/pch/pch.hpp>
 
-namespace twk
+namespace twinkle
 {
 
 //===----------------------------------------------------------------------===//
@@ -29,6 +29,6 @@ using PositionCache
 
 using PositionRange = boost::iterator_range<InputIterator>;
 
-} // namespace twk
+} // namespace twinkle
 
 #endif

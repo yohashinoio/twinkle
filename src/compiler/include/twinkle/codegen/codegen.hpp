@@ -12,17 +12,17 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <twk/pch/pch.hpp>
-#include <twk/ast/ast.hpp>
-#include <twk/codegen/type.hpp>
-#include <twk/support/utils.hpp>
-#include <twk/support/typedef.hpp>
-#include <twk/jit/jit.hpp>
-#include <twk/parse/parser.hpp>
-#include <twk/mangle/mangler.hpp>
+#include <twinkle/pch/pch.hpp>
+#include <twinkle/ast/ast.hpp>
+#include <twinkle/codegen/type.hpp>
+#include <twinkle/support/utils.hpp>
+#include <twinkle/support/typedef.hpp>
+#include <twinkle/jit/jit.hpp>
+#include <twinkle/parse/parser.hpp>
+#include <twinkle/mangle/mangler.hpp>
 #include <map>
 
-namespace twk
+namespace twinkle
 {
 
 using FilePaths = std::vector<std::filesystem::path>;
@@ -422,6 +422,6 @@ private:
 
 } // namespace codegen
 
-} // namespace twk
+} // namespace twinkle
 
 #endif

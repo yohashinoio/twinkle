@@ -12,9 +12,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <twk/pch/pch.hpp>
+#include <twinkle/pch/pch.hpp>
 
-namespace twk::jit
+namespace twinkle::jit
 {
 
 struct JitCompiler {
@@ -72,6 +72,6 @@ private:
                  const llvm::orc::MaterializationResponsibility&);
 };
 
-} // namespace twk::jit
+} // namespace twinkle::jit
 
 #endif

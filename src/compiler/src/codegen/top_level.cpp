@@ -5,12 +5,12 @@
  * Copyright (c) 2022 Hiramoto Ittou
  */
 
-#include <twk/codegen/top_level.hpp>
-#include <twk/codegen/expr.hpp>
-#include <twk/codegen/stmt.hpp>
-#include <twk/codegen/exception.hpp>
+#include <twinkle/codegen/top_level.hpp>
+#include <twinkle/codegen/expr.hpp>
+#include <twinkle/codegen/stmt.hpp>
+#include <twinkle/codegen/exception.hpp>
 
-namespace twk::codegen
+namespace twinkle::codegen
 {
 
 enum class AttrKind {
@@ -848,4 +848,4 @@ llvm::Function* createTopLevel(CGContext&                   ctx,
   return boost::apply_visitor(TopLevelVisitor{ctx, node.attrs}, node.top_level);
 }
 
-} // namespace twk::codegen
+} // namespace twinkle::codegen

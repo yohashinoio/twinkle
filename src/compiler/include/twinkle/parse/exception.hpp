@@ -12,9 +12,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <twk/support/exception.hpp>
+#include <twinkle/support/exception.hpp>
 
-namespace twk::parse
+namespace twinkle::parse
 {
 
 struct ParseError : public ErrorBase {
@@ -24,6 +24,6 @@ struct ParseError : public ErrorBase {
   }
 };
 
-} // namespace twk::parse
+} // namespace twinkle::parse
 
 #endif

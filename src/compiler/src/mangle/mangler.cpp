@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou
  */
 
-#include <twk/mangle/mangler.hpp>
-#include <twk/codegen/type.hpp>
-#include <twk/codegen/common.hpp>
+#include <twinkle/mangle/mangler.hpp>
+#include <twinkle/codegen/type.hpp>
+#include <twinkle/codegen/common.hpp>
 
-namespace twk::codegen::mangle
+namespace twinkle::codegen::mangle
 {
 
 [[nodiscard]] std::string
@@ -323,4 +323,4 @@ Mangler::concatTemplateArgs(const ast::TemplateArguments& template_args) const
   return ss.str();
 }
 
-} // namespace twk::codegen::mangle
+} // namespace twinkle::codegen::mangle

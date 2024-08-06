@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou
  */
 
-#include <twk/codegen/codegen.hpp>
-#include <twk/codegen/top_level.hpp>
-#include <twk/codegen/type.hpp>
-#include <twk/codegen/exception.hpp>
-#include <twk/unicode/unicode.hpp>
+#include <twinkle/codegen/codegen.hpp>
+#include <twinkle/codegen/top_level.hpp>
+#include <twinkle/codegen/type.hpp>
+#include <twinkle/codegen/exception.hpp>
+#include <twinkle/unicode/unicode.hpp>
 #include <cassert>
 #include <boost/filesystem.hpp>
 
@@ -29,7 +29,7 @@ namespace
 
 } // namespace
 
-namespace twk::codegen
+namespace twinkle::codegen
 {
 
 [[nodiscard]] std::optional<std::shared_ptr<Type>>
@@ -394,4 +394,4 @@ void CodeGenerator::initTargetTripleAndMachine(
                                     relocation_model)); // Set relocation model.
 }
 
-} // namespace twk::codegen
+} // namespace twinkle::codegen

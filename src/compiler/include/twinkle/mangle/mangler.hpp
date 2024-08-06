@@ -12,10 +12,10 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <twk/pch/pch.hpp>
-#include <twk/ast/ast.hpp>
+#include <twinkle/pch/pch.hpp>
+#include <twinkle/ast/ast.hpp>
 
-namespace twk
+namespace twinkle
 {
 
 namespace codegen
@@ -103,6 +103,6 @@ private:
 
 } // namespace codegen
 
-} // namespace twk
+} // namespace twinkle
 
 #endif

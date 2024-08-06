@@ -12,9 +12,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <twk/support/exception.hpp>
+#include <twinkle/support/exception.hpp>
 
-namespace twk::codegen
+namespace twinkle::codegen
 {
 
 struct CodegenError : public ErrorBase {
@@ -24,6 +24,6 @@ struct CodegenError : public ErrorBase {
   }
 };
 
-} // namespace twk::codegen
+} // namespace twinkle::codegen
 
 #endif

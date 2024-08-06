@@ -12,9 +12,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <twk/pch/pch.hpp>
+#include <twinkle/pch/pch.hpp>
 
-namespace twk
+namespace twinkle
 {
 
 enum class SignKind {
@@ -52,6 +52,6 @@ getMangledAccessibility(const Accessibility accessibility);
 
 [[nodiscard]] bool isExternallyAccessible(const Accessibility& access) noexcept;
 
-} // namespace twk
+} // namespace twinkle
 
 #endif

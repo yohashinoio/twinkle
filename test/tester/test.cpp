@@ -6,7 +6,7 @@
  */
 
 #include "expect.hpp"
-#include <twk/compile/compile.hpp>
+#include <twinkle/compile/compile.hpp>
 #include <context.hpp>
 #include <filesystem>
 #include <sstream>
@@ -36,41 +36,41 @@ namespace test
       paths.push_back(path.path().string());
 
     const auto result
-      = twk::compile(twk::Context{std::move(paths),
-                                  true,
-                                  "", // JIT compile, so it's empty
-                                  twk::DEFAULT_OPT_LEVEL,
-                                  "pic",
-                                  {},
-                                  std::nullopt},
-                     "test");
+      = twinkle::compile(twinkle::Context{std::move(paths),
+                                          true,
+                                          "", // JIT compile, so it's empty
+                                          twinkle::DEFAULT_OPT_LEVEL,
+                                          "pic",
+                                          {},
+                                          std::nullopt},
+                         "test");
 
 #if SUPPRESS_COMPILE_ERROR_OUTPUT
     std::cerr.clear();
 #endif
 
     if (result)
-      return std::get<twk::JITResult>(*result).exit_status;
+      return std::get<twinkle::JITResult>(*result).exit_status;
     else
       return std::nullopt;
   }
   else {
-    const auto result
-      = twk::compile(twk::Context{std::vector<std::string>{test_path.path()},
-                                  true,
-                                  "", // JIT compile, so it's empty
-                                  twk::DEFAULT_OPT_LEVEL,
-                                  "pic",
-                                  {},
-                                  std::nullopt},
-                     "test");
+    const auto result = twinkle::compile(
+      twinkle::Context{std::vector<std::string>{test_path.path()},
+                       true,
+                       "", // JIT compile, so it's empty
+                       twinkle::DEFAULT_OPT_LEVEL,
+                       "pic",
+                       {},
+                       std::nullopt},
+      "test");
 
 #if SUPPRESS_COMPILE_ERROR_OUTPUT
     std::cerr.clear();
 #endif
 
     if (result)
-      return std::get<twk::JITResult>(*result).exit_status;
+      return std::get<twinkle::JITResult>(*result).exit_status;
     else
       return std::nullopt;
   }

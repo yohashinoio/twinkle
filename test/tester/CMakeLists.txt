@@ -18,7 +18,7 @@ target_link_libraries(
   PRIVATE
   Threads::Threads
   fmt::fmt
-  twkc
+  twinklec
 )
 
 target_compile_options(

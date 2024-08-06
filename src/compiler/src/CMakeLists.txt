@@ -1,4 +1,4 @@
-set(LIB_NAME twkc)
+set(LIB_NAME twinklec)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
@@ -51,7 +51,7 @@ add_library(
   compile/compile.cpp
 )
 
-target_precompile_headers(${LIB_NAME} PRIVATE ../include/twk/pch/pch.hpp)
+target_precompile_headers(${LIB_NAME} PRIVATE ../include/twinkle/pch/pch.hpp)
 
 add_subdirectory(codegen)
 add_subdirectory(jit)

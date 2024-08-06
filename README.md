@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>The Twk Programming Language</h1>
+  <h1>The Twinkle Programming Language</h1>
 
 [Getting Started](docs/GettingStarted.md) |
 [Language Reference](docs/LanguageReference.md) |
@@ -73,8 +73,8 @@ $ sudo ./llvm.sh 14
 Clone this repository.
 
 ```bash
-$ git clone https://github.com/yohashinoio/twk.git
-$ cd twk
+$ git clone https://github.com/yohashinoio/twinkle.git
+$ cd twinkle
 ```
 
 Create build directory.
@@ -124,23 +124,23 @@ $ ctest -V
 
 ## Compiler Usage
 
-If you want to compile and link `main.twk` and `sub.twk`.
+If you want to compile and link `main.twinkle` and `sub.twinkle`.
 
 ```bash
-$ twk main.twk sub.twk
+$ twinkle main.twinkle sub.twinkle
 $ ./a.out
 ```
 
 If you want to do JIT compilation.
 
 ```bash
-$ twk --JIT main.twk sub.twk
+$ twinkle --JIT main.twinkle sub.twinkle
 ```
 
 See help for more detailed description.
 
 ```bash
-$ twk --help
+$ twinkle --help
 ```
 
 ## References

@@ -6,7 +6,7 @@
  */
 
 #include "cmd.hpp"
-#include <twk/compile/compile.hpp>
+#include <twinkle/compile/compile.hpp>
 #include <cstdlib>
 #include <iostream>
 
@@ -32,19 +32,19 @@ callLinker(const std::vector<std::filesystem::path>& files,
 
 int main(const int argc, const char* const* const argv)
 {
-  const auto context = twk::parseCmdlineOption(argc, argv);
+  const auto context = twinkle::parseCmdlineOption(argc, argv);
 
-  const auto result = twk::compile(context, *argv);
+  const auto result = twinkle::compile(context, *argv);
 
   if (!result)
     return EXIT_FAILURE;
 
-  if (std::holds_alternative<twk::JITResult>(*result))
-    return std::get<twk::JITResult>(*result).exit_status;
+  if (std::holds_alternative<twinkle::JITResult>(*result))
+    return std::get<twinkle::JITResult>(*result).exit_status;
 
   if (context.emit_target == EMIT_EXE_ARG
-      && std::holds_alternative<twk::AOTResult>(*result)) {
-    const auto& aotresult = std::get<twk::AOTResult>(*result);
+      && std::holds_alternative<twinkle::AOTResult>(*result)) {
+    const auto& aotresult = std::get<twinkle::AOTResult>(*result);
 
     {
       // Call linker

@@ -5,13 +5,13 @@
  * Copyright (c) 2022 Hiramoto Ittou
  */
 
-#include <twk/codegen/expr.hpp>
-#include <twk/codegen/exception.hpp>
-#include <twk/codegen/kind.hpp>
-#include <twk/codegen/stmt.hpp>
-#include <twk/codegen/top_level.hpp>
+#include <twinkle/codegen/expr.hpp>
+#include <twinkle/codegen/exception.hpp>
+#include <twinkle/codegen/kind.hpp>
+#include <twinkle/codegen/stmt.hpp>
+#include <twinkle/codegen/top_level.hpp>
 
-namespace twk::codegen
+namespace twinkle::codegen
 {
 
 [[nodiscard]] llvm::Function*
@@ -1121,10 +1121,10 @@ private:
     return {ctx.builder.CreateLoad(alloca->getAllocatedType(), alloca), type};
   }
 
-  void
-  createConstructorCall(const boost::iterator_range<twk::InputIterator>& pos,
-                        const std::string&       class_name,
-                        const std::deque<Value>& args) const
+  void createConstructorCall(
+    const boost::iterator_range<twinkle::InputIterator>& pos,
+    const std::string&                                   class_name,
+    const std::deque<Value>&                             args) const
   {
     ctx.ns_hierarchy.push({class_name, NamespaceKind::class_});
 
@@ -1144,10 +1144,10 @@ private:
     }
   }
 
-  [[nodiscard]] Value
-  createFunctionCall(const std::string&  callee_name,
-                     std::deque<Value>&& args,
-                     const boost::iterator_range<twk::InputIterator>& pos) const
+  [[nodiscard]] Value createFunctionCall(
+    const std::string&                                   callee_name,
+    std::deque<Value>&&                                  args,
+    const boost::iterator_range<twinkle::InputIterator>& pos) const
   {
     if (auto const func = findCalleeMethod(callee_name, args)) {
       args.push_front((*this)(ast::Identifier{std::u32string{U"this"}}));
@@ -1162,10 +1162,10 @@ private:
       fmt::format("unknown function '{}' called", callee_name))};
   }
 
-  [[nodiscard]] Value
-  createFunctionCall(llvm::Function* const    callee_func,
-                     const std::deque<Value>& args,
-                     const boost::iterator_range<twk::InputIterator>& pos) const
+  [[nodiscard]] Value createFunctionCall(
+    llvm::Function* const                                callee_func,
+    const std::deque<Value>&                             args,
+    const boost::iterator_range<twinkle::InputIterator>& pos) const
   {
     if (!callee_func->isVarArg() && callee_func->arg_size() != args.size())
       throw CodegenError{ctx.formatError(pos, "incorrect arguments passed")};
@@ -1721,4 +1721,4 @@ private:
   return boost::apply_visitor(ExprVisitor{ctx, scope, stmt_ctx}, expr);
 }
 
-} // namespace twk::codegen
+} // namespace twinkle::codegen

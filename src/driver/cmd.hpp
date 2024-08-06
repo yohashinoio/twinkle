@@ -14,12 +14,12 @@
 
 #include <context.hpp>
 
-namespace twk
+namespace twinkle
 {
 
 [[nodiscard]] Context parseCmdlineOption(const int                argc,
                                          const char* const* const argv);
 
-} // namespace twk
+} // namespace twinkle
 
 #endif

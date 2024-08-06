@@ -5,11 +5,11 @@
  * Copyright (c) 2022 Hiramoto Ittou
  */
 
-#include <twk/codegen/stmt.hpp>
-#include <twk/codegen/expr.hpp>
-#include <twk/codegen/exception.hpp>
+#include <twinkle/codegen/stmt.hpp>
+#include <twinkle/codegen/expr.hpp>
+#include <twinkle/codegen/exception.hpp>
 
-namespace twk::codegen
+namespace twinkle::codegen
 {
 
 [[nodiscard]] SymbolTable mergeSymbolTables(const SymbolTable& a,
@@ -802,4 +802,4 @@ void createStatement(CGContext&         ctx,
   }
 }
 
-} // namespace twk::codegen
+} // namespace twinkle::codegen
